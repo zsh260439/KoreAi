@@ -1,27 +1,9 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-declare module 'vue-router' {
-  interface RouteMeta {
-    appShell: 'marketing' | 'auth' | 'workspace' | 'admin'
-    title?: string
-    requiresAuth?: boolean
-    breadcrumb?: string[]
-    navGroup?: string
-    navKey?: string
-    keepAlive?: boolean
-  }
-}
-
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'home',
-    component: () => import('@/views/homeView/index.vue'),
-    meta: {
-      appShell: 'marketing',
-      title: '首页',
-      requiresAuth: false
-    }
+    redirect: '/workspace'
   },
   {
     path: '/login',
@@ -120,55 +102,16 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: 'intent-tree',
-        name: 'admin-intent-tree',
-        component: () => import('@/views/admin/AdminIntentTreeView.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '意图树配置',
-          requiresAuth: true,
-          navGroup: '导航',
-          navKey: 'intent-tree',
-          breadcrumb: ['首页', '意图管理', '意图树配置']
-        }
-      },
-      {
-        path: 'intent-list',
-        name: 'admin-intent-list',
-        component: () => import('@/views/admin/AdminIntentListView.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '意图列表',
-          requiresAuth: true,
-          navGroup: '导航',
-          navKey: 'intent-list',
-          breadcrumb: ['首页', '意图管理', '意图列表']
-        }
-      },
-      {
         path: 'ingestion',
         name: 'admin-ingestion',
         component: () => import('@/views/admin/AdminPipelineTasksView.vue'),
         meta: {
           appShell: 'admin',
-          title: '数据通道',
+          title: '流水线任务',
           requiresAuth: true,
           navGroup: '导航',
           navKey: 'ingestion',
-          breadcrumb: ['首页', '数据通道']
-        }
-      },
-      {
-        path: 'mappings',
-        name: 'admin-mappings',
-        component: () => import('@/views/admin/AdminMappingsView.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '关键词映射',
-          requiresAuth: true,
-          navGroup: '导航',
-          navKey: 'mappings',
-          breadcrumb: ['首页', '关键词映射']
+          breadcrumb: ['首页', '流水线任务']
         }
       },
       {
@@ -198,42 +141,16 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: 'sample-questions',
-        name: 'admin-sample-questions',
-        component: () => import('@/views/admin/AdminSampleQuestionsView.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '示例问题',
-          requiresAuth: true,
-          navGroup: '设置',
-          navKey: 'sample-questions',
-          breadcrumb: ['首页', '示例问题']
-        }
-      },
-      {
-        path: 'users',
-        name: 'admin-users',
-        component: () => import('@/views/admin/AdminUsersView.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '用户管理',
-          requiresAuth: true,
-          navGroup: '设置',
-          navKey: 'users',
-          breadcrumb: ['首页', '用户管理']
-        }
-      },
-      {
         path: 'settings',
         name: 'admin-settings',
         component: () => import('@/views/admin/AdminSettingsView.vue'),
         meta: {
           appShell: 'admin',
-          title: '系统设置',
+          title: 'Settings',
           requiresAuth: true,
           navGroup: '设置',
           navKey: 'settings',
-          breadcrumb: ['首页', '系统设置']
+          breadcrumb: ['首页', 'Settings']
         }
       }
     ]

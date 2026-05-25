@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, Github, KeyRound, LogOut, Menu, MessageSquare, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
-import {
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuRoot,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from 'reka-ui'
+
 
 import ChangePasswordDialog from '@/components/admin/ChangePasswordDialog.vue'
 import type { SearchSuggestionGroup, User } from '@/types/models'
@@ -36,19 +29,24 @@ const showSuggest = computed(() => searchFocused.value && hasQuery.value)
 const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : props.user?.role || '成员'))
 const avatarLabel = computed(() => props.user?.name || '管理员')
 
-function handleFocus() {
+const handleFocus = () => {
   searchFocused.value = true
 }
 
-function handleBlur() {
+const handleBlur = () => {
   window.setTimeout(() => {
     searchFocused.value = false
   }, 150)
 }
 
-function handleSelect(href: string) {
+const handleSelect = (href: string) => {
   emit('searchSelect', href)
   searchFocused.value = false
+}
+
+const handleCommand = (command: string) => {
+  if (command === 'password') passwordDialogOpen.value = true
+  if (command === 'logout') emit('logout')
 }
 </script>
 
@@ -66,21 +64,21 @@ function handleSelect(href: string) {
         </button>
 
         <div class="admin-topbar-search">
-          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            :value="searchValue"
-            name="kb-search"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-            spellcheck="false"
+          <el-input
+            :model-value="searchValue"
             placeholder="筛选知识库..."
-            class="h-10 w-full rounded-[10px] border border-slate-200 bg-white pl-10 pr-16 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            clearable
+            @input="emit('searchChange', $event)"
             @focus="handleFocus"
             @blur="handleBlur"
-            @input="emit('searchChange', String(($event.target as HTMLInputElement).value))"
           >
-          <span class="admin-topbar-kbd">Ctrl K</span>
+            <template #prefix>
+              <Search class="h-4 w-4 text-slate-400" />
+            </template>
+            <template #suffix>
+              <span class="admin-topbar-kbd">Ctrl K</span>
+            </template>
+          </el-input>
 
           <div
             v-if="showSuggest"
@@ -142,47 +140,27 @@ function handleSelect(href: string) {
           <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">--</span>
         </a>
 
-        <DropdownMenuRoot>
-          <DropdownMenuTrigger as-child>
-            <button
-              type="button"
-              class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 shadow-sm"
-              aria-label="用户菜单"
-            >
-              <span class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
-                {{ avatarLabel.slice(0, 1) }}
-              </span>
-              <span class="hidden sm:inline">{{ avatarLabel }}</span>
-              <ChevronDown class="h-4 w-4 text-slate-400" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuContent
-              align="end"
-              :side-offset="8"
-              class="z-50 w-44 rounded-[12px] border bg-white p-1 shadow-lg outline-none"
-            >
+        <el-dropdown trigger="click" @command="handleCommand">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 shadow-sm"
+          >
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+              {{ avatarLabel.slice(0, 1) }}
+            </span>
+            <span class="hidden sm:inline">{{ avatarLabel }}</span>
+            <ChevronDown class="h-4 w-4 text-slate-400" />
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
               <div class="px-3 py-2 text-xs text-slate-500">
                 {{ avatarLabel }} / {{ roleLabel }}
               </div>
-              <DropdownMenuSeparator class="my-1 h-px bg-slate-100" />
-              <DropdownMenuItem
-                class="flex cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-sm text-slate-700 outline-none transition hover:bg-slate-50"
-                @click="passwordDialogOpen = true"
-              >
-                <KeyRound class="h-4 w-4" />
-                修改密码
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                class="flex cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-sm text-rose-600 outline-none transition hover:bg-rose-50"
-                @click="emit('logout')"
-              >
-                <LogOut class="h-4 w-4" />
-                退出登录
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenuPortal>
-        </DropdownMenuRoot>
+              <el-dropdown-item command="password" :icon="KeyRound">修改密码</el-dropdown-item>
+              <el-dropdown-item divided command="logout" :icon="LogOut">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
 
@@ -219,16 +197,13 @@ function handleSelect(href: string) {
 }
 
 .admin-layout .admin-topbar-kbd {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
   border-radius: 6px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
   padding: 2px 8px;
   font-size: 10px;
   color: #94a3b8;
+  white-space: nowrap;
 }
 
 .admin-layout .admin-topbar-suggest {

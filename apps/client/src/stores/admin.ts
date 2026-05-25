@@ -1,225 +1,182 @@
+import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import type {
-  DashboardData,
-  IntentNode,
-  KnowledgeBase,
-  KnowledgeDocument,
-  PipelineTask,
-  QueryMapping,
-  SampleQuestion,
-  SearchSuggestionGroup,
-  SystemSettings,
-  TraceDetail,
-  TraceSummary,
-  User
-} from '@/types/models'
 import {
   fetchDashboardData,
   fetchDocumentDetail,
-  fetchIntentList,
-  fetchIntentTree,
   fetchKnowledgeBases,
   fetchKnowledgeDocuments,
-  fetchMappings,
   fetchPipelines,
   fetchPipelineTasks,
-  fetchSampleQuestions,
   fetchSearchSuggestions,
   fetchSystemSettings,
   fetchTraceDetail,
-  fetchTraces,
-  fetchUsers
+  fetchTraces
 } from '@/servers/admin'
+import type {
+  DashboardData,
+  KnowledgeBase,
+  KnowledgeDocument,
+  PipelineTask,
+  SearchSuggestionGroup,
+  SystemSettings,
+  TraceDetail,
+  TraceSummary
+} from '@/types/models'
 
-interface AdminState {
-  dashboard: DashboardData | null
-  knowledgeBases: KnowledgeBase[]
-  documentsByKb: Record<string, KnowledgeDocument[]>
-  selectedDocument: KnowledgeDocument | null
-  pipelines: PipelineTask[]
-  tasks: PipelineTask[]
-  intentTree: IntentNode[]
-  intentList: IntentNode[]
-  mappings: QueryMapping[]
-  traces: TraceSummary[]
-  traceDetail: TraceDetail | null
-  sampleQuestions: SampleQuestion[]
-  users: User[]
-  settings: SystemSettings | null
-  searchSuggestions: SearchSuggestionGroup[]
-  searchValue: string
-  searchLoading: boolean
-  collapsed: boolean
-  mobileSidebarOpen: boolean
-  loading: boolean
-  error: string
-}
+export const useAdminStore = defineStore('admin', () => {
+  const dashboard = ref<DashboardData | null>(null)
+  const knowledgeBases = ref<KnowledgeBase[]>([])
+  const documentsByKb = ref<Record<string, KnowledgeDocument[]>>({})
+  const selectedDocument = ref<KnowledgeDocument | null>(null)
+  const pipelines = ref<PipelineTask[]>([])
+  const tasks = ref<PipelineTask[]>([])
+  const traces = ref<TraceSummary[]>([])
+  const traceDetail = ref<TraceDetail | null>(null)
+  const settings = ref<SystemSettings | null>(null)
+  const searchSuggestions = ref<SearchSuggestionGroup[]>([])
+  const searchValue = ref('')
+  const searchLoading = ref(false)
+  const collapsed = ref(false)
+  const mobileSidebarOpen = ref(false)
+  const loading = ref(false)
+  const error = ref('')
 
-export const useAdminStore = defineStore('admin', {
-  state: (): AdminState => ({
-    dashboard: null,
-    knowledgeBases: [],
-    documentsByKb: {},
-    selectedDocument: null,
-    pipelines: [],
-    tasks: [],
-    intentTree: [],
-    intentList: [],
-    mappings: [],
-    traces: [],
-    traceDetail: null,
-    sampleQuestions: [],
-    users: [],
-    settings: null,
-    searchSuggestions: [],
-    searchValue: '',
-    searchLoading: false,
-    collapsed: false,
-    mobileSidebarOpen: false,
-    loading: false,
-    error: ''
-  }),
-  actions: {
-    toggleCollapse() {
-      this.collapsed = !this.collapsed
-    },
-    toggleMobileSidebar(open?: boolean) {
-      this.mobileSidebarOpen = typeof open === 'boolean' ? open : !this.mobileSidebarOpen
-    },
-    async loadDashboard() {
-      this.loading = true
-      this.error = ''
-      try {
-        this.dashboard = await fetchDashboardData()
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载 Dashboard 失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadKnowledgeBases() {
-      this.loading = true
-      this.error = ''
-      try {
-        this.knowledgeBases = await fetchKnowledgeBases()
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载知识库失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadDocuments(kbId: string) {
-      this.loading = true
-      this.error = ''
-      try {
-        this.documentsByKb[kbId] = await fetchKnowledgeDocuments(kbId)
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载文档失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadDocumentDetail(kbId: string, docId: string) {
-      this.selectedDocument = await fetchDocumentDetail(kbId, docId)
-    },
-    async loadPipelines() {
-      this.loading = true
-      this.error = ''
-      try {
-        const [pipelines, tasks] = await Promise.all([fetchPipelines(), fetchPipelineTasks()])
-        this.pipelines = pipelines
-        this.tasks = tasks
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载数据通道失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadIntentData() {
-      this.loading = true
-      this.error = ''
-      try {
-        const [tree, list] = await Promise.all([fetchIntentTree(), fetchIntentList()])
-        this.intentTree = tree
-        this.intentList = list
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载意图数据失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadMappings() {
-      this.loading = true
-      this.error = ''
-      try {
-        this.mappings = await fetchMappings()
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载映射失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadTraces() {
-      this.loading = true
-      this.error = ''
-      try {
-        this.traces = await fetchTraces()
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载链路失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadTraceDetail(traceId: string) {
-      this.loading = true
-      this.error = ''
-      try {
-        this.traceDetail = await fetchTraceDetail(traceId)
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载链路详情失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadSampleQuestions() {
-      this.loading = true
-      this.error = ''
-      try {
-        this.sampleQuestions = await fetchSampleQuestions()
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载示例问题失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadUsers() {
-      this.loading = true
-      this.error = ''
-      try {
-        this.users = await fetchUsers()
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载用户失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadSettings() {
-      this.loading = true
-      this.error = ''
-      try {
-        this.settings = await fetchSystemSettings()
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '加载系统设置失败'
-      } finally {
-        this.loading = false
-      }
-    },
-    async updateSearch(query: string) {
-      this.searchValue = query
-      this.searchLoading = true
-      this.searchSuggestions = await fetchSearchSuggestions(query)
-      this.searchLoading = false
+  const toggleCollapse = () => {
+    collapsed.value = !collapsed.value
+  }
+
+  const toggleMobileSidebar = (open?: boolean) => {
+    mobileSidebarOpen.value = typeof open === 'boolean' ? open : !mobileSidebarOpen.value
+  }
+
+  const loadDashboard = async () => {
+    loading.value = true
+    error.value = ''
+    try {
+      dashboard.value = await fetchDashboardData()
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载 Dashboard 失败'
+    } finally {
+      loading.value = false
     }
+  }
+
+  const loadKnowledgeBases = async () => {
+    loading.value = true
+    error.value = ''
+    try {
+      knowledgeBases.value = await fetchKnowledgeBases()
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载知识库失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const loadDocuments = async (kbId: string) => {
+    loading.value = true
+    error.value = ''
+    try {
+      documentsByKb.value = {
+        ...documentsByKb.value,
+        [kbId]: await fetchKnowledgeDocuments(kbId)
+      }
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载文档失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const loadDocumentDetail = async (kbId: string, docId: string) => {
+    selectedDocument.value = await fetchDocumentDetail(kbId, docId)
+  }
+
+  const loadPipelines = async () => {
+    loading.value = true
+    error.value = ''
+    try {
+      const [nextPipelines, nextTasks] = await Promise.all([fetchPipelines(), fetchPipelineTasks()])
+      pipelines.value = nextPipelines
+      tasks.value = nextTasks
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载流水线任务失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const loadTraces = async () => {
+    loading.value = true
+    error.value = ''
+    try {
+      traces.value = await fetchTraces()
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载链路失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const loadTraceDetail = async (traceId: string) => {
+    loading.value = true
+    error.value = ''
+    try {
+      traceDetail.value = await fetchTraceDetail(traceId)
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载链路详情失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const loadSettings = async () => {
+    loading.value = true
+    error.value = ''
+    try {
+      settings.value = await fetchSystemSettings()
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载系统设置失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const updateSearch = async (query: string) => {
+    searchValue.value = query
+    searchLoading.value = true
+    searchSuggestions.value = await fetchSearchSuggestions(query)
+    searchLoading.value = false
+  }
+
+  return {
+    dashboard,
+    knowledgeBases,
+    documentsByKb,
+    selectedDocument,
+    pipelines,
+    tasks,
+    traces,
+    traceDetail,
+    settings,
+    searchSuggestions,
+    searchValue,
+    searchLoading,
+    collapsed,
+    mobileSidebarOpen,
+    loading,
+    error,
+    toggleCollapse,
+    toggleMobileSidebar,
+    loadDashboard,
+    loadKnowledgeBases,
+    loadDocuments,
+    loadDocumentDetail,
+    loadPipelines,
+    loadTraces,
+    loadTraceDetail,
+    loadSettings,
+    updateSearch
   }
 })

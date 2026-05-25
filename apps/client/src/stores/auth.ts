@@ -1,46 +1,47 @@
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import type { User } from '@/types/models'
-import { loginWithMock, type LoginPayload } from '@/servers/auth'
+import { loginWithMock } from '@/servers/auth'
+import type { LoginPayload } from '@/types/app'
 import { currentUser } from '@/utils/mock'
 
-interface AuthState {
-  token: string
-  user: User
-  loading: boolean
-  error: string
-}
+export const useAuthStore = defineStore('auth', () => {
+  const token = ref(localStorage.getItem('demo-token') ?? '')
+  const user = ref(currentUser)
+  const loading = ref(false)
+  const error = ref('')
 
-export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    token: localStorage.getItem('demo-token') ?? '',
-    user: currentUser,
-    loading: false,
-    error: ''
-  }),
-  getters: {
-    isAuthenticated: (state) => Boolean(state.token)
-  },
-  actions: {
-    async login(payload: LoginPayload) {
-      this.loading = true
-      this.error = ''
+  const isAuthenticated = computed(() => Boolean(token.value))
 
-      try {
-        const result = await loginWithMock(payload)
-        this.token = result.token
-        this.user = result.user
-        localStorage.setItem('demo-token', result.token)
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '登录失败'
-        throw error
-      } finally {
-        this.loading = false
-      }
-    },
-    logout() {
-      this.token = ''
-      localStorage.removeItem('demo-token')
+  const login = async (payload: LoginPayload) => {
+    loading.value = true
+    error.value = ''
+
+    try {
+      const result = await loginWithMock(payload)
+      token.value = result.token
+      user.value = result.user
+      localStorage.setItem('demo-token', result.token)
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '登录失败'
+      throw caughtError
+    } finally {
+      loading.value = false
     }
+  }
+
+  const logout = () => {
+    token.value = ''
+    localStorage.removeItem('demo-token')
+  }
+
+  return {
+    token,
+    user,
+    loading,
+    error,
+    isAuthenticated,
+    login,
+    logout
   }
 })

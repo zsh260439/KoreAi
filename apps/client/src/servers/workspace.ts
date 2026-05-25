@@ -7,22 +7,22 @@ import {
   wait
 } from '@/utils/mock'
 
-export async function fetchWorkspaceSessions() {
+export const fetchWorkspaceSessions = async () => {
   await wait()
   return cloneMock(conversationSummaries)
 }
 
-export async function fetchWorkspaceMessages(sessionId: string) {
+export const fetchWorkspaceMessages = async (sessionId: string) => {
   await wait()
   return cloneMock(conversationMessages[sessionId] ?? [])
 }
 
-export async function fetchTraceDetail(traceId: string) {
+export const fetchTraceDetail = async (traceId: string) => {
   await wait(220)
   return cloneMock(traceDetails[traceId] ?? null)
 }
 
-function buildAssistantReply(input: string) {
+const buildAssistantReply = (input: string) => {
   const lowerInput = input.toLowerCase()
 
   if (lowerInput.includes('天气') || lowerInput.includes('下雨')) {
@@ -48,7 +48,7 @@ function buildAssistantReply(input: string) {
   }
 }
 
-export async function generateAssistantReply(sessionId: string, input: string) {
+export const generateAssistantReply = async (sessionId: string, input: string) => {
   await wait(200)
 
   const reply = buildAssistantReply(input)
@@ -63,7 +63,7 @@ export async function generateAssistantReply(sessionId: string, input: string) {
     createdAt: new Date().toISOString(),
     status: 'done',
     traceId: reply.traceId,
-    model: detail?.summary.model ?? 'doubao-seed-2-0-lite-260215',
+    model: detail?.summary.model ?? 'AI',
     latencyMs: detail?.summary.latencyMs ?? 1180,
     inputTokens: detail?.summary.inputTokens ?? 420,
     outputTokens: detail?.summary.outputTokens ?? 160,
@@ -74,7 +74,7 @@ export async function generateAssistantReply(sessionId: string, input: string) {
   return cloneMock(template)
 }
 
-export async function createConversation(title: string, model = 'doubao-seed-2-0-lite-260215') {
+export const createConversation = async (title: string, model = 'AI') => {
   await wait(180)
   const session: ConversationSummary = {
     id: `session-${Date.now()}`,

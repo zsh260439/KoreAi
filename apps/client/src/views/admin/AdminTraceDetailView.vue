@@ -75,7 +75,7 @@ const waterfall = computed(() => {
   }
 })
 
-function getDotClass(status?: string | null) {
+const getDotClass = (status?: string | null) => {
   const normalized = normalizeTraceStatus(status)
   if (normalized === 'success') return 'trace-node-dot is-success'
   if (normalized === 'running') return 'trace-node-dot is-running'
@@ -83,12 +83,12 @@ function getDotClass(status?: string | null) {
   return 'trace-node-dot'
 }
 
-async function loadDetail() {
+const loadDetail = async () => {
   if (!traceId.value) return
   await adminStore.loadTraceDetail(traceId.value)
 }
 
-async function copyTraceId() {
+const copyTraceId = async () => {
   if (!traceId.value || !navigator.clipboard) return
   await navigator.clipboard.writeText(traceId.value)
 }

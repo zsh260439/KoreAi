@@ -5,10 +5,8 @@ import {
   documentChunkLogs,
   knowledgeBases,
   knowledgeDocuments,
-  mappings,
   pipelineItems,
   pipelineTasks,
-  sampleQuestions,
   searchSuggestionGroups,
   startKnowledgeDocumentChunk,
   systemSettings,
@@ -17,121 +15,94 @@ import {
   toggleKnowledgeDocumentEnabled,
   updateKnowledgeDocument,
   uploadKnowledgeDocument,
-  users,
-  wait,
-  intentTree
+  wait
 } from '@/utils/mock'
 import type {
   KnowledgeDocumentUpdatePayload,
   KnowledgeDocumentUploadPayload
 } from '@/types/models'
 
-export async function fetchDashboardData() {
+export const fetchDashboardData = async () => {
   await wait()
   return cloneMock(dashboardData)
 }
 
-export async function fetchKnowledgeBases() {
+export const fetchKnowledgeBases = async () => {
   await wait()
   return cloneMock(knowledgeBases)
 }
 
-export async function fetchKnowledgeDocuments(kbId: string) {
+export const fetchKnowledgeDocuments = async (kbId: string) => {
   await wait()
   return cloneMock(knowledgeDocuments[kbId] ?? [])
 }
 
-export async function fetchDocumentDetail(kbId: string, docId: string) {
+export const fetchDocumentDetail = async (kbId: string, docId: string) => {
   await wait(200)
   const document = (knowledgeDocuments[kbId] ?? []).find((item) => item.id === docId) ?? null
   return cloneMock(document)
 }
 
-export async function updateDocumentDetail(
+export const updateDocumentDetail = async (
   kbId: string,
   docId: string,
   payload: KnowledgeDocumentUpdatePayload
-) {
+) => {
   await wait(220)
   return updateKnowledgeDocument(kbId, docId, payload)
 }
 
-export async function deleteDocument(kbId: string, docId: string) {
+export const deleteDocument = async (kbId: string, docId: string) => {
   await wait(200)
   return deleteKnowledgeDocument(kbId, docId)
 }
 
-export async function toggleDocumentEnabled(kbId: string, docId: string, enabled: boolean) {
+export const toggleDocumentEnabled = async (kbId: string, docId: string, enabled: boolean) => {
   await wait(180)
   return toggleKnowledgeDocumentEnabled(kbId, docId, enabled)
 }
 
-export async function startDocumentChunk(kbId: string, docId: string) {
+export const startDocumentChunk = async (kbId: string, docId: string) => {
   await wait(220)
   return startKnowledgeDocumentChunk(kbId, docId)
 }
 
-export async function uploadDocument(kbId: string, payload: KnowledgeDocumentUploadPayload) {
+export const uploadDocument = async (kbId: string, payload: KnowledgeDocumentUploadPayload) => {
   await wait(260)
   return uploadKnowledgeDocument(kbId, payload)
 }
 
-export async function fetchDocumentChunkLogs(docId: string) {
+export const fetchDocumentChunkLogs = async (docId: string) => {
   await wait(180)
   return cloneMock(documentChunkLogs[docId] ?? [])
 }
 
-export async function fetchPipelines() {
+export const fetchPipelines = async () => {
   await wait()
   return cloneMock(pipelineItems)
 }
 
-export async function fetchPipelineTasks() {
+export const fetchPipelineTasks = async () => {
   await wait()
   return cloneMock(pipelineTasks)
 }
 
-export async function fetchIntentTree() {
-  await wait()
-  return cloneMock(intentTree)
-}
-
-export async function fetchIntentList() {
-  await wait()
-  return cloneMock(intentTree.flatMap((item) => [item, ...(item.children ?? [])]))
-}
-
-export async function fetchMappings() {
-  await wait()
-  return cloneMock(mappings)
-}
-
-export async function fetchTraces() {
+export const fetchTraces = async () => {
   await wait()
   return cloneMock(traces)
 }
 
-export async function fetchTraceDetail(traceId: string) {
+export const fetchTraceDetail = async (traceId: string) => {
   await wait(220)
   return cloneMock(traceDetails[traceId] ?? null)
 }
 
-export async function fetchSampleQuestions() {
-  await wait()
-  return cloneMock(sampleQuestions)
-}
-
-export async function fetchUsers() {
-  await wait()
-  return cloneMock(users)
-}
-
-export async function fetchSystemSettings() {
+export const fetchSystemSettings = async () => {
   await wait()
   return cloneMock(systemSettings)
 }
 
-export async function fetchSearchSuggestions(query: string) {
+export const fetchSearchSuggestions = async (query: string) => {
   await wait(180)
 
   if (!query.trim()) {

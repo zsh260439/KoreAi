@@ -24,7 +24,7 @@ const openGroups = ref<Record<string, boolean>>({
   intent: true
 })
 
-function splitTarget(target?: string) {
+const splitTarget = (target?: string) => {
   if (!target) {
     return { path: '', search: '' }
   }
@@ -35,7 +35,7 @@ function splitTarget(target?: string) {
   }
 }
 
-function isLeafActive(path: string, search?: string) {
+const isLeafActive = (path: string, search?: string) => {
   const { path: currentPath, search: currentSearch } = splitTarget(props.activePath)
   if (currentPath !== path && !currentPath.startsWith(`${path}/`)) {
     return false
@@ -46,16 +46,16 @@ function isLeafActive(path: string, search?: string) {
   return true
 }
 
-function matchChild(item: AdminNavItem) {
+const matchChild = (item: AdminNavItem) => {
   const target = splitTarget(item.href)
   return isLeafActive(target.path, item.search ?? target.search)
 }
 
-function isGroupActive(item: AdminNavItem) {
+const isGroupActive = (item: AdminNavItem) => {
   return item.children?.some((child) => matchChild(child)) ?? false
 }
 
-function syncOpenGroups() {
+const syncOpenGroups = () => {
   const nextState = { ...openGroups.value }
   props.groups.forEach((group) => {
     group.items.forEach((item) => {
@@ -70,7 +70,7 @@ function syncOpenGroups() {
   openGroups.value = nextState
 }
 
-function navigateTo(href?: string) {
+const navigateTo = (href?: string) => {
   if (href) {
     emit('navigate', href)
   }

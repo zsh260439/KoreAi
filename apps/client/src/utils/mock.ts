@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ChatMessage,
   ConversationSummary,
   DashboardData,
@@ -22,32 +22,32 @@ import type {
   User
 } from '@/types/models'
 
-export async function wait(ms = 350) {
+export const wait = async (ms = 350) => {
   await new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
-export function cloneMock<T>(value: T): T {
+export const cloneMock = <T>(value: T): T => {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-function createDocumentId() {
+const createDocumentId = () => {
   return `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function inferFileTypeFromName(name: string) {
+const inferFileTypeFromName = (name: string) => {
   const ext = name.split('.').pop()?.toLowerCase() || 'file'
   return ext
 }
 
-function inferDisplayType(fileType: string) {
+const inferDisplayType = (fileType: string) => {
   return fileType.toUpperCase()
 }
 
-function buildChunkConfig(
+const buildChunkConfig = (
   mode: KnowledgeDocument['processMode'],
   strategy: string | undefined,
   current?: string
-) {
+) => {
   if (current) return current
   if (mode === 'pipeline') return ''
   if (strategy === 'fixed_size') {
@@ -79,7 +79,7 @@ export const conversationSummaries: ConversationSummary[] = [
     title: '差旅报销规则问答',
     updatedAt: '2026-05-17 14:40',
     messageCount: 6,
-    model: 'doubao-seed-2-0-lite-260215',
+    model: 'AI',
     description: '围绕报销制度、发票要求和补贴标准进行问答'
   },
   {
@@ -87,7 +87,7 @@ export const conversationSummaries: ConversationSummary[] = [
     title: '上海会务天气提醒',
     updatedAt: '2026-05-17 13:15',
     messageCount: 4,
-    model: 'doubao-seed-2-0-lite-260215',
+    model: 'AI',
     description: '联动天气工具和时间工具，给出会议建议'
   },
   {
@@ -95,7 +95,7 @@ export const conversationSummaries: ConversationSummary[] = [
     title: '本周用户问题总结',
     updatedAt: '2026-05-16 18:05',
     messageCount: 5,
-    model: 'doubao-seed-2-0-lite-260215',
+    model: 'AI',
     description: '总结客服热点问题并输出处理建议'
   },
   {
@@ -103,7 +103,7 @@ export const conversationSummaries: ConversationSummary[] = [
     title: '新建会话',
     updatedAt: '2026-05-17 15:00',
     messageCount: 0,
-    model: 'doubao-seed-2-0-lite-260215'
+    model: 'AI'
   }
 ]
 
@@ -138,7 +138,7 @@ const financeTraceSummary: TraceSummary = {
   userName: '陈若衡',
   username: '陈若衡',
   toolCount: 1,
-  model: 'doubao-seed-2-0-lite-260215',
+  model: 'AI',
   inputTokens: 1820,
   outputTokens: 436,
   latencyMs: 2480,
@@ -160,7 +160,7 @@ const weatherTraceSummary: TraceSummary = {
   userName: '陈若衡',
   username: '陈若衡',
   toolCount: 2,
-  model: 'doubao-seed-2-0-lite-260215',
+  model: 'AI',
   inputTokens: 620,
   outputTokens: 212,
   latencyMs: 1820,
@@ -188,7 +188,7 @@ export const conversationMessages: Record<string, ChatMessage[]> = {
       status: 'done',
       citations: financeCitations,
       traceId: financeTraceSummary.id,
-      model: 'doubao-seed-2-0-lite-260215',
+      model: 'AI',
       latencyMs: 2480,
       inputTokens: 1820,
       outputTokens: 436,
@@ -224,7 +224,7 @@ export const conversationMessages: Record<string, ChatMessage[]> = {
       createdAt: '2026-05-17 13:11',
       status: 'done',
       traceId: weatherTraceSummary.id,
-      model: 'doubao-seed-2-0-lite-260215',
+      model: 'AI',
       latencyMs: 1820,
       inputTokens: 620,
       outputTokens: 212,
@@ -269,7 +269,7 @@ export const conversationMessages: Record<string, ChatMessage[]> = {
         '本周问题主要集中在账号邀请、文档索引延迟、工作流权限配置和链路追踪筛选条件四类。建议分别补充邀请邮件模板、文档处理 SLA 提示、权限矩阵说明和 trace 检索示例。',
       createdAt: '2026-05-16 17:56',
       status: 'done',
-      model: 'doubao-seed-2-0-lite-260215',
+      model: 'AI',
       latencyMs: 1280,
       inputTokens: 510,
       outputTokens: 166
@@ -516,7 +516,7 @@ export const traces: TraceSummary[] = [
     userName: '刘静',
     username: '刘静',
     toolCount: 0,
-    model: 'doubao-seed-2-0-lite-260215',
+    model: 'AI',
     inputTokens: 510,
     outputTokens: 166,
     latencyMs: 1280,
@@ -537,7 +537,7 @@ export const traces: TraceSummary[] = [
     userName: '吴天',
     username: '吴天',
     toolCount: 1,
-    model: 'doubao-seed-2-0-lite-260215',
+    model: 'AI',
     inputTokens: 820,
     outputTokens: 190,
     latencyMs: 2140,
@@ -896,11 +896,11 @@ export const documentChunkLogs: Record<string, KnowledgeDocumentChunkLog[]> = {
   ]
 }
 
-export function updateKnowledgeDocument(
+export const updateKnowledgeDocument = (
   kbId: string,
   docId: string,
   payload: KnowledgeDocumentUpdatePayload
-) {
+) => {
   const documents = knowledgeDocuments[kbId] ?? []
   const target = documents.find((item) => item.id === docId)
   if (!target) return null
@@ -924,7 +924,7 @@ export function updateKnowledgeDocument(
   return cloneMock(target)
 }
 
-export function deleteKnowledgeDocument(kbId: string, docId: string) {
+export const deleteKnowledgeDocument = (kbId: string, docId: string) => {
   const documents = knowledgeDocuments[kbId] ?? []
   const index = documents.findIndex((item) => item.id === docId)
   if (index === -1) return false
@@ -940,7 +940,7 @@ export function deleteKnowledgeDocument(kbId: string, docId: string) {
   return true
 }
 
-export function toggleKnowledgeDocumentEnabled(kbId: string, docId: string, enabled: boolean) {
+export const toggleKnowledgeDocumentEnabled = (kbId: string, docId: string, enabled: boolean) => {
   const target = (knowledgeDocuments[kbId] ?? []).find((item) => item.id === docId)
   if (!target) return null
   target.enabled = enabled
@@ -949,7 +949,7 @@ export function toggleKnowledgeDocumentEnabled(kbId: string, docId: string, enab
   return cloneMock(target)
 }
 
-export function startKnowledgeDocumentChunk(kbId: string, docId: string) {
+export const startKnowledgeDocumentChunk = (kbId: string, docId: string) => {
   const target = (knowledgeDocuments[kbId] ?? []).find((item) => item.id === docId)
   if (!target) return null
   target.status = 'running'
@@ -981,7 +981,7 @@ export function startKnowledgeDocumentChunk(kbId: string, docId: string) {
   return cloneMock(target)
 }
 
-export function uploadKnowledgeDocument(kbId: string, payload: KnowledgeDocumentUploadPayload) {
+export const uploadKnowledgeDocument = (kbId: string, payload: KnowledgeDocumentUploadPayload) => {
   const documents = knowledgeDocuments[kbId] ?? (knowledgeDocuments[kbId] = [])
   const docName =
     payload.docName?.trim() ||

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Database, FileBarChart, FolderOpen, Layers, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-vue-next'
-import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -60,21 +59,21 @@ const stats = computed(() => {
 
 const canCreateKnowledgeBase = computed(() => createName.value.trim().length > 0)
 
-function handleSearch() {
+const handleSearch = () => {
   pageNo.value = 1
   keyword.value = searchName.value.trim()
 }
 
-function handleRefresh() {
+const handleRefresh = () => {
   pageNo.value = 1
 }
 
-function formatDate(dateStr?: string) {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-'
   return dateStr
 }
 
-function renderEmbeddingModel(model?: string) {
+const renderEmbeddingModel = (model?: string) => {
   if (!model) return { head: '-', tail: '' }
   const parts = model.split('-')
   if (parts.length < 2) {
@@ -86,40 +85,40 @@ function renderEmbeddingModel(model?: string) {
   }
 }
 
-function getCollectionBadgeClass(name?: string) {
+const getCollectionBadgeClass = (name?: string) => {
   const value = (name || '').toLowerCase()
-  if (value.includes('biz')) return 'border-blue-200 bg-blue-50 text-blue-700'
+  if (value.includes('biz')) return 'border-zinc-200 bg-zinc-50 text-zinc-700'
   if (value.includes('group')) return 'border-purple-200 bg-purple-50 text-purple-700'
   return 'border-slate-200 bg-slate-100 text-slate-600'
 }
 
-function openRename(kbId: string, currentName: string) {
+const openRename = (kbId: string, currentName: string) => {
   renameDialog.value = { open: true, kbId }
   renameValue.value = currentName
 }
 
-function closeRename() {
+const closeRename = () => {
   renameDialog.value = { open: false, kbId: null }
   renameValue.value = ''
 }
 
-function closeCreateDialog() {
+const closeCreateDialog = () => {
   createDialogOpen.value = false
   createName.value = ''
   createDescription.value = ''
   createOwner.value = '平台知识组'
 }
 
-function submitCreateDialog() {
+const submitCreateDialog = () => {
   if (!canCreateKnowledgeBase.value) return
   closeCreateDialog()
 }
 
-function handleRename() {
+const handleRename = () => {
   closeRename()
 }
 
-function handleDelete() {
+const handleDelete = () => {
   deleteTargetId.value = null
 }
 
@@ -137,34 +136,21 @@ onMounted(async () => {
       description="管理所有知识库及其文档。"
     >
       <template #actions>
-        <input
+        <el-input
           v-model="searchName"
           placeholder="搜索知识库名称"
-          class="h-10 w-[220px] rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-        >
-        <button
-          type="button"
-          class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-          @click="handleSearch"
-        >
-          搜索
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-          @click="handleRefresh"
-        >
+          clearable
+          class="!w-[220px]"
+        />
+        <el-button type="primary" @click="handleSearch">搜索</el-button>
+        <el-button @click="handleRefresh">
           <RefreshCw class="h-4 w-4" />
           刷新
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-[10px] border border-[var(--border-default)] bg-transparent px-4 py-2 text-sm font-medium text-slate-500 transition hover:bg-white hover:text-slate-900"
-          @click="createDialogOpen = true"
-        >
+        </el-button>
+        <el-button type="primary" @click="createDialogOpen = true">
           <Plus class="h-4 w-4" />
           新建知识库
-        </button>
+        </el-button>
       </template>
     </AdminPageHeader>
 
@@ -240,13 +226,9 @@ onMounted(async () => {
                 class="border-b last:border-b-0 hover:bg-slate-50"
               >
                 <td class="px-4 py-3 font-medium">
-                  <button
-                    type="button"
-                    class="admin-link max-w-[200px] truncate text-left"
-                    @click="router.push(`/admin/knowledge/${kb.id}`)"
-                  >
+                  <el-button link type="primary" class="!max-w-[200px] truncate text-left" @click="router.push(`/admin/knowledge/${kb.id}`)">
                     {{ kb.name }}
-                  </button>
+                  </el-button>
                 </td>
                 <td class="px-4 py-3">
                   <div v-if="renderEmbeddingModel(kb.embeddingModel).head !== '-'" class="flex flex-col text-xs text-slate-500">
@@ -270,22 +252,14 @@ onMounted(async () => {
                 <td class="px-4 py-3 text-slate-500">{{ formatDate(kb.updateTime) }}</td>
                 <td class="px-4 py-3 text-center">
                   <div class="flex justify-center gap-2">
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1 rounded-[10px] border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
-                      @click="openRename(kb.id, kb.name)"
-                    >
+                    <el-button size="small" type="primary" link @click="openRename(kb.id, kb.name)">
                       <Pencil class="h-4 w-4" />
                       编辑
-                    </button>
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1 rounded-[10px] px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50"
-                      @click="deleteTargetId = kb.id"
-                    >
+                    </el-button>
+                    <el-button size="small" type="danger" link @click="deleteTargetId = kb.id">
                       <Trash2 class="h-4 w-4" />
                       删除
-                    </button>
+                    </el-button>
                   </div>
                 </td>
               </tr>
@@ -318,94 +292,90 @@ onMounted(async () => {
       </div>
     </div>
 
-    <DialogRoot :open="renameDialog.open" @update:open="(open) => !open && closeRename()">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">重命名知识库</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">修改知识库名称</DialogDescription>
-          </div>
-          <div class="space-y-2 px-6 py-6">
+    <el-dialog
+      :model-value="renameDialog.open"
+      @update:model-value="(open: boolean) => !open && closeRename()"
+      title="重命名知识库"
+      width="420px"
+      :close-on-click-modal="false"
+      align-center
+      top="30vh"
+      class="reka-to-el-dialog"
+    >
+      <p class="mt-2 text-sm text-slate-500">修改知识库名称</p>
+      <div class="space-y-2 py-4">
+        <label class="text-sm font-medium text-slate-900">名称</label>
+        <el-input v-model="renameValue" />
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="closeRename">取消</el-button>
+          <el-button type="primary" @click="handleRename">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      :model-value="Boolean(deleteTargetId)"
+      @update:model-value="(open: boolean) => !open && (deleteTargetId = null)"
+      title="确认删除"
+      width="420px"
+      :close-on-click-modal="false"
+      align-center
+      top="30vh"
+      class="reka-to-el-dialog"
+    >
+      <p class="mt-2 text-sm text-slate-500">知识库删除后当前不提供恢复入口。确定要继续吗？</p>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="deleteTargetId = null">取消</el-button>
+          <el-button type="danger" @click="handleDelete">删除</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      :model-value="createDialogOpen"
+      @update:model-value="createDialogOpen = $event"
+      title="新建知识库"
+      width="720px"
+      :close-on-click-modal="false"
+      align-center
+      top="10vh"
+      class="reka-to-el-dialog"
+    >
+      <p class="mt-2 text-sm text-slate-500">填写知识库名称、归属信息和使用范围。</p>
+
+      <div class="grid gap-6 py-4 lg:grid-cols-2">
+        <div class="space-y-4">
+          <div class="space-y-2">
             <label class="text-sm font-medium text-slate-900">名称</label>
-            <input
-              v-model="renameValue"
-              class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            >
-          </div>
-          <div class="flex justify-end gap-3 border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="closeRename">取消</button>
-            <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700" @click="handleRename">保存</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
-
-    <DialogRoot :open="Boolean(deleteTargetId)" @update:open="(open) => !open && (deleteTargetId = null)">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">确认删除</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">知识库删除后当前不提供恢复入口。确定要继续吗？</DialogDescription>
-          </div>
-          <div class="flex justify-end gap-3 px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="deleteTargetId = null">取消</button>
-            <button type="button" class="rounded-[10px] bg-red-600 px-4 py-2 text-sm text-white transition hover:bg-red-700" @click="handleDelete">删除</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
-
-    <DialogRoot :open="createDialogOpen" @update:open="createDialogOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">新建知识库</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">
-              填写知识库名称、归属信息和使用范围。
-            </DialogDescription>
+            <el-input v-model="createName" placeholder="例如：财务制度库" />
           </div>
 
-          <div class="grid gap-6 px-6 py-6 lg:grid-cols-2">
-            <div class="space-y-4">
-              <div class="space-y-2">
-                <label class="text-sm font-medium text-slate-900">名称</label>
-                <input
-                  v-model="createName"
-                  class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  placeholder="例如：财务制度库"
-                >
-              </div>
-
-              <div class="space-y-2">
-                <label class="text-sm font-medium text-slate-900">归属团队</label>
-                <input
-                  v-model="createOwner"
-                  class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  placeholder="例如：平台知识组"
-                >
-              </div>
-            </div>
-
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900">描述</label>
-              <textarea
-                v-model="createDescription"
-                class="min-h-[128px] w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                placeholder="描述知识库范围、适用业务和使用场景"
-              />
-            </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-slate-900">归属团队</label>
+            <el-input v-model="createOwner" placeholder="例如：平台知识组" />
           </div>
+        </div>
 
-          <div class="flex justify-end gap-3 border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="closeCreateDialog">取消</button>
-            <button type="button" class="admin-primary-gradient rounded-[10px] px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60" :disabled="!canCreateKnowledgeBase" @click="submitCreateDialog">创建</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-900">描述</label>
+          <textarea
+            v-model="createDescription"
+            class="min-h-[128px] w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+            placeholder="描述知识库范围、适用业务和使用场景"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="closeCreateDialog">取消</el-button>
+          <el-button type="primary" :disabled="!canCreateKnowledgeBase" @click="submitCreateDialog">创建</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </section>
 </template>
 

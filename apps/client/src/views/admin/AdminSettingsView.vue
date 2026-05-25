@@ -1,19 +1,5 @@
 <script setup lang="ts">
 import { Ellipsis, Pencil, Trash2 } from 'lucide-vue-next'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogOverlay,
-  DialogPortal,
-  DialogRoot,
-  DialogTitle,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuRoot,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from 'reka-ui'
 import { onMounted, ref, watch } from 'vue'
 
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
@@ -73,24 +59,32 @@ watch(
   { immediate: true }
 )
 
-function openProviderEdit(provider: ProviderConfig) {
+const openProviderEdit = (provider: ProviderConfig) => {
   activeProvider.value = provider
   providerDialogOpen.value = true
 }
 
-function openStrategyEdit(strategy: PromptStrategy) {
+const openStrategyEdit = (strategy: PromptStrategy) => {
   activeStrategy.value = strategy
   strategyDialogOpen.value = true
 }
 
-function openServerEdit(server: McpServer) {
+const openServerEdit = (server: McpServer) => {
   activeServer.value = server
   serverDialogOpen.value = true
 }
 
-function openServerDelete(server: McpServer) {
+const openServerDelete = (server: McpServer) => {
   activeServer.value = server
   serverDeleteOpen.value = true
+}
+
+const handleServerCommand = (command: string, server: McpServer) => {
+  if (command === 'edit') {
+    openServerEdit(server)
+  } else if (command === 'delete') {
+    openServerDelete(server)
+  }
 }
 
 onMounted(async () => {
@@ -108,7 +102,7 @@ onMounted(async () => {
       :breadcrumbs="['首页', '系统设置']"
     >
       <template #actions>
-        <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700">保存配置</button>
+        <el-button type="primary">保存配置</el-button>
       </template>
     </AdminPageHeader>
 
@@ -212,39 +206,27 @@ onMounted(async () => {
               </div>
               <div class="flex items-start gap-2">
                 <StatusBadge :status="server.status" />
-                <DropdownMenuRoot>
-                  <DropdownMenuTrigger as-child>
-                    <button
-                      type="button"
-                      class="flex size-8 items-center justify-center rounded-[10px] text-slate-500 transition hover:bg-slate-100"
-                      aria-label="更多操作"
-                    >
-                      <Ellipsis class="size-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuContent
-                      align="end"
-                      class="z-50 w-40 rounded-[12px] border bg-white p-1 shadow-lg outline-none"
-                    >
-                      <DropdownMenuItem
-                        class="flex cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-sm text-slate-700 outline-none transition hover:bg-slate-50"
-                        @click="openServerEdit(server)"
-                      >
+                <el-dropdown @command="(cmd: string) => handleServerCommand(cmd, server)">
+                  <button
+                    type="button"
+                    class="flex size-8 items-center justify-center rounded-[10px] text-slate-500 transition hover:bg-slate-100"
+                    aria-label="更多操作"
+                  >
+                    <Ellipsis class="size-4" />
+                  </button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="edit">
                         <Pencil class="size-4" />
                         编辑
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator class="my-1 h-px bg-slate-100" />
-                      <DropdownMenuItem
-                        class="flex cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-sm text-red-600 outline-none transition hover:bg-red-50"
-                        @click="openServerDelete(server)"
-                      >
+                      </el-dropdown-item>
+                      <el-dropdown-item command="delete" divided>
                         <Trash2 class="size-4" />
                         删除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuRoot>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
             </div>
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -275,106 +257,106 @@ onMounted(async () => {
       </section>
     </template>
 
-    <DialogRoot :open="providerDialogOpen" @update:open="providerDialogOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">编辑 Provider</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">更新模型提供方配置。</DialogDescription>
-          </div>
+    <el-dialog
+      :model-value="providerDialogOpen"
+      @update:model-value="providerDialogOpen = $event"
+      title="编辑 Provider"
+      width="640px"
+      :close-on-click-modal="false"
+    >
+      <p class="text-sm text-slate-500">更新模型提供方配置。</p>
 
-          <div class="space-y-4 px-6 py-6">
+      <div class="space-y-4 py-6">
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-900">名称</label>
+          <el-input v-model="providerName" />
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-900">Endpoint</label>
+          <el-input v-model="providerEndpoint" />
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-900">默认模型</label>
+          <el-input v-model="providerModel" />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="providerDialogOpen = false">取消</button>
+          <el-button type="primary" @click="providerDialogOpen = false">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      :model-value="strategyDialogOpen"
+      @update:model-value="strategyDialogOpen = $event"
+      title="编辑 Prompt 策略"
+      width="672px"
+      :close-on-click-modal="false"
+    >
+      <p class="text-sm text-slate-500">调整策略说明和参数。</p>
+
+      <div class="grid gap-6 py-6 lg:grid-cols-2">
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-slate-900">名称</label>
+            <el-input v-model="strategyName" />
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
             <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900">名称</label>
-              <input v-model="providerName" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-            </div>
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900">Endpoint</label>
-              <input v-model="providerEndpoint" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-            </div>
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900">默认模型</label>
-              <input v-model="providerModel" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-3 border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="providerDialogOpen = false">取消</button>
-            <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700" @click="providerDialogOpen = false">保存</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
-
-    <DialogRoot :open="strategyDialogOpen" @update:open="strategyDialogOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">编辑 Prompt 策略</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">调整策略说明和参数。</DialogDescription>
-          </div>
-
-          <div class="grid gap-6 px-6 py-6 lg:grid-cols-2">
-            <div class="space-y-4">
-              <div class="space-y-2">
-                <label class="text-sm font-medium text-slate-900">名称</label>
-                <input v-model="strategyName" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-              </div>
-              <div class="grid gap-4 sm:grid-cols-2">
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">Temperature</label>
-                  <input v-model="strategyTemperature" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">Max Tokens</label>
-                  <input v-model="strategyMaxTokens" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900">描述</label>
-              <textarea v-model="strategyDescription" class="min-h-[140px] w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-3 border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="strategyDialogOpen = false">取消</button>
-            <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700" @click="strategyDialogOpen = false">保存</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
-
-    <DialogRoot :open="serverDialogOpen" @update:open="serverDialogOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">编辑 MCP Server</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">更新服务名称和连接地址。</DialogDescription>
-          </div>
-
-          <div class="space-y-4 px-6 py-6">
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900">名称</label>
-              <input v-model="serverName" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+              <label class="text-sm font-medium text-slate-900">Temperature</label>
+              <el-input v-model="strategyTemperature" />
             </div>
             <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900">地址</label>
-              <input v-model="serverUrl" class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+              <label class="text-sm font-medium text-slate-900">Max Tokens</label>
+              <el-input v-model="strategyMaxTokens" />
             </div>
           </div>
+        </div>
 
-          <div class="flex justify-end gap-3 border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="serverDialogOpen = false">取消</button>
-            <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700" @click="serverDialogOpen = false">保存</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-900">描述</label>
+          <el-input v-model="strategyDescription" type="textarea" />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="strategyDialogOpen = false">取消</button>
+          <el-button type="primary" @click="strategyDialogOpen = false">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      :model-value="serverDialogOpen"
+      @update:model-value="serverDialogOpen = $event"
+      title="编辑 MCP Server"
+      width="512px"
+      :close-on-click-modal="false"
+    >
+      <p class="text-sm text-slate-500">更新服务名称和连接地址。</p>
+
+      <div class="space-y-4 py-6">
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-900">名称</label>
+          <el-input v-model="serverName" />
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-900">地址</label>
+          <el-input v-model="serverUrl" />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="serverDialogOpen = false">取消</button>
+          <el-button type="primary" @click="serverDialogOpen = false">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <ConfirmActionDialog
       :open="serverDeleteOpen"

@@ -59,7 +59,7 @@ const avgDurationMetric = computed(() => formatTraceDurationMetric(traceStats.va
 const p95DurationMetric = computed(() => formatTraceDurationMetric(traceStats.value.p95Duration))
 const showEmpty = computed(() => !adminStore.loading && filteredRuns.value.records.length === 0)
 
-function getTraceStatToneClass(tone: 'emerald' | 'cyan' | 'indigo' | 'amber') {
+const getTraceStatToneClass = (tone: 'emerald' | 'cyan' | 'indigo' | 'amber') => {
   switch (tone) {
     case 'emerald':
       return 'is-emerald'
@@ -74,24 +74,24 @@ function getTraceStatToneClass(tone: 'emerald' | 'cyan' | 'indigo' | 'amber') {
   }
 }
 
-function handleSearch() {
+const handleSearch = () => {
   pageNo.value = 1
   queryTraceId.value = traceIdFilter.value.trim()
 }
 
-function handleRefresh() {
+const handleRefresh = () => {
   pageNo.value = 1
 }
 
-function handlePrevPage() {
+const handlePrevPage = () => {
   pageNo.value = Math.max(1, pageNo.value - 1)
 }
 
-function handleNextPage() {
+const handleNextPage = () => {
   pageNo.value = Math.min(filteredRuns.value.pages, pageNo.value + 1)
 }
 
-function openRun(traceId: string) {
+const openRun = (traceId: string) => {
   router.push(`/admin/traces/${encodeURIComponent(traceId)}`)
 }
 
@@ -110,19 +110,20 @@ onMounted(async () => {
         description="独立列表页聚焦运行检索，点击任意运行记录进入详情页分析慢节点与失败节点。"
       >
         <template #actions>
-          <input
+          <el-input
             v-model="traceIdFilter"
             placeholder="搜索 Trace Id"
-            class="trace-list-control w-[300px]"
-          >
-          <button type="button" class="trace-list-btn trace-list-btn-primary" @click="handleSearch">
+            clearable
+            class="w-[300px]"
+          />
+          <el-button type="primary" class="trace-list-btn trace-list-btn-primary" @click="handleSearch">
             <Search class="mr-2 h-4 w-4" />
             查询
-          </button>
-          <button type="button" class="trace-list-btn trace-list-btn-refresh" @click="handleRefresh">
+          </el-button>
+          <el-button class="trace-list-btn trace-list-btn-refresh" @click="handleRefresh">
             <RefreshCw class="mr-2 h-4 w-4" />
             刷新
-          </button>
+          </el-button>
         </template>
       </AdminPageHeader>
 
@@ -270,22 +271,22 @@ onMounted(async () => {
               第 {{ filteredRuns.current }} / {{ filteredRuns.pages }} 页，共 {{ filteredRuns.total.toLocaleString('zh-CN') }} 条
             </span>
             <div class="trace-list-pagination">
-              <button
-                type="button"
+              <el-button
                 class="trace-list-pagination-btn"
                 :disabled="filteredRuns.current <= 1 || adminStore.loading"
                 @click="handlePrevPage"
+                size="small"
               >
                 上一页
-              </button>
-              <button
-                type="button"
+              </el-button>
+              <el-button
                 class="trace-list-pagination-btn"
                 :disabled="filteredRuns.current >= filteredRuns.pages || adminStore.loading"
                 @click="handleNextPage"
+                size="small"
               >
                 下一页
-              </button>
+              </el-button>
             </div>
           </div>
         </div>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
@@ -17,14 +16,9 @@ const authStore = useAuthStore()
 const breadcrumbMap: Record<string, string> = {
   dashboard: 'Dashboard',
   knowledge: '知识库管理',
-  'intent-tree': '意图树配置',
-  'intent-list': '意图列表',
-  ingestion: '数据通道',
+  ingestion: '流水线任务',
   traces: '链路追踪',
-  'sample-questions': '示例问题',
-  mappings: '关键词映射',
-  settings: '系统设置',
-  users: '用户管理'
+  settings: 'Settings'
 }
 
 watch(
@@ -48,27 +42,10 @@ const breadcrumbs = computed(() => {
 
   const section = segments[1]
   if (section) {
-    if (section === 'intent-tree' || section === 'intent-list') {
-      items.push({ label: '意图管理', to: '/admin/intent-tree' })
-      items.push({
-        label: breadcrumbMap[section] || section,
-        to: section === 'intent-list' ? '/admin/intent-list' : undefined
-      })
-    } else {
-      items.push({
-        label: breadcrumbMap[section] || section,
-        to: `/admin/${section}`
-      })
-    }
-  }
-
-  if (section === 'ingestion') {
-    const tab = String(route.query.tab || '')
-    if (tab === 'tasks') {
-      items.push({ label: '流水线任务' })
-    } else if (tab === 'pipelines') {
-      items.push({ label: '流水线管理' })
-    }
+    items.push({
+      label: breadcrumbMap[section] || section,
+      to: `/admin/${section}`
+    })
   }
 
   if (section === 'knowledge' && segments.length > 2) {
@@ -76,7 +53,7 @@ const breadcrumbs = computed(() => {
   }
 
   if (section === 'knowledge' && segments.includes('docs')) {
-    items.push({ label: '切片管理' })
+    items.push({ label: '文档详情' })
   }
 
   if (section === 'traces' && segments.length > 2) {
@@ -86,7 +63,7 @@ const breadcrumbs = computed(() => {
   return items
 })
 
-function handleLogout() {
+const handleLogout = () => {
   authStore.logout()
   router.push('/login')
 }
@@ -142,27 +119,21 @@ function handleLogout() {
       </div>
     </div>
 
-    <DialogRoot :open="adminStore.mobileSidebarOpen" @update:open="adminStore.mobileSidebarOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-40 bg-black/45 lg:hidden" />
-        <DialogContent
-          class="fixed inset-y-0 left-0 z-50 w-[320px] max-w-[320px] border-r bg-white p-0 shadow-xl outline-none lg:hidden"
-        >
-          <div class="border-b px-4 py-4 text-left">
-            <DialogTitle class="text-base font-semibold text-slate-900">后台导航</DialogTitle>
-          </div>
-          <div>
-            <AdminSidebar
-              :collapsed="false"
-              :active-path="route.fullPath"
-              :groups="adminNavGroups"
-              :user="authStore.user"
-              @toggle-collapse="adminStore.toggleCollapse"
-              @navigate="adminStore.toggleMobileSidebar(false)"
-            />
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    <el-drawer
+      :model-value="adminStore.mobileSidebarOpen"
+      @update:model-value="adminStore.mobileSidebarOpen = $event"
+      :size="320"
+      direction="ltr"
+      :with-header="false"
+    >
+      <AdminSidebar
+        :collapsed="false"
+        :active-path="route.fullPath"
+        :groups="adminNavGroups"
+        :user="authStore.user"
+        @toggle-collapse="adminStore.toggleCollapse"
+        @navigate="adminStore.toggleMobileSidebar(false)"
+      />
+    </el-drawer>
   </div>
 </template>

@@ -1,11 +1,7 @@
+import type { LoginPayload } from '@/types/app'
 import { currentUser, wait } from '@/utils/mock'
 
-export interface LoginPayload {
-  email: string
-  password: string
-}
-
-export async function loginWithMock(payload: LoginPayload) {
+export const loginWithMock = async (payload: LoginPayload) => {
   await wait(500)
 
   const email = payload.email.trim().toLowerCase()

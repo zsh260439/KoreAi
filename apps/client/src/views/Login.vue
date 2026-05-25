@@ -1,37 +1,41 @@
 <script setup lang="ts">
-import { toTypedSchema } from '@vee-validate/zod'
+import type { FormInstance, FormRules } from 'element-plus'
 import { LoaderCircle, ShieldCheck } from 'lucide-vue-next'
-import { useForm } from 'vee-validate'
-import { z } from 'zod'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import type { LoginPayload } from '@/types/app'
 
 const router = useRouter()
 const authStore = useAuthStore()
-
-const formSchema = toTypedSchema(
-  z.object({
-    email: z.string().email('请输入有效邮箱'),
-    password: z.string().min(6, '密码至少 6 位')
-  })
-)
-
-const form = useForm({
-  validationSchema: formSchema,
-  initialValues: {
-    email: 'admin@demo.ai',
-    password: 'codex123'
-  }
+   
+const formRef = ref<FormInstance>()
+const formModel = reactive<LoginPayload>({
+  email: 'admin@demo.ai',
+  password: 'codex123'
 })
 
-const [email, emailAttrs] = form.defineField('email')
-const [password, passwordAttrs] = form.defineField('password')
+const formRules: FormRules<LoginPayload> = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效邮箱', trigger: ['blur', 'change'] }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码至少 6 位', trigger: ['blur', 'change'] }
+  ]
+}
 
-const onSubmit = form.handleSubmit(async (values) => {
-  await authStore.login(values)
+const onSubmit = async () => {
+  if (!formRef.value) return
+
+  const valid = await formRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  await authStore.login({ ...formModel })
   await router.push('/workspace')
-})
+}
 </script>
 
 <template>
@@ -66,13 +70,13 @@ const onSubmit = form.handleSubmit(async (values) => {
     <section class="flex items-center justify-center px-6 py-10">
       <div class="w-full max-w-md rounded-[16px] border bg-white shadow-sm">
         <div class="space-y-3 px-6 pb-3 pt-6">
-          <div class="flex size-12 items-center justify-center rounded-[14px] bg-blue-50 text-blue-600">
+          <div class="flex size-12 items-center justify-center rounded-[14px] bg-zinc-50 text-zinc-700">
             <ShieldCheck class="size-6" />
           </div>
           <div>
             <h2 class="text-2xl font-semibold text-slate-900">登录</h2>
             <p class="mt-2 text-sm leading-6 text-slate-500">
-              使用 mock 账号进入工作台。默认账号已预填。
+              使用 mock 账号进入工作台，默认账号密码已预填。
             </p>
           </div>
           <span
@@ -83,36 +87,32 @@ const onSubmit = form.handleSubmit(async (values) => {
         </div>
 
         <div class="px-6 pb-6">
-          <form class="space-y-5" @submit="onSubmit">
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900" for="login-email">邮箱</label>
-              <input
-                id="login-email"
-                v-model="email"
-                v-bind="emailAttrs"
+          <el-form
+            ref="formRef"
+            :model="formModel"
+            :rules="formRules"
+            label-position="top"
+            class="space-y-5"
+            @submit.prevent="onSubmit"
+          >
+            <el-form-item label="邮箱" prop="email" class="login-form-item">
+              <el-input
+                v-model="formModel.email"
                 type="email"
                 placeholder="admin@demo.ai"
-                class="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-              <p v-if="form.errors.value.email" class="text-sm text-red-600">
-                {{ form.errors.value.email }}
-              </p>
-            </div>
+                class="login-form-input"
+              />
+            </el-form-item>
 
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-slate-900" for="login-password">密码</label>
-              <input
-                id="login-password"
-                v-model="password"
-                v-bind="passwordAttrs"
+            <el-form-item label="密码" prop="password" class="login-form-item">
+              <el-input
+                v-model="formModel.password"
                 type="password"
+                show-password
                 placeholder="请输入密码"
-                class="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-              <p v-if="form.errors.value.password" class="text-sm text-red-600">
-                {{ form.errors.value.password }}
-              </p>
-            </div>
+                class="login-form-input"
+              />
+            </el-form-item>
 
             <div
               v-if="authStore.error"
@@ -121,17 +121,48 @@ const onSubmit = form.handleSubmit(async (values) => {
               {{ authStore.error }}
             </div>
 
-            <button
-              type="submit"
-              class="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-blue-600 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              :disabled="authStore.loading"
-            >
+            <el-button type="primary" native-type="submit" class="!h-11 !w-full !text-sm !font-medium" :loading="authStore.loading">
               <LoaderCircle v-if="authStore.loading" class="size-4 animate-spin" />
               进入工作台
-            </button>
-          </form>
+            </el-button>
+          </el-form>
         </div>
       </div>
     </section>
   </main>
 </template>
+
+<style scoped>
+:deep(.login-form-item) {
+  margin-bottom: 0;
+}
+
+:deep(.login-form-item .el-form-item__label) {
+  padding-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(15 23 42);
+  line-height: 1.5;
+}
+
+:deep(.login-form-item .el-form-item__content) {
+  line-height: normal;
+}
+
+:deep(.login-form-input .el-input__wrapper) {
+  min-height: 44px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgb(226 232 240) inset;
+}
+
+:deep(.login-form-input .el-input__wrapper.is-focus) {
+  box-shadow:
+    0 0 0 1px rgb(161 161 170) inset,
+    0 0 0 2px rgb(244 244 245);
+}
+
+:deep(.login-form-input .el-input__inner) {
+  font-size: 14px;
+  color: rgb(15 23 42);
+}
+</style>

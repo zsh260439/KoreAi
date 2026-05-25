@@ -101,6 +101,85 @@
   --trace-pagination-btn-min-width: 72px;
 
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ═══════════════════════════════════════════
+     Element Plus 主题覆盖 — shadcn/zinc 风格
+     ═══════════════════════════════════════════ */
+  /* Primary: zinc-800 (#262626) 替代默认蓝色 */
+  --el-color-primary: #262626;
+  --el-color-primary-light-3: #404040;
+  --el-color-primary-light-5: #737373;
+  --el-color-primary-light-7: #a3a3a3;
+  --el-color-primary-light-8: #d4d4d4;
+  --el-color-primary-light-9: #e5e5e5;
+  --el-color-primary-dark-2: #171717;
+
+  /* 语义色 */
+  --el-color-success: #22c55e;
+  --el-color-success-light-3: #4ade80;
+  --el-color-success-light-5: #86efac;
+  --el-color-success-light-7: #bbf7d0;
+  --el-color-success-light-8: #dcfce7;
+  --el-color-success-light-9: #f0fdf4;
+  --el-color-success-dark-2: #16a34a;
+
+  --el-color-warning: #f97316;
+  --el-color-warning-light-3: #fb923c;
+  --el-color-warning-light-5: #fdba74;
+  --el-color-warning-light-7: #fed7aa;
+  --el-color-warning-light-8: #fed7aa;
+  --el-color-warning-light-9: #fff7ed;
+  --el-color-warning-dark-2: #ea580c;
+
+  --el-color-danger: #ef4444;
+  --el-color-danger-light-3: #f87171;
+  --el-color-danger-light-5: #fca5a5;
+  --el-color-danger-light-7: #fecaca;
+  --el-color-danger-light-8: #fecaca;
+  --el-color-danger-light-9: #fef2f2;
+  --el-color-danger-dark-2: #dc2626;
+
+  --el-color-error: #ef4444;
+  --el-color-info: #262626;
+
+  /* 文字色 */
+  --el-text-color-primary: #262626;
+  --el-text-color-regular: #525252;
+  --el-text-color-secondary: #737373;
+  --el-text-color-placeholder: #a3a3a3;
+  --el-text-color-disabled: #a3a3a3;
+
+  /* 边框 */
+  --el-border-color: #e5e5e5;
+  --el-border-color-light: #f0f0f0;
+  --el-border-color-lighter: #f5f5f5;
+  --el-border-color-extra-light: #fafafa;
+  --el-border-color-dark: #d4d4d4;
+  --el-border-color-darker: #a3a3a3;
+
+  /* 背景 */
+  --el-bg-color: #ffffff;
+  --el-bg-color-page: #fafafa;
+  --el-bg-color-overlay: #ffffff;
+  --el-bg-color-silver: #f5f5f5;
+
+  /* 圆角 */
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
+  --el-border-radius-round: 10px;
+  --el-border-radius-circle: 50%;
+
+  /* 阴影 */
+  --el-box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --el-box-shadow-light: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02);
+  --el-box-shadow-lighter: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --el-box-shadow-dark: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+  /* 字体 */
+  --el-font-size-base: 13px;
+  --el-font-size-small: 12px;
+  --el-font-size-large: 15px;
+  --el-font-weight-primary: 500;
 }
 
 * {

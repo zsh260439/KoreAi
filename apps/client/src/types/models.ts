@@ -1,3 +1,5 @@
+import type { AssistantResponseFlow } from '@/types/chat-flow'
+
 export type ChatRole = 'user' | 'assistant' | 'system-summary'
 export type ChatMessageStatus = 'done' | 'streaming' | 'error'
 export type ExecutionStatus = 'success' | 'running' | 'error' | 'paused'
@@ -39,6 +41,7 @@ export interface ChatMessage {
   content: string
   createdAt: string
   status: ChatMessageStatus
+  responseFlow?: AssistantResponseFlow
   toolCalls?: ToolCall[]
   citations?: RetrievalCitation[]
   traceId?: string

@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import { Copy, LoaderCircle, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-vue-next'
+import {
+  Check,
+  ChevronDown,
+  Clock3,
+  Cloud,
+  Copy,
+  LoaderCircle,
+  Search,
+  ThumbsDown,
+  ThumbsUp,
+  TimerReset,
+  Volume2,
+  Wrench
+} from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
 
+import type { AssistantToolStage } from '@/types/chat-flow'
 import type { ChatMessage } from '@/types/models'
-import ToolCallCard from './ToolCallCard.vue'
 
-defineProps<{
+const props = defineProps<{
   message: ChatMessage
   showMeta?: boolean
 }>()
@@ -13,6 +27,59 @@ defineEmits<{
   detail: [traceId?: string]
   regenerate: []
 }>()
+
+const responseFlow = computed(() => props.message.responseFlow)
+const processOpen = ref(props.message.status === 'streaming')
+
+watch(
+  () => props.message.status,
+  (status, previousStatus) => {
+    if (status === 'streaming') {
+      processOpen.value = true
+      return
+    }
+
+    if (previousStatus === 'streaming' && status === 'done') {
+      processOpen.value = false
+    }
+  },
+  { immediate: true }
+)
+
+const iconMap = {
+  knowledge: Search,
+  time: Clock3,
+  weather: Cloud,
+  generic: Wrench
+} as const
+
+const toolStages = computed(
+  () =>
+    responseFlow.value?.tools.filter(
+      (item) => item.status !== 'pending' || item.showInput || item.showSteps || item.showOutput
+    ) ?? []
+)
+
+const processSummary = computed(() => {
+  if (!responseFlow.value || props.message.status === 'streaming') {
+    return ''
+  }
+
+  const toolCount = responseFlow.value.tools.length
+  if (toolCount === 0) {
+    return '思考已完成，点击查看详细过程'
+  }
+
+  return `已完成 ${toolCount} 个工具步骤，点击查看详细过程`
+})
+
+const formatLatency = (latencyMs?: number) => `${((latencyMs || 0) / 1000).toFixed(2)}s`
+const getToolIcon = (tool: AssistantToolStage) => iconMap[tool.iconKey] ?? Wrench
+const toggleProcess = () => {
+  if (responseFlow.value) {
+    processOpen.value = !processOpen.value
+  }
+}
 </script>
 
 <template>
@@ -20,86 +87,220 @@ defineEmits<{
     <div
       :class="
         message.role === 'user'
-          ? 'max-w-[360px] rounded-[12px] bg-blue-100 px-5 py-4 text-[16px] leading-7 text-slate-900'
+          ? 'max-w-[360px] rounded-[14px] bg-[#f3f5f8] px-5 py-4 text-[16px] leading-8 text-slate-900'
           : 'max-w-[920px] text-sm leading-7 text-slate-900'
       "
     >
-      <div v-if="message.role === 'assistant'" class="flex items-start gap-3">
+      <div v-if="message.role === 'assistant'" class="flex items-start gap-4">
         <div
-          class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-blue-50 text-[12px] font-semibold text-blue-600 shadow-sm"
+          class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-[12px] border border-[#e5ebf5] bg-white text-[15px] font-semibold text-[#355fe9] shadow-[0_6px_18px_rgba(53,95,233,0.08)]"
         >
-          F
+          C
         </div>
+
         <div class="min-w-0 flex-1">
-          <div class="mb-3 flex items-center gap-1.5">
+          <div class="mb-3 flex items-center gap-2 text-slate-700">
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-[8px] border border-[#d9e1ee] bg-white text-slate-700 transition hover:bg-slate-50"
+              class="flex size-9 items-center justify-center rounded-[10px] border border-[#dbe3f1] bg-white transition hover:bg-slate-50"
             >
-              <Copy class="size-3.5" />
+              <Copy class="size-4" />
             </button>
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-[8px] border border-[#d9e1ee] bg-white text-slate-700 transition hover:bg-slate-50"
+              class="flex size-9 items-center justify-center rounded-[10px] border border-[#dbe3f1] bg-white transition hover:bg-slate-50"
             >
-              <Volume2 class="size-3.5" />
+              <Volume2 class="size-4" />
             </button>
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-[8px] border border-[#d9e1ee] bg-white text-slate-700 transition hover:bg-slate-50"
+              class="flex size-9 items-center justify-center rounded-[10px] border border-[#dbe3f1] bg-white transition hover:bg-slate-50"
             >
-              <ThumbsUp class="size-3.5" />
+              <ThumbsUp class="size-4" />
             </button>
             <button
               type="button"
-              class="flex size-8 items-center justify-center rounded-[8px] border border-[#d9e1ee] bg-white text-slate-700 transition hover:bg-slate-50"
+              class="flex size-9 items-center justify-center rounded-[10px] border border-[#dbe3f1] bg-white transition hover:bg-slate-50"
             >
-              <ThumbsDown class="size-3.5" />
+              <ThumbsDown class="size-4" />
             </button>
             <span v-if="showMeta" class="ml-1 text-[13px] text-slate-500">
               {{ message.createdAt.slice(11, 16) }}
             </span>
           </div>
 
-          <div class="max-w-[640px] rounded-[16px] bg-slate-50 px-5 py-4 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+          <div class="max-w-[720px] rounded-[24px] bg-[#f7f9fc] px-6 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div v-if="responseFlow" class="space-y-4">
+              <section class="rounded-[18px] border border-[#e6edf7] bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                  @click="toggleProcess"
+                >
+                  <div class="flex min-w-0 items-center gap-3">
+                    <div
+                      class="inline-flex h-11 items-center gap-2 rounded-[14px] border border-[#dbe6ff] bg-[#f8fbff] px-4 text-[15px] font-semibold text-slate-900 shadow-sm"
+                    >
+                      <LoaderCircle
+                        v-if="responseFlow.thinking.status === 'running'"
+                        class="size-4 animate-spin text-[#3d6cff]"
+                      />
+                      <Check v-else class="size-4 text-[#3d6cff]" />
+                      <span>{{ responseFlow.thinking.title }}</span>
+                    </div>
+                    <p v-if="processSummary && !processOpen" class="truncate text-[14px] text-[#6f7d92]">
+                      {{ processSummary }}
+                    </p>
+                  </div>
+
+                  <ChevronDown
+                    class="size-4 shrink-0 text-[#7f8aa0] transition-transform duration-200"
+                    :class="processOpen && 'rotate-180'"
+                  />
+                </button>
+
+                <transition name="process-collapse">
+                  <div v-if="processOpen" class="border-t border-t-[#eef2f7] px-5 pb-5 pt-4">
+                    <div class="whitespace-pre-wrap text-[16px] leading-8 text-[#5b6474]">
+                      {{
+                        responseFlow.thinking.visibleContent ||
+                        (message.status === 'streaming' ? '正在分析问题...' : responseFlow.thinking.content)
+                      }}
+                    </div>
+
+                    <transition-group name="stage-slide" tag="div" class="mt-4 space-y-3">
+                      <section
+                        v-for="tool in toolStages"
+                        :key="tool.id"
+                        class="rounded-[18px] border border-[#d9e2ef] bg-white px-4 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+                      >
+                        <div class="flex items-center justify-between gap-4">
+                          <div class="flex min-w-0 items-center gap-3">
+                            <div
+                              class="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-[#e8edf6] bg-[#fbfcfe] text-[#55637d] shadow-sm"
+                            >
+                              <component :is="getToolIcon(tool)" class="size-5" />
+                            </div>
+                            <div class="min-w-0">
+                              <div
+                                class="inline-flex min-h-[34px] items-center rounded-[4px] bg-[#f4f7fb] px-4 text-[15px] font-semibold text-[#162033]"
+                              >
+                                {{ tool.title }}
+                              </div>
+                              <p class="mt-1 truncate text-[14px] text-[#6f7d92]">{{ tool.subtitle }}</p>
+                            </div>
+                          </div>
+
+                          <div class="flex shrink-0 items-center gap-3 text-[13px] text-[#5d6b81]">
+                            <div class="flex size-7 items-center justify-center rounded-full bg-[#f5f8fd]">
+                              <LoaderCircle
+                                v-if="tool.status === 'running'"
+                                class="size-4 animate-spin text-[#3d6cff]"
+                              />
+                              <Check v-else class="size-4 text-[#3d6cff]" />
+                            </div>
+                            <span>{{ tool.status === 'running' ? '执行中' : '完成' }}</span>
+                            <span>{{ tool.durationMs }}ms</span>
+                          </div>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                          <div
+                            v-if="tool.showInput"
+                            class="rounded-[14px] border border-[#edf2f8] bg-[#fbfcfe] px-4 py-3"
+                          >
+                            <p class="text-[13px] font-medium text-[#7b8799]">{{ tool.inputLabel }}</p>
+                            <p class="mt-1 whitespace-pre-wrap break-all text-[14px] text-[#25324a]">
+                              {{ tool.visibleInput }}
+                            </p>
+                          </div>
+
+                          <div v-if="tool.showSteps" class="space-y-2">
+                            <div
+                              v-for="step in tool.steps"
+                              :key="step.id"
+                              class="flex items-center gap-3 rounded-[14px] border border-[#edf2f8] bg-[#fbfcfe] px-4 py-3"
+                            >
+                              <div class="flex size-6 items-center justify-center">
+                                <LoaderCircle
+                                  v-if="step.status === 'running'"
+                                  class="size-4 animate-spin text-[#3d6cff]"
+                                />
+                                <Check
+                                  v-else-if="step.status === 'success'"
+                                  class="size-4 text-[#3d6cff]"
+                                />
+                                <TimerReset v-else class="size-4 text-[#b0bac9]" />
+                              </div>
+                              <div
+                                class="flex min-h-[34px] flex-1 items-center rounded-[4px] bg-white px-4 text-[14px] font-medium text-[#24324a] shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+                              >
+                                {{ step.label }}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div
+                            v-if="tool.showOutput"
+                            class="rounded-[14px] border border-[#edf2f8] bg-[#fbfcfe] px-4 py-3"
+                          >
+                            <p class="text-[13px] font-medium text-[#7b8799]">{{ tool.outputLabel }}</p>
+                            <p class="mt-1 whitespace-pre-wrap text-[14px] text-[#25324a]">
+                              {{ tool.visibleOutput }}
+                            </p>
+                          </div>
+                        </div>
+                      </section>
+                    </transition-group>
+                  </div>
+                </transition>
+              </section>
+
+              <section
+                v-if="responseFlow.answer.status !== 'pending' || responseFlow.answer.visibleContent"
+                class="rounded-[18px] border border-[#e6edf7] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+              >
+                <div class="whitespace-pre-wrap text-[16px] leading-8 text-slate-900">
+                  {{ responseFlow.answer.visibleContent }}
+                </div>
+              </section>
+            </div>
+
+            <template v-else>
+              <div class="whitespace-pre-wrap text-[16px] leading-8 text-slate-900">
+                {{ message.content || '正在生成...' }}
+              </div>
+            </template>
+
             <div
-              class="inline-flex h-10 items-center gap-2 rounded-[12px] border border-[#d9e1ee] bg-white px-4 text-[15px] font-medium text-slate-900"
+              v-if="showMeta && responseFlow?.showActions"
+              class="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500"
             >
-              <span class="text-[14px]">思</span>
-              <span>思考过程</span>
-            </div>
-
-            <div class="mt-4 whitespace-pre-wrap text-[16px] leading-8 text-slate-900">
-              {{ message.content || '正在生成...' }}
-            </div>
-
-            <div v-if="message.status === 'streaming'" class="mt-2 flex items-center gap-2 text-xs text-slate-500">
-              <LoaderCircle class="size-3 animate-spin" />
-              正在生成
-            </div>
-
-            <div v-if="message.toolCalls?.length" class="mt-4 space-y-3">
-              <ToolCallCard v-for="toolCall in message.toolCalls" :key="toolCall.id" :tool-call="toolCall" />
-            </div>
-
-            <div v-if="showMeta" class="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
               <span class="rounded-[10px] bg-[#f2e8ff] px-2 py-0.5 text-[11px] font-medium text-[#bf5af2]">
-                {{ ((message.latencyMs || 0) / 1000).toFixed(2) }}s
+                {{ formatLatency(message.latencyMs) }}
               </span>
               <button
                 type="button"
-                class="h-7 rounded-[8px] px-2 text-[13px] text-slate-700 transition hover:bg-slate-100"
+                class="h-8 rounded-[10px] px-2.5 text-[13px] text-slate-700 transition hover:bg-slate-100"
                 @click="$emit('detail', message.traceId)"
               >
                 查看详情
               </button>
               <button
                 type="button"
-                class="h-7 rounded-[8px] px-2 text-[13px] text-slate-700 transition hover:bg-slate-100"
+                class="h-8 rounded-[10px] px-2.5 text-[13px] text-slate-700 transition hover:bg-slate-100"
                 @click="$emit('regenerate')"
               >
                 重新生成
               </button>
+            </div>
+
+            <div
+              v-else-if="message.status === 'streaming' && !responseFlow?.showActions"
+              class="mt-4 flex items-center gap-2 text-xs text-slate-500"
+            >
+              <LoaderCircle class="size-3 animate-spin" />
+              正在生成
             </div>
           </div>
         </div>
@@ -115,3 +316,27 @@ defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.stage-slide-enter-active,
+.stage-slide-leave-active {
+  transition: all 0.28s ease;
+}
+
+.stage-slide-enter-from,
+.stage-slide-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.process-collapse-enter-active,
+.process-collapse-leave-active {
+  transition: all 0.22s ease;
+}
+
+.process-collapse-enter-from,
+.process-collapse-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>

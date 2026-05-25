@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { FileBarChart, FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Trash2, UploadCloud } from 'lucide-vue-next'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogOverlay,
-  DialogPortal,
-  DialogRoot,
-  DialogTitle
-} from 'reka-ui'
+
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -81,6 +74,14 @@ const editOverlapChars = ref('0')
 const editNoChunk = ref(false)
 const editOriginalChunkSize = ref('512')
 
+const statusOptions = [
+  { value: 'all', label: '全部状态' },
+  { value: 'pending', label: 'pending' },
+  { value: 'running', label: 'running' },
+  { value: 'failed', label: 'failed' },
+  { value: 'success', label: 'success' }
+]
+
 const pageSize = 10
 const kbId = computed(() => String(route.params.kbId || ''))
 const documents = computed(() => adminStore.documentsByKb[kbId.value] ?? [])
@@ -116,29 +117,18 @@ const filteredDocuments = computed(() => {
   }
 })
 
-function handleSearch() {
+const handleSearch = () => {
   current.value = 1
   keyword.value = searchInput.value.trim()
 }
 
-function handleRefresh() {
+const handleRefresh = () => {
   current.value = 1
 }
 
-function handleStatusFilterChange(value: string) {
-  current.value = 1
-  statusFilter.value = value
-}
 
-function handlePrevPage() {
-  current.value = Math.max(1, current.value - 1)
-}
 
-function handleNextPage() {
-  current.value = Math.min(filteredDocuments.value.pages, current.value + 1)
-}
-
-function openEdit(documentId: string) {
+const openEdit = (documentId: string) => {
   activeDocumentId.value = documentId
   const doc = documents.value.find((item) => item.id === documentId)
   editName.value = doc?.docName || doc?.name || ''
@@ -159,22 +149,22 @@ function openEdit(documentId: string) {
   editOpen.value = true
 }
 
-async function openPreview(documentId: string) {
+const openPreview = async (documentId: string) => {
   previewDocument.value = await fetchDocumentDetail(kbId.value, documentId)
   previewOpen.value = true
 }
 
-function openDelete(documentId: string) {
+const openDelete = (documentId: string) => {
   activeDocumentId.value = documentId
   deleteOpen.value = true
 }
 
-function openChunk(documentId: string) {
+const openChunk = (documentId: string) => {
   activeDocumentId.value = documentId
   chunkOpen.value = true
 }
 
-async function openChunkLog(documentId: string) {
+const openChunkLog = async (documentId: string) => {
   activeDocumentId.value = documentId
   chunkLogsLoading.value = true
   chunkLogs.value = await fetchDocumentChunkLogs(documentId)
@@ -182,28 +172,28 @@ async function openChunkLog(documentId: string) {
   logOpen.value = true
 }
 
-function formatSourceLabel(sourceType?: string | null) {
+const formatSourceLabel = (sourceType?: string | null) => {
   const normalized = sourceType?.toLowerCase()
   if (normalized === 'url') return 'Remote URL'
   if (normalized === 'file') return 'Local File'
   return '-'
 }
 
-function formatProcessMode(mode?: string | null) {
+const formatProcessMode = (mode?: string | null) => {
   const normalized = mode?.toLowerCase()
   if (normalized === 'pipeline') return '数据通道'
   if (normalized === 'chunk') return '直接分块'
   return mode || '-'
 }
 
-function formatChunkStrategy(strategy?: string | null) {
+const formatChunkStrategy = (strategy?: string | null) => {
   const normalized = strategy?.toLowerCase()
   if (normalized === 'fixed_size') return '固定大小'
   if (normalized === 'structure_aware') return '语义感知'
   return strategy || '-'
 }
 
-function formatSize(size?: number | null) {
+const formatSize = (size?: number | null) => {
   if (!size && size !== 0) return '-'
   if (size < 1024) return `${size} B`
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
@@ -211,7 +201,7 @@ function formatSize(size?: number | null) {
   return `${(size / 1024 / 1024 / 1024).toFixed(1)} GB`
 }
 
-function statusDotClass(status?: string | null) {
+const statusDotClass = (status?: string | null) => {
   if (!status) return 'bg-muted-foreground/40'
   const normalized = status.toLowerCase()
   if (normalized === 'success' || normalized === 'indexed') return 'bg-emerald-500'
@@ -221,7 +211,7 @@ function statusDotClass(status?: string | null) {
   return 'bg-muted-foreground/40'
 }
 
-function formatLogStatus(status?: string | null) {
+const formatLogStatus = (status?: string | null) => {
   const normalized = status?.toLowerCase()
   if (normalized === 'success') return '成功'
   if (normalized === 'failed') return '失败'
@@ -229,13 +219,13 @@ function formatLogStatus(status?: string | null) {
   return status || '-'
 }
 
-function formatDuration(ms?: number | null) {
+const formatDuration = (ms?: number | null) => {
   if (!ms && ms !== 0) return '-'
   if (ms < 1000) return `${ms}ms`
   return `${(ms / 1000).toFixed(2)}s`
 }
 
-function resetUploadForm() {
+const resetUploadForm = () => {
   uploadFile.value = null
   uploadSourceType.value = 'file'
   uploadSourceLocation.value = ''
@@ -254,7 +244,7 @@ function resetUploadForm() {
   uploadOriginalChunkSize.value = '512'
 }
 
-function handleUploadNoChunkToggle() {
+const handleUploadNoChunkToggle = () => {
   if (uploadNoChunk.value) {
     uploadChunkSize.value = uploadOriginalChunkSize.value
     uploadNoChunk.value = false
@@ -265,18 +255,18 @@ function handleUploadNoChunkToggle() {
   uploadNoChunk.value = true
 }
 
-function handleUploadChunkSizeChange(value: string | number) {
+const handleUploadChunkSizeChange = (value: string | number) => {
   uploadChunkSize.value = String(value)
   if (uploadNoChunk.value && uploadChunkSize.value !== '-1') {
     uploadNoChunk.value = false
   }
 }
 
-function triggerUploadFileSelect() {
+const triggerUploadFileSelect = () => {
   uploadFileInput.value?.click()
 }
 
-function handleEditNoChunkToggle() {
+const handleEditNoChunkToggle = () => {
   if (editNoChunk.value) {
     editChunkSize.value = editOriginalChunkSize.value
     editNoChunk.value = false
@@ -287,32 +277,32 @@ function handleEditNoChunkToggle() {
   editNoChunk.value = true
 }
 
-function handleEditChunkSizeChange(value: string | number) {
+const handleEditChunkSizeChange = (value: string | number) => {
   editChunkSize.value = String(value)
   if (editNoChunk.value && editChunkSize.value !== '-1') {
     editNoChunk.value = false
   }
 }
 
-async function refreshDocuments() {
+const refreshDocuments = async () => {
   await adminStore.loadDocuments(kbId.value)
 }
 
-async function handleUpload(payload: KnowledgeDocumentUploadPayload) {
+const handleUpload = async (payload: KnowledgeDocumentUploadPayload) => {
   await uploadDocument(kbId.value, payload)
   resetUploadForm()
   await adminStore.loadKnowledgeBases()
   await refreshDocuments()
 }
 
-async function handleDocumentUpdate(payload: KnowledgeDocumentUpdatePayload) {
+const handleDocumentUpdate = async (payload: KnowledgeDocumentUpdatePayload) => {
   if (!activeDocumentId.value) return
   await updateDocumentDetail(kbId.value, activeDocumentId.value, payload)
   editOpen.value = false
   await refreshDocuments()
 }
 
-function submitUpload() {
+const submitUpload = () => {
   const payload: KnowledgeDocumentUploadPayload = {
     sourceType: uploadSourceType.value,
     file: uploadFile.value,
@@ -345,7 +335,7 @@ function submitUpload() {
   uploadOpen.value = false
 }
 
-function submitEdit() {
+const submitEdit = () => {
   const payload: KnowledgeDocumentUpdatePayload = {
     docName: editName.value.trim(),
     sourceLocation: editIsUrlSource.value ? editSourceLocation.value.trim() : '',
@@ -372,7 +362,7 @@ function submitEdit() {
   void handleDocumentUpdate(payload)
 }
 
-async function handleDeleteConfirm() {
+const handleDeleteConfirm = async () => {
   if (!activeDocumentId.value) return
   await deleteDocument(kbId.value, activeDocumentId.value)
   deleteOpen.value = false
@@ -381,14 +371,14 @@ async function handleDeleteConfirm() {
   await refreshDocuments()
 }
 
-async function handleChunkConfirm() {
+const handleChunkConfirm = async () => {
   if (!activeDocumentId.value) return
   await startDocumentChunk(kbId.value, activeDocumentId.value)
   chunkOpen.value = false
   await refreshDocuments()
 }
 
-async function handleToggleEnabled(doc: KnowledgeDocument) {
+const handleToggleEnabled = async (doc: KnowledgeDocument) => {
   await toggleDocumentEnabled(kbId.value, doc.id, !doc.enabled)
   await refreshDocuments()
 }
@@ -408,21 +398,13 @@ onMounted(async () => {
       :description="knowledgeBase ? `${knowledgeBase.name}（${knowledgeBase.collectionName || ''}）` : kbId"
     >
       <template #actions>
-        <button
-          type="button"
-          class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-          @click="router.push('/admin/knowledge')"
-        >
+        <el-button @click="router.push('/admin/knowledge')">
           返回知识库
-        </button>
-        <button
-          type="button"
-          class="admin-primary-gradient inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm text-white"
-          @click="uploadOpen = true"
-        >
+        </el-button>
+        <el-button type="primary" @click="uploadOpen = true">
           <FileUp class="h-4 w-4" />
           上传文档
-        </button>
+        </el-button>
       </template>
     </AdminPageHeader>
 
@@ -434,37 +416,27 @@ onMounted(async () => {
             <p class="documents-card__description">支持筛选与分块管理</p>
           </div>
           <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <input
+            <el-input
               v-model="searchInput"
               placeholder="搜索文档名称"
-              class="h-10 max-w-xs rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            >
-            <button
-              type="button"
-              class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-              @click="handleSearch"
-            >
+              clearable
+              class="w-[200px]"
+            />
+            <el-button type="primary" @click="handleSearch">
               搜索
-            </button>
-            <select
-              :value="statusFilter"
-              class="h-10 w-[160px] rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              @change="handleStatusFilterChange(($event.target as HTMLSelectElement).value)"
-            >
-              <option value="all">全部状态</option>
-              <option value="pending">pending</option>
-              <option value="running">running</option>
-              <option value="failed">failed</option>
-              <option value="success">success</option>
-            </select>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-              @click="handleRefresh"
-            >
+            </el-button>
+            <el-select v-model="statusFilter" placeholder="全部状态" class="w-[160px]" @change="current = 1">
+              <el-option
+                v-for="item in statusOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+            <el-button @click="handleRefresh">
               <RefreshCw class="h-4 w-4" />
               刷新
-            </button>
+            </el-button>
           </div>
         </div>
       </div>
@@ -473,167 +445,103 @@ onMounted(async () => {
         <div v-if="adminStore.loading" class="py-8 text-center text-slate-500">加载中...</div>
         <div v-else-if="!filteredDocuments.records.length" class="py-8 text-center text-slate-500">暂无文档。</div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="documents-table min-w-[1120px]">
-            <thead class="documents-table__header">
-              <tr class="documents-table__row">
-                <th class="documents-table__head w-[260px]">文档</th>
-                <th class="documents-table__head w-[120px]">来源</th>
-                <th class="documents-table__head w-[120px]">处理模式</th>
-                <th class="documents-table__head w-[120px]">状态</th>
-                <th class="documents-table__head w-[80px]">启用</th>
-                <th class="documents-table__head w-[90px]">分块数</th>
-                <th class="documents-table__head w-[90px]">类型</th>
-                <th class="documents-table__head w-[90px]">大小</th>
-                <th class="documents-table__head w-[170px]">更新时间</th>
-                <th class="documents-table__head w-[160px] text-left">操作</th>
-              </tr>
-            </thead>
+        <el-table :data="filteredDocuments.records" stripe style="width: 100%" @row-click="(row: any) => router.push(`/admin/knowledge/${kbId}/docs/${row.id}`)">
+          <el-table-column label="文档" min-width="260">
+            <template #default="{ row }">
+              <div class="flex items-center gap-2">
+                <FolderOpen class="h-4 w-4 shrink-0 text-slate-400" />
+                <span class="truncate">{{ row.docName || row.name || '-' }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="来源" width="120" prop="sourceType" :formatter="(_: any, __: any, val: any) => formatSourceLabel(val)" />
+          <el-table-column label="处理模式" width="120" :formatter="(_: any, __: any, val: any) => formatProcessMode(val)">
+            <template #default="{ row }">
+              <span class="text-xs text-slate-500">{{ formatProcessMode(row.processMode) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="120">
+            <template #default="{ row }">
+              <div class="inline-flex items-center gap-2 text-xs text-slate-500">
+                <span :class="['h-2 w-2 rounded-full', statusDotClass(row.status)]" />
+                <span>{{ row.status || '-' }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="启用" width="80" align="center">
+            <template #default="{ row }">
+              <el-switch :model-value="Boolean(row.enabled)" size="small" @click.stop @change="() => handleToggleEnabled(row)" />
+            </template>
+          </el-table-column>
+          <el-table-column label="分块数" width="90" prop="chunks" />
+          <el-table-column label="类型" width="90">
+            <template #default="{ row }">{{ row.fileType || row.type || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="大小" width="90" :formatter="(_: any, __: any, val: any) => formatSize(val)">
+            <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
+          </el-table-column>
+          <el-table-column label="更新时间" width="170">
+            <template #default="{ row }">{{ row.updateTime || row.updatedAt }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" align="right">
+            <template #default="{ row }">
+              <div class="flex justify-end gap-1" @click.stop>
+                <el-button link size="small" @click="openPreview(row.id)" title="预览"><FolderOpen class="h-3.5 w-3.5" /></el-button>
+                <el-button link size="small" @click="openEdit(row.id)" title="编辑"><Pencil class="h-3.5 w-3.5" /></el-button>
+                <el-button link size="small" @click="openChunk(row.id)" title="分块"><PlayCircle class="h-3.5 w-3.5" /></el-button>
+                <el-button link size="small" @click="openChunkLog(row.id)" title="分块详情"><FileBarChart class="h-3.5 w-3.5" /></el-button>
+                <el-button link size="small" type="danger" @click="openDelete(row.id)" title="删除"><Trash2 class="h-3.5 w-3.5" /></el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
 
-            <tbody>
-              <tr v-for="doc in filteredDocuments.records" :key="doc.id" class="documents-table__row">
-                <td class="documents-table__cell font-medium">
-                  <div class="flex min-w-0 max-w-[280px] items-center gap-2">
-                    <FolderOpen class="h-4 w-4 text-slate-400" />
-                    <button
-                      type="button"
-                      class="admin-link min-w-0 flex-1 text-left"
-                      :title="doc.docName || doc.name || ''"
-                      @click="router.push(`/admin/knowledge/${kbId}/docs/${doc.id}`)"
-                    >
-                      <span class="min-w-0 truncate">{{ doc.docName || doc.name || '-' }}</span>
-                    </button>
-                  </div>
-                </td>
-
-                <td class="documents-table__cell">
-                  <span class="text-xs text-slate-500">{{ formatSourceLabel(doc.sourceType) }}</span>
-                </td>
-
-                <td class="documents-table__cell">
-                  <span class="text-xs text-slate-500">{{ formatProcessMode(doc.processMode) }}</span>
-                </td>
-
-                <td class="documents-table__cell">
-                  <div class="inline-flex items-center gap-2 text-xs text-slate-500">
-                    <span :class="cn('h-2 w-2 rounded-full', statusDotClass(doc.status))" />
-                    <span>{{ doc.status || '-' }}</span>
-                  </div>
-                </td>
-
-                <td class="documents-table__cell">
-                  <button
-                    type="button"
-                    role="switch"
-                    :aria-checked="Boolean(doc.enabled)"
-                    :class="
-                      cn(
-                        'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2',
-                        doc.enabled ? 'bg-blue-600' : 'bg-slate-200'
-                      )
-                    "
-                    @click="handleToggleEnabled(doc)"
-                  >
-                    <span
-                      :class="
-                        cn(
-                          'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
-                          doc.enabled ? 'translate-x-4' : 'translate-x-1'
-                        )
-                      "
-                    />
-                  </button>
-                </td>
-
-                <td class="documents-table__cell">{{ doc.chunks ?? '-' }}</td>
-                <td class="documents-table__cell">{{ doc.fileType || doc.type || '-' }}</td>
-                <td class="documents-table__cell">{{ formatSize(doc.fileSize) }}</td>
-                <td class="documents-table__cell">{{ doc.updateTime || doc.updatedAt }}</td>
-
-                <td class="documents-table__cell text-right">
-                  <div class="flex justify-end gap-1">
-                    <button type="button" class="rounded-[10px] p-2 text-slate-500 transition hover:bg-slate-100" title="预览" @click="openPreview(doc.id)">
-                      <FolderOpen class="h-4 w-4" />
-                    </button>
-                    <button type="button" class="rounded-[10px] p-2 text-slate-500 transition hover:bg-slate-100" title="编辑" @click="openEdit(doc.id)">
-                      <Pencil class="h-4 w-4" />
-                    </button>
-                    <button type="button" class="rounded-[10px] p-2 text-slate-500 transition hover:bg-slate-100" title="分块" @click="openChunk(doc.id)">
-                      <PlayCircle class="h-4 w-4" />
-                    </button>
-                    <button type="button" class="rounded-[10px] p-2 text-slate-500 transition hover:bg-slate-100" title="分块详情" @click="openChunkLog(doc.id)">
-                      <FileBarChart class="h-4 w-4" />
-                    </button>
-                    <button type="button" class="rounded-[10px] p-2 text-red-600 transition hover:bg-red-50" title="删除" @click="openDelete(doc.id)">
-                      <Trash2 class="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
-          <span>共 {{ filteredDocuments.total }} 条</span>
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="rounded-[10px] border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              @click="handlePrevPage"
-              :disabled="filteredDocuments.current <= 1"
-            >
-              上一页
-            </button>
-            <span>{{ filteredDocuments.current }} / {{ filteredDocuments.pages }}</span>
-            <button
-              type="button"
-              class="rounded-[10px] border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              @click="handleNextPage"
-              :disabled="filteredDocuments.current >= filteredDocuments.pages"
-            >
-              下一页
-            </button>
-          </div>
+        <div class="flex items-center justify-between px-4 py-3">
+          <span class="text-sm text-slate-500">共 {{ filteredDocuments.total }} 条</span>
+          <el-pagination
+            v-model:current-page="current"
+            :page-size="pageSize"
+            :total="filteredDocuments.total"
+            layout="prev, pager, next"
+            small
+            background
+          />
         </div>
       </div>
     </div>
 
-    <DialogRoot :open="uploadOpen" @update:open="uploadOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-32px)] max-w-[620px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">上传文档</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">支持本地文件或远程 URL，并配置分块策略</DialogDescription>
-          </div>
+    <el-dialog
+      :model-value="uploadOpen"
+      @update:model-value="uploadOpen = $event"
+      title="上传文档"
+      width="620px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <p class="mb-6 text-sm text-slate-500">支持本地文件或远程 URL，并配置分块策略</p>
 
-          <div class="space-y-4 px-6 py-6">
+      <div class="space-y-4">
             <div>
               <div class="mb-2 text-sm font-medium text-slate-900">来源类型</div>
-              <select
-                v-model="uploadSourceType"
-                class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="file">Local File</option>
-                <option value="url">Remote URL</option>
-              </select>
+              <el-select v-model="uploadSourceType" class="w-full">
+                <el-option value="file" label="Local File" />
+                <el-option value="url" label="Remote URL" />
+              </el-select>
             </div>
 
             <div v-if="uploadSourceType === 'url'">
               <div class="mb-2 text-sm font-medium text-slate-900">来源地址</div>
-              <input
+              <el-input
                 v-model="uploadSourceLocation"
                 placeholder="https://raw.githubusercontent.com/bytedance/deer-flow/main/docs/API.md"
-                class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
+              />
               <div class="mt-1 text-sm text-slate-500">填写远程文档 URL</div>
             </div>
 
             <div v-else>
               <div class="mb-2 text-sm font-medium text-slate-900">本地文件</div>
               <div
-                class="cursor-pointer rounded-[16px] border border-dashed border-slate-200 bg-white p-6 transition-colors hover:border-blue-300"
+                class="cursor-pointer rounded-[16px] border border-dashed border-slate-200 bg-white p-6 transition-colors hover:border-zinc-300"
                 @click="triggerUploadFileSelect"
               >
                 <input
@@ -643,7 +551,7 @@ onMounted(async () => {
                   @change="uploadFile = (($event.target as HTMLInputElement).files?.[0] || null)"
                 >
                 <div class="flex flex-col items-center justify-center text-center">
-                  <div class="flex size-12 items-center justify-center rounded-[14px] bg-blue-50 text-blue-600">
+                  <div class="flex size-12 items-center justify-center rounded-[14px] bg-zinc-50 text-zinc-700">
                     <UploadCloud class="size-6" />
                   </div>
                   <template v-if="uploadFile">
@@ -653,7 +561,7 @@ onMounted(async () => {
                     </p>
                     <button
                       type="button"
-                      class="mt-3 text-xs text-blue-600 hover:underline"
+                      class="mt-3 text-xs text-zinc-600 hover:underline"
                       @click.stop="uploadFile = null"
                     >
                       重新选择
@@ -682,8 +590,8 @@ onMounted(async () => {
                   :aria-checked="uploadScheduleEnabled"
                   :class="
                     cn(
-                      'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2',
-                      uploadScheduleEnabled ? 'bg-blue-600' : 'bg-slate-200'
+                      'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:ring-offset-2',
+                      uploadScheduleEnabled ? 'bg-zinc-800' : 'bg-slate-200'
                     )
                   "
                   @click="uploadScheduleEnabled = !uploadScheduleEnabled"
@@ -700,11 +608,10 @@ onMounted(async () => {
               </div>
               <div v-if="uploadScheduleEnabled">
                 <div class="mb-2 text-sm font-medium text-slate-900">拉取频率</div>
-                <input
+                <el-input
                   v-model="uploadScheduleCron"
                   placeholder="例如：0 0 0 * * ?"
-                  class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
+                />
                 <div class="mt-1 text-sm text-slate-500">支持 cron 表达式，例如每天凌晨</div>
               </div>
             </div>
@@ -712,57 +619,46 @@ onMounted(async () => {
             <div class="space-y-3 rounded-lg border p-3">
               <div>
                 <div class="mb-2 text-sm font-medium text-slate-900">处理模式</div>
-                <select
-                  v-model="uploadProcessMode"
-                  class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="chunk">直接分块</option>
-                  <option value="pipeline">数据通道</option>
-                </select>
+                <el-select v-model="uploadProcessMode" class="w-full">
+                  <el-option value="chunk" label="直接分块" />
+                  <el-option value="pipeline" label="数据通道" />
+                </el-select>
               </div>
 
               <div v-if="uploadProcessMode === 'pipeline'">
                 <div class="mb-2 text-sm font-medium text-slate-900">选择通道</div>
-                <select
-                  v-model="uploadPipelineId"
-                  class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="">请选择</option>
-                  <option value="pipeline-1">财务制度 nightly sync</option>
-                  <option value="pipeline-2">客服 FAQ 每日抽取</option>
-                </select>
+                <el-select v-model="uploadPipelineId" class="w-full" placeholder="请选择">
+                  <el-option value="" label="请选择" />
+                  <el-option value="pipeline-1" label="财务制度 nightly sync" />
+                  <el-option value="pipeline-2" label="客服 FAQ 每日抽取" />
+                </el-select>
                 <div class="mt-1 text-sm text-slate-500">通过 ETL 处理提升文档数据质量，增强向量搜索效果</div>
               </div>
 
               <div v-if="uploadProcessMode === 'chunk'" class="space-y-3">
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">切分方式</div>
-                  <select
-                    v-model="uploadChunkStrategy"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
-                    <option value="fixed_size">固定大小</option>
-                    <option value="structure_aware">语义感知（Markdown友好）</option>
-                  </select>
+                  <el-select v-model="uploadChunkStrategy" class="w-full">
+                    <el-option value="fixed_size" label="固定大小" />
+                    <el-option value="structure_aware" label="语义感知（Markdown友好）" />
+                  </el-select>
                 </div>
 
                 <div v-if="uploadIsFixedSize" class="grid gap-4 md:grid-cols-3">
                   <div>
                     <div class="mb-2 text-sm font-medium text-slate-900">块大小</div>
-                    <input
-                      :value="uploadChunkSize"
+                    <el-input
+                      :model-value="uploadChunkSize"
                       type="number"
-                      class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      @input="handleUploadChunkSizeChange(($event.target as HTMLInputElement).value)"
-                    >
+                      @input="handleUploadChunkSizeChange"
+                    />
                   </div>
                   <div>
                     <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-                    <input
+                    <el-input
                       v-model="uploadOverlapSize"
                       type="number"
-                      class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    >
+                    />
                   </div>
                   <div>
                     <div class="mb-2 text-sm font-medium text-slate-900">不分块</div>
@@ -773,8 +669,8 @@ onMounted(async () => {
                         :aria-checked="uploadNoChunk"
                         :class="
                           cn(
-                            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2',
-                            uploadNoChunk ? 'bg-blue-600' : 'bg-slate-200'
+                            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:ring-offset-2',
+                            uploadNoChunk ? 'bg-zinc-800' : 'bg-slate-200'
                           )
                         "
                         @click="handleUploadNoChunkToggle"
@@ -796,63 +692,56 @@ onMounted(async () => {
                 <div v-else class="grid gap-4 md:grid-cols-2">
                   <div>
                     <div class="mb-2 text-sm font-medium text-slate-900">理想块大小</div>
-                    <input
+                    <el-input
                       v-model="uploadTargetChars"
                       type="number"
-                      class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    >
+                    />
                   </div>
                   <div>
                     <div class="mb-2 text-sm font-medium text-slate-900">块上限</div>
-                    <input
+                    <el-input
                       v-model="uploadMaxChars"
                       type="number"
-                      class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    >
+                    />
                   </div>
                   <div>
                     <div class="mb-2 text-sm font-medium text-slate-900">块下限</div>
-                    <input
+                    <el-input
                       v-model="uploadMinChars"
                       type="number"
-                      class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    >
+                    />
                   </div>
                   <div>
                     <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-                    <input
+                    <el-input
                       v-model="uploadOverlapChars"
                       type="number"
-                      class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    >
+                    />
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+      </div>
 
-          <div class="flex justify-end gap-3 border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="uploadOpen = false">取消</button>
-            <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700" @click="submitUpload">上传</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="uploadOpen = false">取消</el-button>
+          <el-button type="primary" @click="submitUpload">上传</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
-    <DialogRoot :open="previewOpen" @update:open="previewOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">
-              {{ previewDocument?.name || '文档预览' }}
-            </DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">
-              展示文档基本信息、来源和摘要内容。
-            </DialogDescription>
-          </div>
+    <el-dialog
+      :model-value="previewOpen"
+      @update:model-value="previewOpen = $event"
+      :title="previewDocument?.name || '文档预览'"
+      width="768px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <p class="mb-6 text-sm text-slate-500">展示文档基本信息、来源和摘要内容。</p>
 
-          <div class="grid gap-6 px-6 py-6 lg:grid-cols-[280px_1fr]">
+      <div class="grid gap-6 lg:grid-cols-[280px_1fr]">
             <div class="space-y-4">
               <div class="rounded-[14px] border bg-slate-50 p-4">
                 <p class="text-xs text-slate-500">来源</p>
@@ -888,20 +777,19 @@ onMounted(async () => {
               </div>
             </div>
           </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    </el-dialog>
 
-    <DialogRoot :open="editOpen" @update:open="editOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-32px)] max-w-[620px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">编辑文档</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">修改文档配置，保存后需重新分块才会生效</DialogDescription>
-          </div>
+    <el-dialog
+      :model-value="editOpen"
+      @update:model-value="editOpen = $event"
+      title="编辑文档"
+      width="620px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <p class="mb-6 text-sm text-slate-500">修改文档配置，保存后需重新分块才会生效</p>
 
-          <div v-if="activeDocumentRecord" class="space-y-4 px-6 py-6">
+      <div v-if="activeDocumentRecord" class="space-y-4">
             <div>
               <div class="mb-2 text-sm font-medium text-slate-900">来源类型</div>
               <div class="flex h-10 items-center rounded-[10px] border bg-slate-50 px-3 text-sm text-slate-500">
@@ -911,20 +799,16 @@ onMounted(async () => {
 
             <div>
               <div class="mb-2 text-sm font-medium text-slate-900">{{ editNameLabel }}</div>
-              <input
-                v-model="editName"
-                class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
+              <el-input v-model="editName" />
             </div>
 
             <template v-if="editIsUrlSource">
               <div>
                 <div class="mb-2 text-sm font-medium text-slate-900">来源地址</div>
-                <input
+                <el-input
                   v-model="editSourceLocation"
                   placeholder="https://example.com/document.pdf"
-                  class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
+                />
               </div>
 
               <div class="space-y-3 rounded-lg border p-3">
@@ -939,8 +823,8 @@ onMounted(async () => {
                     :aria-checked="editScheduleEnabled"
                     :class="
                       cn(
-                        'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2',
-                        editScheduleEnabled ? 'bg-blue-600' : 'bg-slate-200'
+                        'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:ring-offset-2',
+                        editScheduleEnabled ? 'bg-zinc-800' : 'bg-slate-200'
                       )
                     "
                     @click="editScheduleEnabled = !editScheduleEnabled"
@@ -957,11 +841,10 @@ onMounted(async () => {
                 </div>
                 <div v-if="editScheduleEnabled">
                   <div class="mb-2 text-sm font-medium text-slate-900">拉取频率（Cron 表达式）</div>
-                  <input
+                  <el-input
                     v-model="editScheduleCron"
                     placeholder="0 0 * * * (每小时)"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
+                  />
                   <div class="mt-1 text-sm text-slate-500">例如：0 * * * *（每小时）；0 0 * * *（每天）</div>
                 </div>
               </div>
@@ -969,58 +852,47 @@ onMounted(async () => {
 
             <div>
               <div class="mb-2 text-sm font-medium text-slate-900">处理模式</div>
-              <select
-                v-model="editProcessMode"
-                class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="chunk">分块策略</option>
-                <option value="pipeline">数据通道</option>
-              </select>
+              <el-select v-model="editProcessMode" class="w-full">
+                <el-option value="chunk" label="分块策略" />
+                <el-option value="pipeline" label="数据通道" />
+              </el-select>
               <div class="mt-1 text-sm text-slate-500">分块策略：直接分块；数据通道：使用 Pipeline 清洗</div>
             </div>
 
             <div v-if="editProcessMode === 'pipeline'">
               <div class="mb-2 text-sm font-medium text-slate-900">数据通道</div>
-              <select
-                v-model="editPipelineId"
-                class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="">选择数据通道</option>
-                <option value="pipeline-1">财务制度 nightly sync</option>
-                <option value="pipeline-2">客服 FAQ 每日抽取</option>
-              </select>
+              <el-select v-model="editPipelineId" class="w-full" placeholder="选择数据通道">
+                <el-option value="" label="选择数据通道" />
+                <el-option value="pipeline-1" label="财务制度 nightly sync" />
+                <el-option value="pipeline-2" label="客服 FAQ 每日抽取" />
+              </el-select>
             </div>
 
             <div v-if="editProcessMode === 'chunk'" class="space-y-3 rounded-lg border p-3">
               <div>
                 <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
-                <select
-                  v-model="editChunkStrategy"
-                  class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="fixed_size">固定大小</option>
-                  <option value="structure_aware">语义感知（Markdown 友好）</option>
-                </select>
+                <el-select v-model="editChunkStrategy" class="w-full">
+                  <el-option value="fixed_size" label="固定大小" />
+                  <el-option value="structure_aware" label="语义感知（Markdown 友好）" />
+                </el-select>
               </div>
 
               <div v-if="editIsFixedSize" class="grid gap-4 md:grid-cols-3">
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">块大小</div>
-                  <input
-                    :value="editChunkSize"
+                  <el-input
+                    :model-value="editChunkSize"
                     type="number"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    @input="handleEditChunkSizeChange(($event.target as HTMLInputElement).value)"
-                  >
+                    @input="handleEditChunkSizeChange"
+                  />
                   <div class="mt-1 text-sm text-slate-500">字符数</div>
                 </div>
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-                  <input
+                  <el-input
                     v-model="editOverlapSize"
                     type="number"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
+                  />
                 </div>
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">不分块</div>
@@ -1031,8 +903,8 @@ onMounted(async () => {
                       :aria-checked="editNoChunk"
                       :class="
                         cn(
-                          'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2',
-                          editNoChunk ? 'bg-blue-600' : 'bg-slate-200'
+                          'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:ring-offset-2',
+                          editNoChunk ? 'bg-zinc-800' : 'bg-slate-200'
                         )
                       "
                       @click="handleEditNoChunkToggle"
@@ -1054,92 +926,92 @@ onMounted(async () => {
               <div v-else class="grid gap-4 md:grid-cols-2">
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">理想块大小</div>
-                  <input
+                  <el-input
                     v-model="editTargetChars"
                     type="number"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
+                  />
                 </div>
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">块上限</div>
-                  <input
+                  <el-input
                     v-model="editMaxChars"
                     type="number"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
+                  />
                 </div>
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">块下限</div>
-                  <input
+                  <el-input
                     v-model="editMinChars"
                     type="number"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
+                  />
                 </div>
                 <div>
                   <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-                  <input
+                  <el-input
                     v-model="editOverlapChars"
                     type="number"
-                    class="h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="flex justify-end gap-3 border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="editOpen = false">关闭</button>
-            <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60" :disabled="!editName.trim()" @click="submitEdit">保存</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="editOpen = false">关闭</el-button>
+          <el-button type="primary" :disabled="!editName.trim()" @click="submitEdit">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
-    <DialogRoot :open="deleteOpen" @update:open="deleteOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">确认删除文档？</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">文档删除后当前不提供恢复入口。确定要继续吗？</DialogDescription>
-          </div>
-          <div class="flex justify-end gap-3 px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="deleteOpen = false">取消</button>
-            <button type="button" class="rounded-[10px] bg-red-600 px-4 py-2 text-sm text-white transition hover:bg-red-700" @click="handleDeleteConfirm">删除</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    <el-dialog
+      :model-value="deleteOpen"
+      @update:model-value="deleteOpen = $event"
+      title="确认删除文档？"
+      width="420px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <p class="mb-6 text-sm text-slate-500">文档删除后当前不提供恢复入口。确定要继续吗？</p>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="deleteOpen = false">取消</el-button>
+          <el-button type="danger" @click="handleDeleteConfirm">删除</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
-    <DialogRoot :open="chunkOpen" @update:open="chunkOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">{{ activeDocumentRecord?.chunks ? '重新分块？' : '开始分块？' }}</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">文档 [{{ activeDocumentName }}] 将开始分块并写入向量库。</DialogDescription>
-          </div>
-          <div class="flex justify-end gap-3 px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="chunkOpen = false">取消</button>
-            <button type="button" class="rounded-[10px] bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700" @click="handleChunkConfirm">{{ activeDocumentRecord?.chunks ? '重新分块' : '开始分块' }}</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    <el-dialog
+      :model-value="chunkOpen"
+      @update:model-value="chunkOpen = $event"
+      :title="activeDocumentRecord?.chunks ? '重新分块？' : '开始分块？'"
+      width="420px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <p class="mb-6 text-sm text-slate-500">文档 [{{ activeDocumentName }}] 将开始分块并写入向量库。</p>
 
-    <DialogRoot :open="logOpen" @update:open="logOpen = $event">
-      <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-50 bg-black/45" />
-        <DialogContent class="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-32px)] max-w-[800px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[16px] border bg-white p-0 shadow-xl outline-none">
-          <div class="border-b px-6 py-5 text-left">
-            <DialogTitle class="text-[18px] font-semibold text-slate-900">分块详情</DialogTitle>
-            <DialogDescription class="mt-2 text-sm text-slate-500">文档 [{{ activeDocumentName }}] 的分块执行日志</DialogDescription>
-          </div>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="chunkOpen = false">取消</el-button>
+          <el-button type="primary" @click="handleChunkConfirm">{{ activeDocumentRecord?.chunks ? '重新分块' : '开始分块' }}</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
-          <div v-if="chunkLogsLoading" class="px-6 py-8 text-center text-slate-500">加载中...</div>
+    <el-dialog
+      :model-value="logOpen"
+      @update:model-value="logOpen = $event"
+      title="分块详情"
+      width="800px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <p class="mb-6 text-sm text-slate-500">文档 [{{ activeDocumentName }}] 的分块执行日志</p>
 
-          <div v-else-if="chunkLogs.length" class="space-y-4 px-6 py-6">
+      <div v-if="chunkLogsLoading" class="px-6 py-8 text-center text-slate-500">加载中...</div>
+
+      <div v-else-if="chunkLogs.length" class="space-y-4">
             <template v-for="log in chunkLogs.slice(0, 1)" :key="log.id">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -1190,9 +1062,9 @@ onMounted(async () => {
                   <div class="mb-1 text-xs text-slate-500">持久化</div>
                   <div class="text-lg font-semibold tabular-nums">{{ formatDuration(log.persistDuration) }}</div>
                 </div>
-                <div class="rounded-lg border bg-blue-50 p-3">
-                  <div class="mb-1 text-xs text-blue-600">更新时间</div>
-                  <div class="text-sm font-bold text-blue-600">{{ log.updateTime || log.updatedAt || '-' }}</div>
+                <div class="rounded-lg border bg-zinc-50 p-3">
+                  <div class="mb-1 text-xs text-zinc-700">更新时间</div>
+                  <div class="text-sm font-bold text-zinc-700">{{ log.updateTime || log.updatedAt || '-' }}</div>
                 </div>
               </div>
 
@@ -1202,14 +1074,14 @@ onMounted(async () => {
             </template>
           </div>
 
-          <div v-else class="px-6 py-8 text-center text-slate-500">暂无分块日志</div>
+      <div v-else class="px-6 py-8 text-center text-slate-500">暂无分块日志</div>
 
-          <div class="flex justify-end border-t px-6 py-4">
-            <button type="button" class="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50" @click="logOpen = false">关闭</button>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+      <template #footer>
+        <div class="flex justify-end">
+          <el-button @click="logOpen = false">关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
