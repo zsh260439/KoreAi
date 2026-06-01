@@ -3,9 +3,7 @@ import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-v
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { cn } from '@/utils/cn'
-import type { User } from '@/types/models'
-import type { AdminNavGroup, AdminNavItem } from '@/types/navigation'
+import type { AdminNavGroup, AdminNavItem, User } from '@/types'
 
 const props = defineProps<{
   collapsed: boolean
@@ -89,9 +87,9 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
 </script>
 
 <template>
-  <aside :class="cn('admin-sidebar', collapsed && 'admin-sidebar--collapsed')">
+  <aside :class="['admin-sidebar', collapsed && 'admin-sidebar--collapsed']">
     <div class="admin-sidebar__brand">
-      <div :class="cn('flex items-center gap-3', collapsed && 'justify-center')">
+      <div :class="['flex items-center gap-3', collapsed && 'justify-center']">
         <div class="admin-sidebar__logo">R</div>
         <div v-if="!collapsed" class="min-w-0">
           <h1 class="admin-sidebar__title">Ragent AI 管理后台</h1>
@@ -122,16 +120,16 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
               :to="item.href"
               :title="collapsed ? item.title : undefined"
               :class="
-                cn(
+                [
                   'admin-sidebar__item',
                   matchChild(item) && 'admin-sidebar__item--active',
                   collapsed && 'justify-center'
-                )
+                ]
               "
               @click="navigateTo(item.href)"
             >
               <span
-                :class="cn('admin-sidebar__item-indicator', matchChild(item) && 'is-active')"
+                :class="['admin-sidebar__item-indicator', matchChild(item) && 'is-active']"
               />
               <component :is="item.icon" class="admin-sidebar__item-icon" />
               <span v-if="collapsed" class="sr-only">{{ item.title }}</span>
@@ -146,15 +144,15 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
                   :to="child.href!"
                   :title="child.title"
                   :class="
-                    cn(
+                    [
                       'admin-sidebar__item justify-center',
                       matchChild(child) && 'admin-sidebar__item--active'
-                    )
+                    ]
                   "
                   @click="navigateTo(child.href)"
                 >
                   <span
-                    :class="cn('admin-sidebar__item-indicator', matchChild(child) && 'is-active')"
+                    :class="['admin-sidebar__item-indicator', matchChild(child) && 'is-active']"
                   />
                   <component :is="child.icon" class="admin-sidebar__item-icon" />
                   <span class="sr-only">{{ child.title }}</span>
@@ -164,15 +162,15 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
                 <button
                   type="button"
                   :class="
-                    cn(
+                    [
                       'admin-sidebar__item admin-sidebar__item--group w-full text-white/60',
                       isGroupActive(item) && 'admin-sidebar__item--group-active text-white'
-                    )
+                    ]
                   "
                   @click="openGroups[item.navKey] = !openGroups[item.navKey]"
                 >
                   <span
-                    :class="cn('admin-sidebar__item-indicator', isGroupActive(item) && 'is-group-active')"
+                    :class="['admin-sidebar__item-indicator', isGroupActive(item) && 'is-group-active']"
                   />
                   <component :is="item.icon" class="admin-sidebar__item-icon" />
                   <span class="flex-1 text-left">{{ item.title }}</span>
@@ -185,15 +183,15 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
                     :key="child.navKey"
                     :to="child.href!"
                     :class="
-                      cn(
+                      [
                         'admin-sidebar__item text-[13px]',
                         matchChild(child) && 'admin-sidebar__item--active'
-                      )
+                      ]
                     "
                     @click="navigateTo(child.href)"
                   >
                     <span
-                      :class="cn('admin-sidebar__item-indicator', matchChild(child) && 'is-active')"
+                      :class="['admin-sidebar__item-indicator', matchChild(child) && 'is-active']"
                     />
                     <component :is="child.icon" class="admin-sidebar__item-icon" />
                     <span>{{ child.title }}</span>
@@ -245,7 +243,7 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
@@ -334,7 +332,7 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
 }
 
 .admin-layout .admin-sidebar__item--active {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(59, 130, 246, 0.22);
   color: #ffffff;
 }
 
@@ -354,7 +352,7 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
 }
 
 .admin-layout .admin-sidebar__item-indicator.is-active {
-  background: #818cf8;
+  background: #93c5fd;
 }
 
 .admin-layout .admin-sidebar__item-indicator.is-group-active {
@@ -369,7 +367,7 @@ const roleLabel = computed(() => (props.user?.role === 'admin' ? '管理员' : p
 }
 
 .admin-layout .admin-sidebar__item--active .admin-sidebar__item-icon {
-  color: #a5b4fc;
+  color: #bfdbfe;
 }
 
 .admin-layout .admin-sidebar__item--group-active .admin-sidebar__item-icon {

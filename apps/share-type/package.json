@@ -1,0 +1,11 @@
+{
+  "name": "share-type",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./common": "./common.ts",
+    "./knowledge": "./knowledge.ts"
+  }
+}

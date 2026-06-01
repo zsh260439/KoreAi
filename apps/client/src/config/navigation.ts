@@ -1,6 +1,6 @@
 import { Database, LayoutDashboard, Settings, Upload, Workflow } from 'lucide-vue-next'
 
-import type { AdminNavGroup } from '@/types/navigation'
+import type { AdminNavGroup } from '@/types'
 
 export const adminNavGroups: AdminNavGroup[] = [
   {

@@ -1,11 +1,124 @@
-import type { ChatMessage, ConversationSummary } from '@/types/models'
+import type { ChatMessage, ConversationSummary, PromptCapabilities, ToolCall } from '@/types'
 import {
   cloneMock,
   conversationMessages,
   conversationSummaries,
   traceDetails,
   wait
-} from '@/utils/mock'
+} from '@/utils'
+
+const DEFAULT_PROMPT_CAPABILITIES: PromptCapabilities = {
+  think: false,
+  search: false
+}
+
+const normalizePromptCapabilities = (
+  promptCapabilities?: PromptCapabilities
+): PromptCapabilities => ({
+  think: Boolean(promptCapabilities?.think),
+  search: Boolean(promptCapabilities?.search)
+})
+
+const trimPreview = (input: string, max = 72) => {
+  const normalized = input.replace(/\s+/g, ' ').trim()
+  if (normalized.length <= max) {
+    return normalized
+  }
+
+  return `${normalized.slice(0, max)}...`
+}
+
+const buildSyntheticToolCalls = (
+  input: string,
+  promptCapabilities: PromptCapabilities
+): ToolCall[] => {
+  const preview = trimPreview(input)
+  const toolCalls: ToolCall[] = []
+  const stamp = Date.now()
+
+  if (promptCapabilities.think) {
+    toolCalls.push({
+      id: `tool-deepsearch-${stamp}`,
+      name: 'deepsearch_reasoner',
+      status: 'success',
+      durationMs: 920,
+      inputPreview: `prompt=${preview}`,
+      outputPreview: '已将问题扩展为多个子问题，并收敛出更稳的最终结论。',
+      summary: '在回答生成前执行深度思考。',
+      steps: ['拆解问题目标', '评估关键取舍', '形成回答方案'],
+      model: 'deepsearch',
+      tokens: 268,
+      phase: 'deepsearch'
+    })
+  }
+
+  if (promptCapabilities.search) {
+    toolCalls.push({
+      id: `tool-search-${stamp + 1}`,
+      name: 'web_search_mcp',
+      status: 'success',
+      durationMs: 640,
+      inputPreview: `query=${preview}`,
+      outputPreview: '已收集当前外部结果，并提取出可用于回答的关键证据。',
+      summary: '通过 MCP 网络搜索获取实时上下文。',
+      steps: ['改写搜索词', '拉取 MCP 搜索结果', '筛选高价值证据'],
+      tokens: 124,
+      phase: 'mcp_web_search'
+    })
+  }
+
+  return toolCalls
+}
+
+const buildAssistantReply = (input: string, promptCapabilities: PromptCapabilities) => {
+  const lowerInput = input.toLowerCase()
+
+  if (lowerInput.includes('天气') || lowerInput.includes('下雨') || lowerInput.includes('weather')) {
+    return {
+      content:
+        '根据当前模拟天气链路，明天下午有中等概率降雨。建议保留线上会议链接，并在会前通知里说明遇雨切换为线上方案。',
+      traceId: 'trace-weather-002'
+    }
+  }
+
+  if (lowerInput.includes('报销') || lowerInput.includes('制度') || lowerInput.includes('expense')) {
+    return {
+      content:
+        '从当前制度问答链路看，住宿报销需要发票、入住清单和支付凭证；交通报销以高铁二等座和经济舱为标准，超标场景需要补充审批说明。',
+      traceId: 'trace-finance-001'
+    }
+  }
+
+  if (promptCapabilities.think && promptCapabilities.search) {
+    return {
+      content:
+        '我会先通过深度思考拉长推理链路，再结合网络搜索补充外部上下文，最后收敛成可执行结论。这条回复主要用于展示前端中的思考过程和外部搜索过程可视化。',
+      traceId: undefined
+    }
+  }
+
+  if (promptCapabilities.think) {
+    return {
+      content:
+        '我已经按深度思考方式把问题拆成更细的子问题，再收敛成一版更稳的回答。当前这条回复主要用于展示前端里的深度思考过程可视化。',
+      traceId: undefined
+    }
+  }
+
+  if (promptCapabilities.search) {
+    return {
+      content:
+        '我已经按网络搜索方式补充了外部上下文，再整理成简洁答案。当前这条回复主要用于展示前端里的搜索过程可视化。',
+      traceId: undefined
+    }
+  }
+
+  return {
+    content:
+      '我已经根据当前上下文整理了一版直接答复。如果你需要，也可以继续切到深度思考或网络搜索模式来补充更深的推理或外部信息。',
+    traceId: undefined
+  }
+}
 
 export const fetchWorkspaceSessions = async () => {
   await wait()
@@ -17,44 +130,24 @@ export const fetchWorkspaceMessages = async (sessionId: string) => {
   return cloneMock(conversationMessages[sessionId] ?? [])
 }
 
-export const fetchTraceDetail = async (traceId: string) => {
-  await wait(220)
-  return cloneMock(traceDetails[traceId] ?? null)
-}
-
-const buildAssistantReply = (input: string) => {
-  const lowerInput = input.toLowerCase()
-
-  if (lowerInput.includes('天气') || lowerInput.includes('下雨')) {
-    return {
-      content:
-        '根据模拟天气服务，明天下午有中等概率降雨。建议保留线上会议链接，并在会议通知里说明 13:30 前根据天气切换为线上模式。',
-      traceId: 'trace-weather-002'
-    }
-  }
-
-  if (input.includes('报销') || input.includes('制度')) {
-    return {
-      content:
-        '从财务制度库看，住宿报销需要发票、入住清单和支付凭证；交通报销以高铁二等座和经济舱为标准，超标准需要主管审批。',
-      traceId: 'trace-finance-001'
-    }
-  }
-
-  return {
-    content:
-      '我已经根据当前上下文整理了一个简短结论。若需要，我可以继续补充成行动清单、对外通知或知识库摘要。',
-    traceId: undefined
-  }
-}
-
-export const generateAssistantReply = async (sessionId: string, input: string) => {
+export const generateAssistantReply = async (
+  _sessionId: string,
+  input: string,
+  promptCapabilities: PromptCapabilities = DEFAULT_PROMPT_CAPABILITIES
+) => {
   await wait(200)
 
-  const reply = buildAssistantReply(input)
+  const normalizedCapabilities = normalizePromptCapabilities(promptCapabilities)
+  const reply = buildAssistantReply(input, normalizedCapabilities)
   const detail = reply.traceId ? traceDetails[reply.traceId] : null
-  const messages = conversationMessages[sessionId] ?? []
-  const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
+  const syntheticToolCalls = buildSyntheticToolCalls(input, normalizedCapabilities)
+  const detailToolCalls = detail?.toolExecutions ?? []
+  const toolCalls = [...syntheticToolCalls, ...detailToolCalls]
+  const syntheticLatency = syntheticToolCalls.reduce((total, tool) => total + tool.durationMs, 0)
+  const syntheticInputTokens =
+    (normalizedCapabilities.think ? 180 : 0) + (normalizedCapabilities.search ? 80 : 0)
+  const syntheticOutputTokens =
+    (normalizedCapabilities.think ? 72 : 0) + (normalizedCapabilities.search ? 48 : 0)
 
   const template: ChatMessage = {
     id: `assistant-${Date.now()}`,
@@ -64,11 +157,12 @@ export const generateAssistantReply = async (sessionId: string, input: string) =
     status: 'done',
     traceId: reply.traceId,
     model: detail?.summary.model ?? 'AI',
-    latencyMs: detail?.summary.latencyMs ?? 1180,
-    inputTokens: detail?.summary.inputTokens ?? 420,
-    outputTokens: detail?.summary.outputTokens ?? 160,
-    toolCalls: detail?.toolExecutions ?? lastAssistant?.toolCalls,
-    citations: detail?.citations ?? lastAssistant?.citations
+    latencyMs: (detail?.summary.latencyMs ?? 1180) + syntheticLatency,
+    inputTokens: (detail?.summary.inputTokens ?? 420) + syntheticInputTokens,
+    outputTokens: (detail?.summary.outputTokens ?? 160) + syntheticOutputTokens,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    citations: detail?.citations,
+    promptCapabilities: normalizedCapabilities
   }
 
   return cloneMock(template)

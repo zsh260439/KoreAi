@@ -3,9 +3,10 @@ import type {
   AssistantThinkingStage,
   AssistantToolIconKey,
   AssistantToolStage,
-  AssistantToolStep
-} from '@/types/chat-flow'
-import type { ChatMessage, ToolCall } from '@/types/models'
+  AssistantToolStep,
+  ChatMessage,
+  ToolCall
+} from '@/types'
 
 const toolMetaMap: Record<
   string,
@@ -17,49 +18,81 @@ const toolMetaMap: Record<
 > = {
   knowledge_search: {
     title: '知识库检索',
-    subtitle: '从知识库中检索相关依据',
+    subtitle: '从知识库中检索相关片段',
     iconKey: 'knowledge'
   },
   time_lookup: {
     title: '时间解析',
-    subtitle: '解析相对时间并校准目标时区',
+    subtitle: '解析相对时间和目标时区',
     iconKey: 'time'
   },
   weather_lookup: {
     title: '天气查询',
-    subtitle: '获取实时天气并提取关键结论',
+    subtitle: '获取目标时间范围内的天气信息',
     iconKey: 'weather'
+  },
+  web_search_mcp: {
+    title: '网络搜索',
+    subtitle: '通过 MCP 搜索获取当前网络结果',
+    iconKey: 'search'
+  },
+  deepsearch_reasoner: {
+    title: '深度思考',
+    subtitle: '在生成答案前进行更深层推理',
+    iconKey: 'thinking'
   }
 }
 
-const buildThinkingText = (message: ChatMessage) => {
-  const toolNames = new Set((message.toolCalls ?? []).map((item) => item.name))
+const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
+  const stages: AssistantThinkingStage[] = []
+  const capabilities = message.promptCapabilities ?? { think: false, search: false }
 
-  if (toolNames.has('knowledge_search')) {
-    return '我正在分析您的问题，判断需要调用知识库检索相关制度文档，并提炼住宿与交通等关键条款作为回答依据。'
-  }
-
-  if (toolNames.has('time_lookup') || toolNames.has('weather_lookup')) {
-    return '我正在拆解您的问题，先确认时间范围，再调用实时工具补充关键信息，最后整理成可执行建议。'
-  }
-
-  if (toolNames.size > 0) {
-    return '我正在分析您的问题，判断需要调用外部工具补充信息，并在结果返回后组织最终回复。'
-  }
-
-  return '我正在分析您的问题，结合当前上下文提炼关键信息，并准备直接给出清晰结论。'
-}
-
-const buildThinkingStage = (message: ChatMessage): AssistantThinkingStage => {
-  const content = buildThinkingText(message)
-
-  return {
+  stages.push({
     kind: 'thinking',
-    title: '思考过程',
+    id: `${message.id}-thinking-llm`,
+    stageKey: 'llm_reasoning',
+    title: '模型推理',
+    subtitle: '拆解任务并规划回答路径',
     status: 'done',
-    content,
-    visibleContent: content
+    content: capabilities.think
+      ? '系统会先拆解目标、约束和证据需求，再组织更长的推理链路来形成回答。'
+      : '系统会先结合当前上下文理解问题，再组织直接回答。',
+    visibleContent: capabilities.think
+      ? '系统会先拆解目标、约束和证据需求，再组织更长的推理链路来形成回答。'
+      : '系统会先结合当前上下文理解问题，再组织直接回答。'
+  })
+
+  if (capabilities.think) {
+    stages.push({
+      kind: 'thinking',
+      id: `${message.id}-thinking-deepsearch`,
+      stageKey: 'deepsearch',
+      title: '深度思考',
+      subtitle: '调用深度思考能力',
+      status: 'done',
+      content:
+        '深度思考会把问题扩展成多个子问题，评估取舍，再收敛出更稳的结论后生成回复。',
+      visibleContent:
+        '深度思考会把问题扩展成多个子问题，评估取舍，再收敛出更稳的结论后生成回复。'
+    })
   }
+
+  if (capabilities.search) {
+    stages.push({
+      kind: 'thinking',
+      id: `${message.id}-thinking-search`,
+      stageKey: 'web_search',
+      title: '网络搜索规划',
+      subtitle: '准备 MCP 搜索请求并收集外部信息',
+      status: 'done',
+      content:
+        '系统会先准备搜索查询，再收集外部结果，并依据返回证据来约束最终回答。',
+      visibleContent:
+        '系统会先准备搜索查询，再收集外部结果，并依据返回证据来约束最终回答。'
+    })
+  }
+
+  return stages
 }
 
 const buildToolSteps = (toolCall: ToolCall): AssistantToolStep[] =>
@@ -99,7 +132,7 @@ const buildToolStage = (toolCall: ToolCall): AssistantToolStage => {
 }
 
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
-  thinking: buildThinkingStage(message),
+  thinking: buildThinkingStages(message),
   tools: (message.toolCalls ?? []).map(buildToolStage),
   answer: {
     kind: 'answer',
@@ -116,12 +149,12 @@ export const buildStreamingResponseFlow = (message: ChatMessage): AssistantRespo
   const completed = buildCompletedResponseFlow(message)
 
   return {
-    thinking: {
-      ...completed.thinking,
-      title: '正在思考...',
-      status: 'running',
+    thinking: completed.thinking.map((stage, index) => ({
+      ...stage,
+      title: index === 0 ? '思考中...' : stage.title,
+      status: index === 0 ? 'running' : 'pending',
       visibleContent: ''
-    },
+    })),
     tools: completed.tools.map((tool) => ({
       ...tool,
       status: 'pending',
@@ -145,21 +178,34 @@ export const buildStreamingResponseFlow = (message: ChatMessage): AssistantRespo
   }
 }
 
-export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
-  thinking: {
-    kind: 'thinking',
-    title: '正在思考...',
-    status: 'running',
+export const createThinkingPlaceholderFlow = (
+  promptCapabilities: { think: boolean; search: boolean } = { think: false, search: false }
+): AssistantResponseFlow => {
+  const stages = buildThinkingStages({
+    id: 'thinking-placeholder',
+    role: 'assistant',
     content: '',
-    visibleContent: ''
-  },
-  tools: [],
-  answer: {
-    kind: 'answer',
-    title: '最终回答',
-    status: 'pending',
-    content: '',
-    visibleContent: ''
-  },
-  showActions: false
-})
+    createdAt: '',
+    status: 'streaming',
+    promptCapabilities
+  } as ChatMessage)
+
+  return {
+    thinking: stages.map((stage, index) => ({
+      ...stage,
+      id: `thinking-placeholder-${index + 1}`,
+      title: index === 0 ? '思考中...' : stage.title,
+      status: index === 0 ? 'running' : 'pending',
+      visibleContent: ''
+    })),
+    tools: [],
+    answer: {
+      kind: 'answer',
+      title: '最终回答',
+      status: 'pending',
+      content: '',
+      visibleContent: ''
+    },
+    showActions: false
+  }
+}

@@ -4,8 +4,8 @@ import { LoaderCircle, ShieldCheck } from 'lucide-vue-next'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { useAuthStore } from '@/stores/auth'
-import type { LoginPayload } from '@/types/app'
+import { useAuthStore } from '@/stores'
+import type { LoginPayload } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()

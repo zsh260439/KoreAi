@@ -18,7 +18,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/workspace',
     name: 'workspace',
-    component: () => import('@/views/workspaceView/index.vue'),
+    component: () => import('@/views/workspace/index.vue'),
     meta: {
       appShell: 'workspace',
       title: 'AI 工作台',
@@ -29,7 +29,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/workspace/:sessionId',
     name: 'workspace-session',
-    component: () => import('@/views/workspaceView/index.vue'),
+    component: () => import('@/views/workspace/index.vue'),
     meta: {
       appShell: 'workspace',
       title: '会话详情',
@@ -52,7 +52,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'dashboard',
         name: 'admin-dashboard',
-        component: () => import('@/views/admin/AdminDashboardView.vue'),
+        component: () => import('@/views/admin/dashboard/index.vue'),
         meta: {
           appShell: 'admin',
           title: 'Dashboard',
@@ -65,7 +65,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'knowledge',
         name: 'admin-knowledge',
-        component: () => import('@/views/admin/AdminKnowledgeBasesView.vue'),
+        component: () => import('@/views/admin/knowledge/index.vue'),
         meta: {
           appShell: 'admin',
           title: '知识库管理',
@@ -78,7 +78,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'knowledge/:kbId',
         name: 'admin-knowledge-documents',
-        component: () => import('@/views/admin/AdminDocumentsView.vue'),
+        component: () => import('@/views/admin/knowledge/documents.vue'),
         meta: {
           appShell: 'admin',
           title: '文档管理',
@@ -91,7 +91,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'knowledge/:kbId/docs/:docId',
         name: 'admin-document-detail',
-        component: () => import('@/views/admin/AdminDocumentDetailView.vue'),
+        component: () => import('@/views/admin/knowledge/document-detail.vue'),
         meta: {
           appShell: 'admin',
           title: '文档详情',
@@ -104,7 +104,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'ingestion',
         name: 'admin-ingestion',
-        component: () => import('@/views/admin/AdminPipelineTasksView.vue'),
+        component: () => import('@/views/admin/pipeline/index.vue'),
         meta: {
           appShell: 'admin',
           title: '流水线任务',
@@ -117,7 +117,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'traces',
         name: 'admin-traces',
-        component: () => import('@/views/admin/AdminTracesView.vue'),
+        component: () => import('@/views/admin/trace/index.vue'),
         meta: {
           appShell: 'admin',
           title: '链路追踪',
@@ -130,7 +130,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'traces/:traceId',
         name: 'admin-trace-detail',
-        component: () => import('@/views/admin/AdminTraceDetailView.vue'),
+        component: () => import('@/views/admin/trace/detail.vue'),
         meta: {
           appShell: 'admin',
           title: '链路详情',
@@ -143,7 +143,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'settings',
         name: 'admin-settings',
-        component: () => import('@/views/admin/AdminSettingsView.vue'),
+        component: () => import('@/views/admin/settings/index.vue'),
         meta: {
           appShell: 'admin',
           title: 'Settings',
@@ -185,11 +185,6 @@ router.afterEach((to) => {
 
   if (shell === 'admin') {
     document.title = `${title} - AI Console Admin`
-    return
-  }
-
-  if (shell === 'workspace') {
-    document.title = `${title} - AI Console`
     return
   }
 

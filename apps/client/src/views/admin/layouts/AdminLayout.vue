@@ -5,13 +5,21 @@ import { useRoute, useRouter } from 'vue-router'
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
 import { adminNavGroups } from '@/config/navigation'
-import { useAdminStore } from '@/stores/admin'
-import { useAuthStore } from '@/stores/auth'
+import { useAdminStore, useAuthStore } from '@/stores'
 
 const route = useRoute()
 const router = useRouter()
 const adminStore = useAdminStore()
 const authStore = useAuthStore()
+
+const currentUser = computed(() => authStore.user ?? {
+  id: 'guest',
+  name: '访客',
+  email: '',
+  role: 'member',
+  status: 'active' as const,
+  lastActive: ''
+})
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -53,7 +61,7 @@ const breadcrumbs = computed(() => {
   }
 
   if (section === 'knowledge' && segments.includes('docs')) {
-    items.push({ label: '文档详情' })
+    items.push({ label: '切片管理' })
   }
 
   if (section === 'traces' && segments.length > 2) {
@@ -77,7 +85,7 @@ const handleLogout = () => {
         :collapsed="adminStore.collapsed"
         :active-path="route.fullPath"
         :groups="adminNavGroups"
-        :user="authStore.user"
+        :user="currentUser"
         @toggle-collapse="adminStore.toggleCollapse"
       />
 
@@ -86,7 +94,7 @@ const handleLogout = () => {
           :search-value="adminStore.searchValue"
           :search-loading="adminStore.searchLoading"
           :suggestions="adminStore.searchSuggestions"
-          :user="authStore.user"
+          :user="currentUser"
           @search-change="adminStore.searchValue = $event"
           @search-select="router.push($event)"
           @open-chat="router.push('/workspace')"
@@ -130,7 +138,7 @@ const handleLogout = () => {
         :collapsed="false"
         :active-path="route.fullPath"
         :groups="adminNavGroups"
-        :user="authStore.user"
+        :user="currentUser"
         @toggle-collapse="adminStore.toggleCollapse"
         @navigate="adminStore.toggleMobileSidebar(false)"
       />

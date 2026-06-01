@@ -1,5 +1,5 @@
-import type { LoginPayload } from '@/types/app'
-import { currentUser, wait } from '@/utils/mock'
+import type { LoginPayload } from '@/types'
+import { currentUser, wait } from '@/utils'
 
 export const loginWithMock = async (payload: LoginPayload) => {
   await wait(500)

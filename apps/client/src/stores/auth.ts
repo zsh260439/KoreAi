@@ -1,17 +1,14 @@
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { loginWithMock } from '@/servers/auth'
-import type { LoginPayload } from '@/types/app'
-import { currentUser } from '@/utils/mock'
+import { loginWithMock } from '@/servers'
+import type { LoginPayload } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('demo-token') ?? '')
-  const user = ref(currentUser)
+  const user = ref<LoginResult['user'] | null>(null)
   const loading = ref(false)
   const error = ref('')
-
-  const isAuthenticated = computed(() => Boolean(token.value))
 
   const login = async (payload: LoginPayload) => {
     loading.value = true
@@ -40,8 +37,9 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     loading,
     error,
-    isAuthenticated,
     login,
     logout
   }
 })
+
+type LoginResult = Awaited<ReturnType<typeof loginWithMock>>

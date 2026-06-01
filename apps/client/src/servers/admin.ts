@@ -1,26 +1,41 @@
 import {
   cloneMock,
+  createKnowledgeBase,
+  createKnowledgeChunk,
+  createPipelineDefinition,
   dashboardData,
+  deleteKnowledgeBase,
+  deleteKnowledgeChunk,
   deleteKnowledgeDocument,
+  deletePipelineDefinition,
   documentChunkLogs,
+  fetchKnowledgeChunks,
   knowledgeBases,
   knowledgeDocuments,
-  pipelineItems,
+  pipelineDefinitions,
   pipelineTasks,
+  rebuildKnowledgeChunkEmbeddings,
+  renameKnowledgeBase,
   searchSuggestionGroups,
   startKnowledgeDocumentChunk,
   systemSettings,
+  toggleKnowledgeChunkEnabled,
   traces,
-  traceDetails,
   toggleKnowledgeDocumentEnabled,
+  updateKnowledgeChunk,
   updateKnowledgeDocument,
+  updatePipelineDefinition,
   uploadKnowledgeDocument,
   wait
-} from '@/utils/mock'
+} from '@/utils'
 import type {
+  KnowledgeBaseCreatePayload,
+  KnowledgeChunkCreatePayload,
+  KnowledgeChunkUpdatePayload,
   KnowledgeDocumentUpdatePayload,
-  KnowledgeDocumentUploadPayload
-} from '@/types/models'
+  KnowledgeDocumentUploadPayload,
+  PipelineDefinitionPayload
+} from '@/types'
 
 export const fetchDashboardData = async () => {
   await wait()
@@ -30,6 +45,21 @@ export const fetchDashboardData = async () => {
 export const fetchKnowledgeBases = async () => {
   await wait()
   return cloneMock(knowledgeBases)
+}
+
+export const createKnowledgeBaseEntry = async (payload: KnowledgeBaseCreatePayload) => {
+  await wait(180)
+  return createKnowledgeBase(payload)
+}
+
+export const renameKnowledgeBaseEntry = async (kbId: string, name: string) => {
+  await wait(160)
+  return renameKnowledgeBase(kbId, name)
+}
+
+export const removeKnowledgeBaseEntry = async (kbId: string) => {
+  await wait(180)
+  return deleteKnowledgeBase(kbId)
 }
 
 export const fetchKnowledgeDocuments = async (kbId: string) => {
@@ -77,9 +107,53 @@ export const fetchDocumentChunkLogs = async (docId: string) => {
   return cloneMock(documentChunkLogs[docId] ?? [])
 }
 
+export const fetchDocumentChunks = async (docId: string) => {
+  await wait(180)
+  return fetchKnowledgeChunks(docId)
+}
+
+export const updateDocumentChunk = async (
+  kbId: string,
+  docId: string,
+  chunkId: string,
+  payload: KnowledgeChunkUpdatePayload
+) => {
+  await wait(180)
+  return updateKnowledgeChunk(kbId, docId, chunkId, payload)
+}
+
+export const createDocumentChunk = async (
+  kbId: string,
+  docId: string,
+  payload: KnowledgeChunkCreatePayload
+) => {
+  await wait(180)
+  return createKnowledgeChunk(kbId, docId, payload)
+}
+
+export const deleteDocumentChunk = async (kbId: string, docId: string, chunkId: string) => {
+  await wait(180)
+  return deleteKnowledgeChunk(kbId, docId, chunkId)
+}
+
+export const toggleDocumentChunkEnabled = async (
+  kbId: string,
+  docId: string,
+  chunkId: string,
+  enabled: boolean
+) => {
+  await wait(160)
+  return toggleKnowledgeChunkEnabled(kbId, docId, chunkId, enabled)
+}
+
+export const rebuildDocumentEmbeddings = async (kbId: string, docId: string) => {
+  await wait(200)
+  return rebuildKnowledgeChunkEmbeddings(kbId, docId)
+}
+
 export const fetchPipelines = async () => {
   await wait()
-  return cloneMock(pipelineItems)
+  return cloneMock(pipelineDefinitions)
 }
 
 export const fetchPipelineTasks = async () => {
@@ -87,14 +161,24 @@ export const fetchPipelineTasks = async () => {
   return cloneMock(pipelineTasks)
 }
 
+export const createPipeline = async (payload: PipelineDefinitionPayload) => {
+  await wait(220)
+  return createPipelineDefinition(payload)
+}
+
+export const updatePipeline = async (pipelineId: string, payload: PipelineDefinitionPayload) => {
+  await wait(220)
+  return updatePipelineDefinition(pipelineId, payload)
+}
+
+export const deletePipeline = async (pipelineId: string) => {
+  await wait(180)
+  return deletePipelineDefinition(pipelineId)
+}
+
 export const fetchTraces = async () => {
   await wait()
   return cloneMock(traces)
-}
-
-export const fetchTraceDetail = async (traceId: string) => {
-  await wait(220)
-  return cloneMock(traceDetails[traceId] ?? null)
 }
 
 export const fetchSystemSettings = async () => {

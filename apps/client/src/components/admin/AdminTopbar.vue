@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 
 
 import ChangePasswordDialog from '@/components/admin/ChangePasswordDialog.vue'
-import type { SearchSuggestionGroup, User } from '@/types/models'
+import type { SearchSuggestionGroup, User } from '@/types'
 
 const props = defineProps<{
   searchValue: string
@@ -145,7 +145,7 @@ const handleCommand = (command: string) => {
             type="button"
             class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 shadow-sm"
           >
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-primary-soft)] text-xs font-semibold text-[var(--brand-primary)]">
               {{ avatarLabel.slice(0, 1) }}
             </span>
             <span class="hidden sm:inline">{{ avatarLabel }}</span>

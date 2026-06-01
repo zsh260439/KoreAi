@@ -105,14 +105,14 @@
   /* ═══════════════════════════════════════════
      Element Plus 主题覆盖 — shadcn/zinc 风格
      ═══════════════════════════════════════════ */
-  /* Primary: zinc-800 (#262626) 替代默认蓝色 */
-  --el-color-primary: #262626;
-  --el-color-primary-light-3: #404040;
-  --el-color-primary-light-5: #737373;
-  --el-color-primary-light-7: #a3a3a3;
-  --el-color-primary-light-8: #d4d4d4;
-  --el-color-primary-light-9: #e5e5e5;
-  --el-color-primary-dark-2: #171717;
+  /* Primary: blue-500 */
+  --el-color-primary: #3b82f6;
+  --el-color-primary-light-3: #60a5fa;
+  --el-color-primary-light-5: #93c5fd;
+  --el-color-primary-light-7: #bfdbfe;
+  --el-color-primary-light-8: #dbeafe;
+  --el-color-primary-light-9: #eff6ff;
+  --el-color-primary-dark-2: #2563eb;
 
   /* 语义色 */
   --el-color-success: #22c55e;
@@ -140,26 +140,26 @@
   --el-color-danger-dark-2: #dc2626;
 
   --el-color-error: #ef4444;
-  --el-color-info: #262626;
+  --el-color-info: #3b82f6;
 
   /* 文字色 */
-  --el-text-color-primary: #262626;
-  --el-text-color-regular: #525252;
-  --el-text-color-secondary: #737373;
-  --el-text-color-placeholder: #a3a3a3;
-  --el-text-color-disabled: #a3a3a3;
+  --el-text-color-primary: #0f172a;
+  --el-text-color-regular: #334155;
+  --el-text-color-secondary: #64748b;
+  --el-text-color-placeholder: #94a3b8;
+  --el-text-color-disabled: #94a3b8;
 
   /* 边框 */
-  --el-border-color: #e5e5e5;
-  --el-border-color-light: #f0f0f0;
-  --el-border-color-lighter: #f5f5f5;
-  --el-border-color-extra-light: #fafafa;
-  --el-border-color-dark: #d4d4d4;
-  --el-border-color-darker: #a3a3a3;
+  --el-border-color: #dbe5f1;
+  --el-border-color-light: #eaf1f8;
+  --el-border-color-lighter: #f4f8fc;
+  --el-border-color-extra-light: #f8fbff;
+  --el-border-color-dark: #c5d4e6;
+  --el-border-color-darker: #94a3b8;
 
   /* 背景 */
   --el-bg-color: #ffffff;
-  --el-bg-color-page: #fafafa;
+  --el-bg-color-page: #f7faff;
   --el-bg-color-overlay: #ffffff;
   --el-bg-color-silver: #f5f5f5;
 
