@@ -5,6 +5,9 @@ import type {
   KnowledgeBase,
   KnowledgeChunk,
   KnowledgeDocument,
+  KnowledgeSearchHit,
+  KnowledgeSearchInput,
+  UpdateKnowledgeBaseInput,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
 
@@ -18,9 +21,24 @@ export const findKnowledgeBasesAPI = () => {
   return request<KnowledgeBase[]>('knowledge/bases')
 }
 
-// 根据知识库ID获取下属所有文档
+// 更新知识库
+export const updateKnowledgeBaseAPI = (kbId: string, dto: UpdateKnowledgeBaseInput) => {
+  return request<KnowledgeBase>(`knowledge/bases/${kbId}`, 'PATCH', dto)
+}
+
+// 在指定知识库下搜索命中的 chunks
+export const searchKnowledgeAPI = (dto: KnowledgeSearchInput) => {
+  return request<KnowledgeSearchHit[]>('knowledge/search', 'POST', dto)
+}
+
+// 根据知识库 ID 获取文档列表
 export const findKnowledgeDocumentsAPI = (kbId: string) => {
   return request<KnowledgeDocument[]>(`knowledge/bases/${kbId}/documents`)
+}
+
+// 获取单个文档详情
+export const findKnowledgeDocumentAPI = (docId: string) => {
+  return request<KnowledgeDocument>(`knowledge/documents/${docId}`)
 }
 
 // 在指定知识库下创建文档
@@ -28,12 +46,12 @@ export const createKnowledgeDocumentAPI = (kbId: string, dto: CreateKnowledgeDoc
   return request<KnowledgeDocument>(`knowledge/bases/${kbId}/documents`, 'POST', dto)
 }
 
-// 根据文档ID获取下属所有分片
+// 根据文档 ID 获取分块列表
 export const findDocumentChunksAPI = (docId: string) => {
   return request<KnowledgeChunk[]>(`knowledge/documents/${docId}/chunks`)
 }
 
-// 重建文档的分片内容
+// 根据当前文档配置重新分块
 export const rebuildDocumentChunksAPI = (docId: string) => {
   return request<KnowledgeChunk[]>(`knowledge/documents/${docId}/chunks/rebuild`, 'POST')
 }
@@ -51,9 +69,4 @@ export const deleteKnowledgeDocumentAPI = (docId: string) => {
 // 删除指定知识库
 export const deleteKnowledgeBaseAPI = (kbId: string) => {
   return request<KnowledgeBase>(`knowledge/bases/${kbId}`, 'DELETE')
-}
-
-// 删除指定分片
-export const deleteKnowledgeChunkAPI = (chunkId: string) => {
-  return request<KnowledgeChunk>(`knowledge/chunks/${chunkId}`, 'DELETE')
 }

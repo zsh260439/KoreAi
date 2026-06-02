@@ -9,6 +9,11 @@ export interface CreateKnowledgeBaseInput {
   description?: string
 }
 
+export interface UpdateKnowledgeBaseInput {
+  name?: string
+  description?: string
+}
+
 export interface CreateKnowledgeDocumentInput {
   name: string
   storagePath: string
@@ -52,7 +57,6 @@ export interface KnowledgeChunk {
   documentId: string
   sequence: number
   content: string
-  enabled: boolean
   charCount: number
   tokenCount: number
   createdAt: string
@@ -63,4 +67,17 @@ export interface UpdateKnowledgeDocumentInput {
   name?: string
   chunkStrategy?: string
   chunkConfig?: Record<string, unknown>
+}
+
+export interface KnowledgeSearchInput {
+  query: string
+  knowledgeBaseId: string
+}
+
+export interface KnowledgeSearchHit {
+  chunkId: string
+  documentId: string
+  documentName: string
+  content: string
+  score: number
 }

@@ -2,44 +2,36 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import {
-  createPipeline,
-  createDocumentChunk,
   createKnowledgeBaseEntry,
+  createPipeline,
   deleteKnowledgeBaseAPI,
-  deleteKnowledgeChunkAPI,
   deleteKnowledgeDocumentAPI,
   deletePipeline,
   fetchDashboardData,
-  fetchDocumentChunks,
   fetchDocumentChunkLogs,
+  fetchDocumentChunks,
   fetchDocumentDetail,
   fetchKnowledgeBases,
   fetchKnowledgeDocuments,
-  fetchPipelines,
   fetchPipelineTasks,
-  rebuildDocumentEmbeddings,
-  renameKnowledgeBaseEntry,
+  fetchPipelines,
   fetchSearchSuggestions,
   fetchSystemSettings,
   fetchTraceDetail,
   fetchTraces,
+  renameKnowledgeBaseEntry,
   startDocumentChunk,
-  toggleDocumentChunkEnabled,
-  toggleDocumentEnabled,
   updateKnowledgeDocumentAPI,
-  updateDocumentChunk,
   updatePipeline,
   uploadDocument
 } from '@/servers'
 import type {
+  AdminKnowledgeDocument,
   DashboardData,
-  KnowledgeBase,
   KnowledgeBaseCreatePayload,
+  KnowledgeBaseView,
   KnowledgeChunk,
-  KnowledgeChunkCreatePayload,
-  KnowledgeDocument,
   KnowledgeDocumentChunkLog,
-  KnowledgeChunkUpdatePayload,
   KnowledgeDocumentUpdatePayload,
   KnowledgeDocumentUploadPayload,
   PipelineDefinition,
@@ -50,13 +42,39 @@ import type {
   TraceDetail,
   TraceSummary
 } from '@/types'
+import type {
+  KnowledgeBase as SharedKnowledgeBase,
+  KnowledgeDocument as SharedKnowledgeDocument
+} from 'share-type'
+
+function mapKnowledgeBaseToView(
+  item: SharedKnowledgeBase
+): KnowledgeBaseView {
+  return {
+    ...item,
+    collectionName: item.name.trim().toLowerCase().replace(/\s+/g, '_'),
+    createdBy: ''
+  }
+}
+
+function mapSharedDocumentToView(
+  document: SharedKnowledgeDocument
+): AdminKnowledgeDocument {
+  return {
+    ...document,
+    type: document.fileType?.toUpperCase() ?? (document.sourceType === 'url' ? 'URL' : 'FILE'),
+    source: document.sourceLocation || document.storagePath || '',
+    fileSize: document.fileSizeBytes,
+    chunkConfigText: document.chunkConfig ? JSON.stringify(document.chunkConfig, null, 2) : ''
+  }
+}
 
 export const useAdminStore = defineStore('admin', () => {
   const dashboard = ref<DashboardData | null>(null)
-  const knowledgeBases = ref<KnowledgeBase[]>([])
-  const documentsByKb = ref<Record<string, KnowledgeDocument[]>>({})
+  const knowledgeBases = ref<KnowledgeBaseView[]>([])
+  const documentsByKb = ref<Record<string, AdminKnowledgeDocument[]>>({})
   const chunksByDocument = ref<Record<string, KnowledgeChunk[]>>({})
-  const selectedDocument = ref<KnowledgeDocument | null>(null)
+  const selectedDocument = ref<AdminKnowledgeDocument | null>(null)
   const pipelines = ref<PipelineDefinition[]>([])
   const tasks = ref<PipelineTask[]>([])
   const traces = ref<TraceSummary[]>([])
@@ -70,28 +88,6 @@ export const useAdminStore = defineStore('admin', () => {
   const mobileSidebarOpen = ref(false)
   const loading = ref(false)
   const error = ref('')
-
-  const mapSharedDocumentToView = (
-    document: import('share-type').KnowledgeDocument,
-    previous?: KnowledgeDocument | null
-  ): KnowledgeDocument => {
-    return {
-      ...(previous ?? {}),
-      ...document,
-      type: document.fileType?.toUpperCase() ?? (document.sourceType === 'url' ? 'URL' : 'FILE'),
-      status: document.status,
-      source: document.sourceLocation || document.storagePath || '',
-      summary: document.summary ?? '',
-      chunkStrategy: document.chunkStrategy ?? undefined,
-      chunkConfig: document.chunkConfig ? JSON.stringify(document.chunkConfig) : undefined,
-      sourceLocation: document.sourceLocation ?? undefined,
-      storagePath: document.storagePath ?? undefined,
-      fileType: document.fileType ?? undefined,
-      fileSize: document.fileSizeBytes ?? undefined,
-      contentPreview: document.contentPreview ?? undefined,
-      knowledgeBaseId: document.knowledgeBaseId
-    }
-  }
 
   const toggleCollapse = () => {
     collapsed.value = !collapsed.value
@@ -117,7 +113,8 @@ export const useAdminStore = defineStore('admin', () => {
     loading.value = true
     error.value = ''
     try {
-      knowledgeBases.value = await fetchKnowledgeBases()
+      const items = await fetchKnowledgeBases()
+      knowledgeBases.value = (items as SharedKnowledgeBase[]).map(mapKnowledgeBaseToView)
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载知识库失败'
     } finally {
@@ -129,9 +126,10 @@ export const useAdminStore = defineStore('admin', () => {
     loading.value = true
     error.value = ''
     try {
+      const items = await fetchKnowledgeDocuments(kbId)
       documentsByKb.value = {
         ...documentsByKb.value,
-        [kbId]: await fetchKnowledgeDocuments(kbId)
+        [kbId]: (items as SharedKnowledgeDocument[]).map(mapSharedDocumentToView)
       }
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载文档失败'
@@ -141,27 +139,35 @@ export const useAdminStore = defineStore('admin', () => {
   }
 
   const createKnowledgeBase = async (payload: KnowledgeBaseCreatePayload) => {
-    const created = await createKnowledgeBaseEntry(payload)
-    knowledgeBases.value = [created, ...knowledgeBases.value]
+    const created = (await createKnowledgeBaseEntry(payload)) as SharedKnowledgeBase
+    const mappedCreated = mapKnowledgeBaseToView(created)
+    knowledgeBases.value = [mappedCreated, ...knowledgeBases.value]
     documentsByKb.value = {
       ...documentsByKb.value,
       [created.id]: []
     }
-    return created
+    return mappedCreated
   }
 
   const renameKnowledgeBase = async (kbId: string, name: string) => {
-    const updated = await renameKnowledgeBaseEntry(kbId, name)
+    const updated = (await renameKnowledgeBaseEntry(kbId, name)) as SharedKnowledgeBase | null
     if (!updated) return null
-    knowledgeBases.value = knowledgeBases.value.map((item) => (item.id === kbId ? updated : item))
-    return updated
+
+    const mappedUpdated = mapKnowledgeBaseToView(updated)
+    knowledgeBases.value = knowledgeBases.value.map((item) =>
+      item.id === kbId ? mappedUpdated : item
+    )
+    return mappedUpdated
   }
 
   const removeKnowledgeBase = async (kbId: string) => {
     const response = await deleteKnowledgeBaseAPI(kbId)
-    const deleted = response.data
-    if (!deleted) return false
+    if (!response.data) {
+      return false
+    }
+
     knowledgeBases.value = knowledgeBases.value.filter((item) => item.id !== kbId)
+
     const nextDocuments = { ...documentsByKb.value }
     const removedDocuments = nextDocuments[kbId] ?? []
     delete nextDocuments[kbId]
@@ -176,7 +182,8 @@ export const useAdminStore = defineStore('admin', () => {
   }
 
   const loadDocumentDetail = async (kbId: string, docId: string) => {
-    selectedDocument.value = await fetchDocumentDetail(kbId, docId)
+    const item = (await fetchDocumentDetail(kbId, docId)) as SharedKnowledgeDocument | null
+    selectedDocument.value = item ? mapSharedDocumentToView(item) : null
   }
 
   const loadDocumentChunks = async (docId: string) => {
@@ -193,24 +200,20 @@ export const useAdminStore = defineStore('admin', () => {
     docId: string,
     payload: KnowledgeDocumentUpdatePayload
   ) => {
+    const parsedChunkConfig = payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
+
     const response = await updateKnowledgeDocumentAPI(docId, {
       name: payload.name.trim(),
       chunkStrategy: payload.chunkStrategy?.trim(),
-      chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
+      chunkConfig: parsedChunkConfig
     })
-    const updated = response.data
+    const updated = response.data as SharedKnowledgeDocument | undefined
 
     if (!updated) {
       return null
     }
 
-    const previous =
-      selectedDocument.value?.id === docId
-        ? selectedDocument.value
-        : (documentsByKb.value[kbId] ?? []).find((document) => document.id === docId) ?? null
-
-    const mappedUpdated = mapSharedDocumentToView(updated, previous)
-
+    const mappedUpdated = mapSharedDocumentToView(updated)
     selectedDocument.value = mappedUpdated
     documentsByKb.value = {
       ...documentsByKb.value,
@@ -218,14 +221,12 @@ export const useAdminStore = defineStore('admin', () => {
         document.id === docId ? mappedUpdated : document
       )
     }
-
     return mappedUpdated
   }
 
   const removeDocument = async (kbId: string, docId: string) => {
     const response = await deleteKnowledgeDocumentAPI(docId)
-    const deleted = response.data
-    if (!deleted) {
+    if (!response.data) {
       return false
     }
 
@@ -242,59 +243,40 @@ export const useAdminStore = defineStore('admin', () => {
     return true
   }
 
-  const setDocumentEnabled = async (kbId: string, docId: string, enabled: boolean) => {
-    const updated = await toggleDocumentEnabled(kbId, docId, enabled)
-    if (!updated) {
-      return null
-    }
-
-    documentsByKb.value = {
-      ...documentsByKb.value,
-      [kbId]: (documentsByKb.value[kbId] ?? []).map((document) =>
-        document.id === docId ? updated : document
-      )
-    }
-
-    if (selectedDocument.value?.id === docId) {
-      selectedDocument.value = updated
-    }
-
-    return updated
-  }
-
   const runDocumentChunk = async (kbId: string, docId: string) => {
-    const updated = await startDocumentChunk(kbId, docId)
+    const updated = (await startDocumentChunk(kbId, docId)) as SharedKnowledgeDocument | null
     if (!updated) {
       return null
     }
 
+    const mappedUpdated = mapSharedDocumentToView(updated)
     documentsByKb.value = {
       ...documentsByKb.value,
       [kbId]: (documentsByKb.value[kbId] ?? []).map((document) =>
-        document.id === docId ? updated : document
+        document.id === docId ? mappedUpdated : document
       )
     }
 
     if (selectedDocument.value?.id === docId) {
-      selectedDocument.value = updated
+      selectedDocument.value = mappedUpdated
     }
 
     await loadDocumentChunks(docId)
-
-    return updated
+    return mappedUpdated
   }
 
   const uploadKnowledgeDocument = async (
     kbId: string,
     payload: KnowledgeDocumentUploadPayload
   ) => {
-    const created = await uploadDocument(kbId, payload)
+    const created = (await uploadDocument(kbId, payload)) as SharedKnowledgeDocument
+    const mappedCreated = mapSharedDocumentToView(created)
     documentsByKb.value = {
       ...documentsByKb.value,
-      [kbId]: [created, ...(documentsByKb.value[kbId] ?? [])]
+      [kbId]: [mappedCreated, ...(documentsByKb.value[kbId] ?? [])]
     }
     await loadKnowledgeBases()
-    return created
+    return mappedCreated
   }
 
   const loadDocumentChunkLogs = async (docId: string) => {
@@ -304,86 +286,6 @@ export const useAdminStore = defineStore('admin', () => {
       [docId]: logs
     }
     return logs
-  }
-
-  const updateChunk = async (
-    kbId: string,
-    docId: string,
-    chunkId: string,
-    payload: KnowledgeChunkUpdatePayload
-  ) => {
-    const updated = await updateDocumentChunk(kbId, docId, chunkId, payload)
-    if (!updated) return null
-    chunksByDocument.value = {
-      ...chunksByDocument.value,
-      [docId]: (chunksByDocument.value[docId] ?? []).map((item) => (item.id === chunkId ? updated : item))
-    }
-    await loadDocuments(kbId)
-    if (selectedDocument.value?.id === docId) {
-      await loadDocumentDetail(kbId, docId)
-    }
-    return updated
-  }
-
-  const createChunk = async (
-    kbId: string,
-    docId: string,
-    payload: KnowledgeChunkCreatePayload
-  ) => {
-    const created = await createDocumentChunk(kbId, docId, payload)
-    chunksByDocument.value = {
-      ...chunksByDocument.value,
-      [docId]: [...(chunksByDocument.value[docId] ?? []), created]
-    }
-    await loadDocuments(kbId)
-    if (selectedDocument.value?.id === docId) {
-      await loadDocumentDetail(kbId, docId)
-    }
-    return created
-  }
-
-  const deleteChunk = async (kbId: string, docId: string, chunkId: string) => {
-    const response = await deleteKnowledgeChunkAPI(chunkId)
-    const deleted = response.data
-    if (!deleted) return false
-    chunksByDocument.value = {
-      ...chunksByDocument.value,
-      [docId]: (chunksByDocument.value[docId] ?? []).filter((item) => item.id !== chunkId)
-    }
-    await loadDocuments(kbId)
-    if (selectedDocument.value?.id === docId) {
-      await loadDocumentDetail(kbId, docId)
-    }
-    return true
-  }
-
-  const setChunkEnabled = async (kbId: string, docId: string, chunkId: string, enabled: boolean) => {
-    const updated = await toggleDocumentChunkEnabled(kbId, docId, chunkId, enabled)
-    if (!updated) return null
-    chunksByDocument.value = {
-      ...chunksByDocument.value,
-      [docId]: (chunksByDocument.value[docId] ?? []).map((item) => (item.id === chunkId ? updated : item))
-    }
-    await loadDocuments(kbId)
-    if (selectedDocument.value?.id === docId) {
-      await loadDocumentDetail(kbId, docId)
-    }
-    return updated
-  }
-
-  const rebuildEmbeddings = async (kbId: string, docId: string) => {
-    const updated = await rebuildDocumentEmbeddings(kbId, docId)
-    if (!updated) return null
-    documentsByKb.value = {
-      ...documentsByKb.value,
-      [kbId]: (documentsByKb.value[kbId] ?? []).map((document) =>
-        document.id === docId ? updated : document
-      )
-    }
-    if (selectedDocument.value?.id === docId) {
-      selectedDocument.value = updated
-    }
-    return updated
   }
 
   const loadPipelines = async () => {
@@ -497,15 +399,9 @@ export const useAdminStore = defineStore('admin', () => {
     loadDocumentChunks,
     updateDocument,
     removeDocument,
-    setDocumentEnabled,
     runDocumentChunk,
     uploadKnowledgeDocument,
     loadDocumentChunkLogs,
-    updateChunk,
-    createChunk,
-    deleteChunk,
-    setChunkEnabled,
-    rebuildEmbeddings,
     loadPipelines,
     createPipelineDefinitionEntry,
     updatePipelineDefinitionEntry,

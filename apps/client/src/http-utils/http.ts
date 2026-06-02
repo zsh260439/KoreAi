@@ -20,7 +20,7 @@ httpInstance.interceptors.request.use(
 
 httpInstance.interceptors.response.use(
     (response) => {
-        return response
+        return response.data
     },
     (error) => {
         return Promise.reject(error)
@@ -36,6 +36,7 @@ const baseRequest = <T>(
 ) =>{
     return http.request<any,ApiResult<T>>({
       url,
+      method,
       [method.toUpperCase() === 'GET'? 'params':'data']:submitData,
     })
 }

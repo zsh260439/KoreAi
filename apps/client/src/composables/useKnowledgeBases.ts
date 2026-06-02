@@ -1,5 +1,10 @@
 import { ref } from 'vue'
-import { createKnowledgeBaseAPI, deleteKnowledgeBaseAPI, findKnowledgeBasesAPI } from '@/servers/knowledge'
+import {
+  createKnowledgeBaseAPI,
+  deleteKnowledgeBaseAPI,
+  findKnowledgeBasesAPI,
+  updateKnowledgeBaseAPI
+} from '@/servers/knowledge'
 import type { KnowledgeBase, KnowledgeBaseCreatePayload } from '@/types'
 
 const knowledgeBases = ref<KnowledgeBase[]>([])
@@ -36,6 +41,24 @@ export function useKnowledgeBases() {
     return created
   }
 
+  const updateKnowledgeBase = async (
+    kbId: string,
+    payload: { name?: string; description?: string }
+  ) => {
+    const response = await updateKnowledgeBaseAPI(kbId, {
+      name: payload.name?.trim(),
+      description: payload.description?.trim()
+    })
+
+    if (!response.data) {
+      throw new Error('更新知识库失败')
+    }
+
+    const updated = response.data
+    knowledgeBases.value = knowledgeBases.value.map((item) => (item.id === kbId ? updated : item))
+    return updated
+  }
+
   const removeKnowledgeBase = async (kbId: string) => {
     const response = await deleteKnowledgeBaseAPI(kbId)
 
@@ -53,6 +76,7 @@ export function useKnowledgeBases() {
     error,
     loadKnowledgeBases,
     createKnowledgeBase,
+    updateKnowledgeBase,
     removeKnowledgeBase
   }
 }

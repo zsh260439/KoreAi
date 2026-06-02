@@ -2,16 +2,15 @@ import { ref } from 'vue'
 import {
   createKnowledgeDocumentAPI,
   deleteKnowledgeDocumentAPI,
+  findKnowledgeDocumentAPI,
   findKnowledgeDocumentsAPI,
   updateKnowledgeDocumentAPI
 } from '@/servers/knowledge'
-import type {
-  CreateKnowledgeDocumentPayload,
-  KnowledgeDocument,
-  KnowledgeDocumentUpdatePayload
-} from '@/types'
+import type { CreateKnowledgeDocumentPayload, KnowledgeDocument } from '@/types'
+import type { UpdateKnowledgeDocumentInput } from 'share-type'
 
 const documents = ref<KnowledgeDocument[]>([])
+const currentDocument = ref<KnowledgeDocument | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
@@ -30,10 +29,24 @@ export function useKnowledgeDocuments() {
     }
   }
 
-  const createKnowledgeDocument = async (
-    kbId: string,
-    payload: CreateKnowledgeDocumentPayload
-  ) => {
+  const loadKnowledgeDocument = async (docId: string) => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await findKnowledgeDocumentAPI(docId)
+      currentDocument.value = response.data ?? null
+      return currentDocument.value
+    } catch (caughtError) {
+      error.value = caughtError instanceof Error ? caughtError.message : '加载文档详情失败'
+      currentDocument.value = null
+      return null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const createKnowledgeDocument = async (kbId: string, payload: CreateKnowledgeDocumentPayload) => {
     const response = await createKnowledgeDocumentAPI(kbId, {
       name: payload.name.trim(),
       storagePath: payload.storagePath.trim(),
@@ -50,10 +63,7 @@ export function useKnowledgeDocuments() {
     return created
   }
 
-  const updateKnowledgeDocument = async (
-    docId: string,
-    payload: KnowledgeDocumentUpdatePayload
-  ) => {
+  const updateKnowledgeDocument = async (docId: string, payload: UpdateKnowledgeDocumentInput) => {
     const response = await updateKnowledgeDocumentAPI(docId, {
       name: payload.name?.trim(),
       chunkStrategy: payload.chunkStrategy?.trim(),
@@ -65,6 +75,7 @@ export function useKnowledgeDocuments() {
     }
 
     const updated = response.data
+    currentDocument.value = updated
     documents.value = documents.value.map((item) => (item.id === docId ? updated : item))
     return updated
   }
@@ -76,15 +87,21 @@ export function useKnowledgeDocuments() {
       throw new Error('删除文档失败')
     }
 
+    if (currentDocument.value?.id === docId) {
+      currentDocument.value = null
+    }
+
     documents.value = documents.value.filter((item) => item.id !== docId)
     return response.data
   }
 
   return {
     documents,
+    currentDocument,
     isLoading,
     error,
     loadKnowledgeDocuments,
+    loadKnowledgeDocument,
     createKnowledgeDocument,
     updateKnowledgeDocument,
     removeKnowledgeDocument

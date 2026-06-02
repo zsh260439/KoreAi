@@ -4,56 +4,75 @@ import type {
   KnowledgeBase as SharedKnowledgeBase,
   KnowledgeChunk as SharedKnowledgeChunk,
   KnowledgeDocument as SharedKnowledgeDocument,
+  KnowledgeDocumentSourceType,
+  KnowledgeDocumentStatus,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
 
 export type CreateKnowledgeBaseDto = CreateKnowledgeBaseInput
 
-// 后端真实契约类型：以后端 / shared contract 为准
-export type KnowledgeBase = SharedKnowledgeBase
-
-export type KnowledgeDocument = SharedKnowledgeDocument
-
-export type KnowledgeChunk = SharedKnowledgeChunk
-
-// 前端管理台视图类型：只给当前 admin/mock 页面使用
-export interface KnowledgeBaseView extends KnowledgeBase {
+// knowledge 页面已对接真实后端，这里保留少量可选兼容字段给旧 mock / store 使用
+export type KnowledgeBase = Omit<SharedKnowledgeBase, 'status'> & {
+  status: SharedKnowledgeBase['status'] | 'syncing'
   owner?: string
   collectionName?: string
   createdBy?: string
 }
 
-export interface KnowledgeDocumentView extends KnowledgeDocument {
+export type KnowledgeBaseView = KnowledgeBase
+
+export type KnowledgeDocument = Omit<
+  SharedKnowledgeDocument,
+  'status' | 'sourceLocation' | 'storagePath' | 'fileSizeBytes' | 'chunkStrategy' | 'chunkConfig' | 'enabled'
+> & {
+  status: KnowledgeDocumentStatus | 'success' | 'running'
+  enabled?: boolean
+  sourceLocation?: string | null
+  storagePath?: string | null
+  fileSizeBytes?: number | null
+  chunkStrategy?: string | null
+  chunkConfig?: SharedKnowledgeDocument['chunkConfig'] | string | null
   type?: string
   source?: string
-  processMode?: 'chunk' | 'pipeline' | string
+  fileSize?: number | null
   chunkConfigText?: string
+  processMode?: 'chunk' | 'pipeline'
   pipelineId?: string
   pipelineName?: string
   scheduleEnabled?: boolean
   scheduleCron?: string
-  fileSize?: number
 }
 
-// 真实接口请求类型
-export type CreateKnowledgeDocumentPayload = CreateKnowledgeDocumentInput
+export type AdminKnowledgeDocument = KnowledgeDocument
+export type KnowledgeDocumentView = KnowledgeDocument
+export type KnowledgeChunk = SharedKnowledgeChunk & {
+  enabled?: boolean
+}
 
-export type KnowledgeDocumentUpdatePayload = UpdateKnowledgeDocumentInput
+export interface CreateKnowledgeDocumentPayload extends CreateKnowledgeDocumentInput {}
 
-// 当前前端页面编辑 / 上传表单类型
-export interface KnowledgeDocumentUpdateForm {
+export interface KnowledgeDocumentUpdatePayload {
   name: string
-  processMode: 'chunk' | 'pipeline'
   chunkStrategy?: string
-  chunkConfigText?: string
+  chunkConfig?: string
   sourceLocation?: string
+  processMode?: 'chunk' | 'pipeline'
+  pipelineId?: string
   scheduleEnabled?: boolean
   scheduleCron?: string
-  pipelineId?: string
 }
 
-export interface KnowledgeDocumentUploadForm extends KnowledgeDocumentUpdateForm {
-  sourceType: 'file' | 'url'
+export interface KnowledgeDocumentUploadPayload {
+  name: string
+  storagePath?: string
+  chunkStrategy?: string
+  chunkConfig?: string
+  sourceType?: KnowledgeDocumentSourceType
+  sourceLocation?: string
+  processMode?: 'chunk' | 'pipeline'
+  pipelineId?: string
+  scheduleEnabled?: boolean
+  scheduleCron?: string
   file?: File | null
 }
 
@@ -75,10 +94,10 @@ export interface KnowledgeChunkUpdatePayload {
 export interface KnowledgeDocumentChunkLog {
   id: string
   documentId: string
-  status: KnowledgeDocument['status']
-  sourceType?: KnowledgeDocument['sourceType']
-  processMode?: KnowledgeDocumentView['processMode']
-  chunkStrategy?: string
+  status: KnowledgeDocumentStatus | 'success' | 'running'
+  sourceType?: KnowledgeDocumentSourceType
+  processMode?: 'chunk' | 'pipeline'
+  chunkStrategy?: string | null
   pipelineId?: string
   pipelineName?: string
   chunkCount?: number
@@ -90,3 +109,7 @@ export interface KnowledgeDocumentChunkLog {
   totalDuration?: number
   updatedAt?: string
 }
+
+export type SharedKnowledgeDocumentUpdateInput = UpdateKnowledgeDocumentInput
+export type KnowledgeDocumentUpdateForm = KnowledgeDocumentUpdatePayload
+export type KnowledgeDocumentUploadForm = KnowledgeDocumentUploadPayload

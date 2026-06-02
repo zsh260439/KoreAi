@@ -1,11 +1,9 @@
 import {
   cloneMock,
   createKnowledgeBase,
-  createKnowledgeChunk,
   createPipelineDefinition,
   dashboardData,
   deleteKnowledgeBase,
-  deleteKnowledgeChunk,
   deleteKnowledgeDocument,
   deletePipelineDefinition,
   documentChunkLogs,
@@ -14,15 +12,11 @@ import {
   knowledgeDocuments,
   pipelineDefinitions,
   pipelineTasks,
-  rebuildKnowledgeChunkEmbeddings,
   renameKnowledgeBase,
   searchSuggestionGroups,
   startKnowledgeDocumentChunk,
   systemSettings,
-  toggleKnowledgeChunkEnabled,
   traces,
-  toggleKnowledgeDocumentEnabled,
-  updateKnowledgeChunk,
   updateKnowledgeDocument,
   updatePipelineDefinition,
   uploadKnowledgeDocument,
@@ -30,8 +24,6 @@ import {
 } from '@/utils'
 import type {
   KnowledgeBaseCreatePayload,
-  KnowledgeChunkCreatePayload,
-  KnowledgeChunkUpdatePayload,
   KnowledgeDocumentUpdatePayload,
   KnowledgeDocumentUploadPayload,
   PipelineDefinitionPayload
@@ -87,11 +79,6 @@ export const deleteDocument = async (kbId: string, docId: string) => {
   return deleteKnowledgeDocument(kbId, docId)
 }
 
-export const toggleDocumentEnabled = async (kbId: string, docId: string, enabled: boolean) => {
-  await wait(180)
-  return toggleKnowledgeDocumentEnabled(kbId, docId, enabled)
-}
-
 export const startDocumentChunk = async (kbId: string, docId: string) => {
   await wait(220)
   return startKnowledgeDocumentChunk(kbId, docId)
@@ -110,45 +97,6 @@ export const fetchDocumentChunkLogs = async (docId: string) => {
 export const fetchDocumentChunks = async (docId: string) => {
   await wait(180)
   return fetchKnowledgeChunks(docId)
-}
-
-export const updateDocumentChunk = async (
-  kbId: string,
-  docId: string,
-  chunkId: string,
-  payload: KnowledgeChunkUpdatePayload
-) => {
-  await wait(180)
-  return updateKnowledgeChunk(kbId, docId, chunkId, payload)
-}
-
-export const createDocumentChunk = async (
-  kbId: string,
-  docId: string,
-  payload: KnowledgeChunkCreatePayload
-) => {
-  await wait(180)
-  return createKnowledgeChunk(kbId, docId, payload)
-}
-
-export const deleteDocumentChunk = async (kbId: string, docId: string, chunkId: string) => {
-  await wait(180)
-  return deleteKnowledgeChunk(kbId, docId, chunkId)
-}
-
-export const toggleDocumentChunkEnabled = async (
-  kbId: string,
-  docId: string,
-  chunkId: string,
-  enabled: boolean
-) => {
-  await wait(160)
-  return toggleKnowledgeChunkEnabled(kbId, docId, chunkId, enabled)
-}
-
-export const rebuildDocumentEmbeddings = async (kbId: string, docId: string) => {
-  await wait(200)
-  return rebuildKnowledgeChunkEmbeddings(kbId, docId)
 }
 
 export const fetchPipelines = async () => {

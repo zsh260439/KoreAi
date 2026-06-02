@@ -92,8 +92,13 @@ const buildChunkConfig = (
   })
 }
 
-const parseChunkConfig = (value?: string) => {
+const parseChunkConfig = (value?: string | Record<string, unknown> | null) => {
   if (!value) return {}
+
+  if (typeof value !== 'string') {
+    return value as Record<string, number>
+  }
+
   try {
     return JSON.parse(value) as Record<string, number>
   } catch {
@@ -1172,6 +1177,8 @@ export const startKnowledgeDocumentChunk = (kbId: string, docId: string) => {
 
 export const uploadKnowledgeDocument = (kbId: string, payload: KnowledgeDocumentUploadPayload) => {
   const documents = knowledgeDocuments[kbId] ?? (knowledgeDocuments[kbId] = [])
+  const sourceType = payload.sourceType ?? 'file'
+  const processMode = payload.processMode ?? 'chunk'
   const documentName =
     payload.name?.trim() ||
     payload.file?.name ||
@@ -1184,30 +1191,30 @@ export const uploadKnowledgeDocument = (kbId: string, payload: KnowledgeDocument
     id: createDocumentId(),
     knowledgeBaseId: kbId,
     name: documentName,
-    type: payload.sourceType === 'file' ? inferDisplayType(fileType) : 'URL',
+    type: sourceType === 'file' ? inferDisplayType(fileType) : 'URL',
     status: 'pending',
     createdAt: now,
     updatedAt: now,
     fileSize: size,
     chunkCount: 0,
-    source: payload.sourceType === 'file' ? '本地上传' : '远程 URL',
-    summary: payload.sourceType === 'file' ? '新上传文档，等待处理。' : '远程文档已接入，等待拉取处理。',
-    sourceType: payload.sourceType,
+    source: sourceType === 'file' ? '本地上传' : '远程 URL',
+    summary: sourceType === 'file' ? '新上传文档，等待处理。' : '远程文档已接入，等待拉取处理。',
+    sourceType,
     sourceLocation: payload.sourceLocation?.trim() || '',
-    processMode: payload.processMode,
+    processMode,
     enabled: true,
-    chunkStrategy: payload.processMode === 'chunk' ? payload.chunkStrategy : undefined,
-    chunkConfig: buildChunkConfig(payload.processMode, payload.chunkStrategy, payload.chunkConfig),
-    pipelineId: payload.processMode === 'pipeline' ? payload.pipelineId : undefined,
+    chunkStrategy: processMode === 'chunk' ? payload.chunkStrategy : undefined,
+    chunkConfig: buildChunkConfig(processMode, payload.chunkStrategy, payload.chunkConfig),
+    pipelineId: processMode === 'pipeline' ? payload.pipelineId : undefined,
     pipelineName:
-      payload.processMode === 'pipeline'
+      processMode === 'pipeline'
         ? pipelineItems.find((item) => item.id === payload.pipelineId)?.name || payload.pipelineId
         : undefined,
     scheduleEnabled: Boolean(payload.scheduleEnabled),
     scheduleCron: payload.scheduleEnabled ? payload.scheduleCron?.trim() || '' : '',
     fileType,
     contentPreview:
-      payload.sourceType === 'file'
+      sourceType === 'file'
         ? '该文档已上传，待进入解析与索引流程。'
         : `已登记远程来源：${payload.sourceLocation?.trim() || '-'}`
   }

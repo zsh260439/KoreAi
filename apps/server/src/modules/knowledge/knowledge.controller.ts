@@ -1,14 +1,27 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
-import { ApiResponse } from 'src/common/api-response'
-import type { KnowledgeBase, KnowledgeChunk, KnowledgeDocument } from '../../types'
+import { ApiResponse } from '../../common/api-response'
+import type { KnowledgeSearchHit } from 'share-type'
+import type {
+  KnowledgeBase,
+  KnowledgeChunk,
+  KnowledgeDocument
+} from '../../types'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
+import { SearchKnowledgeDto } from './dto/search-knowledge.dto'
+import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto'
 import { UpdateKnowledgeDocumentDto } from './dto/update-knowledge-document.dto'
 import { KnowledgeService } from './knowledge.service'
 
 @Controller('knowledge')
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) {}
+
+  // 最小搜索接口：按 query 搜索指定知识库下的 chunks
+  @Post('search')
+  searchKnowledge(@Body() dto: SearchKnowledgeDto): Promise<ApiResponse<KnowledgeSearchHit[]>> {
+    return this.knowledgeService.searchKnowledge(dto)
+  }
 
   // 查询所有知识库
   @Get('bases')
@@ -22,10 +35,25 @@ export class KnowledgeController {
     return this.knowledgeService.createKnowledgeBase(dto)
   }
 
+  // 更新知识库稳定字段
+  @Patch('bases/:kbId')
+  updateKnowledgeBase(
+    @Param('kbId') kbId: string,
+    @Body() dto: UpdateKnowledgeBaseDto
+  ): Promise<ApiResponse<KnowledgeBase>> {
+    return this.knowledgeService.updateKnowledgeBase(kbId, dto)
+  }
+
   // 根据知识库 ID 查询文档列表
   @Get('bases/:kbId/documents')
   findKnowledgeDocuments(@Param('kbId') kbId: string): Promise<ApiResponse<KnowledgeDocument[]>> {
     return this.knowledgeService.findKnowledgeDocuments(kbId)
+  }
+
+  // 查询单个文档详情
+  @Get('documents/:docId')
+  findKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
+    return this.knowledgeService.findKnowledgeDocument(docId)
   }
 
   // 在指定知识库下创建文档
@@ -37,22 +65,16 @@ export class KnowledgeController {
     return this.knowledgeService.createKnowledgeDocument(kbId, dto)
   }
 
-  // 根据文档 ID 查询 chunk 列表
+  // 查询文档下的 chunk 列表
   @Get('documents/:docId/chunks')
   findDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
     return this.knowledgeService.findDocumentChunks(docId)
   }
 
-  // 重新切分文档 chunk
+  // 根据当前文档配置重新切分 chunk
   @Post('documents/:docId/chunks/rebuild')
   rebuildDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
     return this.knowledgeService.rebuildDocumentChunks(docId)
-  }
-
-  // 删除单个 chunk
-  @Delete('chunks/:chunkId')
-  deleteKnowledgeChunk(@Param('chunkId') chunkId: string): Promise<ApiResponse<KnowledgeChunk>> {
-    return this.knowledgeService.deleteKnowledgeChunk(chunkId)
   }
 
   // 删除单个文档

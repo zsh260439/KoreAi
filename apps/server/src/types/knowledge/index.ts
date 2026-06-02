@@ -6,5 +6,6 @@ export type {
   KnowledgeChunk,
   KnowledgeDocument,
   KnowledgeDocumentSourceType,
-  KnowledgeDocumentStatus
+  KnowledgeDocumentStatus,
+  UpdateKnowledgeBaseInput
 } from 'share-type'

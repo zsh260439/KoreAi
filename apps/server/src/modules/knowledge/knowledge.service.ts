@@ -2,9 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm'
 import { readFile, stat } from 'node:fs/promises'
 import { extname } from 'node:path'
-import { ApiResponse } from 'src/common/api-response'
-import { DataSource, Repository } from 'typeorm'
-import type { KnowledgeBaseStatus, UpdateKnowledgeDocumentInput } from 'share-type'
+import { ApiResponse } from '../../common/api-response'
+import { DataSource, ILike, Repository } from 'typeorm'
+import type {
+  KnowledgeBaseStatus,
+  KnowledgeSearchHit,
+  KnowledgeSearchInput,
+  UpdateKnowledgeBaseInput,
+  UpdateKnowledgeDocumentInput
+} from 'share-type'
 import type { KnowledgeBase, KnowledgeChunk, KnowledgeDocument } from '../../types'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
@@ -24,6 +30,50 @@ export class KnowledgeService {
     private readonly dataSource: DataSource
   ) {}
 
+  // 最小搜索：按 knowledgeBaseId 限定范围，在该知识库下搜索 chunk 内容
+  async searchKnowledge(dto: KnowledgeSearchInput): Promise<ApiResponse<KnowledgeSearchHit[]>> {
+    const query = dto.query.trim()
+    if (!query) {
+      throw new BadRequestException('query cannot be empty')
+    }
+
+    const kb = await this.knowledgeBaseRepo.findOne({
+      where: { id: dto.knowledgeBaseId }
+    })
+
+    if (!kb) {
+      throw new NotFoundException('Knowledge base not found')
+    }
+
+    const chunks = await this.knowledgeChunkRepo.find({
+      where: {
+        document: {
+          knowledgeBaseId: dto.knowledgeBaseId
+        },
+        content: ILike(`%${query}%`)
+      },
+      relations: {
+        document: true
+      },
+      order: {
+        updatedAt: 'DESC'
+      },
+      take: 20
+    })
+
+    const hits = chunks
+      .map((item) => ({
+        chunkId: item.id,
+        documentId: item.documentId,
+        documentName: item.document?.name ?? '',
+        content: item.content,
+        score: calcSimpleScore(item.content, query)
+      }))
+      .sort((a, b) => b.score - a.score)
+
+    return ApiResponse.success(0, '搜索成功', hits)
+  }
+
   // 查询所有知识库，同时带出文档数量
   async findKnowledgeBases(): Promise<ApiResponse<KnowledgeBase[]>> {
     const items = await this.knowledgeBaseRepo.find({
@@ -36,20 +86,25 @@ export class KnowledgeService {
 
   // 创建知识库
   async createKnowledgeBase(dto: CreateKnowledgeBaseDto): Promise<ApiResponse<KnowledgeBase>> {
+    const name = dto.name.trim()
+    if (!name) {
+      throw new BadRequestException('Knowledge base name cannot be empty')
+    }
+
     const entity = this.knowledgeBaseRepo.create({
-      name: dto.name.trim(),
+      name,
       description: dto.description?.trim() || null
     })
 
     const created = await this.knowledgeBaseRepo.save(entity)
     return ApiResponse.success(0, '创建成功', toKnowledgeBase(created, 0))
   }
-  //更新数据库信息
+
+  // 更新知识库稳定字段
   async updateKnowledgeBase(
     knowledgeBaseId: string,
-    dto: CreateKnowledgeBaseDto
-  ): Promise<ApiResponse<KnowledgeBase>>
-   {
+    dto: UpdateKnowledgeBaseInput
+  ): Promise<ApiResponse<KnowledgeBase>> {
     const kb = await this.knowledgeBaseRepo.findOne({
       where: { id: knowledgeBaseId }
     })
@@ -58,18 +113,45 @@ export class KnowledgeService {
       throw new NotFoundException('Knowledge base not found')
     }
 
-    if (dto.name) {
-      kb.name = dto.name.trim()
+    if (typeof dto.name === 'string') {
+      const name = dto.name.trim()
+      if (!name) {
+        throw new BadRequestException('Knowledge base name cannot be empty')
+      }
+      kb.name = name
     }
 
-    if (dto.description) {
-      kb.description = dto.description?.trim() || null
+    if (typeof dto.description === 'string') {
+      kb.description = dto.description.trim() || null
     }
 
-    await this.knowledgeBaseRepo.save(kb)
-    return ApiResponse.success(0, '更新成功', toKnowledgeBase(kb, 0))
+    const updated = await this.knowledgeBaseRepo.save(kb)
+    return ApiResponse.success(0, '更新成功', toKnowledgeBase(updated))
   }
- 
+
+  // 查询某个知识库下的文档列表
+  async findKnowledgeDocuments(knowledgeBaseId: string): Promise<ApiResponse<KnowledgeDocument[]>> {
+    const items = await this.knowledgeDocumentRepo.find({
+      where: { knowledgeBaseId },
+      order: { updatedAt: 'DESC' }
+    })
+
+    return ApiResponse.success(0, '查询成功', items.map(toKnowledgeDocument))
+  }
+
+  // 查询单个文档详情
+  async findKnowledgeDocument(documentId: string): Promise<ApiResponse<KnowledgeDocument>> {
+    const document = await this.knowledgeDocumentRepo.findOne({
+      where: { id: documentId }
+    })
+
+    if (!document) {
+      throw new NotFoundException('Document not found')
+    }
+
+    return ApiResponse.success(0, '查询成功', toKnowledgeDocument(document))
+  }
+
   // 更新文档可编辑配置
   async updateKnowledgeDocument(
     docId: string,
@@ -83,12 +165,20 @@ export class KnowledgeService {
       throw new NotFoundException('Document not found')
     }
 
-    if (dto.name) {
-      document.name = dto.name.trim()
+    if (typeof dto.name === 'string') {
+      const name = dto.name.trim()
+      if (!name) {
+        throw new BadRequestException('Document name cannot be empty')
+      }
+      document.name = name
     }
 
-    if (dto.chunkStrategy) {
-      document.chunkStrategy = dto.chunkStrategy.trim()
+    if (typeof dto.chunkStrategy === 'string') {
+      const chunkStrategy = dto.chunkStrategy.trim()
+      if (!chunkStrategy) {
+        throw new BadRequestException('chunkStrategy cannot be empty')
+      }
+      document.chunkStrategy = chunkStrategy
     }
 
     if (dto.chunkConfig) {
@@ -97,15 +187,6 @@ export class KnowledgeService {
 
     await this.knowledgeDocumentRepo.save(document)
     return ApiResponse.success(0, '更新成功', toKnowledgeDocument(document))
-  }
-  // 查询某个知识库下的文档列表
-  async findKnowledgeDocuments(knowledgeBaseId: string): Promise<ApiResponse<KnowledgeDocument[]>> {
-    const items = await this.knowledgeDocumentRepo.find({
-      where: { knowledgeBaseId },
-      order: { updatedAt: 'DESC' }
-    })
-
-    return ApiResponse.success(0, '查询成功', items.map(toKnowledgeDocument))
   }
 
   // 创建文档记录，当前只支持本地 txt / md 文件
@@ -121,7 +202,16 @@ export class KnowledgeService {
       throw new NotFoundException('Knowledge base not found')
     }
 
+    const name = dto.name.trim()
+    if (!name) {
+      throw new BadRequestException('Document name cannot be empty')
+    }
+
     const storagePath = dto.storagePath.trim()
+    if (!storagePath) {
+      throw new BadRequestException('storagePath cannot be empty')
+    }
+
     ensureSupportedLocalTextFile(storagePath)
 
     const fileStats = await this.readLocalFileStats(storagePath)
@@ -129,7 +219,7 @@ export class KnowledgeService {
 
     const entity = this.knowledgeDocumentRepo.create({
       knowledgeBaseId,
-      name: dto.name.trim(),
+      name,
       sourceType: 'file',
       storagePath,
       fileType,
@@ -153,8 +243,7 @@ export class KnowledgeService {
 
     return ApiResponse.success(0, '查询成功', items.map(toKnowledgeChunk))
   }
-  //新增chunk信息
-  
+
   // 根据文档当前配置重建 chunk
   async rebuildDocumentChunks(documentId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
     const document = await this.knowledgeDocumentRepo.findOne({
@@ -185,7 +274,6 @@ export class KnowledgeService {
             documentId,
             content,
             sequence: index,
-            enabled: true,
             charCount: content.length,
             tokenCount: estimateTokenCount(content)
           })
@@ -222,7 +310,8 @@ export class KnowledgeService {
   // 删除知识库，文档和 chunk 依赖外键 onDelete 级联删除
   async deleteKnowledgeBase(knowledgeBaseId: string): Promise<ApiResponse<KnowledgeBase>> {
     const kb = await this.knowledgeBaseRepo.findOne({
-      where: { id: knowledgeBaseId }
+      where: { id: knowledgeBaseId },
+      relations: { documents: true }
     })
 
     if (!kb) {
@@ -245,31 +334,6 @@ export class KnowledgeService {
 
     await this.knowledgeDocumentRepo.delete({ id: documentId })
     return ApiResponse.success(0, '删除成功', toKnowledgeDocument(document))
-  }
-
-  // 删除单个 chunk，并同步回写文档 chunkCount
-  async deleteKnowledgeChunk(chunkId: string): Promise<ApiResponse<KnowledgeChunk>> {
-    const chunk = await this.knowledgeChunkRepo.findOne({
-      where: { id: chunkId },
-      relations: { document: true }
-    })
-
-    if (!chunk) {
-      throw new NotFoundException('Chunk not found')
-    }
-
-    await this.dataSource.transaction(async (manager) => {
-      await manager.delete(KnowledgeChunkEntity, { id: chunkId })
-
-      // chunkCount 是展示字段，删 chunk 后要同步减一
-      await manager.update(
-        KnowledgeDocumentEntity,
-        { id: chunk.documentId },
-        { chunkCount: Math.max(0, (chunk.document?.chunkCount ?? 1) - 1) }
-      )
-    })
-
-    return ApiResponse.success(0, '删除成功', toKnowledgeChunk(chunk))
   }
 
   // 从 storagePath 读取文档正文
@@ -346,6 +410,20 @@ function estimateTokenCount(content: string): number {
   return Math.max(1, Math.ceil(content.length / 4))
 }
 
+// 最小可解释分数：命中次数越多、文本越短，得分越高
+function calcSimpleScore(content: string, query: string): number {
+  const normalizedContent = content.toLowerCase()
+  const normalizedQuery = query.trim().toLowerCase()
+
+  if (!normalizedQuery) return 0
+
+  const matchCount = normalizedContent.split(normalizedQuery).length - 1
+  if (matchCount <= 0) return 0
+
+  const density = matchCount / Math.max(1, normalizedContent.length)
+  return Number((matchCount * 10 + density * 1000).toFixed(4))
+}
+
 // 实体转知识库响应结构
 function toKnowledgeBase(
   entity: KnowledgeBaseEntity,
@@ -395,7 +473,6 @@ function toKnowledgeChunk(entity: KnowledgeChunkEntity): KnowledgeChunk {
     documentId: entity.documentId,
     sequence: entity.sequence,
     content: entity.content,
-    enabled: entity.enabled,
     charCount: entity.charCount,
     tokenCount: entity.tokenCount,
     createdAt: entity.createdAt.toISOString(),

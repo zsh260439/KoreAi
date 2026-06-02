@@ -5,10 +5,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
-import { useAdminStore } from '@/stores'
+import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
 
 const router = useRouter()
-const adminStore = useAdminStore()
+const { knowledgeBases, isLoading, loadKnowledgeBases, createKnowledgeBase, updateKnowledgeBase, removeKnowledgeBase } =
+  useKnowledgeBases()
 
 const searchInput = ref('')
 const keyword = ref('')
@@ -18,25 +19,20 @@ const pageSize = 10
 const createDialogOpen = ref(false)
 const createName = ref('')
 const createDescription = ref('')
-const createOwner = ref('平台知识组')
 
 const renameDialogOpen = ref(false)
 const renameTargetId = ref('')
 const renameValue = ref('')
+const renameDescription = ref('')
 
 const deleteDialogOpen = ref(false)
 const deleteTargetId = ref('')
 
 const filteredKnowledgeBases = computed(() => {
   const normalized = keyword.value.trim().toLowerCase()
-  const list = adminStore.knowledgeBases.filter((item) => {
+  const list = knowledgeBases.value.filter((item) => {
     if (!normalized) return true
-    return [
-      item.name,
-      item.description,
-      item.collectionName || '',
-      item.createdBy || ''
-    ].some((value) => value.toLowerCase().includes(normalized))
+    return [item.name, item.description].some((value) => value.toLowerCase().includes(normalized))
   })
 
   const total = list.length
@@ -53,18 +49,18 @@ const filteredKnowledgeBases = computed(() => {
 })
 
 const stats = computed(() => {
-  const list = adminStore.knowledgeBases
+  const list = knowledgeBases.value
   return {
     knowledgeBaseCount: list.length,
     documentCount: list.reduce((sum, item) => sum + (item.documentCount || 0), 0),
     nonEmptyCount: list.filter((item) => (item.documentCount || 0) > 0).length,
-    creatorCount: new Set(list.map((item) => item.createdBy).filter(Boolean)).size
+    embeddingCount: list.filter((item) => item.embeddingModel).length
   }
 })
 
 const canCreateKnowledgeBase = computed(() => createName.value.trim().length > 0)
 
-const renderEmbeddingModel = (model?: string) => {
+const renderEmbeddingModel = (model?: string | null) => {
   if (!model) {
     return { head: '-', tail: '' }
   }
@@ -87,6 +83,10 @@ const getCollectionBadgeClass = (value?: string) => {
   return 'collection-badge collection-badge--slate'
 }
 
+const getCollectionName = (name: string) => {
+  return name.trim().toLowerCase().replace(/\s+/g, '_')
+}
+
 const handleSearch = () => {
   pageNo.value = 1
   keyword.value = searchInput.value.trim()
@@ -94,12 +94,13 @@ const handleSearch = () => {
 
 const handleRefresh = async () => {
   pageNo.value = 1
-  await adminStore.loadKnowledgeBases()
+  await loadKnowledgeBases()
 }
 
-const openRename = (id: string, name: string) => {
+const openRename = (id: string, name: string, description: string) => {
   renameTargetId.value = id
   renameValue.value = name
+  renameDescription.value = description
   renameDialogOpen.value = true
 }
 
@@ -107,12 +108,16 @@ const closeRename = () => {
   renameDialogOpen.value = false
   renameTargetId.value = ''
   renameValue.value = ''
+  renameDescription.value = ''
 }
 
 const submitRename = async () => {
   if (!renameTargetId.value || !renameValue.value.trim()) return
-  await adminStore.renameKnowledgeBase(renameTargetId.value, renameValue.value.trim())
-  ElMessage.success('知识库名称已更新')
+  await updateKnowledgeBase(renameTargetId.value, {
+    name: renameValue.value.trim(),
+    description: renameDescription.value.trim()
+  })
+  ElMessage.success('知识库已更新')
   closeRename()
 }
 
@@ -128,7 +133,7 @@ const closeDelete = () => {
 
 const submitDelete = async () => {
   if (!deleteTargetId.value) return
-  await adminStore.removeKnowledgeBase(deleteTargetId.value)
+  await removeKnowledgeBase(deleteTargetId.value)
   ElMessage.success('知识库已删除')
   closeDelete()
 }
@@ -137,15 +142,13 @@ const closeCreate = () => {
   createDialogOpen.value = false
   createName.value = ''
   createDescription.value = ''
-  createOwner.value = '平台知识组'
 }
 
 const submitCreate = async () => {
   if (!canCreateKnowledgeBase.value) return
-  const created = await adminStore.createKnowledgeBase({
+  const created = await createKnowledgeBase({
     name: createName.value.trim(),
-    description: createDescription.value.trim(),
-    owner: createOwner.value.trim()
+    description: createDescription.value.trim()
   })
   ElMessage.success('知识库已创建')
   closeCreate()
@@ -153,15 +156,13 @@ const submitCreate = async () => {
 }
 
 onMounted(async () => {
-  if (!adminStore.knowledgeBases.length) {
-    await adminStore.loadKnowledgeBases()
-  }
+  await loadKnowledgeBases()
 })
 </script>
 
 <template>
   <section class="knowledge-console space-y-6">
-    <AdminPageHeader title="知识库管理" description="管理所有知识库及其文档">
+    <AdminPageHeader title="知识库管理" description="管理所有知识库及其文档。">
       <template #actions>
         <el-input v-model="searchInput" placeholder="搜索知识库名称" clearable class="!w-[248px]" />
         <el-button @click="handleSearch">搜索</el-button>
@@ -214,17 +215,16 @@ onMounted(async () => {
         <div class="stats-card__main">
           <div class="stats-card__icon"><Layers class="h-5 w-5" /></div>
           <div>
-            <div class="stats-card__label">创建用户数</div>
-            <div class="stats-card__value">{{ stats.creatorCount }}</div>
+            <div class="stats-card__label">Embedding 已配置</div>
+            <div class="stats-card__value">{{ stats.embeddingCount }}</div>
           </div>
         </div>
         <span class="stats-card__badge">全部</span>
       </div>
-
     </div>
 
     <div class="content-card">
-      <div v-if="adminStore.loading && !adminStore.knowledgeBases.length" class="empty-block">加载中...</div>
+      <div v-if="isLoading && !knowledgeBases.length" class="empty-block">加载中...</div>
       <div v-else-if="!filteredKnowledgeBases.records.length" class="empty-block">暂无知识库</div>
       <div v-else class="overflow-x-auto">
         <table class="knowledge-table">
@@ -234,7 +234,6 @@ onMounted(async () => {
               <th>Embedding 模型</th>
               <th>Collection</th>
               <th>文档数</th>
-              <th>负责人</th>
               <th>创建时间</th>
               <th>修改时间</th>
               <th class="text-center">操作</th>
@@ -255,18 +254,16 @@ onMounted(async () => {
                 <span v-else>-</span>
               </td>
               <td>
-                <span v-if="item.collectionName" :class="getCollectionBadgeClass(item.collectionName)">
-                  {{ item.collectionName }}
+                <span :class="getCollectionBadgeClass(getCollectionName(item.name))">
+                  {{ getCollectionName(item.name) }}
                 </span>
-                <span v-else>-</span>
               </td>
               <td>{{ item.documentCount }}</td>
-              <td>{{ item.createdBy || item.owner || '-' }}</td>
               <td>{{ item.createdAt || '-' }}</td>
               <td>{{ item.updatedAt || '-' }}</td>
               <td>
                 <div class="flex items-center justify-center gap-2">
-                  <el-button @click="openRename(item.id, item.name)">
+                  <el-button @click="openRename(item.id, item.name, item.description)">
                     <Pencil class="h-4 w-4" />
                     编辑
                   </el-button>
@@ -291,12 +288,15 @@ onMounted(async () => {
       </div>
     </div>
 
-    <el-dialog v-model="renameDialogOpen" title="编辑知识库名称" width="420px" destroy-on-close>
+    <el-dialog v-model="renameDialogOpen" title="编辑知识库" width="420px" destroy-on-close>
       <div class="space-y-3">
-        <p class="text-sm text-slate-500">这里只修改知识库名称。</p>
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">名称</div>
           <el-input v-model="renameValue" placeholder="请输入知识库名称" />
+        </div>
+        <div>
+          <div class="mb-2 text-sm font-medium text-slate-900">描述</div>
+          <el-input v-model="renameDescription" type="textarea" :rows="4" placeholder="请输入知识库描述" />
         </div>
       </div>
       <template #footer>
@@ -318,18 +318,11 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="createDialogOpen" title="新建知识库" width="620px" destroy-on-close>
-      <div class="grid gap-4 md:grid-cols-2">
-        <div class="space-y-4">
-          <div>
-            <div class="mb-2 text-sm font-medium text-slate-900">名称</div>
-            <el-input v-model="createName" placeholder="例如：财务制度库" />
-          </div>
-          <div>
-            <div class="mb-2 text-sm font-medium text-slate-900">负责人</div>
-            <el-input v-model="createOwner" placeholder="例如：平台知识组" />
-          </div>
+      <div class="grid gap-4">
+        <div>
+          <div class="mb-2 text-sm font-medium text-slate-900">名称</div>
+          <el-input v-model="createName" placeholder="例如：财务制度库" />
         </div>
-
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">描述</div>
           <el-input v-model="createDescription" type="textarea" :rows="6" placeholder="描述知识库用途与适用范围" />
@@ -417,7 +410,7 @@ onMounted(async () => {
 
 .knowledge-table {
   width: 100%;
-  min-width: 1120px;
+  min-width: 980px;
   border-collapse: collapse;
 }
 

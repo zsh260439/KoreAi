@@ -1,38 +1,40 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { FileBarChart, FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Trash2 } from 'lucide-vue-next'
+import { FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Search, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
-import { useAdminStore } from '@/stores'
-import type {
-  KnowledgeDocument,
-  KnowledgeDocumentChunkLog,
-  KnowledgeDocumentUpdatePayload,
-  KnowledgeDocumentUploadPayload
-} from '@/types'
+import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
+import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
+import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
+import { useKnowledgeSearch } from '@/composables/useKnowledgeSearch'
+import type { KnowledgeDocument, KnowledgeDocumentUpdatePayload, KnowledgeDocumentUploadPayload } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const adminStore = useAdminStore()
+const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
+const { documents, loadKnowledgeDocuments, createKnowledgeDocument, updateKnowledgeDocument, removeKnowledgeDocument } =
+  useKnowledgeDocuments()
+const { rebuildKnowledgeChunks } = useKnowledgeChunks()
+const { searchResults, isSearching, error: searchError, searchKnowledge, clearSearchResults } = useKnowledgeSearch()
 
 const kbId = computed(() => String(route.params.kbId || ''))
-const knowledgeBase = computed(() => adminStore.knowledgeBases.find((item) => item.id === kbId.value))
-const documents = computed(() => adminStore.documentsByKb[kbId.value] ?? [])
+const knowledgeBase = computed(() => knowledgeBases.value.find((item) => item.id === kbId.value))
 
 const current = ref(1)
 const pageSize = 10
 const searchInput = ref('')
 const keyword = ref('')
-const statusFilter = ref('all')
+const statusFilter = ref<'all' | 'pending' | 'processing' | 'indexed' | 'failed'>('all')
+const contentSearchInput = ref('')
+const hasSearchedContent = ref(false)
 
 const uploadDialogOpen = ref(false)
 const uploadName = ref('')
-const uploadProcessMode = ref<'chunk' | 'pipeline'>('chunk')
-const uploadChunkStrategy = ref<'fixed_size' | 'structure_aware'>('structure_aware')
-const uploadChunkSize = ref('512')
-const uploadOverlapSize = ref('128')
+const uploadStoragePath = ref('')
+const uploadChunkStrategy = ref<'fixed_size' | 'structure_aware'>('fixed_size')
+const uploadChunkSize = ref('500')
+const uploadOverlap = ref('100')
 const uploadTargetChars = ref('1400')
 const uploadMaxChars = ref('1800')
 const uploadMinChars = ref('600')
@@ -41,10 +43,9 @@ const uploadOverlapChars = ref('0')
 const editDialogOpen = ref(false)
 const activeDocumentId = ref('')
 const editName = ref('')
-const editProcessMode = ref<'chunk' | 'pipeline'>('chunk')
-const editChunkStrategy = ref<'fixed_size' | 'structure_aware'>('structure_aware')
-const editChunkSize = ref('512')
-const editOverlapSize = ref('128')
+const editChunkStrategy = ref<'fixed_size' | 'structure_aware'>('fixed_size')
+const editChunkSize = ref('500')
+const editOverlap = ref('100')
 const editTargetChars = ref('1400')
 const editMaxChars = ref('1800')
 const editMinChars = ref('600')
@@ -52,28 +53,25 @@ const editOverlapChars = ref('0')
 
 const chunkDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
-const logDialogOpen = ref(false)
-const chunkLogs = ref<KnowledgeDocumentChunkLog[]>([])
-const chunkLogsLoading = ref(false)
 
 const statusOptions = [
   { value: 'all', label: '全部状态' },
-  { value: 'pending', label: 'pending' },
-  { value: 'running', label: 'running' },
-  { value: 'failed', label: 'failed' },
-  { value: 'success', label: 'success' }
-]
+  { value: 'pending', label: '待处理' },
+  { value: 'processing', label: '处理中' },
+  { value: 'indexed', label: '已索引' },
+  { value: 'failed', label: '处理失败' }
+] as const
 
 const activeDocument = computed(() => documents.value.find((item) => item.id === activeDocumentId.value) ?? null)
 const activeDocumentName = computed(() => activeDocument.value?.name || '-')
 const editIsFixedSize = computed(() => editChunkStrategy.value === 'fixed_size')
 const uploadIsFixedSize = computed(() => uploadChunkStrategy.value === 'fixed_size')
-
+//数据库查询文档列表
 const filteredDocuments = computed(() => {
   const normalized = keyword.value.trim().toLowerCase()
   const list = documents.value.filter((item) => {
-    const matchesKeyword = !normalized || [item.name, item.summary || '']
-      .some((value) => value.toLowerCase().includes(normalized))
+    const matchesKeyword =
+      !normalized || [item.name, item.summary || ''].some((value) => value.toLowerCase().includes(normalized))
     const matchesStatus = statusFilter.value === 'all' || item.status === statusFilter.value
     return matchesKeyword && matchesStatus
   })
@@ -90,123 +88,159 @@ const filteredDocuments = computed(() => {
     records: list.slice(start, start + pageSize)
   }
 })
-
-const parseChunkConfig = (value?: string) => {
+//解析分块配置
+const parseChunkConfig = (value?: string | Record<string, unknown> | null) => {
   if (!value) return {}
-  try {
-    return JSON.parse(value) as Record<string, number>
-  } catch {
-    return {}
+
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as Record<string, number>
+    } catch {
+      return {}
+    }
   }
+
+  return value as Record<string, number>
 }
 
+//构建分块配置文本
+const buildChunkConfigText = (strategy: 'fixed_size' | 'structure_aware') => {
+  if (strategy === 'fixed_size') {
+    return JSON.stringify({
+      chunkSize: Number(uploadChunkSize.value),
+      overlap: Number(uploadOverlap.value)
+    })
+  }
+
+  return JSON.stringify({
+    targetChars: Number(uploadTargetChars.value),
+    maxChars: Number(uploadMaxChars.value),
+    minChars: Number(uploadMinChars.value),
+    overlapChars: Number(uploadOverlapChars.value)
+  })
+}
+//构建编辑分块配置文本
+const buildEditChunkConfigText = (strategy: 'fixed_size' | 'structure_aware') => {
+  if (strategy === 'fixed_size') {
+    return JSON.stringify({
+      chunkSize: Number(editChunkSize.value),
+      overlap: Number(editOverlap.value)
+    })
+  }
+
+  return JSON.stringify({
+    targetChars: Number(editTargetChars.value),
+    maxChars: Number(editMaxChars.value),
+    minChars: Number(editMinChars.value),
+    overlapChars: Number(editOverlapChars.value)
+  })
+}
+//格式化文档来源标签
 const formatSourceLabel = (value?: string | null) => {
   if (!value) return '-'
-  return value.toLowerCase() === 'url' ? 'Remote URL' : 'Local File'
+  return value.toLowerCase() === 'url' ? '远程URL' : '本地文件'
 }
-
-const formatProcessMode = (value?: string | null) => {
-  if (!value) return '-'
-  return value.toLowerCase() === 'pipeline' ? 'pipeline' : 'chunk'
-}
-
+//格式化文档大小
 const formatSize = (value?: number | null) => {
   if (value === undefined || value === null) return '-'
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
   return `${(value / 1024 / 1024).toFixed(1)} MB`
 }
-
+//处理搜索
 const handleSearch = () => {
   current.value = 1
   keyword.value = searchInput.value.trim()
 }
+//处理内容搜索
+const handleContentSearch = async () => {
+  const query = contentSearchInput.value.trim()
+  if (!query) {
+    hasSearchedContent.value = false
+    clearSearchResults()
+    return
+  }
 
+  hasSearchedContent.value = true
+  await searchKnowledge(kbId.value, query)
+}
+//清除内容搜索结果
+const handleClearContentSearch = () => {
+  contentSearchInput.value = ''
+  hasSearchedContent.value = false
+  clearSearchResults()
+}
+//刷新文档列表
 const handleRefresh = async () => {
   current.value = 1
-  await adminStore.loadDocuments(kbId.value)
+  await loadKnowledgeDocuments(kbId.value)
 }
-
+//重置上传对话框
 const resetUploadDialog = () => {
   uploadDialogOpen.value = false
   uploadName.value = ''
-  uploadProcessMode.value = 'chunk'
-  uploadChunkStrategy.value = 'structure_aware'
-  uploadChunkSize.value = '512'
-  uploadOverlapSize.value = '128'
+  uploadStoragePath.value = ''
+  uploadChunkStrategy.value = 'fixed_size'
+  uploadChunkSize.value = '500'
+  uploadOverlap.value = '100'
   uploadTargetChars.value = '1400'
   uploadMaxChars.value = '1800'
   uploadMinChars.value = '600'
   uploadOverlapChars.value = '0'
 }
-
+//提交上传文档
 const submitUpload = async () => {
   const payload: KnowledgeDocumentUploadPayload = {
-    sourceType: 'file',
     name: uploadName.value.trim() || '新文档',
-    processMode: uploadProcessMode.value,
-    chunkStrategy: uploadProcessMode.value === 'chunk' ? uploadChunkStrategy.value : undefined,
-    chunkConfig: uploadProcessMode.value === 'chunk'
-      ? uploadChunkStrategy.value === 'fixed_size'
-        ? JSON.stringify({
-            chunkSize: Number(uploadChunkSize.value),
-            overlapSize: Number(uploadOverlapSize.value)
-          })
-        : JSON.stringify({
-            targetChars: Number(uploadTargetChars.value),
-            maxChars: Number(uploadMaxChars.value),
-            minChars: Number(uploadMinChars.value),
-            overlapChars: Number(uploadOverlapChars.value)
-          })
-      : undefined
+    storagePath: uploadStoragePath.value.trim(),
+    chunkStrategy: uploadChunkStrategy.value,
+    chunkConfig: buildChunkConfigText(uploadChunkStrategy.value)
   }
 
-  await adminStore.uploadKnowledgeDocument(kbId.value, payload)
+  await createKnowledgeDocument(kbId.value, {
+    name: payload.name,
+    storagePath: payload.storagePath || '',
+    chunkStrategy: payload.chunkStrategy,
+    chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
+  })
+  await loadKnowledgeBases()
   ElMessage.success('文档已创建')
   resetUploadDialog()
 }
-
+//打开编辑对话框
 const openEdit = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   editName.value = document.name
-  editProcessMode.value = document.processMode === 'pipeline' ? 'pipeline' : 'chunk'
-  editChunkStrategy.value = (document.chunkStrategy as 'fixed_size' | 'structure_aware') || 'structure_aware'
+  editChunkStrategy.value = (document.chunkStrategy as 'fixed_size' | 'structure_aware') || 'fixed_size'
+
   const config = parseChunkConfig(document.chunkConfig)
-  editChunkSize.value = String(config.chunkSize ?? 512)
-  editOverlapSize.value = String(config.overlapSize ?? 128)
+  editChunkSize.value = String(config.chunkSize ?? 500)
+  editOverlap.value = String(config.overlap ?? 100)
   editTargetChars.value = String(config.targetChars ?? 1400)
   editMaxChars.value = String(config.maxChars ?? 1800)
   editMinChars.value = String(config.minChars ?? 600)
   editOverlapChars.value = String(config.overlapChars ?? 0)
   editDialogOpen.value = true
 }
-
+//提交编辑文档
 const submitEdit = async () => {
   if (!activeDocument.value) return
+
   const payload: KnowledgeDocumentUpdatePayload = {
     name: editName.value.trim(),
-    processMode: editProcessMode.value,
-    chunkStrategy: editProcessMode.value === 'chunk' ? editChunkStrategy.value : undefined,
-    chunkConfig: editProcessMode.value === 'chunk'
-      ? editChunkStrategy.value === 'fixed_size'
-        ? JSON.stringify({
-            chunkSize: Number(editChunkSize.value),
-            overlapSize: Number(editOverlapSize.value)
-          })
-        : JSON.stringify({
-            targetChars: Number(editTargetChars.value),
-            maxChars: Number(editMaxChars.value),
-            minChars: Number(editMinChars.value),
-            overlapChars: Number(editOverlapChars.value)
-          })
-      : undefined
+    chunkStrategy: editChunkStrategy.value,
+    chunkConfig: buildEditChunkConfigText(editChunkStrategy.value)
   }
 
-  await adminStore.updateDocument(kbId.value, activeDocument.value.id, payload)
+  await updateKnowledgeDocument(activeDocument.value.id, {
+    name: payload.name,
+    chunkStrategy: payload.chunkStrategy,
+    chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
+  })
   editDialogOpen.value = false
   ElMessage.success('文档配置已更新')
 }
-
+//打开分块确认对话框
 const openChunkConfirm = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   chunkDialogOpen.value = true
@@ -214,54 +248,38 @@ const openChunkConfirm = (document: KnowledgeDocument) => {
 
 const submitChunkConfirm = async () => {
   if (!activeDocument.value) return
-  await adminStore.runDocumentChunk(kbId.value, activeDocument.value.id)
+  await rebuildKnowledgeChunks(activeDocument.value.id)
+  await loadKnowledgeDocuments(kbId.value)
   chunkDialogOpen.value = false
   ElMessage.success('已重新执行分块')
 }
-
+//打开删除确认对话框
 const openDeleteConfirm = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   deleteDialogOpen.value = true
 }
-
+//提交删除确认
 const submitDeleteConfirm = async () => {
   if (!activeDocument.value) return
-  await adminStore.removeDocument(kbId.value, activeDocument.value.id)
+  await removeKnowledgeDocument(activeDocument.value.id)
+  await loadKnowledgeBases()
   deleteDialogOpen.value = false
   ElMessage.success('文档已删除')
 }
 
-const openChunkLog = async (document: KnowledgeDocument) => {
-  activeDocumentId.value = document.id
-  chunkLogsLoading.value = true
-  chunkLogs.value = await adminStore.loadDocumentChunkLogs(document.id)
-  chunkLogsLoading.value = false
-  logDialogOpen.value = true
+const openChunkLog = (document: KnowledgeDocument) => {
+  router.push(`/admin/knowledge/${kbId.value}/docs/${document.id}`)
 }
 
-const handleToggleEnabled = async (document: KnowledgeDocument) => {
-  await adminStore.setDocumentEnabled(kbId.value, document.id, !document.enabled)
-}
-
-const formatLogStatus = (value?: string | null) => {
-  if (!value) return '-'
-  if (value === 'success') return '成功'
-  if (value === 'failed') return '失败'
-  if (value === 'running') return '执行中'
-  return value
-}
-
-const formatDuration = (value?: number | null) => {
-  if (value === undefined || value === null) return '-'
-  if (value < 1000) return `${value}ms`
-  return `${(value / 1000).toFixed(2)}s`
+const getScorePercent = (score: number) => {
+  return Math.max(0, Math.min(100, Math.round(score)))
 }
 
 onMounted(async () => {
-  if (!adminStore.knowledgeBases.length) {
-    await adminStore.loadKnowledgeBases()
+  if (!knowledgeBases.value.length) {
+    await loadKnowledgeBases()
   }
-  await adminStore.loadDocuments(kbId.value)
+  await loadKnowledgeDocuments(kbId.value)
 })
 </script>
 
@@ -269,13 +287,13 @@ onMounted(async () => {
   <section class="space-y-6">
     <AdminPageHeader
       title="文档管理"
-      :description="knowledgeBase ? `${knowledgeBase.name}（${knowledgeBase.collectionName || kbId}）` : kbId"
+      :description="knowledgeBase ? `${knowledgeBase.name}（${knowledgeBase.name.trim().toLowerCase().replace(/\s+/g, '_')}）` : kbId"
     >
       <template #actions>
         <el-button @click="router.push('/admin/knowledge')">返回知识库</el-button>
         <el-button type="primary" @click="uploadDialogOpen = true">
           <FileUp class="h-4 w-4" />
-          上传文档
+          新建文档
         </el-button>
       </template>
     </AdminPageHeader>
@@ -284,7 +302,7 @@ onMounted(async () => {
       <div class="doc-card__header">
         <div>
           <h2 class="doc-card__title">文档列表</h2>
-          <p class="doc-card__desc">支持筛选与分块管理</p>
+          <p class="doc-card__desc">当前阶段只支持本地 txt / md 文档，后端会根据 storagePath 读取真实文件再切块。</p>
         </div>
 
         <div class="doc-toolbar">
@@ -301,6 +319,61 @@ onMounted(async () => {
       </div>
 
       <div class="doc-card__body">
+        <div class="search-panel">
+          <div class="search-panel__head">
+            <div>
+              <div class="search-panel__title">知识内容搜索</div>
+              <div class="search-panel__desc">在当前知识库下搜索已经切分完成的 chunk 内容。</div>
+            </div>
+          </div>
+
+          <div class="search-panel__toolbar">
+            <el-input
+              v-model="contentSearchInput"
+              placeholder="输入关键词，例如：报销、审批、差旅"
+              clearable
+              class="!w-full"
+              @keyup.enter="handleContentSearch"
+            >
+              <template #prefix>
+                <Search class="h-4 w-4 text-slate-400" />
+              </template>
+            </el-input>
+            <el-button type="primary" :loading="isSearching" @click="handleContentSearch">搜索内容</el-button>
+            <el-button @click="handleClearContentSearch">清空</el-button>
+          </div>
+
+          <div v-if="searchError" class="search-panel__error">{{ searchError }}</div>
+
+          <div v-if="hasSearchedContent" class="search-results">
+            <div v-if="!searchResults.length && !isSearching" class="search-results__empty">当前知识库下没有命中内容</div>
+
+              <div v-else class="search-results__list">
+                <div v-for="item in searchResults" :key="item.chunkId" class="search-result-item">
+                  <div class="search-result-item__meta">
+                    <span>文档：{{ item.documentName }}</span>
+                    <span>Chunk ID：{{ item.chunkId }}</span>
+                    <span>分数：{{ item.score }}</span>
+                    <el-button
+                      link
+                      type="primary"
+                      class="!px-0"
+                      @click="router.push(`/admin/knowledge/${kbId}/docs/${item.documentId}`)"
+                    >
+                      查看文档
+                    </el-button>
+                  </div>
+                  <div class="search-result-item__score">
+                    <div class="search-result-item__score-fill" :style="{ width: `${getScorePercent(item.score)}%` }" />
+                  </div>
+                  <div class="search-result-item__content">
+                    {{ item.content }}
+                  </div>
+                </div>
+              </div>
+          </div>
+        </div>
+
         <el-table :data="filteredDocuments.records" row-key="id">
           <el-table-column label="文档" min-width="280">
             <template #default="{ row }">
@@ -317,11 +390,7 @@ onMounted(async () => {
             <template #default="{ row }">{{ formatSourceLabel(row.sourceType) }}</template>
           </el-table-column>
 
-          <el-table-column label="处理模式" width="120">
-            <template #default="{ row }">{{ formatProcessMode(row.processMode) }}</template>
-          </el-table-column>
-
-          <el-table-column label="状态" width="120">
+          <el-table-column label="状态" width="140">
             <template #default="{ row }">
               <div class="inline-flex items-center gap-2 text-sm text-slate-600">
                 <span class="status-dot" :class="`status-dot--${row.status}`" />
@@ -330,22 +399,16 @@ onMounted(async () => {
             </template>
           </el-table-column>
 
-          <el-table-column label="启用" width="90" align="center">
-            <template #default="{ row }">
-              <el-switch :model-value="Boolean(row.enabled)" @change="() => handleToggleEnabled(row)" />
-            </template>
-          </el-table-column>
-
           <el-table-column label="分块数" width="96">
             <template #default="{ row }">{{ row.chunkCount ?? 0 }}</template>
           </el-table-column>
 
           <el-table-column label="类型" width="110">
-            <template #default="{ row }">{{ row.fileType || row.type || '-' }}</template>
+            <template #default="{ row }">{{ row.fileType || '-' }}</template>
           </el-table-column>
 
           <el-table-column label="大小" width="110">
-            <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
+            <template #default="{ row }">{{ formatSize(row.fileSizeBytes) }}</template>
           </el-table-column>
 
           <el-table-column label="更新时间" width="180">
@@ -358,11 +421,11 @@ onMounted(async () => {
                 <el-button link @click="openEdit(row)" title="编辑">
                   <Pencil class="h-4 w-4" />
                 </el-button>
-                <el-button link @click="openChunkConfirm(row)" title="重新执行分块">
+                <el-button link @click="openChunkConfirm(row)" title="重新分块">
                   <PlayCircle class="h-4 w-4" />
                 </el-button>
-                <el-button link @click="openChunkLog(row)" title="分块详情">
-                  <FileBarChart class="h-4 w-4" />
+                <el-button link @click="openChunkLog(row)" title="查看分块">
+                  <FolderOpen class="h-4 w-4" />
                 </el-button>
                 <el-button link @click="openDeleteConfirm(row)" title="删除">
                   <Trash2 class="h-4 w-4" />
@@ -383,121 +446,112 @@ onMounted(async () => {
       </div>
     </div>
 
-    <el-dialog v-model="uploadDialogOpen" title="上传文档" width="640px" destroy-on-close>
+    <el-dialog v-model="uploadDialogOpen" title="新建文档" width="640px" destroy-on-close>
       <div class="space-y-4">
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">文档名称</div>
-          <el-input v-model="uploadName" placeholder="请输入文档名称" />
+          <el-input v-model="uploadName" placeholder="例如：demo-doc.txt" />
         </div>
+
         <div>
-          <div class="mb-2 text-sm font-medium text-slate-900">处理模式</div>
-          <el-select v-model="uploadProcessMode" class="w-full">
-            <el-option value="chunk" label="分块策略" />
-            <el-option value="pipeline" label="数据通道" />
+          <div class="mb-2 text-sm font-medium text-slate-900">本地文件路径</div>
+          <el-input
+            v-model="uploadStoragePath"
+            placeholder="例如：C:\\Users\\123\\Desktop\\Mustfollow-prompt\\demo-doc.txt"
+          />
+        </div>
+
+        <div>
+          <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
+          <el-select v-model="uploadChunkStrategy" class="w-full">
+            <el-option value="fixed_size" label="fixed_size" />
+            <el-option value="structure_aware" label="structure_aware" />
           </el-select>
         </div>
-        <template v-if="uploadProcessMode === 'chunk'">
+
+        <div v-if="uploadIsFixedSize" class="grid gap-4 md:grid-cols-2">
           <div>
-            <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
-            <el-select v-model="uploadChunkStrategy" class="w-full">
-              <el-option value="structure_aware" label="structure_aware" />
-              <el-option value="fixed_size" label="fixed_size" />
-            </el-select>
+            <div class="mb-2 text-sm font-medium text-slate-900">chunkSize</div>
+            <el-input v-model="uploadChunkSize" />
           </div>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">overlap</div>
+            <el-input v-model="uploadOverlap" />
+          </div>
+        </div>
 
-          <div v-if="uploadIsFixedSize" class="grid gap-4 md:grid-cols-2">
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">块大小</div>
-              <el-input v-model="uploadChunkSize" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-              <el-input v-model="uploadOverlapSize" />
-            </div>
+        <div v-else class="grid gap-4 md:grid-cols-2">
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">targetChars</div>
+            <el-input v-model="uploadTargetChars" />
           </div>
-
-          <div v-else class="grid gap-4 md:grid-cols-2">
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">理想块大小</div>
-              <el-input v-model="uploadTargetChars" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">块上限</div>
-              <el-input v-model="uploadMaxChars" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">块下限</div>
-              <el-input v-model="uploadMinChars" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-              <el-input v-model="uploadOverlapChars" />
-            </div>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">maxChars</div>
+            <el-input v-model="uploadMaxChars" />
           </div>
-        </template>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">minChars</div>
+            <el-input v-model="uploadMinChars" />
+          </div>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">overlapChars</div>
+            <el-input v-model="uploadOverlapChars" />
+          </div>
+        </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="resetUploadDialog">取消</el-button>
-          <el-button type="primary" @click="submitUpload">保存</el-button>
+          <el-button type="primary" :disabled="!uploadStoragePath.trim()" @click="submitUpload">保存</el-button>
         </div>
       </template>
     </el-dialog>
 
     <el-dialog v-model="editDialogOpen" title="编辑文档" width="700px" destroy-on-close>
       <div v-if="activeDocument" class="space-y-4">
-        <p class="text-sm text-slate-500">修改文档名称，查看文档配置信息</p>
+        <p class="text-sm text-slate-500">当前只更新稳定字段：文档名称、分块策略、分块配置。</p>
 
         <div>
-          <div class="mb-2 text-sm font-medium text-slate-900">来源类型</div>
-          <el-input :model-value="formatSourceLabel(activeDocument.sourceType)" readonly />
-        </div>
-
-        <div>
-          <div class="mb-2 text-sm font-medium text-slate-900">本地文件</div>
+          <div class="mb-2 text-sm font-medium text-slate-900">文档名称</div>
           <el-input v-model="editName" />
-          <div class="mt-1 text-sm text-slate-500">仅支持修改文件名</div>
         </div>
 
         <div>
-          <div class="mb-2 text-sm font-medium text-slate-900">处理模式</div>
-          <el-input model-value="分块策略" readonly />
-          <div class="mt-1 text-sm text-slate-500">分块策略：直接分块；数据通道：使用 Pipeline 清洗</div>
+          <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
+          <el-select v-model="editChunkStrategy" class="w-full">
+            <el-option value="fixed_size" label="fixed_size" />
+            <el-option value="structure_aware" label="structure_aware" />
+          </el-select>
         </div>
 
-        <div class="rounded-[12px] border border-[var(--border-default)] p-4">
-          <div class="mb-3 text-sm font-medium text-slate-900">分块策略</div>
-          <el-input v-model="editChunkStrategy" readonly />
-
-          <div v-if="editIsFixedSize" class="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">块大小</div>
-              <el-input v-model="editChunkSize" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-              <el-input v-model="editOverlapSize" />
-            </div>
+        <div v-if="editIsFixedSize" class="grid gap-4 md:grid-cols-2">
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">chunkSize</div>
+            <el-input v-model="editChunkSize" />
           </div>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">overlap</div>
+            <el-input v-model="editOverlap" />
+          </div>
+        </div>
 
-          <div v-else class="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">理想块大小</div>
-              <el-input v-model="editTargetChars" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">块上限</div>
-              <el-input v-model="editMaxChars" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">块下限</div>
-              <el-input v-model="editMinChars" />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-900">重叠大小</div>
-              <el-input v-model="editOverlapChars" />
-            </div>
+        <div v-else class="grid gap-4 md:grid-cols-2">
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">targetChars</div>
+            <el-input v-model="editTargetChars" />
+          </div>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">maxChars</div>
+            <el-input v-model="editMaxChars" />
+          </div>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">minChars</div>
+            <el-input v-model="editMinChars" />
+          </div>
+          <div>
+            <div class="mb-2 text-sm font-medium text-slate-900">overlapChars</div>
+            <el-input v-model="editOverlapChars" />
           </div>
         </div>
       </div>
@@ -510,53 +564,15 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="chunkDialogOpen" title="重新分块?" width="460px" destroy-on-close>
+    <el-dialog v-model="chunkDialogOpen" title="重新分块" width="460px" destroy-on-close>
       <div class="space-y-2 text-sm">
-        <p>文档 [{{ activeDocumentName }}] 已有 {{ activeDocument?.chunkCount ?? 0 }} 个分块记录。</p>
-        <p class="text-[#f59e0b]">重新分块会清空原有 Chunk 记录及向量数据。</p>
+        <p>文档 [{{ activeDocumentName }}] 当前已有 {{ activeDocument?.chunkCount ?? 0 }} 条分块记录。</p>
+        <p class="text-[#f59e0b]">重新分块会清空旧 chunk，再按当前 storagePath 和分块配置重新生成。</p>
       </div>
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="chunkDialogOpen = false">取消</el-button>
           <el-button type="primary" @click="submitChunkConfirm">确认</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="logDialogOpen" title="分块详情" width="760px" destroy-on-close>
-      <p class="mb-4 text-sm text-slate-500">文档 [{{ activeDocumentName }}] 的分块执行日志</p>
-
-      <div v-if="chunkLogsLoading" class="py-8 text-center text-slate-500">加载中...</div>
-
-      <div v-else-if="chunkLogs.length" class="rounded-[14px] border border-[var(--border-default)] bg-[#fbfcff] p-4">
-        <template v-for="log in chunkLogs.slice(0, 1)" :key="log.id">
-          <div class="flex items-center justify-between">
-            <div class="space-y-3">
-              <div class="text-lg font-semibold text-slate-900">
-                执行状态:
-                <span class="text-[var(--brand-primary)]">{{ formatLogStatus(log.status) }}</span>
-              </div>
-              <div class="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-                <div>处理模式: 分块策略</div>
-                <div>分块策略: {{ log.chunkStrategy || '-' }}</div>
-                <div>分块数量: {{ log.chunkCount ?? 0 }}</div>
-                <div>{{ log.updatedAt }}</div>
-                <div>文本提取: {{ formatDuration(log.extractDuration) }}</div>
-                <div>分块耗时: {{ formatDuration(log.chunkDuration) }}</div>
-                <div>向量化: {{ formatDuration(log.embedDuration) }}</div>
-                <div>其他耗时: {{ formatDuration(log.otherDuration) }}</div>
-                <div>总耗时: {{ formatDuration(log.totalDuration) }}</div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <div v-else class="py-8 text-center text-slate-500">暂无分块日志</div>
-
-      <template #footer>
-        <div class="flex justify-end">
-          <el-button @click="logDialogOpen = false">关闭</el-button>
         </div>
       </template>
     </el-dialog>
@@ -615,6 +631,98 @@ onMounted(async () => {
   padding: 0 16px 18px;
 }
 
+.search-panel {
+  margin: 20px 0 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fbff;
+  padding: 18px;
+}
+
+.search-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.search-panel__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.search-panel__desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.search-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.search-panel__error {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.search-results {
+  margin-top: 16px;
+}
+
+.search-results__empty {
+  padding: 20px 0 4px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.search-results__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search-result-item {
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px 16px;
+}
+
+.search-result-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.search-result-item__content {
+  margin-top: 10px;
+  line-height: 1.8;
+  color: #334155;
+  white-space: pre-wrap;
+}
+
+.search-result-item__score {
+  margin-top: 10px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: #e2e8f0;
+}
+
+.search-result-item__score-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
+}
+
 .doc-footer {
   display: flex;
   align-items: center;
@@ -631,16 +739,16 @@ onMounted(async () => {
   background: #cbd5e1;
 }
 
-.status-dot--success {
+.status-dot--indexed {
   background: var(--brand-primary);
 }
 
-.status-dot--running {
+.status-dot--processing {
   background: #60a5fa;
 }
 
 .status-dot--failed {
-  background: #93c5fd;
+  background: #ef4444;
 }
 
 .status-dot--pending {
@@ -654,6 +762,11 @@ onMounted(async () => {
 
   .doc-toolbar {
     justify-content: flex-start;
+  }
+
+  .search-panel__toolbar {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>
