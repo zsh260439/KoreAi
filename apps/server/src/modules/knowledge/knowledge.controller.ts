@@ -8,11 +8,12 @@ import type {
 } from '../../types'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
+import { AskKnowledgeDto } from './dto/ask-knowledge.dto'
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto'
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto'
 import { UpdateKnowledgeDocumentDto } from './dto/update-knowledge-document.dto'
 import { KnowledgeService } from './knowledge.service'
-
+import type { KnowledgeAskResult } from 'share-type'
 @Controller('knowledge')
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) {}
@@ -22,7 +23,11 @@ export class KnowledgeController {
   searchKnowledge(@Body() dto: SearchKnowledgeDto): Promise<ApiResponse<KnowledgeSearchHit[]>> {
     return this.knowledgeService.searchKnowledge(dto)
   }
-
+  // 问答接口：根据 query 搜索指定知识库下的 chunks，返回最相关的 chunk 内容
+  @Post('ask')
+askKnowledge(@Body() dto: AskKnowledgeDto): Promise<ApiResponse<KnowledgeAskResult>> {
+  return this.knowledgeService.askKnowledge(dto)
+}
   // 查询所有知识库
   @Get('bases')
   findKnowledgeBases(): Promise<ApiResponse<KnowledgeBase[]>> {

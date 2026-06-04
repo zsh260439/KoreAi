@@ -81,3 +81,15 @@ export interface KnowledgeSearchHit {
   content: string
   score: number
 }
+
+export interface KnowledgeAskInput {
+  query: string
+  knowledgeBaseId: string
+  topK?: number
+}
+
+export interface KnowledgeAskResult {
+  answer: string
+  sources: KnowledgeSearchHit[]
+  model: string | null
+}

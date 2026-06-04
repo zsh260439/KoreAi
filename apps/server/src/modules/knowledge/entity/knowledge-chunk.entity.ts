@@ -32,6 +32,12 @@ export class KnowledgeChunkEntity {
   @Column({ type: 'int' })
   tokenCount!: number
 
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  metadata!: Record<string, unknown> | null
+
+  @Column('vector', { nullable: true, select: false })
+  embedding!: number[] | null
+
   @CreateDateColumn()
   createdAt!: Date
 

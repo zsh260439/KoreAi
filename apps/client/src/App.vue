@@ -14,8 +14,6 @@ const shellClassName = computed(() => {
   if (shell === 'workspace') {
     return 'workspace-shell'
   }
-
-  return 'marketing-shell'
 })
 </script>
 
