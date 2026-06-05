@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LoaderCircle, Sparkles } from 'lucide-vue-next'
+import { Bot, LoaderCircle } from 'lucide-vue-next'
 
 import type { ConversationSummary } from '@/types'
 
@@ -19,31 +19,34 @@ defineEmits<{
   <button
     type="button"
     :aria-label="session.title"
-    :class="
-      [
-        'flex h-[54px] w-full items-center gap-3 rounded-[12px] border border-transparent px-4 text-left transition-colors',
-        active ? 'border-transparent bg-[#eef3ff] text-[#3366ff]' : 'text-slate-700 hover:bg-[#f6f7fb]'
-      ]
-    "
+    :class="[
+      'w-full rounded-[16px] border px-4 py-3 text-left transition-colors',
+      active
+        ? 'border-[#e5e7eb] bg-[#f9fafb]'
+        : 'border-transparent bg-transparent hover:border-[#f3f4f6] hover:bg-[#fafafa]'
+    ]"
     @click="$emit('select', session.id)"
   >
-    <div
-      :class="
-        ['flex size-5 shrink-0 items-center justify-center text-[#64748b]', active && 'text-[#3366ff]']
-      "
-    >
-      <LoaderCircle v-if="streaming" class="size-[15px] animate-spin" />
-      <Sparkles v-else class="size-[15px]" />
-    </div>
+    <div class="flex items-center gap-3">
+      <div
+        class="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#6b7280]"
+      >
+        <LoaderCircle v-if="streaming" class="size-4 animate-spin" />
+        <Bot v-else class="size-4" />
+      </div>
 
-    <div class="min-w-0 flex-1">
-      <div class="flex items-center justify-between gap-3">
-        <p class="truncate text-[15px] font-medium" :class="active ? 'text-[#3366ff]' : 'text-[#1f2937]'">
-          {{ session.title }}
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-3">
+          <p class="truncate text-[14px] font-medium" :class="active ? 'text-[#111827]' : 'text-[#374151]'">
+            {{ session.title }}
+          </p>
+          <span class="shrink-0 text-[11px] tracking-[0.08em] text-[#9ca3af]">
+            {{ timeLabel }}
+          </span>
+        </div>
+        <p class="mt-1 truncate text-[12px] text-[#9ca3af]">
+          {{ session.model || '助手' }}
         </p>
-        <span class="shrink-0 text-[13px] text-[#64748b]">
-          {{ timeLabel }}
-        </span>
       </div>
     </div>
   </button>

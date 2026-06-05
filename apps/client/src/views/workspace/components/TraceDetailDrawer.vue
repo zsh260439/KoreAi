@@ -29,10 +29,10 @@ const formatDuration = (durationMs?: number) => {
   const value = durationMs || 0
 
   if (value < 1000) {
-    return value === 0 ? '0s' : `${value}ms`
+    return value === 0 ? '0 秒' : `${value} 毫秒`
   }
 
-  return `${(value / 1000).toFixed(2)}s`
+  return `${(value / 1000).toFixed(2)} 秒`
 }
 
 const resolveStatusText = (status?: string) => {
@@ -59,6 +59,14 @@ const resolveStatusText = (status?: string) => {
   return status || '未知状态'
 }
 
+const toolNameMap: Record<string, string> = {
+  knowledge_search: '知识库检索',
+  time_lookup: '时间解析',
+  weather_lookup: '天气查询',
+  web_search_mcp: '网络搜索',
+  deepsearch_reasoner: '深度思考'
+}
+
 const navigationItems = computed<DetailNavItem[]>(() => {
   const trace = props.trace
   if (!trace) {
@@ -69,9 +77,9 @@ const navigationItems = computed<DetailNavItem[]>(() => {
     {
       key: 'overview',
       kind: 'overview',
-      title: '流程开始',
-      durationLabel: '0s',
-      badge: '起'
+      title: '流程总览',
+      durationLabel: '0 秒',
+      badge: '总'
     }
   ]
 
@@ -135,7 +143,7 @@ const recordPreview = computed(() => [
     content: props.trace?.summary.question || '暂无用户输入记录'
   },
   {
-    label: 'AI',
+    label: '助手',
     content: props.trace?.finalAnswer || '暂无模型输出记录'
   }
 ])
@@ -148,6 +156,8 @@ const stepKindLabelMap: Record<TraceStep['kind'], string> = {
 }
 
 const getStepKindLabel = (kind: TraceStep['kind']) => stepKindLabelMap[kind] ?? kind
+
+const getToolName = (toolName?: string) => (toolName ? toolNameMap[toolName] ?? toolName : '工具')
 
 const activeStepTool = computed(() => {
   const item = activeItem.value
@@ -276,7 +286,7 @@ watch(
                 <div class="rounded-[14px] border border-[#edf1f6] bg-white p-4">
                   <p class="text-[12px] text-[#8a94a6]">模型</p>
                   <p class="mt-1 text-[14px] font-medium text-[#111827]">
-                    {{ trace.summary.model || 'AI' }}
+                    {{ trace.summary.model || '助手' }}
                   </p>
                 </div>
                 <div class="rounded-[14px] border border-[#edf1f6] bg-white p-4">
@@ -298,7 +308,7 @@ watch(
                   </p>
                 </div>
                 <div class="rounded-[14px] border border-[#edf1f6] bg-white p-4">
-                  <p class="text-[12px] text-[#8a94a6]">问题/检索词</p>
+                  <p class="text-[12px] text-[#8a94a6]">问题 / 检索词</p>
                   <p class="mt-1 break-all text-[14px] font-medium text-[#111827]">
                     {{ trace.retrievalQuery || trace.summary.question || '暂无' }}
                   </p>
@@ -318,7 +328,9 @@ watch(
                     <p class="text-[12px] font-semibold tracking-[0.08em] text-[#6b7280]">
                       {{ item.label }}
                     </p>
-                    <div class="mt-2 rounded-[14px] border border-[#edf1f6] bg-[#fafbfc] px-4 py-3 text-[14px] leading-7 text-[#374151]">
+                    <div
+                      class="mt-2 rounded-[14px] border border-[#edf1f6] bg-[#fafbfc] px-4 py-3 text-[14px] leading-7 text-[#374151]"
+                    >
                       {{ item.content }}
                     </div>
                   </div>
@@ -373,6 +385,10 @@ watch(
                 <p class="text-[14px] font-medium text-[#111827]">关联工具</p>
                 <div class="mt-4 space-y-3">
                   <div class="rounded-[14px] border border-[#edf1f6] bg-[#fafbfc] p-4">
+                    <p class="text-[12px] text-[#8a94a6]">工具名称</p>
+                    <p class="mt-1 text-[14px] text-[#374151]">{{ getToolName(activeStepTool.name) }}</p>
+                  </div>
+                  <div class="rounded-[14px] border border-[#edf1f6] bg-[#fafbfc] p-4">
                     <p class="text-[12px] text-[#8a94a6]">工具输入</p>
                     <p class="mt-1 whitespace-pre-wrap break-all text-[14px] text-[#374151]">
                       {{ activeStepTool.inputPreview }}
@@ -398,7 +414,7 @@ watch(
               >
                 <div class="flex items-center justify-between gap-4">
                   <div>
-                    <p class="text-[14px] font-medium text-[#111827]">{{ tool.name }}</p>
+                    <p class="text-[14px] font-medium text-[#111827]">{{ getToolName(tool.name) }}</p>
                     <p class="mt-1 text-[12px] text-[#8a94a6]">{{ tool.summary }}</p>
                   </div>
                   <span class="text-[12px] text-[#7b8798]">{{ formatDuration(tool.durationMs) }}</span>
@@ -431,7 +447,7 @@ watch(
               >
                 <p class="text-[14px] font-medium text-[#111827]">{{ citation.title }}</p>
                 <p class="mt-1 text-[12px] text-[#8a94a6]">
-                  {{ citation.documentName }} / chunk {{ citation.chunkIndex }}
+                  {{ citation.documentName }} / Chunk {{ citation.chunkIndex }}
                 </p>
                 <p class="mt-3 whitespace-pre-wrap text-[14px] leading-7 text-[#374151]">
                   {{ citation.content }}

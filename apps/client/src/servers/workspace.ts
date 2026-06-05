@@ -43,8 +43,8 @@ const buildSyntheticToolCalls = (
       status: 'success',
       durationMs: 920,
       inputPreview: `prompt=${preview}`,
-      outputPreview: '已将问题扩展为多个子问题，并收敛出更稳的最终结论。',
-      summary: '在回答生成前执行深度思考。',
+      outputPreview: '已完成问题拆解、关键取舍判断和回答方案收敛。',
+      summary: '在生成回答前执行更长链路的推理。',
       steps: ['拆解问题目标', '评估关键取舍', '形成回答方案'],
       model: 'deepsearch',
       tokens: 268,
@@ -59,9 +59,9 @@ const buildSyntheticToolCalls = (
       status: 'success',
       durationMs: 640,
       inputPreview: `query=${preview}`,
-      outputPreview: '已收集当前外部结果，并提取出可用于回答的关键证据。',
-      summary: '通过 MCP 网络搜索获取实时上下文。',
-      steps: ['改写搜索词', '拉取 MCP 搜索结果', '筛选高价值证据'],
+      outputPreview: '已整理外部搜索结果，并提取出可用于回答的关键信息。',
+      summary: '通过网络搜索补充外部上下文。',
+      steps: ['改写搜索词', '拉取搜索结果', '筛选高价值信息'],
       tokens: 124,
       phase: 'mcp_web_search'
     })
@@ -76,7 +76,7 @@ const buildAssistantReply = (input: string, promptCapabilities: PromptCapabiliti
   if (lowerInput.includes('天气') || lowerInput.includes('下雨') || lowerInput.includes('weather')) {
     return {
       content:
-        '根据当前模拟天气链路，明天下午有中等概率降雨。建议保留线上会议链接，并在会前通知里说明遇雨切换为线上方案。',
+        '根据当前模拟天气链路，明天下午有中等概率降雨。建议保留线上会议链接，并在会前通知里说明遇雨时切换为线上方案。',
       traceId: 'trace-weather-002'
     }
   }
@@ -92,7 +92,7 @@ const buildAssistantReply = (input: string, promptCapabilities: PromptCapabiliti
   if (promptCapabilities.think && promptCapabilities.search) {
     return {
       content:
-        '我会先通过深度思考拉长推理链路，再结合网络搜索补充外部上下文，最后收敛成可执行结论。这条回复主要用于展示前端中的思考过程和外部搜索过程可视化。',
+        '我会先进行较长链路的推理，再结合网络搜索补充外部信息，最后整理成一版便于阅读的答案。这条回复主要用于演示前端里的思考过程、工具执行和正文输出顺序。',
       traceId: undefined
     }
   }
@@ -100,7 +100,7 @@ const buildAssistantReply = (input: string, promptCapabilities: PromptCapabiliti
   if (promptCapabilities.think) {
     return {
       content:
-        '我已经按深度思考方式把问题拆成更细的子问题，再收敛成一版更稳的回答。当前这条回复主要用于展示前端里的深度思考过程可视化。',
+        '我已经按深度思考方式把问题拆成更细的子问题，再收敛成一版更完整的回答。这条回复主要用于演示前端里的思考过程展示。',
       traceId: undefined
     }
   }
@@ -108,14 +108,14 @@ const buildAssistantReply = (input: string, promptCapabilities: PromptCapabiliti
   if (promptCapabilities.search) {
     return {
       content:
-        '我已经按网络搜索方式补充了外部上下文，再整理成简洁答案。当前这条回复主要用于展示前端里的搜索过程可视化。',
+        '我已经按网络搜索方式补充了外部上下文，再整理成简洁答案。这条回复主要用于演示前端里的搜索过程展示。',
       traceId: undefined
     }
   }
 
   return {
     content:
-      '我已经根据当前上下文整理了一版直接答复。如果你需要，也可以继续切到深度思考或网络搜索模式来补充更深的推理或外部信息。',
+      '我已经根据当前上下文整理出一版直接答复。如果你需要，也可以切换到深度思考或网络搜索模式，看更完整的过程展示。',
     traceId: undefined
   }
 }

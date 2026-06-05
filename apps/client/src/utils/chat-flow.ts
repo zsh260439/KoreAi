@@ -23,76 +23,81 @@ const toolMetaMap: Record<
   },
   time_lookup: {
     title: '时间解析',
-    subtitle: '解析相对时间和目标时区',
+    subtitle: '解析相对时间并确定目标时段',
     iconKey: 'time'
   },
   weather_lookup: {
     title: '天气查询',
-    subtitle: '获取目标时间范围内的天气信息',
+    subtitle: '获取目标时段的天气信息',
     iconKey: 'weather'
   },
   web_search_mcp: {
     title: '网络搜索',
-    subtitle: '通过 MCP 搜索获取当前网络结果',
+    subtitle: '通过搜索补充外部信息',
     iconKey: 'search'
   },
   deepsearch_reasoner: {
     title: '深度思考',
-    subtitle: '在生成答案前进行更深层推理',
+    subtitle: '在回答前延长推理链路',
     iconKey: 'thinking'
   }
 }
 
-const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
-  const stages: AssistantThinkingStage[] = []
+const buildThinkingContent = (message: ChatMessage) => {
   const capabilities = message.promptCapabilities ?? { think: false, search: false }
 
-  stages.push({
-    kind: 'thinking',
-    id: `${message.id}-thinking-llm`,
-    stageKey: 'llm_reasoning',
-    title: '模型推理',
-    subtitle: '拆解任务并规划回答路径',
-    status: 'done',
-    content: capabilities.think
-      ? '系统会先拆解目标、约束和证据需求，再组织更长的推理链路来形成回答。'
-      : '系统会先结合当前上下文理解问题，再组织直接回答。',
-    visibleContent: capabilities.think
-      ? '系统会先拆解目标、约束和证据需求，再组织更长的推理链路来形成回答。'
-      : '系统会先结合当前上下文理解问题，再组织直接回答。'
-  })
+  if (capabilities.think && capabilities.search) {
+    return {
+      stageKey: 'deepsearch' as const,
+      title: '深度思考',
+      subtitle: '先拆解问题，再决定后续工具调用',
+      content:
+        '系统会先拆解问题目标与约束，延长推理链路，再结合网络搜索补充外部信息，最后整理成一版更完整的回答。'
+    }
+  }
 
   if (capabilities.think) {
-    stages.push({
-      kind: 'thinking',
-      id: `${message.id}-thinking-deepsearch`,
-      stageKey: 'deepsearch',
+    return {
+      stageKey: 'deepsearch' as const,
       title: '深度思考',
-      subtitle: '调用深度思考能力',
-      status: 'done',
+      subtitle: '先拆解问题，再组织回答',
       content:
-        '深度思考会把问题扩展成多个子问题，评估取舍，再收敛出更稳的结论后生成回复。',
-      visibleContent:
-        '深度思考会把问题扩展成多个子问题，评估取舍，再收敛出更稳的结论后生成回复。'
-    })
+        '系统会先把问题拆成更小的子问题，收敛出关键判断，再组织成更完整的回答。'
+    }
   }
 
   if (capabilities.search) {
-    stages.push({
-      kind: 'thinking',
-      id: `${message.id}-thinking-search`,
-      stageKey: 'web_search',
-      title: '网络搜索规划',
-      subtitle: '准备 MCP 搜索请求并收集外部信息',
-      status: 'done',
-      content:
-        '系统会先准备搜索查询，再收集外部结果，并依据返回证据来约束最终回答。',
-      visibleContent:
-        '系统会先准备搜索查询，再收集外部结果，并依据返回证据来约束最终回答。'
-    })
+    return {
+      stageKey: 'web_search' as const,
+      title: '搜索前分析',
+      subtitle: '先理解问题，再规划搜索方向',
+      content: '系统会先理解你的问题，再规划搜索方向，最后结合结果整理成简洁答案。'
+    }
   }
 
-  return stages
+  return {
+    stageKey: 'llm_reasoning' as const,
+    title: '思考过程',
+    subtitle: '结合上下文整理回答',
+    content: '系统会先理解当前上下文，再直接组织回答内容。'
+  }
+}
+
+const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
+  const thinking = buildThinkingContent(message)
+
+  return [
+    {
+      kind: 'thinking',
+      id: `${message.id}-thinking`,
+      stageKey: thinking.stageKey,
+      title: thinking.title,
+      subtitle: thinking.subtitle,
+      status: 'done',
+      content: thinking.content,
+      visibleContent: thinking.content
+    }
+  ]
 }
 
 const buildToolSteps = (toolCall: ToolCall): AssistantToolStep[] =>
@@ -149,10 +154,9 @@ export const buildStreamingResponseFlow = (message: ChatMessage): AssistantRespo
   const completed = buildCompletedResponseFlow(message)
 
   return {
-    thinking: completed.thinking.map((stage, index) => ({
+    thinking: completed.thinking.map((stage) => ({
       ...stage,
-      title: index === 0 ? '思考中...' : stage.title,
-      status: index === 0 ? 'running' : 'pending',
+      status: 'running',
       visibleContent: ''
     })),
     tools: completed.tools.map((tool) => ({
@@ -194,8 +198,7 @@ export const createThinkingPlaceholderFlow = (
     thinking: stages.map((stage, index) => ({
       ...stage,
       id: `thinking-placeholder-${index + 1}`,
-      title: index === 0 ? '思考中...' : stage.title,
-      status: index === 0 ? 'running' : 'pending',
+      status: 'running',
       visibleContent: ''
     })),
     tools: [],

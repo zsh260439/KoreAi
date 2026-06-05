@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <filter id="kore-shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient id="kore-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#9D00FF" />
+    </linearGradient>
+  </defs>
+  <style>
+    .kore-outer-ring {
+      transform-origin: 50px 50px;
+      animation: k-spin 10s linear infinite;
+    }
+
+    .kore-orbital-blades {
+      transform-origin: 50px 50px;
+      animation: k-reverse 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .kore-inner-core {
+      transform-origin: 50px 50px;
+      animation: k-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes k-spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes k-reverse {
+      0% {
+        transform: rotate(360deg);
+      }
+
+      100% {
+        transform: rotate(0deg);
+      }
+    }
+
+    @keyframes k-pulse {
+      0%,
+      100% {
+        transform: scale(0.92);
+        opacity: 0.85;
+      }
+
+      50% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
+    }
+  </style>
+  <g filter="url(#kore-shadow)">
+    <g class="kore-outer-ring">
+      <circle
+        cx="50"
+        cy="50"
+        r="38"
+        stroke="url(#kore-grad)"
+        stroke-width="1.1"
+        fill="none"
+        stroke-dasharray="1 10"
+        opacity="0.36"
+      />
+      <circle
+        cx="50"
+        cy="50"
+        r="34"
+        stroke="#00F0FF"
+        stroke-width="0.95"
+        fill="none"
+        stroke-dasharray="15 110"
+        stroke-linecap="round"
+      />
+      <circle cx="50" cy="12" r="1.5" fill="#FFFFFF" />
+      <circle cx="50" cy="88" r="1.5" fill="#FFFFFF" />
+      <circle cx="12" cy="50" r="1.5" fill="#FFFFFF" />
+      <circle cx="88" cy="50" r="1.5" fill="#FFFFFF" />
+    </g>
+
+    <g class="kore-orbital-blades">
+      <path d="M 50,22 L 53,35 L 50,38 L 47,35 Z" fill="#00F0FF" />
+      <path d="M 50,78 L 47,65 L 50,62 L 53,65 Z" fill="#00F0FF" />
+      <path d="M 72,38 L 61,44 L 58,41 L 65,35 Z" fill="#9D00FF" />
+      <path d="M 28,62 L 39,56 L 42,59 L 35,65 Z" fill="#9D00FF" />
+      <path d="M 72,62 L 61,56 L 58,59 L 65,65 Z" fill="#00F0FF" />
+      <path d="M 28,38 L 39,44 L 42,41 L 35,35 Z" fill="#00F0FF" />
+    </g>
+
+    <g class="kore-inner-core">
+      <path
+        d="M 50,32 L 52.5,45 L 65,47.5 L 52.5,50 L 50,68 L 47.5,50 L 35,47.5 L 47.5,45 Z"
+        fill="url(#kore-grad)"
+      />
+      <path d="M 50,40 L 58,56 L 50,48 L 42,56 Z" fill="#FFFFFF" opacity="0.92" />
+      <path d="M 50,60 L 58,44 L 50,52 L 42,44 Z" fill="#FFFFFF" opacity="0.92" />
+      <circle cx="50" cy="47.5" r="2.5" fill="#FFFFFF" />
+    </g>
+  </g>
+</svg>

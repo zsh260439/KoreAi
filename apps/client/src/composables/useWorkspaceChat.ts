@@ -87,12 +87,11 @@ const findUserMessageIndexBeforeAssistant = (messages: ChatMessage[], assistantM
 
 const resolveThinkingStageTitle = (stageKey: string) => {
   switch (stageKey) {
-    case 'llm_reasoning':
-      return '模型推理'
     case 'deepsearch':
       return '深度思考'
     case 'web_search':
-      return '网络搜索规划'
+      return '搜索前分析'
+    case 'llm_reasoning':
     default:
       return '思考过程'
   }
@@ -286,8 +285,7 @@ export const useWorkspaceChat = (
       }))
 
       target.responseFlow.answer.status = 'done'
-      target.responseFlow.answer.visibleContent =
-        target.content || '回答已停止，最终内容未完全生成。'
+      target.responseFlow.answer.visibleContent = target.content || '回答已停止，最终内容未完全生成。'
       target.responseFlow.showActions = true
       target.content = target.responseFlow.answer.visibleContent
     }

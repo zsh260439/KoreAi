@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Brain, Globe, Paperclip, Send, Square, X } from 'lucide-vue-next'
+import { Brain, Paperclip, Search, Send, Square, X } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import type { PromptCapabilities } from '@/types'
@@ -165,7 +165,11 @@ onMounted(() => {
   <div class="w-full">
     <div
       class="rounded-[32px] border border-[#edf1f5] bg-white px-5 py-4 shadow-[0_20px_48px_rgba(15,23,42,0.08)] transition-all duration-300"
-      :class="streaming ? 'shadow-[0_16px_40px_rgba(15,23,42,0.12)]' : 'hover:shadow-[0_24px_58px_rgba(15,23,42,0.1)]'"
+      :class="
+        streaming
+          ? 'shadow-[0_16px_40px_rgba(15,23,42,0.12)]'
+          : 'hover:shadow-[0_24px_58px_rgba(15,23,42,0.1)]'
+      "
     >
       <div v-if="attachedFiles.length" class="mt-3 flex flex-wrap gap-2">
         <div
@@ -178,7 +182,7 @@ onMounted(() => {
           <button
             type="button"
             class="flex size-5 items-center justify-center rounded-full text-[#94a3b8] transition hover:bg-white hover:text-[#111827]"
-            aria-label="Remove attachment"
+            aria-label="移除附件"
             @click="removeFile(index)"
           >
             <X class="size-3.5" />
@@ -190,7 +194,7 @@ onMounted(() => {
         <button
           type="button"
           class="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-[#111827] transition hover:bg-[#f5f7fa]"
-          aria-label="Attach files"
+          aria-label="添加附件"
           :disabled="disabled || streaming"
           @click="triggerFileSelect"
         >
@@ -211,12 +215,12 @@ onMounted(() => {
 
         <button
           type="button"
-          class="mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white shadow-[0_12px_24px_rgba(17,17,17,0.18)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(17,17,17,0.22)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
-          :aria-label="streaming ? 'Stop response' : 'Send message'"
+          class="mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111111] shadow-[0_12px_24px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(15,23,42,0.12)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
+          :aria-label="streaming ? '停止生成' : '发送消息'"
           :disabled="!streaming && !hasContent"
           @click="submit"
         >
-          <Square v-if="streaming" class="size-[18px]" />
+          <Square v-if="streaming" class="size-[16px]" />
           <Send v-else class="size-[18px] translate-x-[1px]" />
         </button>
       </div>
@@ -251,7 +255,7 @@ onMounted(() => {
           :disabled="disabled || streaming"
           @click="toggleSearchMode"
         >
-          <Globe
+          <Search
             class="size-[18px] shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
             :style="{ transform: `rotate(${searchSpinTurns * 180}deg)` }"
           />
@@ -259,7 +263,7 @@ onMounted(() => {
             class="overflow-hidden whitespace-nowrap text-[15px] font-medium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             :class="searchEnabled ? 'ml-2 max-w-[72px] opacity-100' : 'ml-0 max-w-0 opacity-0'"
           >
-            搜索
+            网络搜索
           </span>
         </button>
       </div>
