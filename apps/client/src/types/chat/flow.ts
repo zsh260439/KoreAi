@@ -6,6 +6,15 @@ export type AssistantToolIconKey = 'knowledge' | 'time' | 'weather' | 'search' |
 
 export type AssistantThinkingStageKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
 
+export interface AssistantSearchResultItem {
+  id: string
+  title: string
+  source: string
+  snippet: string
+  publishedAt?: string
+  url?: string
+}
+
 export interface AssistantThinkingStage {
   kind: 'thinking'
   id: string
@@ -43,6 +52,10 @@ export interface AssistantToolStage {
   showInput: boolean
   showSteps: boolean
   showOutput: boolean
+  presentation?: 'default' | 'compact-search'
+  searchQuery?: string
+  resultCount?: number
+  searchResults?: AssistantSearchResultItem[]
   startedAt?: string
   endedAt?: string
 }

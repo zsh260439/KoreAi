@@ -146,6 +146,29 @@ onMounted(async () => {
         </div>
       </section>
 
+      <section class="trace-list-guide">
+        <article class="trace-list-guide-card">
+          <p class="trace-list-guide-title">当前页看什么</p>
+          <p class="trace-list-guide-text">
+            一行代表一次完整链路运行，不是单个节点。这里先用于定位某次请求是否成功、耗时是否异常，再进入详情页看具体阶段。
+          </p>
+        </article>
+
+        <article class="trace-list-guide-card">
+          <p class="trace-list-guide-title">上方指标怎么来的</p>
+          <p class="trace-list-guide-text">
+            成功率、平均耗时、P95 耗时都会跟随当前筛选结果实时变化，所以先搜 Trace Id 再看指标，更接近你真正关心的那一批请求。
+          </p>
+        </article>
+
+        <article class="trace-list-guide-card">
+          <p class="trace-list-guide-title">什么时候点查看链路</p>
+          <p class="trace-list-guide-text">
+            当你想继续判断问题出在检索、重排、模型还是工具调用阶段时，直接进入详情页看节点时序和状态。
+          </p>
+        </article>
+      </section>
+
       <section class="trace-list-stat-grid">
         <article class="trace-list-stat-card">
           <div :class="['trace-list-stat-icon', getTraceStatToneClass()]">
@@ -420,6 +443,33 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+}
+
+.admin-layout .trace-list-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-layout .trace-list-guide-card {
+  min-height: 110px;
+  padding: 18px;
+  border: 1px solid #dbe3ee;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.admin-layout .trace-list-guide-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-layout .trace-list-guide-text {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #5f7592;
 }
 
 .admin-layout .trace-list-stat-card {
@@ -718,6 +768,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 1024px) {
+  .admin-layout .trace-list-guide,
   .admin-layout .trace-list-stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -728,6 +779,7 @@ onMounted(async () => {
     font-size: 28px;
   }
 
+  .admin-layout .trace-list-guide,
   .admin-layout .trace-list-stat-grid {
     grid-template-columns: minmax(0, 1fr);
   }

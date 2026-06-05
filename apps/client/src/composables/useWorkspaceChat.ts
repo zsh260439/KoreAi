@@ -97,6 +97,8 @@ const resolveThinkingStageTitle = (stageKey: string) => {
   }
 }
 
+const isWeatherSession = (sessionId: string) => sessionId === 'session-weather'
+
 type WorkspaceChatContext = {
   sessions: ConversationSummary[]
   messagesBySession: Record<string, ChatMessage[]>
@@ -301,12 +303,13 @@ export const useWorkspaceChat = (
     }
 
     const flow = target.responseFlow
+    const weatherMode = isWeatherSession(sessionId)
 
     for (let index = 0; index < flow.thinking.length; index += 1) {
       const stage = flow.thinking[index]
       stage.status = 'running'
 
-      await sleep(index === 0 ? 360 : 140)
+      await sleep(weatherMode ? (index === 0 ? 820 : 260) : index === 0 ? 360 : 140)
 
       if (!isRunActive(runId, sessionId, messageId)) {
         return
@@ -320,7 +323,7 @@ export const useWorkspaceChat = (
         },
         () => !isRunActive(runId, sessionId, messageId),
         1,
-        stage.stageKey === 'deepsearch' ? 16 : 20
+        weatherMode ? 26 : stage.stageKey === 'deepsearch' ? 16 : 20
       )
 
       if (!completed || !isRunActive(runId, sessionId, messageId)) {
@@ -328,6 +331,7 @@ export const useWorkspaceChat = (
       }
 
       stage.status = 'done'
+      await sleep(weatherMode ? 240 : 0)
     }
 
     for (const tool of flow.tools) {
@@ -336,7 +340,33 @@ export const useWorkspaceChat = (
       }
 
       tool.status = 'running'
-      await sleep(160)
+      await sleep(weatherMode ? 280 : 160)
+
+      if (tool.presentation === 'compact-search') {
+        tool.showInput = true
+        tool.showOutput = true
+        tool.visibleInput = tool.input
+        tool.visibleOutput = tool.output
+
+        for (let index = 0; index < tool.steps.length; index += 1) {
+          if (!isRunActive(runId, sessionId, messageId)) {
+            return
+          }
+
+          const step = tool.steps[index]
+          step.status = 'running'
+          await sleep(weatherMode ? 520 : index === tool.steps.length - 1 ? 420 : 220)
+          step.status = 'success'
+        }
+
+        if (!isRunActive(runId, sessionId, messageId)) {
+          return
+        }
+
+        tool.status = 'done'
+        await sleep(weatherMode ? 260 : 120)
+        continue
+      }
 
       tool.showInput = true
       const inputCompleted = await typeText(
@@ -346,7 +376,7 @@ export const useWorkspaceChat = (
         },
         () => !isRunActive(runId, sessionId, messageId),
         1,
-        18
+        weatherMode ? 24 : 18
       )
 
       if (!inputCompleted || !isRunActive(runId, sessionId, messageId)) {
@@ -362,7 +392,7 @@ export const useWorkspaceChat = (
 
         const step = tool.steps[index]
         step.status = 'running'
-        await sleep(index === tool.steps.length - 1 ? 520 : 240)
+        await sleep(weatherMode ? 620 : index === tool.steps.length - 1 ? 520 : 240)
         step.status = 'success'
       }
 
@@ -378,7 +408,7 @@ export const useWorkspaceChat = (
         },
         () => !isRunActive(runId, sessionId, messageId),
         1,
-        18
+        weatherMode ? 24 : 18
       )
 
       if (!outputCompleted || !isRunActive(runId, sessionId, messageId)) {
@@ -386,11 +416,15 @@ export const useWorkspaceChat = (
       }
 
       tool.status = 'done'
-      await sleep(120)
+      await sleep(weatherMode ? 260 : 120)
     }
 
     if (!isRunActive(runId, sessionId, messageId)) {
       return
+    }
+
+    if (weatherMode) {
+      await sleep(220)
     }
 
     flow.answer.status = 'running'
@@ -402,7 +436,7 @@ export const useWorkspaceChat = (
       },
       () => !isRunActive(runId, sessionId, messageId),
       1,
-      16
+      weatherMode ? 22 : 16
     )
 
     if (!answerCompleted || !isRunActive(runId, sessionId, messageId)) {

@@ -23,7 +23,7 @@ const toolMetaMap: Record<
   },
   time_lookup: {
     title: '时间解析',
-    subtitle: '解析相对时间并确定目标时段',
+    subtitle: '解析相对时间并确认目标时段',
     iconKey: 'time'
   },
   weather_lookup: {
@@ -32,7 +32,7 @@ const toolMetaMap: Record<
     iconKey: 'weather'
   },
   web_search_mcp: {
-    title: '网络搜索',
+    title: '联网搜索',
     subtitle: '通过搜索补充外部信息',
     iconKey: 'search'
   },
@@ -43,8 +43,24 @@ const toolMetaMap: Record<
   }
 }
 
+const isWeatherMeetingFlow = (message: ChatMessage) =>
+  message.traceId === 'trace-weather-002' ||
+  Boolean(message.toolCalls?.some((tool) => tool.name === 'weather_lookup'))
+
+const shouldRenderThinking = (message: ChatMessage) => Boolean(message.promptCapabilities?.think)
+
 const buildThinkingContent = (message: ChatMessage) => {
   const capabilities = message.promptCapabilities ?? { think: false, search: false }
+
+  if (isWeatherMeetingFlow(message)) {
+    return {
+      stageKey: 'llm_reasoning' as const,
+      title: '思考过程',
+      subtitle: '先确认时间窗口，再评估降雨风险并转成会务建议',
+      content:
+        '系统会先解析“明天下午”对应的具体时间窗口，并确认使用 Asia/Shanghai 时区；再查询上海未来 24 小时的小时级天气，重点关注 14:00 到 17:00 的降水概率、降雨类型和变化趋势；最后把天气风险转成会务建议，判断是否需要提前保留线上会议链接，并在通知中说明遇雨时切换为线上方案。'
+    }
+  }
 
   if (capabilities.think && capabilities.search) {
     return {
@@ -52,7 +68,7 @@ const buildThinkingContent = (message: ChatMessage) => {
       title: '深度思考',
       subtitle: '先拆解问题，再决定后续工具调用',
       content:
-        '系统会先拆解问题目标与约束，延长推理链路，再结合网络搜索补充外部信息，最后整理成一版更完整的回答。'
+        '系统会先拆解问题目标与约束，延长推理链路，再结合联网搜索补充外部信息，最后整理成一版更完整的回答。'
     }
   }
 
@@ -61,17 +77,7 @@ const buildThinkingContent = (message: ChatMessage) => {
       stageKey: 'deepsearch' as const,
       title: '深度思考',
       subtitle: '先拆解问题，再组织回答',
-      content:
-        '系统会先把问题拆成更小的子问题，收敛出关键判断，再组织成更完整的回答。'
-    }
-  }
-
-  if (capabilities.search) {
-    return {
-      stageKey: 'web_search' as const,
-      title: '搜索前分析',
-      subtitle: '先理解问题，再规划搜索方向',
-      content: '系统会先理解你的问题，再规划搜索方向，最后结合结果整理成简洁答案。'
+      content: '系统会先把问题拆成更小的子问题，收敛出关键判断，再组织成更完整的回答。'
     }
   }
 
@@ -84,6 +90,10 @@ const buildThinkingContent = (message: ChatMessage) => {
 }
 
 const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
+  if (!shouldRenderThinking(message)) {
+    return []
+  }
+
   const thinking = buildThinkingContent(message)
 
   return [
@@ -132,7 +142,14 @@ const buildToolStage = (toolCall: ToolCall): AssistantToolStage => {
     steps: buildToolSteps(toolCall),
     showInput: true,
     showSteps: true,
-    showOutput: true
+    showOutput: true,
+    presentation:
+      toolCall.presentation === 'compact-search' || toolCall.name === 'web_search_mcp'
+        ? 'compact-search'
+        : 'default',
+    searchQuery: toolCall.searchQuery,
+    resultCount: toolCall.resultCount ?? toolCall.searchResults?.length ?? 0,
+    searchResults: toolCall.searchResults ?? []
   }
 }
 

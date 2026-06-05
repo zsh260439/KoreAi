@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { Bot, Menu, PanelRightOpen, Plus, Settings2, UserRound } from 'lucide-vue-next'
+import { Menu, Plus, Settings2, UserRound } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAutoScroll } from '@/composables/useAutoScroll'
 import { useAuthStore, useWorkspaceStore } from '@/stores'
-import type { PromptCapabilities } from '@/types'
+import type { AssistantToolStage, PromptCapabilities } from '@/types'
 import ChatMessageBubble from './components/ChatMessageBubble.vue'
 import ConversationList from './components/ConversationList.vue'
-import TraceDetailDrawer from './components/TraceDetailDrawer.vue'
 import WorkspacePromptBox from './components/WorkspacePromptBox.vue'
+import WorkspaceSearchResultDrawer from './components/WorkspaceSearchResultDrawer.vue'
+import WorkspaceSidebarBrand from './components/WorkspaceSidebarBrand.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +18,8 @@ const workspaceStore = useWorkspaceStore()
 const authStore = useAuthStore()
 
 const composerValue = ref('')
+const searchResultDrawerOpen = ref(false)
+const activeSearchTool = ref<AssistantToolStage | null>(null)
 const chatAutoScroll = useAutoScroll(32)
 
 const activeSession = computed(() => workspaceStore.activeSession)
@@ -27,11 +30,7 @@ const sortedSessions = computed(() =>
   )
 )
 const hasMessages = computed(() => activeMessages.value.length > 0)
-const isDesktopDetail = computed(() => window.innerWidth >= 1280)
 const currentUser = computed(() => authStore.user ?? { name: '访客' })
-const lastAssistantTraceId = computed(
-  () => [...activeMessages.value].reverse().find((item) => item.role === 'assistant')?.traceId
-)
 
 const formatSessionTime = (value: string) => {
   const date = new Date(value)
@@ -99,8 +98,6 @@ const handleCreateConversation = async () => {
   const session = await workspaceStore.createNewSession()
   composerValue.value = ''
   await router.push(`/workspace/${session.id}`)
-  workspaceStore.selectedTrace = null
-  workspaceStore.detailOpen = false
   await chatAutoScroll.scrollToBottom(true)
   if (workspaceStore.sidebarOpen) {
     workspaceStore.toggleSidebar()
@@ -132,8 +129,9 @@ const handleComposerSubmit = (payload: {
   void handleSend(nextMessage, payload.capabilities)
 }
 
-const openDetail = async (traceId?: string) => {
-  await workspaceStore.openTrace(traceId, true)
+const handleOpenSearchResults = (tool: AssistantToolStage) => {
+  activeSearchTool.value = tool
+  searchResultDrawerOpen.value = true
 }
 
 const openAdmin = () => {
@@ -162,15 +160,7 @@ onMounted(async () => {
     <div class="grid h-screen grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)]">
       <aside class="hidden h-screen w-full shrink-0 flex-col border-r border-r-[#f3f4f6] bg-white xl:flex">
         <div class="px-6 pt-8">
-          <div class="flex items-center gap-3">
-            <div class="flex size-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#6b7280]">
-              <Bot class="size-4" />
-            </div>
-            <div>
-              <p class="text-[15px] font-medium text-[#111827]">工作台</p>
-              <p class="text-[12px] text-[#9ca3af]">对话演示</p>
-            </div>
-          </div>
+          <WorkspaceSidebarBrand />
         </div>
 
         <div class="px-6 pt-6">
@@ -233,16 +223,6 @@ onMounted(async () => {
                 {{ hasMessages ? `共 ${activeMessages.length} 条消息` : '对话演示界面' }}
               </p>
             </div>
-
-            <button
-              v-if="lastAssistantTraceId"
-              type="button"
-              aria-label="打开响应详情"
-              class="flex size-9 items-center justify-center rounded-[10px] border border-[#e5e7eb] bg-white text-[#6b7280] transition hover:border-[#d1d5db] hover:bg-[#fafafa] xl:hidden"
-              @click="openDetail(lastAssistantTraceId || undefined)"
-            >
-              <PanelRightOpen class="size-4" />
-            </button>
           </div>
         </header>
 
@@ -287,7 +267,7 @@ onMounted(async () => {
                   :message="message"
                   :show-meta="message.role === 'assistant'"
                   :regenerating="workspaceStore.regenerating"
-                  @detail="openDetail"
+                  @open-search-results="handleOpenSearchResults"
                   @regenerate="workspaceStore.regenerateLastAnswer"
                 />
               </div>
@@ -333,15 +313,7 @@ console.log(greet('世界'))</code></pre>
     >
       <aside class="flex h-full w-full shrink-0 flex-col bg-white">
         <div class="px-6 pt-8">
-          <div class="flex items-center gap-3">
-            <div class="flex size-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#6b7280]">
-              <Bot class="size-4" />
-            </div>
-            <div>
-              <p class="text-[15px] font-medium text-[#111827]">工作台</p>
-              <p class="text-[12px] text-[#9ca3af]">对话演示</p>
-            </div>
-          </div>
+          <WorkspaceSidebarBrand />
         </div>
 
         <div class="px-6 pt-6">
@@ -368,11 +340,10 @@ console.log(greet('世界'))</code></pre>
       </aside>
     </el-drawer>
 
-    <TraceDetailDrawer
-      :open="workspaceStore.detailOpen"
-      :trace="workspaceStore.selectedTrace"
-      :desktop="isDesktopDetail"
-      @update:open="workspaceStore.detailOpen = $event"
+    <WorkspaceSearchResultDrawer
+      :open="searchResultDrawerOpen"
+      :results="activeSearchTool?.searchResults ?? []"
+      @update:open="searchResultDrawerOpen = $event"
     />
   </main>
 </template>

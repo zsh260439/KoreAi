@@ -1,10 +1,32 @@
 <script setup lang="ts">
-import { ArrowLeft, Calendar, Clock3, Copy, Hash, RefreshCw, User, Zap } from 'lucide-vue-next'
+import {
+  Activity,
+  ArrowLeft,
+  Calendar,
+  Clock3,
+  Copy,
+  FileSearch,
+  Hash,
+  RefreshCw,
+  Route,
+  Settings2,
+  User,
+  Wrench,
+  Zap
+} from 'lucide-vue-next'
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { clamp, formatDateTime, formatDuration, normalizeTraceStatus, statusLabel, toTimestamp } from '@/views/admin/trace/traceUtils'
 import { useAdminStore } from '@/stores'
+import type { TraceNode } from '@/types'
+import {
+  clamp,
+  formatDateTime,
+  formatDuration,
+  normalizeTraceStatus,
+  statusLabel,
+  toTimestamp
+} from '@/views/admin/trace/traceUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,14 +55,22 @@ const waterfall = computed(() => {
   const startTimes = nodes
     .map((node) => toTimestamp(node.startTime))
     .filter((value): value is number => value !== null)
-    .sort((a, b) => a - b)
+    .sort((left, right) => left - right)
   const baseStart = startTimes[0]
 
   if (!nodes.length || baseStart === undefined) {
     return {
       totalWindowMs: 0,
       ticks: [] as Array<{ label: string; position: number }>,
-      rows: [] as Array<Record<string, unknown>>
+      rows: [] as Array<
+        TraceNode & {
+          depth: number
+          durationMs: number
+          offsetMs: number
+          leftPercent: number
+          widthPercent: number
+        }
+      >
     }
   }
 
@@ -68,7 +98,7 @@ const waterfall = computed(() => {
     totalWindowMs,
     ticks,
     rows: [...nodes]
-      .sort((a, b) => (toTimestamp(a.startTime) ?? 0) - (toTimestamp(b.startTime) ?? 0))
+      .sort((left, right) => (toTimestamp(left.startTime) ?? 0) - (toTimestamp(right.startTime) ?? 0))
       .map((node) => {
         const start = toTimestamp(node.startTime) ?? baseStart
         const durationMs = Math.max(Number(node.durationMs || 0), 1)
@@ -87,6 +117,64 @@ const waterfall = computed(() => {
       })
   }
 })
+
+const routeInfo = computed(() => {
+  if (!summary.value) return []
+
+  return [
+    {
+      label: '用户问题',
+      value: summary.value.question || '-'
+    },
+    {
+      label: '路由类型',
+      value: summary.value.route || '-'
+    },
+    {
+      label: '路由判定',
+      value: detail.value?.routeReason || '-'
+    },
+    {
+      label: '模型',
+      value: summary.value.model || '-'
+    }
+  ]
+})
+
+const retrievalInfo = computed(() => {
+  if (!detail.value || !summary.value) return []
+
+  return [
+    {
+      label: '检索查询',
+      value: detail.value.retrievalQuery || '-'
+    },
+    {
+      label: '命中 Chunk',
+      value: String(detail.value.hitChunks ?? 0)
+    },
+    {
+      label: '输入 Tokens',
+      value: summary.value.inputTokens ? String(summary.value.inputTokens) : '-'
+    },
+    {
+      label: '输出 Tokens',
+      value: summary.value.outputTokens ? String(summary.value.outputTokens) : '-'
+    }
+  ]
+})
+
+const rawMetaEntries = computed(() =>
+  Object.entries(detail.value?.rawMeta ?? {}).map(([key, value]) => ({
+    key,
+    value:
+      typeof value === 'string'
+        ? value
+        : typeof value === 'number' || typeof value === 'boolean'
+          ? String(value)
+          : JSON.stringify(value, null, 2)
+  }))
+)
 
 const getNodeTypeLabel = (nodeType?: string | null) => {
   const normalized = String(nodeType || '').trim().toLowerCase()
@@ -112,6 +200,14 @@ const getBarClass = (status?: string | null) => {
   if (normalized === 'running') return 'trace-waterfall-bar is-running'
   if (normalized === 'failed' || normalized === 'timeout') return 'trace-waterfall-bar is-failed'
   return 'trace-waterfall-bar'
+}
+
+const getStatusBadgeClass = (status?: string | null) => {
+  const normalized = normalizeTraceStatus(status)
+  if (normalized === 'success') return 'trace-pill is-success'
+  if (normalized === 'running') return 'trace-pill is-running'
+  if (normalized === 'failed' || normalized === 'timeout') return 'trace-pill is-failed'
+  return 'trace-pill'
 }
 
 const loadDetail = async () => {
@@ -150,10 +246,10 @@ onMounted(async () => {
         <div class="trace-detail-head-row">
           <div class="trace-detail-head-main">
             <div class="trace-detail-title-line">
-              <span class="trace-detail-list-label">RAG 链路列表</span>
+              <span class="trace-detail-list-label">Trace Detail</span>
               <span class="trace-detail-title-sep">/</span>
               <h1 class="trace-detail-head-h1">{{ summary.traceName || '-' }}</h1>
-              <span class="trace-detail-status-badge">
+              <span :class="getStatusBadgeClass(summary.status)">
                 {{ statusLabel(summary.status) }}
               </span>
             </div>
@@ -198,25 +294,53 @@ onMounted(async () => {
         <article class="trace-summary-chip">
           <Activity class="trace-summary-icon-stroke" />
           <div class="trace-summary-chip-value">{{ statSummary.total }}</div>
-          <div class="trace-summary-chip-label">节点</div>
+          <div class="trace-summary-chip-label">节点数</div>
         </article>
 
-        <article class="trace-summary-chip is-success">
-          <div class="trace-summary-chip-dot" />
-          <div class="trace-summary-chip-value">{{ statSummary.success }}</div>
-          <div class="trace-summary-chip-label">成功</div>
+        <article class="trace-summary-chip">
+          <Wrench class="trace-summary-icon-stroke" />
+          <div class="trace-summary-chip-value">{{ detail.toolExecutions.length }}</div>
+          <div class="trace-summary-chip-label">工具调用</div>
         </article>
 
-        <article class="trace-summary-chip is-failed">
-          <div class="trace-summary-chip-dot is-failed" />
-          <div class="trace-summary-chip-value">{{ statSummary.failed }}</div>
-          <div class="trace-summary-chip-label">失败</div>
+        <article class="trace-summary-chip">
+          <FileSearch class="trace-summary-icon-stroke" />
+          <div class="trace-summary-chip-value">{{ detail.hitChunks }}</div>
+          <div class="trace-summary-chip-label">命中 Chunk</div>
         </article>
 
         <article class="trace-summary-chip">
           <Zap class="h-5 w-5 text-[#42526b]" />
           <div class="trace-summary-chip-value">{{ formatDuration(statSummary.avgDuration) }}</div>
-          <div class="trace-summary-chip-label">平均耗时</div>
+          <div class="trace-summary-chip-label">平均节点耗时</div>
+        </article>
+      </section>
+
+      <section class="trace-detail-grid trace-detail-grid-two">
+        <article class="trace-card">
+          <div class="trace-card-head">
+            <Route class="h-4 w-4" />
+            <h2 class="trace-card-title">路由与请求上下文</h2>
+          </div>
+          <div class="trace-kv-list">
+            <div v-for="item in routeInfo" :key="item.label" class="trace-kv-row">
+              <p class="trace-kv-label">{{ item.label }}</p>
+              <p class="trace-kv-value">{{ item.value }}</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="trace-card">
+          <div class="trace-card-head">
+            <FileSearch class="h-4 w-4" />
+            <h2 class="trace-card-title">检索与 Token 指标</h2>
+          </div>
+          <div class="trace-kv-list">
+            <div v-for="item in retrievalInfo" :key="item.label" class="trace-kv-row">
+              <p class="trace-kv-label">{{ item.label }}</p>
+              <p class="trace-kv-value">{{ item.value }}</p>
+            </div>
+          </div>
         </article>
       </section>
 
@@ -224,7 +348,9 @@ onMounted(async () => {
         <div class="trace-detail-card-head">
           <div class="trace-detail-card-head-row">
             <h2 class="trace-detail-card-title">执行时序</h2>
-            <div class="trace-detail-window-label">窗口 {{ formatDuration(waterfall.totalWindowMs) }}</div>
+            <div class="trace-detail-window-label">
+              窗口 {{ formatDuration(waterfall.totalWindowMs) }}，左侧是节点，中间是执行区间，右侧是耗时和偏移
+            </div>
           </div>
         </div>
 
@@ -255,7 +381,10 @@ onMounted(async () => {
                 :key="String(node.nodeId)"
                 class="trace-waterfall-row"
               >
-                <div class="trace-waterfall-node" :style="{ paddingLeft: `${Math.min(Number(node.depth || 0), 6) * 18}px` }">
+                <div
+                  class="trace-waterfall-node"
+                  :style="{ paddingLeft: `${Math.min(Number(node.depth || 0), 6) * 18}px` }"
+                >
                   <span :class="getDotClass(String(node.status || ''))" />
                   <span class="trace-waterfall-node-name">
                     {{ String(node.nodeName || node.methodName || node.nodeId || '-') }}
@@ -293,6 +422,147 @@ onMounted(async () => {
           </div>
         </div>
       </section>
+
+      <section class="trace-detail-grid trace-detail-grid-two">
+        <article class="trace-card">
+          <div class="trace-card-head">
+            <Wrench class="h-4 w-4" />
+            <h2 class="trace-card-title">工具调用详情</h2>
+          </div>
+
+          <div v-if="detail.toolExecutions.length" class="trace-tool-list">
+            <article
+              v-for="tool in detail.toolExecutions"
+              :key="tool.id"
+              class="trace-tool-card"
+            >
+              <div class="trace-tool-head">
+                <div>
+                  <p class="trace-tool-name">{{ tool.name }}</p>
+                  <p class="trace-tool-summary">{{ tool.summary || '无摘要' }}</p>
+                </div>
+                <div class="trace-tool-head-meta">
+                  <span :class="getStatusBadgeClass(tool.status)">{{ statusLabel(tool.status) }}</span>
+                  <span class="trace-tool-duration">{{ formatDuration(tool.durationMs) }}</span>
+                </div>
+              </div>
+
+              <div class="trace-tool-meta-row">
+                <span>开始：{{ tool.startedAt || '-' }}</span>
+                <span>结束：{{ tool.endedAt || '-' }}</span>
+                <span>模型：{{ tool.model || '-' }}</span>
+                <span>Tokens：{{ tool.tokens ?? '-' }}</span>
+              </div>
+
+              <div class="trace-tool-section">
+                <p class="trace-tool-section-title">输入参数</p>
+                <pre class="trace-code-block"><code>{{ tool.inputPreview || '-' }}</code></pre>
+              </div>
+
+              <div class="trace-tool-section">
+                <p class="trace-tool-section-title">输出结果</p>
+                <pre class="trace-code-block"><code>{{ tool.outputPreview || '-' }}</code></pre>
+              </div>
+
+              <div v-if="tool.steps?.length" class="trace-tool-section">
+                <p class="trace-tool-section-title">内部步骤</p>
+                <ol class="trace-step-list">
+                  <li v-for="step in tool.steps" :key="step">{{ step }}</li>
+                </ol>
+              </div>
+            </article>
+          </div>
+
+          <div v-else class="trace-empty-card">当前链路没有工具调用。</div>
+        </article>
+
+        <article class="trace-card">
+          <div class="trace-card-head">
+            <FileSearch class="h-4 w-4" />
+            <h2 class="trace-card-title">命中文档与引用</h2>
+          </div>
+
+          <div v-if="detail.citations.length" class="trace-citation-list">
+            <article
+              v-for="citation in detail.citations"
+              :key="citation.id"
+              class="trace-citation-card"
+            >
+              <div class="trace-citation-head">
+                <div>
+                  <p class="trace-citation-title">{{ citation.title }}</p>
+                  <p class="trace-citation-meta">
+                    {{ citation.documentName }} · Chunk #{{ citation.chunkIndex }}
+                  </p>
+                </div>
+                <span class="trace-citation-score">{{ (citation.score * 100).toFixed(2) }}%</span>
+              </div>
+
+              <p class="trace-citation-content">{{ citation.content }}</p>
+            </article>
+          </div>
+
+          <div v-else class="trace-empty-card">当前链路没有知识库引用，通常说明这次请求不是 RAG 检索链路。</div>
+        </article>
+      </section>
+
+      <section class="trace-detail-grid trace-detail-grid-two">
+        <article class="trace-card">
+          <div class="trace-card-head">
+            <Activity class="h-4 w-4" />
+            <h2 class="trace-card-title">阶段摘要</h2>
+          </div>
+
+          <div v-if="detail.steps.length" class="trace-phase-list">
+            <article
+              v-for="step in detail.steps"
+              :key="step.id"
+              class="trace-phase-card"
+            >
+              <div class="trace-phase-top">
+                <div>
+                  <p class="trace-phase-title">{{ step.title }}</p>
+                  <p class="trace-phase-kind">{{ step.kind }}</p>
+                </div>
+                <span :class="getStatusBadgeClass(step.status)">{{ statusLabel(step.status) }}</span>
+              </div>
+
+              <p class="trace-phase-detail">{{ step.detail }}</p>
+              <div class="trace-phase-meta">
+                <span>{{ step.startAt }} - {{ step.endAt }}</span>
+                <span>{{ formatDuration(step.durationMs) }}</span>
+              </div>
+            </article>
+          </div>
+
+          <div v-else class="trace-empty-card">当前没有阶段摘要数据。</div>
+        </article>
+
+        <article class="trace-card">
+          <div class="trace-card-head">
+            <Zap class="h-4 w-4" />
+            <h2 class="trace-card-title">最终答案 / LLM 输出</h2>
+          </div>
+
+          <pre class="trace-answer-block"><code>{{ detail.finalAnswer || '-' }}</code></pre>
+        </article>
+      </section>
+
+      <section class="trace-card">
+        <div class="trace-card-head">
+          <Settings2 class="h-4 w-4" />
+          <h2 class="trace-card-title">原始元数据</h2>
+        </div>
+
+        <div v-if="rawMetaEntries.length" class="trace-meta-grid">
+          <div v-for="entry in rawMetaEntries" :key="entry.key" class="trace-meta-card">
+            <p class="trace-meta-key">{{ entry.key }}</p>
+            <pre class="trace-meta-value"><code>{{ entry.value }}</code></pre>
+          </div>
+        </div>
+
+        <div v-else class="trace-empty-card">当前没有原始元数据。</div>
+      </section>
     </template>
 
     <div
@@ -313,7 +583,8 @@ onMounted(async () => {
 
 .admin-layout .trace-detail-head-card,
 .admin-layout .trace-detail-summary-strip,
-.admin-layout .trace-detail-timeline-card {
+.admin-layout .trace-detail-timeline-card,
+.admin-layout .trace-card {
   border: 1px solid #dbe3ee;
   border-radius: 14px;
   background: #ffffff;
@@ -353,20 +624,6 @@ onMounted(async () => {
   line-height: 1.2;
   font-weight: 800;
   color: #0f172a;
-}
-
-.admin-layout .trace-detail-status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: var(--brand-primary);
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .admin-layout .trace-detail-meta-line {
@@ -417,6 +674,38 @@ onMounted(async () => {
   color: var(--brand-primary);
 }
 
+.admin-layout .trace-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #dbe2ea;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-layout .trace-pill.is-success {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: var(--brand-primary);
+}
+
+.admin-layout .trace-pill.is-running {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.admin-layout .trace-pill.is-failed {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .admin-layout .trace-detail-summary-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -454,18 +743,57 @@ onMounted(async () => {
   color: #475569;
 }
 
-.admin-layout .trace-summary-chip-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 2px solid #10b981;
-  background: #ecfdf5;
-  flex-shrink: 0;
+.admin-layout .trace-detail-grid {
+  display: grid;
+  gap: 18px;
 }
 
-.admin-layout .trace-summary-chip-dot.is-failed {
-  border-color: #64748b;
-  background: #f8fafc;
+.admin-layout .trace-detail-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-layout .trace-card {
+  padding: 18px;
+}
+
+.admin-layout .trace-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #1e293b;
+}
+
+.admin-layout .trace-card-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.admin-layout .trace-kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-layout .trace-kv-row {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fbff;
+  border: 1px solid #edf2f7;
+}
+
+.admin-layout .trace-kv-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.admin-layout .trace-kv-value {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #0f172a;
+  word-break: break-word;
 }
 
 .admin-layout .trace-detail-timeline-card {
@@ -505,7 +833,7 @@ onMounted(async () => {
 
 .admin-layout .trace-waterfall-table-head {
   display: grid;
-  grid-template-columns: 480px 152px minmax(0, 1fr) 110px;
+  grid-template-columns: 420px 152px minmax(0, 1fr) 110px;
   align-items: end;
   gap: 0;
   padding: 10px 18px 6px;
@@ -555,7 +883,7 @@ onMounted(async () => {
 
 .admin-layout .trace-waterfall-row {
   display: grid;
-  grid-template-columns: 480px 152px minmax(0, 1fr) 110px;
+  grid-template-columns: 420px 152px minmax(0, 1fr) 110px;
   align-items: center;
   gap: 0;
   padding: 0 18px;
@@ -689,6 +1017,135 @@ onMounted(async () => {
   color: #7a8faa;
 }
 
+.admin-layout .trace-tool-list,
+.admin-layout .trace-citation-list,
+.admin-layout .trace-phase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-layout .trace-tool-card,
+.admin-layout .trace-citation-card,
+.admin-layout .trace-phase-card,
+.admin-layout .trace-meta-card {
+  border: 1px solid #e6edf5;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 14px;
+}
+
+.admin-layout .trace-tool-head,
+.admin-layout .trace-citation-head,
+.admin-layout .trace-phase-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-layout .trace-tool-name,
+.admin-layout .trace-citation-title,
+.admin-layout .trace-phase-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-layout .trace-tool-summary,
+.admin-layout .trace-citation-meta,
+.admin-layout .trace-phase-kind {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.admin-layout .trace-tool-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-layout .trace-tool-duration,
+.admin-layout .trace-citation-score {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.admin-layout .trace-tool-meta-row,
+.admin-layout .trace-phase-meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.admin-layout .trace-tool-section {
+  margin-top: 12px;
+}
+
+.admin-layout .trace-tool-section-title {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.admin-layout .trace-code-block,
+.admin-layout .trace-answer-block,
+.admin-layout .trace-meta-value {
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  font-family: var(--font-mono-family);
+}
+
+.admin-layout .trace-step-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.admin-layout .trace-citation-content,
+.admin-layout .trace-phase-detail {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #0f172a;
+}
+
+.admin-layout .trace-empty-card {
+  padding: 18px;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.admin-layout .trace-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-layout .trace-meta-key {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
 @media (max-width: 1200px) {
   .admin-layout .trace-detail-head-row {
     flex-direction: column;
@@ -700,7 +1157,9 @@ onMounted(async () => {
     justify-content: flex-start;
   }
 
-  .admin-layout .trace-detail-summary-strip {
+  .admin-layout .trace-detail-summary-strip,
+  .admin-layout .trace-detail-grid-two,
+  .admin-layout .trace-meta-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -728,7 +1187,9 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
-  .admin-layout .trace-detail-summary-strip {
+  .admin-layout .trace-detail-summary-strip,
+  .admin-layout .trace-detail-grid-two,
+  .admin-layout .trace-meta-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

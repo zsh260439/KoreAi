@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { Bot, LoaderCircle } from 'lucide-vue-next'
-
 import type { ConversationSummary } from '@/types'
+import WorkspaceSidebarMark from './WorkspaceSidebarMark.vue'
 
 defineProps<{
   session: ConversationSummary
@@ -28,12 +27,7 @@ defineEmits<{
     @click="$emit('select', session.id)"
   >
     <div class="flex items-center gap-3">
-      <div
-        class="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#6b7280]"
-      >
-        <LoaderCircle v-if="streaming" class="size-4 animate-spin" />
-        <Bot v-else class="size-4" />
-      </div>
+      <WorkspaceSidebarMark :size="36" :busy="streaming" />
 
       <div class="min-w-0 flex-1">
         <div class="flex items-center justify-between gap-3">

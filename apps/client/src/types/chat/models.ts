@@ -1,4 +1,4 @@
-import type { AssistantResponseFlow } from './flow'
+import type { AssistantResponseFlow, AssistantSearchResultItem } from './flow'
 
 export type ChatRole = 'user' | 'assistant' | 'system-summary'
 export type ChatMessageStatus = 'done' | 'streaming' | 'error'
@@ -25,6 +25,10 @@ export interface ToolCall {
   model?: string
   tokens?: number
   phase?: 'deepsearch' | 'mcp_web_search' | 'knowledge' | 'tool'
+  presentation?: 'default' | 'compact-search'
+  resultCount?: number
+  searchQuery?: string
+  searchResults?: AssistantSearchResultItem[]
 }
 
 export interface PromptCapabilities {

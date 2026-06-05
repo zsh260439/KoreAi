@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 
 import koreAvatarSvg from '@/assets/kore-avatar.svg?raw'
-
 const props = withDefaults(
   defineProps<{
     size?: number

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Brain, Paperclip, Search, Send, Square, X } from 'lucide-vue-next'
+import { ArrowUp, Brain, Paperclip, Search, Square, X } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import type { PromptCapabilities } from '@/types'
@@ -35,8 +35,6 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const attachedFiles = ref<File[]>([])
 const thinkEnabled = ref(false)
 const searchEnabled = ref(false)
-const thinkSpinTurns = ref(0)
-const searchSpinTurns = ref(0)
 
 const promptCapabilities = computed<PromptCapabilities>(() => ({
   think: thinkEnabled.value,
@@ -47,34 +45,18 @@ const hasContent = computed(() => props.modelValue.trim().length > 0 || attached
 
 const currentPlaceholder = computed(() => {
   if (thinkEnabled.value && searchEnabled.value) {
-    return '结合深度思考和网络搜索发起提问...'
+    return '结合深度思考和联网搜索发起提问...'
   }
 
   if (thinkEnabled.value) {
-    return '发起需要更深推理的问题...'
+    return '发起需要更长推理链路的问题...'
   }
 
   if (searchEnabled.value) {
-    return '发起需要联网补充信息的问题...'
+    return '发起需要联网补充外部信息的问题...'
   }
 
-  return '输入你的问题...'
-})
-
-const helperText = computed(() => {
-  if (thinkEnabled.value && searchEnabled.value) {
-    return '已开启深度思考和网络搜索，回复中会展示思考链路和外部搜索过程。'
-  }
-
-  if (thinkEnabled.value) {
-    return '已开启深度思考，适合需要更长推理链路的问题。'
-  }
-
-  if (searchEnabled.value) {
-    return '已开启网络搜索，适合需要实时外部信息的问题。'
-  }
-
-  return '如果只需要直接回答，可以保持这两个开关关闭。'
+  return 'Ask anything'
 })
 
 const resizeTextarea = async () => {
@@ -85,7 +67,7 @@ const resizeTextarea = async () => {
   }
 
   textareaRef.value.style.height = '0px'
-  textareaRef.value.style.height = `${Math.min(Math.max(textareaRef.value.scrollHeight, 42), 144)}px`
+  textareaRef.value.style.height = `${Math.min(Math.max(textareaRef.value.scrollHeight, 40), 128)}px`
 }
 
 const triggerFileSelect = () => {
@@ -118,12 +100,18 @@ const updateValue = (event: Event) => {
 }
 
 const toggleThinkMode = () => {
-  thinkSpinTurns.value += 1
+  if (props.disabled || props.streaming) {
+    return
+  }
+
   thinkEnabled.value = !thinkEnabled.value
 }
 
 const toggleSearchMode = () => {
-  searchSpinTurns.value += 1
+  if (props.disabled || props.streaming) {
+    return
+  }
+
   searchEnabled.value = !searchEnabled.value
 }
 
@@ -164,108 +152,70 @@ onMounted(() => {
 <template>
   <div class="w-full">
     <div
-      class="rounded-[32px] border border-[#edf1f5] bg-white px-5 py-4 shadow-[0_20px_48px_rgba(15,23,42,0.08)] transition-all duration-300"
+      class="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white/80 shadow-[0_20px_48px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition-all duration-300"
       :class="
         streaming
-          ? 'shadow-[0_16px_40px_rgba(15,23,42,0.12)]'
-          : 'hover:shadow-[0_24px_58px_rgba(15,23,42,0.1)]'
+          ? 'border-[#dbe7ff] shadow-[0_22px_52px_rgba(37,99,235,0.10)]'
+          : 'hover:border-[#e6edf7] hover:shadow-[0_28px_64px_rgba(15,23,42,0.12)] focus-within:border-[#cfdcff] focus-within:shadow-[0_28px_64px_rgba(59,130,246,0.10)]'
       "
     >
-      <div v-if="attachedFiles.length" class="mt-3 flex flex-wrap gap-2">
-        <div
-          v-for="(file, index) in attachedFiles"
-          :key="`${file.name}-${index}`"
-          class="inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-3 py-1.5 text-[13px] text-[#4b5563]"
-        >
-          <Paperclip class="size-3.5 text-[#6b7280]" />
-          <span class="max-w-[180px] truncate">{{ file.name }}</span>
+      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,#eef4ff_0%,transparent_48%)] opacity-80" />
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.72),rgba(255,255,255,0.18))]" />
+
+      <div class="relative z-10 px-3 py-3">
+        <div class="flex items-end gap-2">
           <button
             type="button"
-            class="flex size-5 items-center justify-center rounded-full text-[#94a3b8] transition hover:bg-white hover:text-[#111827]"
-            aria-label="移除附件"
-            @click="removeFile(index)"
+            class="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/80 bg-[#0f172a]/5 text-[#111827] transition hover:bg-[#0f172a]/8 disabled:cursor-not-allowed disabled:opacity-45"
+            aria-label="添加附件"
+            :disabled="disabled || streaming"
+            @click="triggerFileSelect"
           >
-            <X class="size-3.5" />
+            <Paperclip class="size-[17px]" />
+          </button>
+
+          <div class="min-w-0 flex-1">
+            <textarea
+              ref="textareaRef"
+              :value="modelValue"
+              :disabled="disabled || streaming"
+              :placeholder="currentPlaceholder"
+              class="block min-h-[40px] w-full resize-none border-0 bg-transparent px-2 py-[7px] text-[15px] leading-7 text-[#111827] outline-none placeholder:text-[#8a94a6]"
+              @input="updateValue"
+              @keydown="handleKeydown"
+            />
+          </div>
+
+          <button
+            type="button"
+            class="flex size-10 shrink-0 items-center justify-center rounded-full border-0 bg-[#0a1217] text-white transition hover:shadow-[0_12px_28px_rgba(15,23,42,0.18)] disabled:cursor-not-allowed disabled:bg-[#c7ced8] disabled:text-white/70"
+            :aria-label="streaming ? '停止生成' : '发送消息'"
+            :disabled="!streaming && !hasContent"
+            @click="submit"
+          >
+            <Square v-if="streaming" class="size-[15px]" />
+            <ArrowUp v-else class="size-[17px]" />
           </button>
         </div>
-      </div>
 
-      <div class="flex items-start gap-3">
-        <button
-          type="button"
-          class="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-[#111827] transition hover:bg-[#f5f7fa]"
-          aria-label="添加附件"
-          :disabled="disabled || streaming"
-          @click="triggerFileSelect"
-        >
-          <Paperclip class="size-[17px]" />
-        </button>
-
-        <div class="min-w-0 flex-1">
-          <textarea
-            ref="textareaRef"
-            :value="modelValue"
-            :disabled="disabled || streaming"
-            :placeholder="currentPlaceholder"
-            class="block min-h-[42px] w-full resize-none border-0 bg-transparent px-0 py-0 text-[16px] leading-7 text-[#111827] outline-none placeholder:text-[#a0aec0]"
-            @input="updateValue"
-            @keydown="handleKeydown"
-          />
-        </div>
-
-        <button
-          type="button"
-          class="mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111111] shadow-[0_12px_24px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(15,23,42,0.12)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
-          :aria-label="streaming ? '停止生成' : '发送消息'"
-          :disabled="!streaming && !hasContent"
-          @click="submit"
-        >
-          <Square v-if="streaming" class="size-[16px]" />
-          <Send v-else class="size-[18px] translate-x-[1px]" />
-        </button>
-      </div>
-
-      <div class="mt-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          class="inline-flex h-12 items-center rounded-full border px-4 text-[15px] font-medium transition"
-          :class="
-            thinkEnabled
-              ? 'border-[#82a6f8] bg-[#eef4ff] text-[#23416e]'
-              : 'border-[#edf1f5] bg-[#f7f8fa] text-[#657181] hover:border-[#dbe6ff] hover:bg-[#f3f7ff]'
-          "
-          :disabled="disabled || streaming"
-          @click="toggleThinkMode"
-        >
-          <Brain
-            class="size-[18px] shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            :style="{ transform: `rotate(${thinkSpinTurns * 180}deg)` }"
-          />
-          <span class="ml-2">深度思考</span>
-        </button>
-
-        <button
-          type="button"
-          class="inline-flex h-12 items-center overflow-hidden rounded-full border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          :class="
-            searchEnabled
-              ? 'border-[#82a6f8] bg-[#eef4ff] px-4 text-[#23416e]'
-              : 'w-12 justify-center border-[#edf1f5] bg-[#f7f8fa] px-0 text-[#657181] hover:border-[#dbe6ff] hover:bg-[#f3f7ff]'
-          "
-          :disabled="disabled || streaming"
-          @click="toggleSearchMode"
-        >
-          <Search
-            class="size-[18px] shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            :style="{ transform: `rotate(${searchSpinTurns * 180}deg)` }"
-          />
-          <span
-            class="overflow-hidden whitespace-nowrap text-[15px] font-medium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            :class="searchEnabled ? 'ml-2 max-w-[72px] opacity-100' : 'ml-0 max-w-0 opacity-0'"
+        <div v-if="attachedFiles.length" class="mt-3 flex flex-wrap gap-2 px-1">
+          <div
+            v-for="(file, index) in attachedFiles"
+            :key="`${file.name}-${index}`"
+            class="inline-flex max-w-full items-center gap-2 rounded-full border border-[#e6ebf2] bg-[#f8fafc] px-3 py-1.5 text-[13px] text-[#475467]"
           >
-            网络搜索
-          </span>
-        </button>
+            <Paperclip class="size-3.5 text-[#667085]" />
+            <span class="max-w-[180px] truncate">{{ file.name }}</span>
+            <button
+              type="button"
+              class="flex size-4 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-white hover:text-[#111827]"
+              aria-label="移除附件"
+              @click="removeFile(index)"
+            >
+              <X class="size-3" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <input
@@ -277,16 +227,36 @@ onMounted(() => {
       />
     </div>
 
-    <div v-if="showHint" class="mt-4 flex flex-col items-center gap-3 px-2">
-      <p class="w-full text-left text-[15px] font-medium text-[#3d6cff]">
-        {{ helperText }}
-      </p>
-      <p class="text-[14px] text-[#7b8aa2]">
-        <span class="rounded bg-white px-2 py-1 text-[#6b7280]">Enter</span>
-        发送
-        <span class="rounded bg-white px-2 py-1 text-[#6b7280]">Shift + Enter</span>
-        换行
-      </p>
+    <div class="mt-3 flex flex-wrap items-center gap-2 px-1">
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45"
+        :class="
+          thinkEnabled
+            ? 'border-[#dbe6ff] bg-[#eef4ff] text-[#23416e]'
+            : 'border-[#e6ebf2] bg-white text-[#475467] hover:border-[#d9e2ef] hover:bg-[#f8fafc] hover:text-[#111827]'
+        "
+        :disabled="disabled || streaming"
+        @click="toggleThinkMode"
+      >
+        <Brain class="size-4 shrink-0" />
+        <span>深度思考</span>
+      </button>
+
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45"
+        :class="
+          searchEnabled
+            ? 'border-[#dbe6ff] bg-[#eef4ff] text-[#23416e]'
+            : 'border-[#e6ebf2] bg-white text-[#475467] hover:border-[#d9e2ef] hover:bg-[#f8fafc] hover:text-[#111827]'
+        "
+        :disabled="disabled || streaming"
+        @click="toggleSearchMode"
+      >
+        <Search class="size-4 shrink-0" />
+        <span>联网搜索</span>
+      </button>
     </div>
   </div>
 </template>

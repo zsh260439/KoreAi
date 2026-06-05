@@ -1,4 +1,10 @@
-import type { ChatMessage, ConversationSummary, PromptCapabilities, ToolCall } from '@/types'
+import type {
+  AssistantSearchResultItem,
+  ChatMessage,
+  ConversationSummary,
+  PromptCapabilities,
+  ToolCall
+} from '@/types'
 import {
   cloneMock,
   conversationMessages,
@@ -28,6 +34,174 @@ const trimPreview = (input: string, max = 72) => {
   return `${normalized.slice(0, max)}...`
 }
 
+const buildMockSearchResults = (input: string): AssistantSearchResultItem[] => {
+  const normalized = input.replace(/\s+/g, ' ').trim() || '当前问题'
+  const lowerInput = normalized.toLowerCase()
+
+  if (lowerInput.includes('天气') || lowerInput.includes('下雨') || lowerInput.includes('weather')) {
+    return [
+      {
+        id: 'search-weather-1',
+        source: '中央气象台',
+        publishedAt: '2026/06/06',
+        title: '上海未来 24 小时降水趋势',
+        snippet: '包含 14:00 到 17:00 的小时级降水概率、云量与风速变化。'
+      },
+      {
+        id: 'search-weather-2',
+        source: '上海天气网',
+        publishedAt: '2026/06/06',
+        title: '浦东与徐汇午后雷阵雨风险对比',
+        snippet: '对比上海主要城区的午后阵雨强度与持续时间。'
+      },
+      {
+        id: 'search-weather-3',
+        source: '和讯网',
+        publishedAt: '2026/06/05',
+        title: '会务场景遇雨应急方案整理',
+        snippet: '总结线下会议在降雨天气下切换线上方案的注意事项。'
+      },
+      {
+        id: 'search-weather-4',
+        source: '澎湃新闻',
+        publishedAt: '2026/06/05',
+        title: '上海周末对流天气提醒',
+        snippet: '提示短时强降水时段，适合作为会前通知补充。'
+      },
+      {
+        id: 'search-weather-5',
+        source: '界面新闻',
+        publishedAt: '2026/06/04',
+        title: '大型活动天气预警与会务组织建议',
+        snippet: '介绍活动组织方如何根据实时天气调整签到、入场和会议链接。'
+      },
+      {
+        id: 'search-weather-6',
+        source: '中国天气',
+        publishedAt: '2026/06/06',
+        title: '上海 15 时逐小时天气预报',
+        snippet: '提供会议核心时段的天气图示与降雨概率。'
+      },
+      {
+        id: 'search-weather-7',
+        source: '人民网',
+        publishedAt: '2026/06/03',
+        title: '企业会议通知如何加入天气兜底说明',
+        snippet: '总结会务通知中对天气、交通和线上切换方案的表达方式。'
+      },
+      {
+        id: 'search-weather-8',
+        source: '东方网',
+        publishedAt: '2026/06/06',
+        title: '上海主城区午后短时阵雨提醒',
+        snippet: '说明午后时段局地阵雨和道路通行影响。'
+      },
+      {
+        id: 'search-weather-9',
+        source: '网易新闻',
+        publishedAt: '2026/06/05',
+        title: '会议现场遇雨切换线上需要准备什么',
+        snippet: '整理线上会议链接、群通知和签到方式的切换动作。'
+      },
+      {
+        id: 'search-weather-10',
+        source: '腾讯新闻',
+        publishedAt: '2026/06/05',
+        title: '会务天气提醒模板示例',
+        snippet: '可直接参考的天气提醒文案和会前通知结构。'
+      }
+    ]
+  }
+
+  if (
+    lowerInput.includes('思考') ||
+    lowerInput.includes('搜索') ||
+    lowerInput.includes('联网') ||
+    lowerInput.includes('deepseek')
+  ) {
+    return [
+      {
+        id: 'search-ai-1',
+        source: '百度开发者中心',
+        publishedAt: '2025/09/26',
+        title: '深度思考与联网搜索的差异化价值',
+        snippet: '解释深度推理与外部信息检索在复杂问答中的职责边界。'
+      },
+      {
+        id: 'search-ai-2',
+        source: '科普中国',
+        publishedAt: '2025/10/17',
+        title: 'AI 推理模式与直接回答模式对比',
+        snippet: '从用户视角介绍推理型回答与普通回答的区别。'
+      },
+      {
+        id: 'search-ai-3',
+        source: '百度智能云',
+        publishedAt: '2025/10/15',
+        title: '深度思考与联网搜索功能适配指南',
+        snippet: '概述两类模式在不同场景下的组合方式。'
+      },
+      {
+        id: 'search-ai-4',
+        source: '机器之心',
+        publishedAt: '2025/09/18',
+        title: '检索增强生成中的推理链位置',
+        snippet: '说明检索、推理和回答生成之间的顺序关系。'
+      },
+      {
+        id: 'search-ai-5',
+        source: 'InfoQ',
+        publishedAt: '2025/09/30',
+        title: 'RAG 系统如何展示工具调用过程',
+        snippet: '介绍前端如何表达工具执行、搜索结果和最终回答。'
+      },
+      {
+        id: 'search-ai-6',
+        source: '掘金',
+        publishedAt: '2025/10/08',
+        title: '多阶段问答界面的流式交互设计',
+        snippet: '讨论思考、检索和答案输出的前端串联方式。'
+      },
+      {
+        id: 'search-ai-7',
+        source: '知乎专栏',
+        publishedAt: '2025/09/21',
+        title: '为什么搜索结果不一定需要单独气泡卡片',
+        snippet: '分析紧凑型搜索状态条在问答产品中的优势。'
+      },
+      {
+        id: 'search-ai-8',
+        source: 'B 站技术',
+        publishedAt: '2025/10/02',
+        title: '大模型思考模式的可视化方案',
+        snippet: '汇总常见的推理折叠面板和工具状态展示方式。'
+      },
+      {
+        id: 'search-ai-9',
+        source: '开源中国',
+        publishedAt: '2025/10/11',
+        title: '前端如何承接搜索面板与结果抽屉',
+        snippet: '介绍消息区点击态与右侧抽屉联动。'
+      },
+      {
+        id: 'search-ai-10',
+        source: 'CSDN',
+        publishedAt: '2025/10/09',
+        title: '流式响应中的搜索结果预埋数据设计',
+        snippet: '讨论如何在 mock 数据里为搜索行附带结构化结果列表。'
+      }
+    ]
+  }
+
+  return Array.from({ length: 10 }, (_, index) => ({
+    id: `search-generic-${index + 1}`,
+    source: ['百度开发者中心', 'InfoQ', '掘金', '机器之心', '知乎专栏'][index % 5],
+    publishedAt: `2026/06/${String((index % 6) + 1).padStart(2, '0')}`,
+    title: `${normalized} - 结果 ${index + 1}`,
+    snippet: `围绕“${normalized}”整理出的第 ${index + 1} 条网页摘要，用于模拟外部搜索结果面板。`
+  }))
+}
+
 const buildSyntheticToolCalls = (
   input: string,
   promptCapabilities: PromptCapabilities
@@ -53,6 +227,8 @@ const buildSyntheticToolCalls = (
   }
 
   if (promptCapabilities.search) {
+    const searchResults = buildMockSearchResults(input)
+
     toolCalls.push({
       id: `tool-search-${stamp + 1}`,
       name: 'web_search_mcp',
@@ -63,7 +239,11 @@ const buildSyntheticToolCalls = (
       summary: '通过网络搜索补充外部上下文。',
       steps: ['改写搜索词', '拉取搜索结果', '筛选高价值信息'],
       tokens: 124,
-      phase: 'mcp_web_search'
+      phase: 'mcp_web_search',
+      presentation: 'compact-search',
+      searchQuery: input.trim(),
+      resultCount: searchResults.length,
+      searchResults
     })
   }
 
