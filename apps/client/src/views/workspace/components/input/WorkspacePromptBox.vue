@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ArrowUp, Brain, Paperclip, Square, X } from 'lucide-vue-next'
+import { ArrowUp, Brain, Square } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import type { PromptCapabilities } from '@/types'
 import type { KnowledgeBase } from 'share-type'
 
 type PromptSubmitPayload = {
-  files: File[]
   message: string
   capabilities: PromptCapabilities
   knowledgeBaseId?: string
@@ -37,9 +36,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const fileInputRef = ref<HTMLInputElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const attachedFiles = ref<File[]>([])
 const thinkEnabled = ref(false)
 
 const promptCapabilities = computed<PromptCapabilities>(() => ({
@@ -47,7 +44,7 @@ const promptCapabilities = computed<PromptCapabilities>(() => ({
   search: false
 }))
 
-const hasContent = computed(() => props.modelValue.trim().length > 0 || attachedFiles.value.length > 0)
+const hasContent = computed(() => props.modelValue.trim().length > 0)
 
 const currentPlaceholder = computed(() => {
   if (thinkEnabled.value) {
@@ -66,30 +63,6 @@ const resizeTextarea = async () => {
 
   textareaRef.value.style.height = '0px'
   textareaRef.value.style.height = `${Math.min(Math.max(textareaRef.value.scrollHeight, 40), 128)}px`
-}
-
-const triggerFileSelect = () => {
-  if (props.disabled || props.streaming) {
-    return
-  }
-
-  fileInputRef.value?.click()
-}
-
-const handleFileChange = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const nextFiles = Array.from(input.files ?? [])
-
-  if (!nextFiles.length) {
-    return
-  }
-
-  attachedFiles.value = [...attachedFiles.value, ...nextFiles].slice(0, 4)
-  input.value = ''
-}
-
-const removeFile = (index: number) => {
-  attachedFiles.value = attachedFiles.value.filter((_, fileIndex) => fileIndex !== index)
 }
 
 const updateSelectedKnowledgeBase = (event: Event) => {
@@ -121,13 +94,10 @@ const submit = () => {
   }
 
   emit('submit', {
-    files: [...attachedFiles.value],
     message: props.modelValue.trim(),
     capabilities: promptCapabilities.value,
     knowledgeBaseId: props.selectedKnowledgeBaseId || undefined
   })
-
-  attachedFiles.value = []
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -138,7 +108,6 @@ const handleKeydown = (event: KeyboardEvent) => {
 }
 
 watch(() => props.modelValue, resizeTextarea, { immediate: true })
-watch(attachedFiles, resizeTextarea, { deep: true })
 
 onMounted(() => {
   void resizeTextarea()
@@ -160,16 +129,6 @@ onMounted(() => {
 
       <div class="relative z-10 px-3 py-3">
         <div class="flex items-end gap-2">
-          <button
-            type="button"
-            class="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/80 bg-[#0f172a]/5 text-[#111827] transition hover:bg-[#0f172a]/8 disabled:cursor-not-allowed disabled:opacity-45"
-            aria-label="添加附件"
-            :disabled="disabled || streaming"
-            @click="triggerFileSelect"
-          >
-            <Paperclip class="size-[17px]" />
-          </button>
-
           <div class="min-w-0 flex-1">
             <textarea
               ref="textareaRef"
@@ -193,34 +152,7 @@ onMounted(() => {
             <ArrowUp v-else class="size-[17px]" />
           </button>
         </div>
-
-        <div v-if="attachedFiles.length" class="mt-3 flex flex-wrap gap-2 px-1">
-          <div
-            v-for="(file, index) in attachedFiles"
-            :key="`${file.name}-${index}`"
-            class="inline-flex max-w-full items-center gap-2 rounded-full border border-[#e6ebf2] bg-[#f8fafc] px-3 py-1.5 text-[13px] text-[#475467]"
-          >
-            <Paperclip class="size-3.5 text-[#667085]" />
-            <span class="max-w-[180px] truncate">{{ file.name }}</span>
-            <button
-              type="button"
-              class="flex size-4 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-white hover:text-[#111827]"
-              aria-label="移除附件"
-              @click="removeFile(index)"
-            >
-              <X class="size-3" />
-            </button>
-          </div>
-        </div>
       </div>
-
-      <input
-        ref="fileInputRef"
-        type="file"
-        class="hidden"
-        multiple
-        @change="handleFileChange"
-      />
     </div>
 
     <div class="mt-3 flex flex-wrap items-center gap-2 px-1">

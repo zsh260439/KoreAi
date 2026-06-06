@@ -96,7 +96,6 @@ const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => 
 
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
   thinking: buildThinkingStages(message),
-  tools: [],
   answer: {
     kind: 'answer',
     title: '最终回答',
@@ -117,7 +116,6 @@ export const buildStreamingResponseFlow = (message: ChatMessage): AssistantRespo
       status: 'running',
       visibleContent: ''
     })),
-    tools: [],
     answer: {
       ...completed.answer,
       status: 'pending',
@@ -147,7 +145,6 @@ export const createThinkingPlaceholderFlow = (
       status: 'running',
       visibleContent: ''
     })),
-    tools: [],
     answer: {
       kind: 'answer',
       title: '最终回答',

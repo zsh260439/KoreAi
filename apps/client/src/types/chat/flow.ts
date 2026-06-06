@@ -1,9 +1,5 @@
 export type AssistantRenderStatus = 'pending' | 'running' | 'done' | 'error'
 
-export type AssistantToolStepStatus = 'pending' | 'running' | 'success' | 'error'
-
-export type AssistantToolIconKey = 'knowledge' | 'time' | 'weather' | 'search' | 'thinking' | 'generic'
-
 export type AssistantThinkingStageKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
 
 export interface AssistantSearchResultItem {
@@ -26,40 +22,6 @@ export interface AssistantThinkingStage {
   visibleContent: string
 }
 
-export interface AssistantToolStep {
-  id: string
-  label: string
-  status: AssistantToolStepStatus
-  children?: AssistantToolStep[]
-}
-
-export interface AssistantToolStage {
-  kind: 'tool'
-  id: string
-  toolName: string
-  title: string
-  subtitle: string
-  iconKey: AssistantToolIconKey
-  status: AssistantRenderStatus
-  inputLabel: string
-  input: string
-  visibleInput: string
-  outputLabel: string
-  output: string
-  visibleOutput: string
-  durationMs: number
-  steps: AssistantToolStep[]
-  showInput: boolean
-  showSteps: boolean
-  showOutput: boolean
-  presentation?: 'default' | 'compact-search'
-  searchQuery?: string
-  resultCount?: number
-  searchResults?: AssistantSearchResultItem[]
-  startedAt?: string
-  endedAt?: string
-}
-
 export interface AssistantAnswerStage {
   kind: 'answer'
   title: string
@@ -70,7 +32,6 @@ export interface AssistantAnswerStage {
 
 export interface AssistantResponseFlow {
   thinking: AssistantThinkingStage[]
-  tools: AssistantToolStage[]
   answer: AssistantAnswerStage
   totalDurationMs?: number
   showActions: boolean

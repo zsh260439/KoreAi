@@ -11,7 +11,7 @@ import type {
 
 export type CreateKnowledgeBaseDto = CreateKnowledgeBaseInput
 
-// knowledge 页面已对接真实后端，这里保留少量可选兼容字段给旧 mock / store 使用
+// knowledge 页面已对接真实后端，这里保留少量可选展示字段给管理页使用
 export type KnowledgeBase = Omit<SharedKnowledgeBase, 'status'> & {
   status: SharedKnowledgeBase['status'] | 'syncing'
   owner?: string
@@ -36,11 +36,6 @@ export type KnowledgeDocument = Omit<
   source?: string
   fileSize?: number | null
   chunkConfigText?: string
-  processMode?: 'chunk' | 'pipeline'
-  pipelineId?: string
-  pipelineName?: string
-  scheduleEnabled?: boolean
-  scheduleCron?: string
 }
 
 export type AdminKnowledgeDocument = KnowledgeDocument
@@ -56,10 +51,6 @@ export interface KnowledgeDocumentUpdatePayload {
   chunkStrategy?: string
   chunkConfig?: string
   sourceLocation?: string
-  processMode?: 'chunk' | 'pipeline'
-  pipelineId?: string
-  scheduleEnabled?: boolean
-  scheduleCron?: string
 }
 
 export interface KnowledgeDocumentUploadPayload {
@@ -69,10 +60,6 @@ export interface KnowledgeDocumentUploadPayload {
   chunkConfig?: string
   sourceType?: KnowledgeDocumentSourceType
   sourceLocation?: string
-  processMode?: 'chunk' | 'pipeline'
-  pipelineId?: string
-  scheduleEnabled?: boolean
-  scheduleCron?: string
   file?: File | null
 }
 
@@ -96,10 +83,7 @@ export interface KnowledgeDocumentChunkLog {
   documentId: string
   status: KnowledgeDocumentStatus | 'success' | 'running'
   sourceType?: KnowledgeDocumentSourceType
-  processMode?: 'chunk' | 'pipeline'
   chunkStrategy?: string | null
-  pipelineId?: string
-  pipelineName?: string
   chunkCount?: number
   extractDuration?: number
   chunkDuration?: number

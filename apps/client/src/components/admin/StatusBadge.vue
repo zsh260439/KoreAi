@@ -7,15 +7,15 @@ const props = defineProps<{
 
 const statusClassName = computed(() => {
   if (props.status === 'success' || props.status === 'active' || props.status === 'indexed' || props.status === 'online') {
-    return 'border-blue-200 bg-blue-50 text-blue-700'
+    return 'border-green-200 bg-green-50 text-green-700'
   }
 
   if (props.status === 'error' || props.status === 'failed' || props.status === 'offline') {
-    return 'border-blue-200 bg-blue-50 text-blue-700'
+    return 'border-red-200 bg-red-50 text-red-700'
   }
 
   if (props.status === 'running' || props.status === 'processing' || props.status === 'checking' || props.status === 'syncing') {
-    return 'border-blue-200 bg-blue-50 text-blue-700'
+    return 'border-amber-200 bg-amber-50 text-amber-700'
   }
 
   return 'border-blue-100 bg-blue-50/60 text-blue-700'

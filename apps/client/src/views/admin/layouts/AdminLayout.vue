@@ -1,48 +1,36 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
 import { adminNavGroups } from '@/config/navigation'
-import { useAdminStore, useAuthStore } from '@/stores'
+import type { User } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const adminStore = useAdminStore()
-const authStore = useAuthStore()
 
-const currentUser = computed(() => authStore.user ?? {
-  id: 'guest',
+const collapsed = ref(false)
+const mobileSidebarOpen = ref(false)
+
+const currentUser = computed<User>(() => ({
+  id: 'local-user',
   name: '访客',
   email: '',
   role: 'member',
-  status: 'active' as const,
+  status: 'active',
   lastActive: ''
-})
+}))
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: 'Dashboard',
   knowledge: '知识库管理',
-  ingestion: '流水线任务',
-  traces: '链路追踪',
   settings: 'Settings'
 }
 
-watch(
-  () => adminStore.searchValue,
-  async (query) => {
-    await adminStore.updateSearch(query)
-  }
-)
-
-onMounted(async () => {
-  await adminStore.updateSearch('')
-})
-
 const breadcrumbs = computed(() => {
   const segments = route.path.split('/').filter(Boolean)
-  const items: { label: string; to?: string }[] = [{ label: '首页', to: '/admin/dashboard' }]
+  const items: { label: string; to?: string }[] = [{ label: '首页', to: '/admin/knowledge' }]
 
   if (segments[0] !== 'admin') {
     return items
@@ -64,16 +52,15 @@ const breadcrumbs = computed(() => {
     items.push({ label: '切片管理' })
   }
 
-  if (section === 'traces' && segments.length > 2) {
-    items.push({ label: '链路详情' })
-  }
-
   return items
 })
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/workspace')
+const toggleCollapse = () => {
+  collapsed.value = !collapsed.value
+}
+
+const toggleMobileSidebar = (open?: boolean) => {
+  mobileSidebarOpen.value = typeof open === 'boolean' ? open : !mobileSidebarOpen.value
 }
 </script>
 
@@ -82,24 +69,18 @@ const handleLogout = () => {
     <div class="flex h-screen">
       <AdminSidebar
         class="hidden lg:flex"
-        :collapsed="adminStore.collapsed"
+        :collapsed="collapsed"
         :active-path="route.fullPath"
         :groups="adminNavGroups"
         :user="currentUser"
-        @toggle-collapse="adminStore.toggleCollapse"
+        @toggle-collapse="toggleCollapse"
       />
 
       <div class="flex min-h-screen flex-1 flex-col overflow-auto bg-slate-100">
         <AdminTopbar
-          :search-value="adminStore.searchValue"
-          :search-loading="adminStore.searchLoading"
-          :suggestions="adminStore.searchSuggestions"
           :user="currentUser"
-          @search-change="adminStore.searchValue = $event"
-          @search-select="router.push($event)"
           @open-chat="router.push('/workspace')"
-          @logout="handleLogout"
-          @open-sidebar="adminStore.toggleMobileSidebar(true)"
+          @open-sidebar="toggleMobileSidebar(true)"
         />
 
         <div class="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
@@ -128,8 +109,8 @@ const handleLogout = () => {
     </div>
 
     <el-drawer
-      :model-value="adminStore.mobileSidebarOpen"
-      @update:model-value="adminStore.mobileSidebarOpen = $event"
+      :model-value="mobileSidebarOpen"
+      @update:model-value="mobileSidebarOpen = $event"
       :size="320"
       direction="ltr"
       :with-header="false"
@@ -139,8 +120,8 @@ const handleLogout = () => {
         :active-path="route.fullPath"
         :groups="adminNavGroups"
         :user="currentUser"
-        @toggle-collapse="adminStore.toggleCollapse"
-        @navigate="adminStore.toggleMobileSidebar(false)"
+        @toggle-collapse="toggleCollapse"
+        @navigate="toggleMobileSidebar(false)"
       />
     </el-drawer>
   </div>

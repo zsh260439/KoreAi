@@ -112,19 +112,12 @@ const handleSend = async (
   await workspaceChat.sendMessage(message, capabilities, knowledgeBaseId)
 }
 
-const buildPromptMessage = (message: string, files: File[]) => {
-  const normalized = message.trim()
-  const fileLines = files.map((file) => `[附件: ${file.name}]`)
-  return [normalized, ...fileLines].filter(Boolean).join('\n')
-}
-
 const handleComposerSubmit = (payload: {
-  files: File[]
   message: string
   capabilities: PromptCapabilities
   knowledgeBaseId?: string
 }) => {
-  const nextMessage = buildPromptMessage(payload.message, payload.files)
+  const nextMessage = payload.message.trim()
 
   if (!nextMessage.trim()) {
     return
