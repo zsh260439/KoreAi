@@ -71,7 +71,7 @@ export interface UpdateKnowledgeDocumentInput {
 
 export interface KnowledgeSearchInput {
   query: string
-  knowledgeBaseId: string
+  knowledgeBaseId?: string
 }
 
 export interface KnowledgeSearchHit {
@@ -84,7 +84,7 @@ export interface KnowledgeSearchHit {
 
 export interface KnowledgeAskInput {
   query: string
-  knowledgeBaseId: string
+  knowledgeBaseId?: string
   topK?: number
 }
 

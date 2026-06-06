@@ -3,15 +3,15 @@ import type { ConversationSummary } from '@/types'
 import ConversationListItem from './ConversationListItem.vue'
 
 defineProps<{
-  sessions: ConversationSummary[]
-  activeSessionId?: string
+  conversations: ConversationSummary[]
+  activeConversationId?: string
   loading?: boolean
-  getSessionTimeLabel: (value: string) => string
-  isSessionStreaming: (sessionId: string) => boolean
+  getConversationTimeLabel: (value: string) => string
+  isConversationStreaming: (conversationId: string) => boolean
 }>()
 
 defineEmits<{
-  select: [sessionId: string]
+  select: [conversationId: string]
 }>()
 </script>
 
@@ -24,14 +24,14 @@ defineEmits<{
         class="h-[72px] rounded-[16px] border border-[#f3f4f6] bg-white"
       />
     </template>
-    <template v-else-if="sessions.length">
+    <template v-else-if="conversations.length">
       <ConversationListItem
-        v-for="session in sessions"
-        :key="session.id"
-        :session="session"
-        :active="session.id === activeSessionId"
-        :streaming="isSessionStreaming(session.id)"
-        :time-label="getSessionTimeLabel(session.updatedAt)"
+        v-for="conversation in conversations"
+        :key="conversation.id"
+        :conversation="conversation"
+        :active="conversation.id === activeConversationId"
+        :streaming="isConversationStreaming(conversation.id)"
+        :time-label="getConversationTimeLabel(conversation.updatedAt)"
         @select="$emit('select', $event)"
       />
     </template>

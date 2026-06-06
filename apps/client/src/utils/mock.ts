@@ -18,7 +18,6 @@
   PipelineTask,
   PromptStrategy,
   ProviderConfig,
-  RetrievalCitation,
   SearchSuggestionGroup,
   SystemSettings,
   TraceDetail,
@@ -247,22 +246,20 @@ export const conversationSummaries: ConversationSummary[] = [
   }
 ]
 
-const financeCitations: RetrievalCitation[] = [
+const financeCitations = [
   {
-    id: 'cite-fin-1',
-    title: '差旅报销制度（2026 版）',
+    chunkId: 'cite-fin-1',
+    documentId: 'finance-travel-policy-v2026',
     documentName: 'finance-travel-policy-v2026.pdf',
-    chunkIndex: 12,
     content: '高铁二等座、经济舱与市内交通可报销；超过标准需直属主管审批并补充说明。',
-    score: 0.94
+    score: 94
   },
   {
-    id: 'cite-fin-2',
-    title: '发票与附件要求',
+    chunkId: 'cite-fin-2',
+    documentId: 'expense-attachments-checklist',
     documentName: 'expense-attachments-checklist.docx',
-    chunkIndex: 4,
     content: '住宿报销需上传行程单、发票、支付凭证；打车需提供电子发票与起终点说明。',
-    score: 0.9
+    score: 90
   }
 ]
 

@@ -1,4 +1,4 @@
-import {IsInt,IsString,Max,MaxLength,Min,IsOptional} from 'class-validator'
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
 import type {KnowledgeAskInput} from 'share-type/knowledge'
 
 export class AskKnowledgeDto implements KnowledgeAskInput {
@@ -6,8 +6,9 @@ export class AskKnowledgeDto implements KnowledgeAskInput {
   @MaxLength(200)
   query!: string
 
+  @IsOptional()
   @IsString()
-  knowledgeBaseId!: string
+  knowledgeBaseId?: string
 
   @IsOptional()
   @IsInt()

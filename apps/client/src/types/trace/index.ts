@@ -1,4 +1,5 @@
-import type { ExecutionStatus, RetrievalCitation, ToolCall } from '../chat'
+import type { ExecutionStatus, ToolCall } from '../chat'
+import type { KnowledgeSearchHit } from 'share-type'
 
 export interface TraceSummary {
   id: string
@@ -55,7 +56,7 @@ export interface TraceDetail {
   summary: TraceSummary
   steps: TraceStep[]
   nodes: TraceNode[]
-  citations: RetrievalCitation[]
+  citations: KnowledgeSearchHit[]
   toolExecutions: ToolExecution[]
   finalAnswer: string
   rawMeta: Record<string, unknown>

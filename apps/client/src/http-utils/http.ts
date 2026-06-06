@@ -1,5 +1,6 @@
 import type { ApiResult } from '@/types'
 import type { AxiosInstance } from 'axios'
+import type { AxiosRequestConfig } from 'axios'
 import type { Method } from 'axios'
 import axios from 'axios'
 export type SubmitData = object | FormData
@@ -33,14 +34,21 @@ const baseRequest = <T>(
     url:string,
     method:Method,
     submitData?:SubmitData,
+    config?: AxiosRequestConfig,
 ) =>{
     return http.request<any,ApiResult<T>>({
+      ...config,
       url,
       method,
       [method.toUpperCase() === 'GET'? 'params':'data']:submitData,
     })
 }
 
-export const request = <T>(url:string,method:Method = 'GET',submitData?:SubmitData) =>{
-    return baseRequest<T>(httpInstance,url,method,submitData)
+export const request = <T>(
+    url:string,
+    method:Method = 'GET',
+    submitData?:SubmitData,
+    config?: AxiosRequestConfig,
+) =>{
+    return baseRequest<T>(httpInstance,url,method,submitData,config)
 }

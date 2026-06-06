@@ -6,34 +6,24 @@ const routes: RouteRecordRaw[] = [
     redirect: '/workspace'
   },
   {
-    path: '/login',
-    name: 'login',
-    component: () => import('@/views/Login.vue'),
-    meta: {
-      appShell: 'auth',
-      title: '登录',
-      requiresAuth: false
-    }
-  },
-  {
     path: '/workspace',
     name: 'workspace',
     component: () => import('@/views/workspace/index.vue'),
     meta: {
       appShell: 'workspace',
       title: 'AI 工作台',
-      requiresAuth: true,
+      requiresAuth: false,
       navKey: 'workspace'
     }
   },
   {
-    path: '/workspace/:sessionId',
-    name: 'workspace-session',
+    path: '/workspace/:conversationId',
+    name: 'workspace-conversation',
     component: () => import('@/views/workspace/index.vue'),
     meta: {
       appShell: 'workspace',
       title: '会话详情',
-      requiresAuth: true,
+      requiresAuth: false,
       navKey: 'workspace'
     }
   },
@@ -42,7 +32,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/layouts/AdminLayout.vue'),
     meta: {
       appShell: 'admin',
-      requiresAuth: true
+      requiresAuth: false
     },
     children: [
       {
@@ -56,7 +46,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: 'Dashboard',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '导航',
           navKey: 'dashboard',
           breadcrumb: ['首页', 'Dashboard']
@@ -69,7 +59,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: '知识库管理',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '导航',
           navKey: 'knowledge',
           breadcrumb: ['首页', '知识库管理']
@@ -82,7 +72,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: '文档管理',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '导航',
           navKey: 'knowledge',
           breadcrumb: ['首页', '知识库管理', '文档管理']
@@ -95,7 +85,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: '文档详情',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '导航',
           navKey: 'knowledge',
           breadcrumb: ['首页', '知识库管理', '文档管理', '文档详情']
@@ -108,7 +98,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: '流水线任务',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '导航',
           navKey: 'ingestion',
           breadcrumb: ['首页', '流水线任务']
@@ -121,7 +111,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: '链路追踪',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '导航',
           navKey: 'traces',
           breadcrumb: ['首页', '链路追踪']
@@ -134,7 +124,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: '链路详情',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '导航',
           navKey: 'traces',
           breadcrumb: ['首页', '链路追踪', '链路详情']
@@ -147,7 +137,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           appShell: 'admin',
           title: 'Settings',
-          requiresAuth: true,
+          requiresAuth: false,
           navGroup: '设置',
           navKey: 'settings',
           breadcrumb: ['首页', 'Settings']
@@ -162,22 +152,7 @@ export const router = createRouter({
   routes
 })
 
-router.beforeEach((to) => {
-  const token = localStorage.getItem('demo-token')
-
-  if (!to.meta.requiresAuth) {
-    if (to.path === '/login' && token) {
-      return '/workspace'
-    }
-    return true
-  }
-
-  if (!token) {
-    return '/login'
-  }
-
-  return true
-})
+router.beforeEach(() => true)
 
 router.afterEach((to) => {
   const title = to.meta.title ?? 'AI Console'

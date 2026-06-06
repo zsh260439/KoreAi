@@ -73,7 +73,7 @@ const breadcrumbs = computed(() => {
 
 const handleLogout = () => {
   authStore.logout()
-  router.push('/login')
+  router.push('/workspace')
 }
 </script>
 

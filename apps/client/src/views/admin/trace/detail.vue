@@ -485,17 +485,17 @@ onMounted(async () => {
           <div v-if="detail.citations.length" class="trace-citation-list">
             <article
               v-for="citation in detail.citations"
-              :key="citation.id"
+              :key="citation.chunkId"
               class="trace-citation-card"
             >
               <div class="trace-citation-head">
                 <div>
-                  <p class="trace-citation-title">{{ citation.title }}</p>
+                  <p class="trace-citation-title">{{ citation.documentName || '知识片段' }}</p>
                   <p class="trace-citation-meta">
-                    {{ citation.documentName }} · Chunk #{{ citation.chunkIndex }}
+                    {{ citation.documentId }} · {{ citation.chunkId }}
                   </p>
                 </div>
-                <span class="trace-citation-score">{{ (citation.score * 100).toFixed(2) }}%</span>
+                <span class="trace-citation-score">{{ citation.score.toFixed(2) }}%</span>
               </div>
 
               <p class="trace-citation-content">{{ citation.content }}</p>

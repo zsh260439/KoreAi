@@ -1,4 +1,5 @@
 import type { AssistantResponseFlow, AssistantSearchResultItem } from './flow'
+import type { KnowledgeSearchHit } from 'share-type'
 
 export type ChatRole = 'user' | 'assistant' | 'system-summary'
 export type ChatMessageStatus = 'done' | 'streaming' | 'error'
@@ -30,19 +31,10 @@ export interface ToolCall {
   searchQuery?: string
   searchResults?: AssistantSearchResultItem[]
 }
-
+// 定义提示能力 默认不开启思考和搜索
 export interface PromptCapabilities {
   think: boolean
   search: boolean
-}
-
-export interface RetrievalCitation {
-  id: string
-  title: string
-  documentName: string
-  chunkIndex: number
-  content: string
-  score: number
 }
 
 export interface ChatMessage {
@@ -53,7 +45,7 @@ export interface ChatMessage {
   status: ChatMessageStatus
   responseFlow?: AssistantResponseFlow
   toolCalls?: ToolCall[]
-  citations?: RetrievalCitation[]
+  citations?: KnowledgeSearchHit[]
   traceId?: string
   model?: string
   latencyMs?: number

@@ -1,3 +1,3 @@
 import type { ApiResponse } from 'share-type'
 
-export type ApiResult<T> = Promise<ApiResponse<T>>
+export type ApiResult<T> = ApiResponse<T>

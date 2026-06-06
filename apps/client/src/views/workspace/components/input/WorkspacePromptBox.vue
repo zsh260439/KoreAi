@@ -3,22 +3,28 @@ import { ArrowUp, Brain, Paperclip, Square, X } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import type { PromptCapabilities } from '@/types'
+import type { KnowledgeBase } from 'share-type'
 
 type PromptSubmitPayload = {
   files: File[]
   message: string
   capabilities: PromptCapabilities
+  knowledgeBaseId?: string
 }
 
 const props = withDefaults(
   defineProps<{
     disabled?: boolean
+    knowledgeBases?: Pick<KnowledgeBase, 'id' | 'name'>[]
+    selectedKnowledgeBaseId?: string
     modelValue: string
     showHint?: boolean
     streaming?: boolean
   }>(),
   {
     disabled: false,
+    knowledgeBases: () => [],
+    selectedKnowledgeBaseId: '',
     showHint: false,
     streaming: false
   }
@@ -27,6 +33,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   submit: [payload: PromptSubmitPayload]
   stop: []
+  'update:selectedKnowledgeBaseId': [value: string]
   'update:modelValue': [value: string]
 }>()
 
@@ -85,6 +92,11 @@ const removeFile = (index: number) => {
   attachedFiles.value = attachedFiles.value.filter((_, fileIndex) => fileIndex !== index)
 }
 
+const updateSelectedKnowledgeBase = (event: Event) => {
+  const target = event.target as HTMLSelectElement
+  emit('update:selectedKnowledgeBaseId', target.value)
+}
+
 const updateValue = (event: Event) => {
   const target = event.target as HTMLTextAreaElement
   emit('update:modelValue', target.value)
@@ -111,7 +123,8 @@ const submit = () => {
   emit('submit', {
     files: [...attachedFiles.value],
     message: props.modelValue.trim(),
-    capabilities: promptCapabilities.value
+    capabilities: promptCapabilities.value,
+    knowledgeBaseId: props.selectedKnowledgeBaseId || undefined
   })
 
   attachedFiles.value = []
@@ -211,6 +224,24 @@ onMounted(() => {
     </div>
 
     <div class="mt-3 flex flex-wrap items-center gap-2 px-1">
+      <div class="relative">
+        <select
+          :value="selectedKnowledgeBaseId"
+          :disabled="disabled || streaming"
+          class="min-w-[180px] rounded-full border border-[#e6ebf2] bg-white px-4 py-2 text-[14px] text-[#475467] transition hover:border-[#d9e2ef] focus:border-[#dbe6ff] focus:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+          @change="updateSelectedKnowledgeBase"
+        >
+          <option value="">全库搜索（默认）</option>
+          <option
+            v-for="base in knowledgeBases"
+            :key="base.id"
+            :value="base.id"
+          >
+            {{ base.name }}
+          </option>
+        </select>
+      </div>
+
       <button
         type="button"
         class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45"

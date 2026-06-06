@@ -24,12 +24,14 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  regenerate: [messageId: string]
+  regenerate: []
 }>()
 
 const responseFlow = computed(() => props.message.responseFlow)
 const processExpanded = ref(false)
-const promptCapabilities = computed(() => props.message.promptCapabilities ?? { think: false, search: false })
+const promptCapabilities = computed(
+  () => props.message.promptCapabilities ?? { think: false, search: false }
+)
 
 const thinkingStages = computed(
   () =>
@@ -69,7 +71,9 @@ const isThinkingRunning = computed(() =>
   thinkingStages.value.some((stage) => stage.status === 'running')
 )
 
-const isAssistantWorking = computed(() => props.message.status === 'streaming' || isThinkingRunning.value)
+const isAssistantWorking = computed(
+  () => props.message.status === 'streaming' || isThinkingRunning.value
+)
 
 const processHeaderLabel = computed(() => {
   if (isAssistantWorking.value) {
@@ -87,7 +91,9 @@ const processSubLabel = computed(() => {
   return `用时 ${formatLatency(props.message.latencyMs)}`
 })
 
-const canToggleProcessDetails = computed(() => !isAssistantWorking.value && thinkingStages.value.length > 0)
+const canToggleProcessDetails = computed(
+  () => !isAssistantWorking.value && thinkingStages.value.length > 0
+)
 
 const showProcessDetails = computed(() => {
   if (!thinkingStages.value.length) {
@@ -275,7 +281,7 @@ function parseContent(content: string): RenderPart[] {
             type="button"
             :disabled="regenerating"
             class="text-[#7f8aa0] transition hover:text-[#4e79ff] disabled:cursor-not-allowed disabled:opacity-50"
-            @click="$emit('regenerate', message.id)"
+            @click="$emit('regenerate')"
           >
             重新生成
           </button>

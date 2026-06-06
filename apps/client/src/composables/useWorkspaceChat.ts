@@ -1,48 +1,27 @@
-import {
-  createConversation,
-  fetchTraceDetail,
-  fetchWorkspaceMessages,
-  fetchWorkspaceSessions,
-  generateAssistantReply
-} from '@/servers'
-import type { ChatMessage, ConversationSummary, PromptCapabilities, TraceDetail } from '@/types'
-import {
-  buildCompletedResponseFlow,
-  buildStreamingResponseFlow,
-  createThinkingPlaceholderFlow
-} from '@/utils'
+import { computed, ref } from 'vue'
+
+import { requestWorkspaceChatAPI } from '@/servers/workspace'
+import type {
+  ChatMessage,
+  ConversationSummary,
+  PromptCapabilities
+} from '@/types'
+import { useConversationList } from './useConversationList'
 
 const DEFAULT_PROMPT_CAPABILITIES: PromptCapabilities = {
   think: false,
   search: false
 }
 
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
-
-const typeText = async (
-  text: string,
-  apply: (partial: string) => void,
-  shouldStop: () => boolean,
-  chunkSize = 1,
-  delayMs = 18
-) => {
-  let pointer = 0
-
-  while (pointer < text.length) {
-    if (shouldStop()) {
-      return false
-    }
-
-    pointer += chunkSize
-    apply(text.slice(0, pointer))
-    await sleep(delayMs)
-  }
-
-  return true
+type ActiveChatRequest = {
+  conversationId: string
+  controller: AbortController
 }
+
+const contentListBySession = ref<Record<string, ChatMessage[]>>({})
+const activeRequest = ref<ActiveChatRequest | null>(null)
+const error = ref<string | null>(null)
+const regenerating = ref(false)
 
 const normalizePromptCapabilities = (
   promptCapabilities?: PromptCapabilities
@@ -60,9 +39,9 @@ const deriveSessionTitle = (content: string) => {
   return normalized.length > 12 ? `${normalized.slice(0, 12)}...` : normalized
 }
 
-const findLastUserMessageIndex = (messages: ChatMessage[]) => {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === 'user') {
+const findLastUserContentIndex = (contentList: ChatMessage[]) => {
+  for (let index = contentList.length - 1; index >= 0; index -= 1) {
+    if (contentList[index]?.role === 'user') {
       return index
     }
   }
@@ -70,457 +49,166 @@ const findLastUserMessageIndex = (messages: ChatMessage[]) => {
   return -1
 }
 
-const findUserMessageIndexBeforeAssistant = (messages: ChatMessage[], assistantMessageId: string) => {
-  const assistantIndex = messages.findIndex((message) => message.id === assistantMessageId)
-  if (assistantIndex <= 0) {
-    return -1
-  }
+export function useWorkspaceChat() {
+  // 左侧对话摘要列表
+  const conversationList = useConversationList()
+  // 某一个会话内所有的消息
+  const activeContentList = computed(
+    () => contentListBySession.value[conversationList.activeConversationId.value] ?? []
+  )
+  // 是否正在请求助手回复
+  const isStreaming = computed(() => activeRequest.value !== null)
+  // 左侧对话列表用来标记哪个对话正在生成
+  const isConversationStreaming = (conversationId: string) =>
+    activeRequest.value?.conversationId === conversationId
 
-  for (let index = assistantIndex - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === 'user') {
-      return index
-    }
-  }
-
-  return -1
-}
-
-const resolveThinkingStageTitle = (stageKey: string) => {
-  switch (stageKey) {
-    case 'deepsearch':
-      return '深度思考'
-    case 'llm_reasoning':
-    default:
-      return '思考过程'
-  }
-}
-
-const isWeatherSession = (sessionId: string) => sessionId === 'session-weather'
-
-type WorkspaceChatContext = {
-  sessions: ConversationSummary[]
-  messagesBySession: Record<string, ChatMessage[]>
-  activeSessionId: string
-  selectedTrace: TraceDetail | null
-  detailOpen: boolean
-  loading: boolean
-  error: string
-  streamingStateBySession: Record<string, { messageId: string; runId: number }>
-  streamingRunSeq: number
-  regenerating: boolean
-}
-
-type WorkspaceChatMutations = {
-  setSessions: (sessions: ConversationSummary[]) => void
-  setMessagesBySession: (messagesBySession: Record<string, ChatMessage[]>) => void
-  setActiveSessionId: (sessionId: string) => void
-  setSelectedTrace: (trace: TraceDetail | null) => void
-  setDetailOpen: (open: boolean) => void
-  setLoading: (loading: boolean) => void
-  setError: (error: string) => void
-  setStreamingStateBySession: (
-    state: Record<string, { messageId: string; runId: number }>
-  ) => void
-  setStreamingRunSeq: (seq: number) => void
-  setRegenerating: (regenerating: boolean) => void
-}
-
-type WorkspaceChatComputed = {
-  activeSession: ConversationSummary | null
-  isStreaming: boolean
-}
-
-export const useWorkspaceChat = (
-  context: WorkspaceChatContext,
-  mutations: WorkspaceChatMutations,
-  computedState: WorkspaceChatComputed
-) => {
-  const getMessageById = (sessionId: string, messageId: string) =>
-    (context.messagesBySession[sessionId] ?? []).find((item) => item.id === messageId)
-
-  const getStreamingState = (sessionId: string) => context.streamingStateBySession[sessionId] ?? null
-
-  const setStreamingState = (sessionId: string, messageId: string, runId: number) => {
-    mutations.setStreamingStateBySession({
-      ...context.streamingStateBySession,
-      [sessionId]: { messageId, runId }
-    })
-  }
-
-  const clearStreamingState = (sessionId: string, messageId?: string) => {
-    const current = context.streamingStateBySession[sessionId]
-    if (!current || (messageId && current.messageId !== messageId)) {
-      return
-    }
-
-    const nextState = { ...context.streamingStateBySession }
-    delete nextState[sessionId]
-    mutations.setStreamingStateBySession(nextState)
-  }
-
-  const isRunActive = (runId: number, sessionId: string, messageId: string) =>
-    getStreamingState(sessionId)?.runId === runId &&
-    getStreamingState(sessionId)?.messageId === messageId
-
-  const hydrateCompletedMessages = (messages: ChatMessage[]) =>
-    messages.map((message) =>
-      message.role === 'assistant'
-        ? {
-            ...message,
-            responseFlow: message.responseFlow ?? buildCompletedResponseFlow(message)
-          }
-        : message
-    )
-
-  const bootstrap = async (sessionId?: string) => {
-    mutations.setLoading(true)
-    mutations.setError('')
-
-    try {
-      const nextSessions = await fetchWorkspaceSessions()
-      mutations.setSessions(nextSessions)
-
-      const defaultSessionId =
-        nextSessions.find((item) => item.id === 'session-empty')?.id ?? nextSessions[0]?.id ?? ''
-
-      mutations.setActiveSessionId(
-        sessionId && nextSessions.some((item) => item.id === sessionId) ? sessionId : defaultSessionId
-      )
-
-      const nextMessagesBySession = { ...context.messagesBySession }
-
-      await Promise.all(
-        nextSessions.map(async (session) => {
-          const messages = await fetchWorkspaceMessages(session.id)
-          const hydratedMessages = hydrateCompletedMessages(messages)
-          nextMessagesBySession[session.id] = hydratedMessages
-          session.messageCount = hydratedMessages.length
-        })
-      )
-
-      mutations.setMessagesBySession(nextMessagesBySession)
-    } catch (caughtError) {
-      mutations.setError(caughtError instanceof Error ? caughtError.message : '加载工作台失败')
-    } finally {
-      mutations.setLoading(false)
-    }
-  }
-
-  const selectSession = async (sessionId: string) => {
-    mutations.setActiveSessionId(sessionId)
-    mutations.setSelectedTrace(null)
-    mutations.setDetailOpen(false)
-
-    if (!context.messagesBySession[sessionId]) {
-      const messages = await fetchWorkspaceMessages(sessionId)
-      const hydratedMessages = hydrateCompletedMessages(messages)
-      const nextMessagesBySession = {
-        ...context.messagesBySession,
-        [sessionId]: hydratedMessages
-      }
-
-      mutations.setMessagesBySession(nextMessagesBySession)
-
-      const session = context.sessions.find((item) => item.id === sessionId)
-      if (session) {
-        session.messageCount = hydratedMessages.length
-      }
-    }
-  }
-
-  const createNewSession = async () => {
-    const session = await createConversation('新对话')
-    mutations.setSessions([session, ...context.sessions])
-    mutations.setMessagesBySession({
-      ...context.messagesBySession,
-      [session.id]: []
-    })
-    mutations.setActiveSessionId(session.id)
-    return session
-  }
-
-  const openTrace = async (traceId?: string, openDrawer = true) => {
-    if (!traceId) {
-      mutations.setSelectedTrace(null)
-      mutations.setDetailOpen(false)
-      return
-    }
-
-    const trace = await fetchTraceDetail(traceId)
-    mutations.setSelectedTrace(trace)
-    mutations.setDetailOpen(openDrawer)
-  }
-
-  const finalizeStreamingMessage = (sessionId: string, messageId: string) => {
-    const target = getMessageById(sessionId, messageId)
-    if (!target) {
-      return
-    }
-
-    if (target.responseFlow) {
-      target.responseFlow.thinking = target.responseFlow.thinking.map((stage) => ({
-        ...stage,
-        title: resolveThinkingStageTitle(stage.stageKey),
-        status: stage.status === 'error' ? 'error' : 'done',
-        visibleContent: stage.visibleContent || stage.content
-      }))
-
-      target.responseFlow.answer.status = 'done'
-      target.responseFlow.answer.visibleContent = target.content || '回答已停止，最终内容未完全生成。'
-      target.responseFlow.showActions = true
-      target.content = target.responseFlow.answer.visibleContent
-    }
-
-    target.status = 'done'
-    clearStreamingState(sessionId, messageId)
-  }
-
-  const streamAssistantFlow = async (sessionId: string, messageId: string, runId: number) => {
-    const target = getMessageById(sessionId, messageId)
-    if (!target?.responseFlow) {
-      return
-    }
-
-    const flow = target.responseFlow
-    const weatherMode = isWeatherSession(sessionId)
-
-    for (let index = 0; index < flow.thinking.length; index += 1) {
-      const stage = flow.thinking[index]
-      stage.status = 'running'
-
-      await sleep(weatherMode ? (index === 0 ? 820 : 260) : index === 0 ? 360 : 140)
-
-      if (!isRunActive(runId, sessionId, messageId)) {
-        return
-      }
-
-      stage.title = resolveThinkingStageTitle(stage.stageKey)
-      const completed = await typeText(
-        stage.content,
-        (value) => {
-          stage.visibleContent = value
-        },
-        () => !isRunActive(runId, sessionId, messageId),
-        1,
-        weatherMode ? 26 : stage.stageKey === 'deepsearch' ? 16 : 20
-      )
-
-      if (!completed || !isRunActive(runId, sessionId, messageId)) {
-        return
-      }
-
-      stage.status = 'done'
-      await sleep(weatherMode ? 240 : 0)
-    }
-
-    if (!isRunActive(runId, sessionId, messageId)) {
-      return
-    }
-
-    if (weatherMode) {
-      await sleep(220)
-    }
-
-    flow.answer.status = 'running'
-    const answerCompleted = await typeText(
-      flow.answer.content,
-      (value) => {
-        flow.answer.visibleContent = value
-        target.content = value
-      },
-      () => !isRunActive(runId, sessionId, messageId),
-      1,
-      weatherMode ? 22 : 16
-    )
-
-    if (!answerCompleted || !isRunActive(runId, sessionId, messageId)) {
-      return
-    }
-
-    flow.answer.status = 'done'
-    flow.showActions = true
-    target.status = 'done'
-    clearStreamingState(sessionId, messageId)
-  }
-
-  const startAssistantReply = async (
-    session: ConversationSummary,
+  // 请求助手回复，并把结果回填到当前会话最后一条 assistant 占位消息
+  const runAssistantRequest = async (
+    conversation: ConversationSummary,
     content: string,
-    appendUserMessage: boolean,
-    lastUserMessageIndex?: number,
-    promptCapabilities?: PromptCapabilities
+    sessionContentList: ChatMessage[],
+    promptCapabilities?: PromptCapabilities,
+    knowledgeBaseId?: string
   ) => {
     const normalizedContent = content.trim()
     const normalizedCapabilities = normalizePromptCapabilities(promptCapabilities)
+    const assistantContentIndex = sessionContentList.length
 
-    if (!normalizedContent || getStreamingState(session.id)) {
-      return
-    }
-
-    const sessionMessages = [...(context.messagesBySession[session.id] ?? [])]
-
-    if (!appendUserMessage) {
-      const targetUserIndex = lastUserMessageIndex ?? findLastUserMessageIndex(sessionMessages)
-      if (targetUserIndex < 0) {
-        return
-      }
-      sessionMessages.splice(targetUserIndex + 1)
-    }
-
-    if (appendUserMessage) {
-      sessionMessages.push({
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content: normalizedContent,
-        createdAt: new Date().toISOString(),
-        status: 'done',
-        promptCapabilities: normalizedCapabilities
-      })
-    }
-
-    const placeholderId = `assistant-${Date.now() + 1}`
-    sessionMessages.push({
-      id: placeholderId,
+    sessionContentList.push({
+      id: `assistant-${Date.now() + 1}`,
       role: 'assistant',
       content: '',
       createdAt: new Date().toISOString(),
       status: 'streaming',
-      model: session.model,
-      promptCapabilities: normalizedCapabilities,
-      responseFlow: createThinkingPlaceholderFlow(normalizedCapabilities)
+      model: conversation.model,
+      promptCapabilities: normalizedCapabilities
     })
 
-    mutations.setMessagesBySession({
-      ...context.messagesBySession,
-      [session.id]: sessionMessages
-    })
-
-    if (appendUserMessage && session.messageCount === 0) {
-      session.title = deriveSessionTitle(normalizedContent)
+    contentListBySession.value = {
+      ...contentListBySession.value,
+      [conversation.id]: sessionContentList
     }
-    session.messageCount = sessionMessages.length
-    session.updatedAt = new Date().toISOString()
+    conversationList.updateConversation(conversation.id, {
+      title:
+        conversation.messageCount === 0 ? deriveSessionTitle(normalizedContent) : conversation.title,
+      messageCount: sessionContentList.length,
+      updatedAt: new Date().toISOString()
+    })
 
-    const runId = context.streamingRunSeq + 1
-    mutations.setStreamingRunSeq(runId)
-    setStreamingState(session.id, placeholderId, runId)
+    error.value = null
+    const controller = new AbortController()
+    activeRequest.value = {
+      conversationId: conversation.id,
+      controller
+    }
 
     try {
-      const reply = await generateAssistantReply(session.id, normalizedContent, normalizedCapabilities)
+      const response = await requestWorkspaceChatAPI(
+        {
+          query: normalizedContent,
+          knowledgeBaseId,
+          think: normalizedCapabilities.think
+        },
+        controller.signal
+      )
+      const result = response.data
 
-      if (!isRunActive(runId, session.id, placeholderId)) {
-        return
+      sessionContentList[assistantContentIndex] = {
+        ...sessionContentList[assistantContentIndex],
+        content: result?.answer ?? '',
+        status: 'done',
+        model: result?.model ?? 'AI',
+        citations: result?.sources ?? []
       }
-
-      const target = getMessageById(session.id, placeholderId)
-      if (!target) {
-        return
-      }
-
-      const hydratedReply: ChatMessage = {
-        ...reply,
-        promptCapabilities: normalizePromptCapabilities(reply.promptCapabilities ?? normalizedCapabilities)
-      }
-
-      Object.assign(target, hydratedReply, {
-        id: placeholderId,
-        content: '',
-        status: 'streaming',
-        responseFlow: buildStreamingResponseFlow(hydratedReply)
-      })
-
-      await streamAssistantFlow(session.id, placeholderId, runId)
     } catch (caughtError) {
-      const target = getMessageById(session.id, placeholderId)
-      if (target) {
-        const errorMessage = '生成回复时出现问题，请重试。'
-
-        target.status = 'error'
-        target.content = errorMessage
-        target.responseFlow = {
-          thinking: [
-            {
-              kind: 'thinking',
-              id: `${placeholderId}-thinking-error`,
-              stageKey: 'llm_reasoning',
-              title: '思考过程',
-              status: 'error',
-              content: errorMessage,
-              visibleContent: errorMessage
-            }
-          ],
-          tools: [],
-          answer: {
-            kind: 'answer',
-            title: '最终回答',
-            status: 'error',
-            content: errorMessage,
-            visibleContent: errorMessage
-          },
-          showActions: true
-        }
+      const stopped = controller.signal.aborted
+      sessionContentList[assistantContentIndex] = {
+        ...sessionContentList[assistantContentIndex],
+        status: 'error',
+        content: stopped ? '已停止生成。' : '生成回复时出现问题，请重试。'
       }
 
-      mutations.setError(caughtError instanceof Error ? caughtError.message : '发送消息失败')
-      clearStreamingState(session.id, placeholderId)
+      if (!stopped) {
+        error.value = caughtError instanceof Error ? caughtError.message : '发送消息失败'
+      }
+    } finally {
+      contentListBySession.value = {
+        ...contentListBySession.value,
+        [conversation.id]: sessionContentList
+      }
+      conversationList.updateConversation(conversation.id, {
+        messageCount: sessionContentList.length,
+        updatedAt: new Date().toISOString()
+      })
+      activeRequest.value = null
     }
   }
 
-  const sendMessage = async (content: string, promptCapabilities?: PromptCapabilities) => {
-    const session = computedState.activeSession
-    if (!session) {
-      return
-    }
+  const sendMessage = async (
+    content: string,
+    promptCapabilities?: PromptCapabilities,
+    knowledgeBaseId?: string
+  ) => {
+    const normalizedContent = content.trim()
+    if (!normalizedContent || activeRequest.value) return
 
-    await startAssistantReply(session, content, true, undefined, promptCapabilities)
+    const conversation =
+      conversationList.activeConversation.value ?? conversationList.createConversation()
+    const normalizedCapabilities = normalizePromptCapabilities(promptCapabilities)
+    const sessionContentList = [...(contentListBySession.value[conversation.id] ?? [])]
+
+    sessionContentList.push({
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: normalizedContent,
+      createdAt: new Date().toISOString(),
+      status: 'done',
+      promptCapabilities: normalizedCapabilities
+    })
+
+    await runAssistantRequest(
+      conversation,
+      normalizedContent,
+      sessionContentList,
+      normalizedCapabilities,
+      knowledgeBaseId
+    )
   }
 
   const stopStreaming = () => {
-    const sessionId = context.activeSessionId
-    const messageId = getStreamingState(sessionId)?.messageId
-
-    if (!sessionId || !messageId) {
-      return
-    }
-
-    finalizeStreamingMessage(sessionId, messageId)
+    activeRequest.value?.controller.abort()
   }
 
-  const regenerateLastAnswer = async (assistantMessageId?: string) => {
-    const session = computedState.activeSession
-    if (!session || computedState.isStreaming || context.regenerating) {
-      return
-    }
+  const regenerateLastAnswer = async (knowledgeBaseId?: string) => {
+    const conversation = conversationList.activeConversation.value
+    if (!conversation || activeRequest.value || regenerating.value) return
 
-    const sessionMessages = context.messagesBySession[session.id] ?? []
-    const lastUserMessageIndex = assistantMessageId
-      ? findUserMessageIndexBeforeAssistant(sessionMessages, assistantMessageId)
-      : findLastUserMessageIndex(sessionMessages)
-    const currentLastUserMessage =
-      lastUserMessageIndex >= 0 ? sessionMessages[lastUserMessageIndex] : null
-    if (!currentLastUserMessage) {
-      return
-    }
+    const sessionContentList = contentListBySession.value[conversation.id] ?? []
+    const lastUserContentIndex = findLastUserContentIndex(sessionContentList)
+    const lastUserContent =
+      lastUserContentIndex >= 0 ? sessionContentList[lastUserContentIndex] : null
+    if (!lastUserContent) return
 
-    mutations.setRegenerating(true)
+    regenerating.value = true
     try {
-      await startAssistantReply(
-        session,
-        currentLastUserMessage.content,
-        false,
-        lastUserMessageIndex,
-        currentLastUserMessage.promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES
+      await runAssistantRequest(
+        conversation,
+        lastUserContent.content,
+        sessionContentList.slice(0, lastUserContentIndex + 1),
+        lastUserContent.promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES,
+        knowledgeBaseId
       )
     } finally {
-      mutations.setRegenerating(false)
+      regenerating.value = false
     }
   }
 
   return {
-    bootstrap,
-    selectSession,
-    createNewSession,
-    openTrace,
+    activeContentList,
+    isStreaming,
+    error,
+    regenerating,
+    isConversationStreaming,
     sendMessage,
     stopStreaming,
     regenerateLastAnswer

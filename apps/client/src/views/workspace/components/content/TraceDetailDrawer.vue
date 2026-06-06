@@ -442,12 +442,14 @@ watch(
             <div class="space-y-4">
               <div
                 v-for="citation in trace.citations"
-                :key="citation.id"
+                :key="citation.chunkId"
                 class="rounded-[16px] border border-[#edf1f6] bg-white p-4"
               >
-                <p class="text-[14px] font-medium text-[#111827]">{{ citation.title }}</p>
+                <p class="text-[14px] font-medium text-[#111827]">
+                  {{ citation.documentName || '知识片段' }}
+                </p>
                 <p class="mt-1 text-[12px] text-[#8a94a6]">
-                  {{ citation.documentName }} / Chunk {{ citation.chunkIndex }}
+                  {{ citation.documentId }} / {{ citation.chunkId }}
                 </p>
                 <p class="mt-3 whitespace-pre-wrap text-[14px] leading-7 text-[#374151]">
                   {{ citation.content }}
