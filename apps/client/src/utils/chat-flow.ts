@@ -1,161 +1,102 @@
-import type {
-  AssistantResponseFlow,
-  AssistantThinkingStage,
-  AssistantToolIconKey,
-  AssistantToolStage,
-  AssistantToolStep,
-  ChatMessage,
-  ToolCall
-} from '@/types'
+import type { AssistantResponseFlow, AssistantThinkingStage, ChatMessage } from '@/types'
 
-const toolMetaMap: Record<
-  string,
-  {
-    title: string
-    subtitle: string
-    iconKey: AssistantToolIconKey
-  }
-> = {
-  knowledge_search: {
-    title: '知识库检索',
-    subtitle: '从知识库中检索相关片段',
-    iconKey: 'knowledge'
-  },
-  time_lookup: {
-    title: '时间解析',
-    subtitle: '解析相对时间并确认目标时段',
-    iconKey: 'time'
-  },
-  weather_lookup: {
-    title: '天气查询',
-    subtitle: '获取目标时段的天气信息',
-    iconKey: 'weather'
-  },
-  web_search_mcp: {
-    title: '联网搜索',
-    subtitle: '通过搜索补充外部信息',
-    iconKey: 'search'
-  },
-  deepsearch_reasoner: {
-    title: '深度思考',
-    subtitle: '在回答前延长推理链路',
-    iconKey: 'thinking'
-  }
-}
-
-const isWeatherMeetingFlow = (message: ChatMessage) =>
-  message.traceId === 'trace-weather-002' ||
-  Boolean(message.toolCalls?.some((tool) => tool.name === 'weather_lookup'))
+const isWeatherMeetingFlow = (message: ChatMessage) => message.traceId === 'trace-weather-002'
 
 const shouldRenderThinking = (message: ChatMessage) => Boolean(message.promptCapabilities?.think)
 
-const buildThinkingContent = (message: ChatMessage) => {
-  const capabilities = message.promptCapabilities ?? { think: false, search: false }
-
-  if (isWeatherMeetingFlow(message)) {
-    return {
-      stageKey: 'llm_reasoning' as const,
-      title: '思考过程',
-      subtitle: '先确认时间窗口，再评估降雨风险并转成会务建议',
-      content:
-        '系统会先解析“明天下午”对应的具体时间窗口，并确认使用 Asia/Shanghai 时区；再查询上海未来 24 小时的小时级天气，重点关注 14:00 到 17:00 的降水概率、降雨类型和变化趋势；最后把天气风险转成会务建议，判断是否需要提前保留线上会议链接，并在通知中说明遇雨时切换为线上方案。'
-    }
+const buildWeatherThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => [
+  {
+    kind: 'thinking',
+    id: `${message.id}-thinking-1`,
+    stageKey: 'llm_reasoning',
+    title: '理解问题',
+    subtitle: '先锁定时间窗口和目标场景',
+    status: 'done',
+    content:
+      '先把“明天下午”映射成明确的会务时间范围，并确认这个问题的目标不是泛泛查天气，而是要给会务安排提供可执行建议。',
+    visibleContent:
+      '先把“明天下午”映射成明确的会务时间范围，并确认这个问题的目标不是泛泛查天气，而是要给会务安排提供可执行建议。'
+  },
+  {
+    kind: 'thinking',
+    id: `${message.id}-thinking-2`,
+    stageKey: 'deepsearch',
+    title: '收敛判断',
+    subtitle: '围绕降雨风险提炼关键决策点',
+    status: 'done',
+    content:
+      '继续把注意力收敛到会务真正关心的风险点上：是否下雨、影响是否集中在会议时段、是否需要提前准备线上兜底方案。',
+    visibleContent:
+      '继续把注意力收敛到会务真正关心的风险点上：是否下雨、影响是否集中在会议时段、是否需要提前准备线上兜底方案。'
+  },
+  {
+    kind: 'thinking',
+    id: `${message.id}-thinking-3`,
+    stageKey: 'llm_reasoning',
+    title: '组织回答',
+    subtitle: '把判断转成可执行建议',
+    status: 'done',
+    content:
+      '最后不直接堆天气结论，而是转成会前通知、线上链接保留和遇雨切换说明这类更适合业务执行的表达。',
+    visibleContent:
+      '最后不直接堆天气结论，而是转成会前通知、线上链接保留和遇雨切换说明这类更适合业务执行的表达。'
   }
+]
 
-  if (capabilities.think && capabilities.search) {
-    return {
-      stageKey: 'deepsearch' as const,
-      title: '深度思考',
-      subtitle: '先拆解问题，再决定后续工具调用',
-      content:
-        '系统会先拆解问题目标与约束，延长推理链路，再结合联网搜索补充外部信息，最后整理成一版更完整的回答。'
-    }
+const buildDefaultThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => [
+  {
+    kind: 'thinking',
+    id: `${message.id}-thinking-1`,
+    stageKey: 'deepsearch',
+    title: '拆解问题',
+    subtitle: '先把问题拆成更小的子目标',
+    status: 'done',
+    content:
+      '先判断用户到底要结果、解释还是方案，再把原问题拆成几个更容易处理的小问题，避免一开始就直接拼答案。',
+    visibleContent:
+      '先判断用户到底要结果、解释还是方案，再把原问题拆成几个更容易处理的小问题，避免一开始就直接拼答案。'
+  },
+  {
+    kind: 'thinking',
+    id: `${message.id}-thinking-2`,
+    stageKey: 'llm_reasoning',
+    title: '收敛重点',
+    subtitle: '筛掉噪音，只保留关键判断',
+    status: 'done',
+    content:
+      '把拆出来的信息重新归并，筛掉对回答帮助不大的分支，只保留真正影响结论的关键点和约束。',
+    visibleContent:
+      '把拆出来的信息重新归并，筛掉对回答帮助不大的分支，只保留真正影响结论的关键点和约束。'
+  },
+  {
+    kind: 'thinking',
+    id: `${message.id}-thinking-3`,
+    stageKey: 'llm_reasoning',
+    title: '组织表达',
+    subtitle: '把结论整理成易读输出',
+    status: 'done',
+    content:
+      '最后再把关键判断整理成更完整的回答，保证结果是连贯的，而不是只把中间推理碎片直接抛给用户。',
+    visibleContent:
+      '最后再把关键判断整理成更完整的回答，保证结果是连贯的，而不是只把中间推理碎片直接抛给用户。'
   }
-
-  if (capabilities.think) {
-    return {
-      stageKey: 'deepsearch' as const,
-      title: '深度思考',
-      subtitle: '先拆解问题，再组织回答',
-      content: '系统会先把问题拆成更小的子问题，收敛出关键判断，再组织成更完整的回答。'
-    }
-  }
-
-  return {
-    stageKey: 'llm_reasoning' as const,
-    title: '思考过程',
-    subtitle: '结合上下文整理回答',
-    content: '系统会先理解当前上下文，再直接组织回答内容。'
-  }
-}
+]
 
 const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
+  if (isWeatherMeetingFlow(message)) {
+    return buildWeatherThinkingStages(message)
+  }
+
   if (!shouldRenderThinking(message)) {
     return []
   }
 
-  const thinking = buildThinkingContent(message)
-
-  return [
-    {
-      kind: 'thinking',
-      id: `${message.id}-thinking`,
-      stageKey: thinking.stageKey,
-      title: thinking.title,
-      subtitle: thinking.subtitle,
-      status: 'done',
-      content: thinking.content,
-      visibleContent: thinking.content
-    }
-  ]
-}
-
-const buildToolSteps = (toolCall: ToolCall): AssistantToolStep[] =>
-  (toolCall.steps ?? []).map((label, index) => ({
-    id: `${toolCall.id}-step-${index + 1}`,
-    label,
-    status: 'success'
-  }))
-
-const buildToolStage = (toolCall: ToolCall): AssistantToolStage => {
-  const meta = toolMetaMap[toolCall.name] ?? {
-    title: toolCall.name,
-    subtitle: toolCall.summary || '工具执行',
-    iconKey: 'generic' as const
-  }
-
-  return {
-    kind: 'tool',
-    id: toolCall.id,
-    toolName: toolCall.name,
-    title: meta.title,
-    subtitle: toolCall.summary || meta.subtitle,
-    iconKey: meta.iconKey,
-    status: 'done',
-    inputLabel: '工具输入',
-    input: toolCall.inputPreview,
-    visibleInput: toolCall.inputPreview,
-    outputLabel: '工具输出',
-    output: toolCall.outputPreview,
-    visibleOutput: toolCall.outputPreview,
-    durationMs: toolCall.durationMs,
-    steps: buildToolSteps(toolCall),
-    showInput: true,
-    showSteps: true,
-    showOutput: true,
-    presentation:
-      toolCall.presentation === 'compact-search' || toolCall.name === 'web_search_mcp'
-        ? 'compact-search'
-        : 'default',
-    searchQuery: toolCall.searchQuery,
-    resultCount: toolCall.resultCount ?? toolCall.searchResults?.length ?? 0,
-    searchResults: toolCall.searchResults ?? []
-  }
+  return buildDefaultThinkingStages(message)
 }
 
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
   thinking: buildThinkingStages(message),
-  tools: (message.toolCalls ?? []).map(buildToolStage),
+  tools: [],
   answer: {
     kind: 'answer',
     title: '最终回答',
@@ -176,19 +117,7 @@ export const buildStreamingResponseFlow = (message: ChatMessage): AssistantRespo
       status: 'running',
       visibleContent: ''
     })),
-    tools: completed.tools.map((tool) => ({
-      ...tool,
-      status: 'pending',
-      visibleInput: '',
-      visibleOutput: '',
-      showInput: false,
-      showSteps: false,
-      showOutput: false,
-      steps: tool.steps.map((step) => ({
-        ...step,
-        status: 'pending'
-      }))
-    })),
+    tools: [],
     answer: {
       ...completed.answer,
       status: 'pending',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Brain, Paperclip, Search, Square, X } from 'lucide-vue-next'
+import { ArrowUp, Brain, Paperclip, Square, X } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import type { PromptCapabilities } from '@/types'
@@ -34,29 +34,20 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const attachedFiles = ref<File[]>([])
 const thinkEnabled = ref(false)
-const searchEnabled = ref(false)
 
 const promptCapabilities = computed<PromptCapabilities>(() => ({
   think: thinkEnabled.value,
-  search: searchEnabled.value
+  search: false
 }))
 
 const hasContent = computed(() => props.modelValue.trim().length > 0 || attachedFiles.value.length > 0)
 
 const currentPlaceholder = computed(() => {
-  if (thinkEnabled.value && searchEnabled.value) {
-    return '结合深度思考和联网搜索发起提问...'
-  }
-
   if (thinkEnabled.value) {
     return '发起需要更长推理链路的问题...'
   }
 
-  if (searchEnabled.value) {
-    return '发起需要联网补充外部信息的问题...'
-  }
-
-  return 'Ask anything'
+  return '输入问题，直接开始对话...'
 })
 
 const resizeTextarea = async () => {
@@ -105,14 +96,6 @@ const toggleThinkMode = () => {
   }
 
   thinkEnabled.value = !thinkEnabled.value
-}
-
-const toggleSearchMode = () => {
-  if (props.disabled || props.streaming) {
-    return
-  }
-
-  searchEnabled.value = !searchEnabled.value
 }
 
 const submit = () => {
@@ -241,21 +224,6 @@ onMounted(() => {
       >
         <Brain class="size-4 shrink-0" />
         <span>深度思考</span>
-      </button>
-
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45"
-        :class="
-          searchEnabled
-            ? 'border-[#dbe6ff] bg-[#eef4ff] text-[#23416e]'
-            : 'border-[#e6ebf2] bg-white text-[#475467] hover:border-[#d9e2ef] hover:bg-[#f8fafc] hover:text-[#111827]'
-        "
-        :disabled="disabled || streaming"
-        @click="toggleSearchMode"
-      >
-        <Search class="size-4 shrink-0" />
-        <span>联网搜索</span>
       </button>
     </div>
   </div>

@@ -5,11 +5,10 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useAutoScroll } from '@/composables/useAutoScroll'
 import { useAuthStore, useWorkspaceStore } from '@/stores'
-import type { AssistantToolStage, PromptCapabilities } from '@/types'
+import type { PromptCapabilities } from '@/types'
 import ChatMessageBubble from './components/ChatMessageBubble.vue'
 import ConversationList from './components/ConversationList.vue'
 import WorkspacePromptBox from './components/WorkspacePromptBox.vue'
-import WorkspaceSearchResultDrawer from './components/WorkspaceSearchResultDrawer.vue'
 import WorkspaceSidebarBrand from './components/WorkspaceSidebarBrand.vue'
 
 const route = useRoute()
@@ -18,8 +17,6 @@ const workspaceStore = useWorkspaceStore()
 const authStore = useAuthStore()
 
 const composerValue = ref('')
-const searchResultDrawerOpen = ref(false)
-const activeSearchTool = ref<AssistantToolStage | null>(null)
 const chatAutoScroll = useAutoScroll(32)
 
 const activeSession = computed(() => workspaceStore.activeSession)
@@ -127,11 +124,6 @@ const handleComposerSubmit = (payload: {
 
   composerValue.value = ''
   void handleSend(nextMessage, payload.capabilities)
-}
-
-const handleOpenSearchResults = (tool: AssistantToolStage) => {
-  activeSearchTool.value = tool
-  searchResultDrawerOpen.value = true
 }
 
 const openAdmin = () => {
@@ -267,7 +259,6 @@ onMounted(async () => {
                   :message="message"
                   :show-meta="message.role === 'assistant'"
                   :regenerating="workspaceStore.regenerating"
-                  @open-search-results="handleOpenSearchResults"
                   @regenerate="workspaceStore.regenerateLastAnswer"
                 />
               </div>
@@ -277,8 +268,7 @@ onMounted(async () => {
               <div class="space-y-3 text-[14px] leading-[1.6] text-[#111827]">
                 <p>你好，我是工作台助手。你可以直接输入问题开始演示。</p>
                 <p>
-                  这里只做前端样式和前端流程展示，不对接后端。发送后会按“思考过程 ->
-                  工具执行 -> 正文回答”的顺序展示。
+                  这里保留两种主线：开启深度思考时先展示思考过程，再输出回答；关闭后直接返回结果。
                 </p>
                 <pre class="overflow-x-auto rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[13px] leading-6 text-[#374151]"><code>// 示例
 const greet = (name: string): string =&gt; `你好，${name}`
@@ -339,12 +329,6 @@ console.log(greet('世界'))</code></pre>
         </div>
       </aside>
     </el-drawer>
-
-    <WorkspaceSearchResultDrawer
-      :open="searchResultDrawerOpen"
-      :results="activeSearchTool?.searchResults ?? []"
-      @update:open="searchResultDrawerOpen = $event"
-    />
   </main>
 </template>
 

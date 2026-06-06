@@ -1,21 +1,10 @@
 <script setup lang="ts">
-import {
-  Brain,
-  Check,
-  ChevronRight,
-  Clock3,
-  Cloud,
-  LoaderCircle,
-  Search,
-  Sparkles,
-  Wrench
-} from 'lucide-vue-next'
+import { ChevronRight, LoaderCircle } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import ShiningText from '@/components/ui/ShiningText.vue'
-import type { AssistantToolStage, ChatMessage } from '@/types'
+import type { ChatMessage } from '@/types'
 import WorkspaceMark from './WorkspaceMark.vue'
-import WorkspaceSearchCompactRow from './WorkspaceSearchCompactRow.vue'
 
 type RenderPart =
   | {
@@ -34,56 +23,18 @@ const props = defineProps<{
   regenerating?: boolean
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   regenerate: [messageId: string]
-  openSearchResults: [tool: AssistantToolStage]
 }>()
 
 const responseFlow = computed(() => props.message.responseFlow)
 const processExpanded = ref(false)
-
-const toolIconMap = {
-  knowledge: Search,
-  time: Clock3,
-  weather: Cloud,
-  search: Search,
-  thinking: Brain,
-  generic: Wrench
-} as const
-
 const promptCapabilities = computed(() => props.message.promptCapabilities ?? { think: false, search: false })
 
 const thinkingStages = computed(
   () =>
     responseFlow.value?.thinking.filter(
       (stage) => stage.status !== 'pending' || stage.visibleContent || stage.content
-    ) ?? []
-)
-
-const compactSearchStages = computed(
-  () =>
-    responseFlow.value?.tools.filter(
-      (tool) =>
-        tool.presentation === 'compact-search' &&
-        (tool.status !== 'pending' ||
-          tool.showInput ||
-          tool.showOutput ||
-          tool.visibleInput ||
-          tool.visibleOutput)
-    ) ?? []
-)
-
-const toolStages = computed(
-  () =>
-    responseFlow.value?.tools.filter(
-      (tool) =>
-        tool.presentation !== 'compact-search' &&
-        (tool.status !== 'pending' ||
-          tool.showInput ||
-          tool.showSteps ||
-          tool.showOutput ||
-          tool.visibleInput ||
-          tool.visibleOutput)
     ) ?? []
 )
 
@@ -118,68 +69,28 @@ const isThinkingRunning = computed(() =>
   thinkingStages.value.some((stage) => stage.status === 'running')
 )
 
-const isToolRunning = computed(() =>
-  [...toolStages.value, ...compactSearchStages.value].some((tool) => tool.status === 'running')
-)
-
-const isAssistantWorking = computed(
-  () => props.message.status === 'streaming' || isThinkingRunning.value || isToolRunning.value
-)
-
-const totalToolCount = computed(() => toolStages.value.length + compactSearchStages.value.length)
+const isAssistantWorking = computed(() => props.message.status === 'streaming' || isThinkingRunning.value)
 
 const processHeaderLabel = computed(() => {
   if (isAssistantWorking.value) {
-    if (promptCapabilities.value.think) {
-      return 'KoreAI is thinking...'
-    }
-
-    if (promptCapabilities.value.search) {
-      return 'KoreAI is extracting...'
-    }
-
-    if (totalToolCount.value > 0) {
-      return 'KoreAI is using tools...'
-    }
-
-    return 'KoreAI is responding...'
+    return 'KoreAI is thinking...'
   }
 
-  if (promptCapabilities.value.think) {
-    return '已完成思考'
-  }
-
-  if (promptCapabilities.value.search) {
-    return '已完成搜索提取'
-  }
-
-  if (totalToolCount.value > 0) {
-    return '已完成工具调用'
-  }
-
-  return '已完成响应'
+  return '已完成思考'
 })
 
 const processSubLabel = computed(() => {
-  const parts: string[] = []
-
-  if (props.message.latencyMs) {
-    parts.push(`用时 ${formatLatency(props.message.latencyMs)}`)
+  if (!props.message.latencyMs) {
+    return ''
   }
 
-  if (totalToolCount.value > 0) {
-    parts.push(`${totalToolCount.value} 个工具`)
-  }
-
-  return parts.join(' · ')
+  return `用时 ${formatLatency(props.message.latencyMs)}`
 })
 
-const canToggleProcessDetails = computed(
-  () => !isAssistantWorking.value && (thinkingStages.value.length > 0 || toolStages.value.length > 0)
-)
+const canToggleProcessDetails = computed(() => !isAssistantWorking.value && thinkingStages.value.length > 0)
 
 const showProcessDetails = computed(() => {
-  if (!thinkingStages.value.length && !toolStages.value.length) {
+  if (!thinkingStages.value.length) {
     return false
   }
 
@@ -190,27 +101,15 @@ const showProcessDetails = computed(() => {
   return processExpanded.value
 })
 
-const showProcessSection = computed(
-  () =>
-    thinkingStages.value.length > 0 ||
-    toolStages.value.length > 0 ||
-    compactSearchStages.value.length > 0
-)
+const showProcessSection = computed(() => thinkingStages.value.length > 0)
 
 const showAnswerSection = computed(
-  () => answerStatus.value === 'running' || answerStatus.value === 'done' || answerParts.value.length > 0
+  () =>
+    answerStatus.value === 'running' ||
+    answerStatus.value === 'done' ||
+    answerParts.value.length > 0 ||
+    (answerStatus.value === 'pending' && !thinkingStages.value.length)
 )
-
-const getToolIcon = (tool: AssistantToolStage) => toolIconMap[tool.iconKey] ?? Wrench
-
-const getStatusText = (status: string) => {
-  if (status === 'running') return '执行中'
-  if (status === 'error') return '异常'
-  return '完成'
-}
-
-const getCompactSearchCount = (tool: AssistantToolStage) =>
-  tool.resultCount ?? tool.searchResults?.length ?? 0
 
 const formatLatency = (latencyMs?: number) => `${((latencyMs || 0) / 1000).toFixed(1)} 秒`
 
@@ -220,14 +119,6 @@ const toggleProcessDetails = () => {
   }
 
   processExpanded.value = !processExpanded.value
-}
-
-const openSearchResults = (tool: AssistantToolStage) => {
-  if (!tool.searchResults?.length) {
-    return
-  }
-
-  emit('openSearchResults', tool)
 }
 
 function parseContent(content: string): RenderPart[] {
@@ -342,71 +233,8 @@ function parseContent(content: string): RenderPart[] {
                   />
                 </div>
               </div>
-
-              <div
-                v-for="tool in toolStages"
-                :key="tool.id"
-                class="relative border-l border-[#eceff4] pl-5"
-              >
-                <div
-                  class="absolute left-[-6px] top-1.5 flex size-3 items-center justify-center rounded-full bg-white"
-                >
-                  <span class="size-2 rounded-full bg-[#111827]" />
-                </div>
-
-                <div class="rounded-[18px] bg-[#f7f8fa] px-4 py-3">
-                  <div class="flex items-center gap-2 text-[13px] text-[#667085]">
-                    <component :is="getToolIcon(tool)" class="size-4 text-[#111827]" />
-                    <span class="font-medium text-[#4b5565]">{{ tool.title }}</span>
-                    <span class="text-[#98a2b3]">{{ getStatusText(tool.status) }}</span>
-                    <LoaderCircle
-                      v-if="tool.status === 'running'"
-                      class="size-3.5 animate-spin text-[#111827]"
-                    />
-                  </div>
-
-                  <div v-if="tool.visibleInput" class="mt-2 text-[14px] leading-7 text-[#475467]">
-                    <span class="text-[#98a2b3]">输入：</span>{{ tool.visibleInput }}
-                  </div>
-
-                  <div v-if="tool.showSteps && tool.steps.length" class="mt-3 space-y-2">
-                    <div
-                      v-for="step in tool.steps"
-                      :key="step.id"
-                      class="flex items-start gap-2 text-[14px] leading-7 text-[#475467]"
-                    >
-                      <div class="mt-[7px] flex size-4 shrink-0 items-center justify-center">
-                        <LoaderCircle
-                          v-if="step.status === 'running'"
-                          class="size-3.5 animate-spin text-[#111827]"
-                        />
-                        <Check
-                          v-else-if="step.status === 'success'"
-                          class="size-3.5 text-[#111827]"
-                        />
-                        <Sparkles v-else class="size-3 text-[#98a2b3]" />
-                      </div>
-                      <span>{{ step.label }}</span>
-                    </div>
-                  </div>
-
-                  <div v-if="tool.visibleOutput" class="mt-3 text-[14px] leading-7 text-[#475467]">
-                    <span class="text-[#98a2b3]">结果：</span>{{ tool.visibleOutput }}
-                  </div>
-                </div>
-              </div>
             </div>
           </transition>
-
-          <div v-if="compactSearchStages.length" class="space-y-2">
-            <WorkspaceSearchCompactRow
-              v-for="tool in compactSearchStages"
-              :key="tool.id"
-              :count="getCompactSearchCount(tool)"
-              :active="tool.status === 'running'"
-              @click="openSearchResults(tool)"
-            />
-          </div>
         </section>
 
         <section v-if="showAnswerSection" class="px-1 pt-1 text-[15px] leading-8 text-slate-900">
@@ -431,7 +259,7 @@ function parseContent(content: string): RenderPart[] {
 
           <div v-else class="flex items-center gap-2 text-sm text-slate-500">
             <LoaderCircle class="size-4 animate-spin" />
-            正在生成回答...
+            {{ promptCapabilities.think ? '正在整理回答...' : '正在生成回答...' }}
           </div>
         </section>
 

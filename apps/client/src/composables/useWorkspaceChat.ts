@@ -48,7 +48,7 @@ const normalizePromptCapabilities = (
   promptCapabilities?: PromptCapabilities
 ): PromptCapabilities => ({
   think: Boolean(promptCapabilities?.think),
-  search: Boolean(promptCapabilities?.search)
+  search: false
 })
 
 const deriveSessionTitle = (content: string) => {
@@ -89,8 +89,6 @@ const resolveThinkingStageTitle = (stageKey: string) => {
   switch (stageKey) {
     case 'deepsearch':
       return '深度思考'
-    case 'web_search':
-      return '搜索前分析'
     case 'llm_reasoning':
     default:
       return '思考过程'
@@ -267,25 +265,6 @@ export const useWorkspaceChat = (
         visibleContent: stage.visibleContent || stage.content
       }))
 
-      target.responseFlow.tools = target.responseFlow.tools.map((tool) => ({
-        ...tool,
-        status: tool.status === 'error' ? 'error' : 'done',
-        showInput: true,
-        showSteps: true,
-        showOutput: true,
-        visibleInput: tool.visibleInput || tool.input,
-        visibleOutput: tool.visibleOutput || tool.output,
-        steps: tool.steps.map((step) => ({
-          ...step,
-          status:
-            step.status === 'pending'
-              ? 'success'
-              : step.status === 'running'
-                ? 'success'
-                : step.status
-        }))
-      }))
-
       target.responseFlow.answer.status = 'done'
       target.responseFlow.answer.visibleContent = target.content || '回答已停止，最终内容未完全生成。'
       target.responseFlow.showActions = true
@@ -332,91 +311,6 @@ export const useWorkspaceChat = (
 
       stage.status = 'done'
       await sleep(weatherMode ? 240 : 0)
-    }
-
-    for (const tool of flow.tools) {
-      if (!isRunActive(runId, sessionId, messageId)) {
-        return
-      }
-
-      tool.status = 'running'
-      await sleep(weatherMode ? 280 : 160)
-
-      if (tool.presentation === 'compact-search') {
-        tool.showInput = true
-        tool.showOutput = true
-        tool.visibleInput = tool.input
-        tool.visibleOutput = tool.output
-
-        for (let index = 0; index < tool.steps.length; index += 1) {
-          if (!isRunActive(runId, sessionId, messageId)) {
-            return
-          }
-
-          const step = tool.steps[index]
-          step.status = 'running'
-          await sleep(weatherMode ? 520 : index === tool.steps.length - 1 ? 420 : 220)
-          step.status = 'success'
-        }
-
-        if (!isRunActive(runId, sessionId, messageId)) {
-          return
-        }
-
-        tool.status = 'done'
-        await sleep(weatherMode ? 260 : 120)
-        continue
-      }
-
-      tool.showInput = true
-      const inputCompleted = await typeText(
-        tool.input,
-        (value) => {
-          tool.visibleInput = value
-        },
-        () => !isRunActive(runId, sessionId, messageId),
-        1,
-        weatherMode ? 24 : 18
-      )
-
-      if (!inputCompleted || !isRunActive(runId, sessionId, messageId)) {
-        return
-      }
-
-      tool.showSteps = true
-
-      for (let index = 0; index < tool.steps.length; index += 1) {
-        if (!isRunActive(runId, sessionId, messageId)) {
-          return
-        }
-
-        const step = tool.steps[index]
-        step.status = 'running'
-        await sleep(weatherMode ? 620 : index === tool.steps.length - 1 ? 520 : 240)
-        step.status = 'success'
-      }
-
-      if (!isRunActive(runId, sessionId, messageId)) {
-        return
-      }
-
-      tool.showOutput = true
-      const outputCompleted = await typeText(
-        tool.output,
-        (value) => {
-          tool.visibleOutput = value
-        },
-        () => !isRunActive(runId, sessionId, messageId),
-        1,
-        weatherMode ? 24 : 18
-      )
-
-      if (!outputCompleted || !isRunActive(runId, sessionId, messageId)) {
-        return
-      }
-
-      tool.status = 'done'
-      await sleep(weatherMode ? 260 : 120)
     }
 
     if (!isRunActive(runId, sessionId, messageId)) {
