@@ -1,11 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
-import type { KnowledgeAskResult, KnowledgeSearchHit } from 'share-type'
-import { ApiResponse } from '../../common/api-response'
 import type {
+  KnowledgeAskResult,
   KnowledgeBase,
   KnowledgeChunk,
-  KnowledgeDocument
-} from '../../types'
+  KnowledgeDocument,
+  KnowledgeSearchHit
+} from 'share-type'
+import { ApiResponse } from '../../common/api-response'
 import { AskKnowledgeDto } from './dto/ask-knowledge.dto'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'

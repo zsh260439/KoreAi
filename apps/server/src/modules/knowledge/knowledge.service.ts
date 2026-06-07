@@ -7,25 +7,32 @@ import { DataSource, Repository } from 'typeorm'
 import type {
   KnowledgeAskInput,
   KnowledgeAskResult,
+  KnowledgeBase,
   KnowledgeBaseStatus,
+  KnowledgeChunk,
+  KnowledgeDocument,
   KnowledgeSearchHit,
   KnowledgeSearchInput,
   UpdateKnowledgeBaseInput,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
-import type {
-  KnowledgeBase,
-  KnowledgeChunk,
-  KnowledgeDocument
-} from '../../types'
 import { EmbeddingService } from './composables/embedding.service'
-import { KnowledgeQaService } from './composables/knowledge-qa.service'
+import {
+  KnowledgeQaService,
+  type KnowledgeQaStreamEvent
+} from './composables/knowledge-qa.service'
 import { KnowledgeVectorStoreService } from './composables/knowledge-vector-store.service'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
 import { KnowledgeBaseEntity } from './entity/knowledge-base.entity'
 import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
 import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
+
+type KnowledgeAskStream = {
+  sources: KnowledgeSearchHit[]
+  model: string | null
+  stream: AsyncGenerator<KnowledgeQaStreamEvent>
+}
 
 @Injectable()
 export class KnowledgeService {
@@ -56,6 +63,7 @@ export class KnowledgeService {
   }
 
   // 知识库问答
+
   async askKnowledge(dto: KnowledgeAskInput): Promise<KnowledgeAskResult> {
     const query = dto.query.trim()
     if (!query) {
@@ -67,16 +75,45 @@ export class KnowledgeService {
 
     const topK = normalizeTopK(dto.topK)
     const sources = await this.retrieveKnowledge(dto.knowledgeBaseId, query, topK)
-    const answer = await this.knowledgeQaService.answerQuestion(query, sources)
+    const qaResult = await this.knowledgeQaService.answerQuestion(query, sources, {
+      includeReasoning: dto.think
+    })
 
     return {
-      answer,
+      answer: qaResult.answer,
       sources,
-      model: this.knowledgeQaService.getModelName()
+      model: this.knowledgeQaService.getModelName(),
+      reasoningSteps: qaResult.reasoningSteps
     }
   }
 
   // 查询所有知识库，同时带出文档数量
+
+  async streamAskKnowledge(
+    dto: KnowledgeAskInput,
+    options: { signal?: AbortSignal } = {}
+  ): Promise<KnowledgeAskStream> {
+    const query = dto.query.trim()
+    if (!query) {
+      throw new BadRequestException('query cannot be empty')
+    }
+
+    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId)
+
+    const topK = normalizeTopK(dto.topK)
+    const sources = await this.retrieveKnowledge(dto.knowledgeBaseId, query, topK)
+
+    return {
+      sources,
+      model: this.knowledgeQaService.getModelName(),
+      stream: this.knowledgeQaService.streamAnswerQuestion(query, sources, {
+        includeReasoning: dto.think,
+        signal: options.signal
+      })
+    }
+  }
+
+  // 鏌ヨ鎵€鏈夌煡璇嗗簱锛屽悓鏃跺甫鍑烘枃妗ｆ暟閲?  async findKnowledgeBases(): Promise<KnowledgeBase[]> {
   async findKnowledgeBases(): Promise<KnowledgeBase[]> {
     const items = await this.knowledgeBaseRepo.find({
       order: { updatedAt: 'DESC' },

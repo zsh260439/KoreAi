@@ -1,18 +1,11 @@
 import { computed, ref } from 'vue'
-import type { ConversationSummary } from '@/types'
+import { createWorkspaceConversationAPI, findWorkspaceConversationsAPI } from '@/servers/workspace'
+import type { ConversationSummary } from '@/types/chat/models'
 
 const conversations = ref<ConversationSummary[]>([])
 const activeConversationId = ref('')
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-
-const createLocalConversation = (title: string, model = 'AI'): ConversationSummary => ({
-  id: `conversation-${Date.now()}`,
-  title,
-  updatedAt: new Date().toISOString(),
-  messageCount: 0,
-  model
-})
 
 export function useConversationList() {
   const activeConversation = computed(
@@ -24,36 +17,47 @@ export function useConversationList() {
     error.value = null
 
     try {
-      // 后续接入真实会话列表接口时，只替换这里的请求来源。
+      const response = await findWorkspaceConversationsAPI()
+      conversations.value = response.data ?? []
+
+      if (
+        activeConversationId.value &&
+        !conversations.value.some((item) => item.id === activeConversationId.value)
+      ) {
+        activeConversationId.value = ''
+      }
+
       return conversations.value
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载会话列表失败'
+      conversations.value = []
       return []
     } finally {
       isLoading.value = false
     }
   }
 
-  const selectConversation = async (conversationId: string) => {
+  const selectConversation = (conversationId: string) => {
     activeConversationId.value = conversationId
   }
 
-  const createConversation = (title = '新对话') => {
-    const conversation = createLocalConversation(title)
-    conversations.value = [conversation, ...conversations.value]
-    activeConversationId.value = conversation.id
-    return conversation
+  const createConversation = async (title = '新对话') => {
+    const response = await createWorkspaceConversationAPI({ title })
+
+    if (!response.data) {
+      throw new Error('创建会话失败')
+    }
+
+    upsertConversation(response.data)
+    activeConversationId.value = response.data.id
+    return response.data
   }
-  //重新生成调用
-  const updateConversation = (conversationId: string, patch: Partial<ConversationSummary>) => {
-    conversations.value = conversations.value.map((item) =>
-      item.id === conversationId
-        ? {
-            ...item,
-            ...patch
-          }
-        : item
-    )
+
+  const upsertConversation = (conversation: ConversationSummary) => {
+    conversations.value = [
+      conversation,
+      ...conversations.value.filter((item) => item.id !== conversation.id)
+    ]
   }
 
   return {
@@ -65,6 +69,6 @@ export function useConversationList() {
     loadConversationList,
     selectConversation,
     createConversation,
-    updateConversation
+    upsertConversation
   }
 }

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "start": "nest start",
-    "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
+    "start:dev": "nest start --watch",
     "build": "nest build",
     "start:prod": "node dist/main",
     "lint": "tsc --noEmit"

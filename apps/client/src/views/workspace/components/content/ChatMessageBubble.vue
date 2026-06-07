@@ -3,7 +3,7 @@ import { ChevronRight, LoaderCircle } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import ShiningText from '@/components/ui/ShiningText.vue'
-import type { ChatMessage } from '@/types'
+import type { ChatMessage } from '@/types/chat/models'
 import WorkspaceMark from './WorkspaceMark.vue'
 
 type RenderPart =
@@ -107,7 +107,9 @@ const showProcessDetails = computed(() => {
   return processExpanded.value
 })
 
-const showProcessSection = computed(() => thinkingStages.value.length > 0)
+const showProcessSection = computed(
+  () => promptCapabilities.value.think && (thinkingStages.value.length > 0 || props.message.status === 'streaming')
+)
 
 const showAnswerSection = computed(
   () =>
@@ -117,7 +119,7 @@ const showAnswerSection = computed(
     (answerStatus.value === 'pending' && !thinkingStages.value.length)
 )
 
-const formatLatency = (latencyMs?: number) => `${((latencyMs || 0) / 1000).toFixed(1)} 秒`
+const formatLatency = (latencyMs?: number | null) => `${((latencyMs || 0) / 1000).toFixed(1)} 秒`
 
 const toggleProcessDetails = () => {
   if (!canToggleProcessDetails.value) {

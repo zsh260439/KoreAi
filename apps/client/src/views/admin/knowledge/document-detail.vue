@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
 import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
-import type { KnowledgeChunk } from '@/types'
+import type { KnowledgeChunk } from 'share-type'
 import { getKnowledgeHighlightParts, getKnowledgePreviewHighlightParts } from '@/utils/knowledge-highlight'
 
 const route = useRoute()

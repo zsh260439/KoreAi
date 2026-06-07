@@ -6,8 +6,7 @@ import {
   findKnowledgeDocumentsAPI,
   updateKnowledgeDocumentAPI
 } from '@/servers/knowledge'
-import type { CreateKnowledgeDocumentPayload, KnowledgeDocument } from '@/types'
-import type { UpdateKnowledgeDocumentInput } from 'share-type'
+import type { CreateKnowledgeDocumentInput, KnowledgeDocument, UpdateKnowledgeDocumentInput } from 'share-type'
 
 const documents = ref<KnowledgeDocument[]>([])
 const currentDocument = ref<KnowledgeDocument | null>(null)
@@ -46,7 +45,7 @@ export function useKnowledgeDocuments() {
     }
   }
 
-  const createKnowledgeDocument = async (kbId: string, payload: CreateKnowledgeDocumentPayload) => {
+  const createKnowledgeDocument = async (kbId: string, payload: CreateKnowledgeDocumentInput) => {
     const response = await createKnowledgeDocumentAPI(kbId, {
       name: payload.name.trim(),
       storagePath: payload.storagePath.trim(),

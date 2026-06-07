@@ -2,15 +2,6 @@ export type AssistantRenderStatus = 'pending' | 'running' | 'done' | 'error'
 
 export type AssistantThinkingStageKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
 
-export interface AssistantSearchResultItem {
-  id: string
-  title: string
-  source: string
-  snippet: string
-  publishedAt?: string
-  url?: string
-}
-
 export interface AssistantThinkingStage {
   kind: 'thinking'
   id: string

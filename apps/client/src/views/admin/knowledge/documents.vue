@@ -8,7 +8,20 @@ import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
 import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
 import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
 import { useKnowledgeSearch } from '@/composables/useKnowledgeSearch'
-import type { KnowledgeDocument, KnowledgeDocumentUpdatePayload, KnowledgeDocumentUploadPayload } from '@/types'
+import type { KnowledgeDocument } from 'share-type'
+
+type KnowledgeDocumentUploadForm = {
+  name: string
+  storagePath: string
+  chunkStrategy: string
+  chunkConfig?: string
+}
+
+type KnowledgeDocumentEditForm = {
+  name: string
+  chunkStrategy: string
+  chunkConfig?: string
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -233,7 +246,7 @@ const resetUploadDialog = () => {
 
 // 提交上传文档
 const submitUpload = async () => {
-  const payload: KnowledgeDocumentUploadPayload = {
+  const payload: KnowledgeDocumentUploadForm = {
     name: uploadName.value.trim() || '新文档',
     storagePath: uploadStoragePath.value.trim(),
     chunkStrategy: uploadChunkStrategy.value,
@@ -242,7 +255,7 @@ const submitUpload = async () => {
 
   await createKnowledgeDocument(kbId.value, {
     name: payload.name,
-    storagePath: payload.storagePath || '',
+    storagePath: payload.storagePath,
     chunkStrategy: payload.chunkStrategy,
     chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
   })
@@ -272,7 +285,7 @@ const openEdit = (document: KnowledgeDocument) => {
 const submitEdit = async () => {
   if (!activeDocument.value) return
 
-  const payload: KnowledgeDocumentUpdatePayload = {
+  const payload: KnowledgeDocumentEditForm = {
     name: editName.value.trim(),
     chunkStrategy: editChunkStrategy.value,
     chunkConfig: buildEditChunkConfigText(editChunkStrategy.value)

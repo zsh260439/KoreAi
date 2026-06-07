@@ -6,6 +6,7 @@
   "exports": {
     ".": "./index.ts",
     "./common": "./common.ts",
-    "./knowledge": "./knowledge.ts"
+    "./knowledge": "./knowledge.ts",
+    "./workspace": "./workspace.ts"
   }
 }

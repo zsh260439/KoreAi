@@ -82,14 +82,25 @@ export interface KnowledgeSearchHit {
   score: number
 }
 
+export type KnowledgeReasoningStepKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
+
+export interface KnowledgeReasoningStep {
+  stageKey: KnowledgeReasoningStepKey
+  title: string
+  subtitle?: string
+  content: string
+}
+
 export interface KnowledgeAskInput {
   query: string
   knowledgeBaseId?: string
   topK?: number
+  think?: boolean
 }
 
 export interface KnowledgeAskResult {
   answer: string
   sources: KnowledgeSearchHit[]
   model: string | null
+  reasoningSteps: KnowledgeReasoningStep[] | null
 }

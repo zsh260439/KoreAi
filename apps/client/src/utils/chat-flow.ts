@@ -1,157 +1,155 @@
-import type { AssistantResponseFlow, AssistantThinkingStage, ChatMessage } from '@/types'
+import type { AssistantResponseFlow, AssistantThinkingStage } from '@/types/chat/flow'
+import type { ChatMessage } from '@/types/chat/models'
 
-const isWeatherMeetingFlow = (message: ChatMessage) => message.traceId === 'trace-weather-002'
+type ThinkingStageDraft = Pick<AssistantThinkingStage, 'stageKey' | 'title' | 'subtitle'>
 
-const shouldRenderThinking = (message: ChatMessage) => Boolean(message.promptCapabilities?.think)
+const FINAL_ANSWER_TITLE = '\u6700\u7ec8\u56de\u7b54'
 
-const buildWeatherThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => [
-  {
-    kind: 'thinking',
-    id: `${message.id}-thinking-1`,
-    stageKey: 'llm_reasoning',
-    title: '理解问题',
-    subtitle: '先锁定时间窗口和目标场景',
-    status: 'done',
-    content:
-      '先把“明天下午”映射成明确的会务时间范围，并确认这个问题的目标不是泛泛查天气，而是要给会务安排提供可执行建议。',
-    visibleContent:
-      '先把“明天下午”映射成明确的会务时间范围，并确认这个问题的目标不是泛泛查天气，而是要给会务安排提供可执行建议。'
-  },
-  {
-    kind: 'thinking',
-    id: `${message.id}-thinking-2`,
-    stageKey: 'deepsearch',
-    title: '收敛判断',
-    subtitle: '围绕降雨风险提炼关键决策点',
-    status: 'done',
-    content:
-      '继续把注意力收敛到会务真正关心的风险点上：是否下雨、影响是否集中在会议时段、是否需要提前准备线上兜底方案。',
-    visibleContent:
-      '继续把注意力收敛到会务真正关心的风险点上：是否下雨、影响是否集中在会议时段、是否需要提前准备线上兜底方案。'
-  },
-  {
-    kind: 'thinking',
-    id: `${message.id}-thinking-3`,
-    stageKey: 'llm_reasoning',
-    title: '组织回答',
-    subtitle: '把判断转成可执行建议',
-    status: 'done',
-    content:
-      '最后不直接堆天气结论，而是转成会前通知、线上链接保留和遇雨切换说明这类更适合业务执行的表达。',
-    visibleContent:
-      '最后不直接堆天气结论，而是转成会前通知、线上链接保留和遇雨切换说明这类更适合业务执行的表达。'
-  }
-]
-
-const buildDefaultThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => [
-  {
-    kind: 'thinking',
-    id: `${message.id}-thinking-1`,
-    stageKey: 'deepsearch',
-    title: '拆解问题',
-    subtitle: '先把问题拆成更小的子目标',
-    status: 'done',
-    content:
-      '先判断用户到底要结果、解释还是方案，再把原问题拆成几个更容易处理的小问题，避免一开始就直接拼答案。',
-    visibleContent:
-      '先判断用户到底要结果、解释还是方案，再把原问题拆成几个更容易处理的小问题，避免一开始就直接拼答案。'
-  },
-  {
-    kind: 'thinking',
-    id: `${message.id}-thinking-2`,
-    stageKey: 'llm_reasoning',
-    title: '收敛重点',
-    subtitle: '筛掉噪音，只保留关键判断',
-    status: 'done',
-    content:
-      '把拆出来的信息重新归并，筛掉对回答帮助不大的分支，只保留真正影响结论的关键点和约束。',
-    visibleContent:
-      '把拆出来的信息重新归并，筛掉对回答帮助不大的分支，只保留真正影响结论的关键点和约束。'
-  },
-  {
-    kind: 'thinking',
-    id: `${message.id}-thinking-3`,
-    stageKey: 'llm_reasoning',
-    title: '组织表达',
-    subtitle: '把结论整理成易读输出',
-    status: 'done',
-    content:
-      '最后再把关键判断整理成更完整的回答，保证结果是连贯的，而不是只把中间推理碎片直接抛给用户。',
-    visibleContent:
-      '最后再把关键判断整理成更完整的回答，保证结果是连贯的，而不是只把中间推理碎片直接抛给用户。'
-  }
-]
+const shouldRenderThinking = (message: ChatMessage) =>
+  Boolean(message.promptCapabilities?.think) && Array.isArray(message.reasoningSteps)
 
 const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
-  if (isWeatherMeetingFlow(message)) {
-    return buildWeatherThinkingStages(message)
-  }
-
-  if (!shouldRenderThinking(message)) {
+  if (!shouldRenderThinking(message) || !message.reasoningSteps) {
     return []
   }
 
-  return buildDefaultThinkingStages(message)
+  return message.reasoningSteps.map((step, index) => ({
+    kind: 'thinking',
+    id: `${message.id}-thinking-${index + 1}`,
+    stageKey: step.stageKey,
+    title: step.title,
+    subtitle: step.subtitle,
+    status: 'done',
+    content: step.content,
+    visibleContent: step.content
+  }))
 }
 
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
   thinking: buildThinkingStages(message),
   answer: {
     kind: 'answer',
-    title: '最终回答',
+    title: FINAL_ANSWER_TITLE,
     status: 'done',
     content: message.content,
     visibleContent: message.content
   },
-  totalDurationMs: message.latencyMs,
+  totalDurationMs: message.latencyMs ?? undefined,
   showActions: true
 })
 
-export const buildStreamingResponseFlow = (message: ChatMessage): AssistantResponseFlow => {
-  const completed = buildCompletedResponseFlow(message)
-
-  return {
-    thinking: completed.thinking.map((stage) => ({
-      ...stage,
-      status: 'running',
-      visibleContent: ''
-    })),
-    answer: {
-      ...completed.answer,
-      status: 'pending',
-      visibleContent: ''
-    },
-    totalDurationMs: completed.totalDurationMs,
-    showActions: false
-  }
-}
-
-export const createThinkingPlaceholderFlow = (
-  promptCapabilities: { think: boolean; search: boolean } = { think: false, search: false }
-): AssistantResponseFlow => {
-  const stages = buildThinkingStages({
-    id: 'thinking-placeholder',
-    role: 'assistant',
+export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
+  thinking: [],
+  answer: {
+    kind: 'answer',
+    title: FINAL_ANSWER_TITLE,
+    status: 'pending',
     content: '',
-    createdAt: '',
-    status: 'streaming',
-    promptCapabilities
-  } as ChatMessage)
+    visibleContent: ''
+  },
+  showActions: false
+})
+
+export const startStreamingThinkingStage = (
+  flow: AssistantResponseFlow,
+  messageId: string,
+  index: number,
+  step: ThinkingStageDraft
+): AssistantResponseFlow => {
+  const thinking = flow.thinking.slice()
+
+  thinking[index] = {
+    kind: 'thinking',
+    id: `${messageId}-thinking-${index + 1}`,
+    stageKey: step.stageKey,
+    title: step.title,
+    subtitle: step.subtitle,
+    status: 'running',
+    content: '',
+    visibleContent: ''
+  }
 
   return {
-    thinking: stages.map((stage, index) => ({
-      ...stage,
-      id: `thinking-placeholder-${index + 1}`,
-      status: 'running',
-      visibleContent: ''
-    })),
-    answer: {
-      kind: 'answer',
-      title: '最终回答',
-      status: 'pending',
-      content: '',
-      visibleContent: ''
-    },
-    showActions: false
+    ...flow,
+    thinking
   }
 }
+
+export const appendStreamingThinkingStageDelta = (
+  flow: AssistantResponseFlow,
+  index: number,
+  delta: string
+): AssistantResponseFlow => {
+  const stage = flow.thinking[index]
+  if (!stage || !delta) {
+    return flow
+  }
+
+  const thinking = flow.thinking.slice()
+  thinking[index] = {
+    ...stage,
+    status: 'running',
+    content: stage.content + delta,
+    visibleContent: stage.visibleContent + delta
+  }
+
+  return {
+    ...flow,
+    thinking
+  }
+}
+
+export const completeStreamingThinkingStage = (
+  flow: AssistantResponseFlow,
+  index: number,
+  content: string
+): AssistantResponseFlow => {
+  const stage = flow.thinking[index]
+  if (!stage) {
+    return flow
+  }
+
+  const thinking = flow.thinking.slice()
+  thinking[index] = {
+    ...stage,
+    status: 'done',
+    content,
+    visibleContent: content
+  }
+
+  return {
+    ...flow,
+    thinking
+  }
+}
+
+export const appendStreamingAnswerDelta = (
+  flow: AssistantResponseFlow,
+  delta: string
+): AssistantResponseFlow => ({
+  ...flow,
+  answer: {
+    ...flow.answer,
+    status: 'running',
+    content: flow.answer.content + delta,
+    visibleContent: flow.answer.visibleContent + delta
+  }
+})
+
+export const finalizeStreamingResponseFlow = (
+  flow: AssistantResponseFlow,
+  latencyMs?: number | null
+): AssistantResponseFlow => ({
+  thinking: flow.thinking.map((stage) => ({
+    ...stage,
+    status: 'done',
+    visibleContent: stage.content
+  })),
+  answer: {
+    ...flow.answer,
+    status: 'done',
+    visibleContent: flow.answer.content
+  },
+  totalDurationMs: latencyMs ?? undefined,
+  showActions: true
+})

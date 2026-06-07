@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConversationSummary } from '@/types'
+import type { ConversationSummary } from '@/types/chat/models'
 import ConversationListItem from './ConversationListItem.vue'
 
 defineProps<{

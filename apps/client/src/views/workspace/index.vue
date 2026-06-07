@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { Plus } from 'lucide-vue-next'
+import { Plus, Settings2 } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAutoScroll } from '@/composables/useAutoScroll'
 import { useConversationList } from '@/composables/useConversationList'
 import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
 import { useWorkspaceChat } from '@/composables/useWorkspaceChat'
-import type { PromptCapabilities } from '@/types'
+import type { PromptCapabilities } from '@/types/chat/models'
 import ContentList from './components/content/ContentList.vue'
 import WorkspacePromptBox from './components/input/WorkspacePromptBox.vue'
 import MessageList from './components/sidebar/MessageList.vue'
 import WorkspaceSidebarBrand from './components/sidebar/WorkspaceSidebarBrand.vue'
-import WorkspaceUserEntry from './components/user-entry/WorkspaceUserEntry.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,16 +24,11 @@ const chatAutoScroll = useAutoScroll(32)
 
 const activeConversation = conversationList.activeConversation
 const activeContentList = workspaceChat.activeContentList
-const sortedConversationList = computed(() =>
-  [...conversationList.conversations.value].sort(
-    (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
-  )
-)
 const hasContent = computed(() => activeContentList.value.length > 0)
-const currentUser = computed(() => ({ name: '访客' }))
 const activeConversationId = conversationList.activeConversationId
 const conversationListLoading = conversationList.isLoading
 const conversationListError = conversationList.error
+const messagesLoading = workspaceChat.isLoadingMessages
 const isStreaming = workspaceChat.isStreaming
 const regenerating = workspaceChat.regenerating
 
@@ -91,14 +85,15 @@ watch(
 )
 
 const handleConversationSelect = async (conversationId: string) => {
-  await conversationList.selectConversation(conversationId)
+  conversationList.selectConversation(conversationId)
+  await workspaceChat.loadConversationMessages(conversationId)
   composerValue.value = ''
   await router.push(`/workspace/${conversationId}`)
   await chatAutoScroll.scrollToBottom(true)
 }
 
 const handleCreateConversation = async () => {
-  const conversation = conversationList.createConversation()
+  const conversation = await conversationList.createConversation()
   composerValue.value = ''
   await router.push(`/workspace/${conversation.id}`)
   await chatAutoScroll.scrollToBottom(true)
@@ -109,7 +104,15 @@ const handleSend = async (
   capabilities: PromptCapabilities,
   knowledgeBaseId?: string
 ) => {
-  await workspaceChat.sendMessage(message, capabilities, knowledgeBaseId)
+  const conversationId = await workspaceChat.sendMessage(message, capabilities, knowledgeBaseId)
+
+  if (
+    conversationId &&
+    conversationId !==
+      (typeof route.params.conversationId === 'string' ? route.params.conversationId : '')
+  ) {
+    await router.push(`/workspace/${conversationId}`)
+  }
 }
 
 const handleComposerSubmit = (payload: {
@@ -119,7 +122,7 @@ const handleComposerSubmit = (payload: {
 }) => {
   const nextMessage = payload.message.trim()
 
-  if (!nextMessage.trim()) {
+  if (!nextMessage) {
     return
   }
 
@@ -135,7 +138,8 @@ watch(
   () => route.params.conversationId,
   async (conversationId) => {
     if (typeof conversationId === 'string' && conversationId) {
-      await conversationList.selectConversation(conversationId)
+      conversationList.selectConversation(conversationId)
+      await workspaceChat.loadConversationMessages(conversationId)
       await chatAutoScroll.scrollToBottom(true)
     }
   }
@@ -148,10 +152,14 @@ const handleRegenerate = () => {
 onMounted(async () => {
   const conversationId =
     typeof route.params.conversationId === 'string' ? route.params.conversationId : undefined
+
   await Promise.all([conversationList.loadConversationList(), loadKnowledgeBases()])
+
   if (conversationId) {
-    await conversationList.selectConversation(conversationId)
+    conversationList.selectConversation(conversationId)
+    await workspaceChat.loadConversationMessages(conversationId)
   }
+
   await chatAutoScroll.scrollToBottom(true)
 })
 </script>
@@ -177,7 +185,7 @@ onMounted(async () => {
 
         <div class="mt-6 min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           <MessageList
-            :conversations="sortedConversationList"
+            :conversations="conversationList.conversations.value"
             :active-conversation-id="activeConversationId"
             :loading="conversationListLoading"
             :get-conversation-time-label="formatConversationTime"
@@ -187,7 +195,17 @@ onMounted(async () => {
         </div>
 
         <div class="border-t border-t-[#f3f4f6] px-4 py-4">
-          <WorkspaceUserEntry :user-name="currentUser.name" @open-admin="openAdmin" />
+          <button
+            type="button"
+            class="flex w-full items-center justify-between rounded-[16px] border border-[#e5e7eb] bg-white px-4 py-3 text-left transition hover:border-[#d1d5db] hover:bg-[#fafafa]"
+            @click="openAdmin"
+          >
+            <div>
+              <p class="text-[14px] font-medium text-[#111827]">进入后台</p>
+              <p class="mt-1 text-[12px] text-[#9ca3af]">知识库管理</p>
+            </div>
+            <Settings2 class="size-4 shrink-0 text-[#9ca3af]" />
+          </button>
         </div>
       </aside>
 
@@ -211,7 +229,7 @@ onMounted(async () => {
           @scroll="chatAutoScroll.updateShouldStickToBottom"
         >
           <div class="mx-auto w-full max-w-[920px] px-6 py-8">
-            <template v-if="conversationListLoading">
+            <template v-if="conversationListLoading || messagesLoading">
               <div class="space-y-8">
                 <div v-for="item in 4" :key="item" class="space-y-3">
                   <div class="h-5 w-5 rounded-full bg-[#f3f4f6]" />
@@ -249,7 +267,7 @@ onMounted(async () => {
             <template v-else>
               <div class="space-y-3 text-[14px] leading-[1.6] text-[#111827]">
                 <p>你好，我是工作台助手。你可以直接输入问题开始对话。</p>
-                <p>开启深度思考时会先展示思考过程，再输出回答；关闭后则直接返回结果。</p>
+                <p>开启深度思考后，会先展示思考过程，再逐步生成最终回答。</p>
               </div>
             </template>
           </div>
@@ -259,8 +277,8 @@ onMounted(async () => {
           <div class="mx-auto max-w-[920px] px-6 py-4">
             <WorkspacePromptBox
               v-model="composerValue"
-              :disabled="isStreaming"
               v-model:selected-knowledge-base-id="selectedKnowledgeBaseId"
+              :disabled="isStreaming"
               :knowledge-bases="knowledgeBases"
               :streaming="isStreaming"
               :show-hint="!hasContent"
@@ -271,6 +289,5 @@ onMounted(async () => {
         </footer>
       </section>
     </div>
-
   </main>
 </template>

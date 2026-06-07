@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { findDocumentChunksAPI, rebuildDocumentChunksAPI } from '@/servers/knowledge'
-import type { KnowledgeChunk } from '@/types'
+import type { KnowledgeChunk } from 'share-type'
 
 const chunks = ref<KnowledgeChunk[]>([])
 const isLoading = ref(false)

@@ -1,5 +1,5 @@
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
-import type {KnowledgeAskInput} from 'share-type/knowledge'
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
+import type { KnowledgeAskInput } from 'share-type'
 
 export class AskKnowledgeDto implements KnowledgeAskInput {
   @IsString()
@@ -15,4 +15,8 @@ export class AskKnowledgeDto implements KnowledgeAskInput {
   @Min(1)
   @Max(8)
   topK?: number
+
+  @IsOptional()
+  @IsBoolean()
+  think?: boolean
 }

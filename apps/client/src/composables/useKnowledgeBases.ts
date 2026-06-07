@@ -5,7 +5,7 @@ import {
   findKnowledgeBasesAPI,
   updateKnowledgeBaseAPI
 } from '@/servers/knowledge'
-import type { KnowledgeBase, KnowledgeBaseCreatePayload } from '@/types'
+import type { CreateKnowledgeBaseInput, KnowledgeBase, UpdateKnowledgeBaseInput } from 'share-type'
 
 const knowledgeBases = ref<KnowledgeBase[]>([])
 const isLoading = ref(false)
@@ -26,7 +26,7 @@ export function useKnowledgeBases() {
     }
   }
 
-  const createKnowledgeBase = async (payload: KnowledgeBaseCreatePayload) => {
+  const createKnowledgeBase = async (payload: CreateKnowledgeBaseInput) => {
     const response = await createKnowledgeBaseAPI({
       name: payload.name.trim(),
       description: payload.description?.trim() || undefined
@@ -43,7 +43,7 @@ export function useKnowledgeBases() {
 
   const updateKnowledgeBase = async (
     kbId: string,
-    payload: { name?: string; description?: string }
+    payload: UpdateKnowledgeBaseInput
   ) => {
     const response = await updateKnowledgeBaseAPI(kbId, {
       name: payload.name?.trim(),

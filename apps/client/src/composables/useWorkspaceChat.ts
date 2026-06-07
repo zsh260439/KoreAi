@@ -1,11 +1,19 @@
 import { computed, ref } from 'vue'
-
-import { requestWorkspaceChatAPI } from '@/servers/workspace'
-import type {
-  ChatMessage,
-  ConversationSummary,
-  PromptCapabilities
-} from '@/types'
+import {
+  findWorkspaceConversationMessagesAPI,
+  requestWorkspaceChatStreamAPI
+} from '@/servers/workspace'
+import type { ChatMessage, PromptCapabilities } from '@/types/chat/models'
+import type { WorkspaceChatResult, WorkspaceChatStreamEvent } from 'share-type'
+import {
+  appendStreamingAnswerDelta,
+  appendStreamingThinkingStageDelta,
+  buildCompletedResponseFlow,
+  completeStreamingThinkingStage,
+  createThinkingPlaceholderFlow,
+  finalizeStreamingResponseFlow,
+  startStreamingThinkingStage
+} from '@/utils/chat-flow'
 import { useConversationList } from './useConversationList'
 
 const DEFAULT_PROMPT_CAPABILITIES: PromptCapabilities = {
@@ -19,25 +27,18 @@ type ActiveChatRequest = {
 }
 
 const contentListBySession = ref<Record<string, ChatMessage[]>>({})
+const loadedConversationMap = ref<Record<string, boolean>>({})
 const activeRequest = ref<ActiveChatRequest | null>(null)
+const loadingConversationId = ref('')
 const error = ref<string | null>(null)
 const regenerating = ref(false)
 
 const normalizePromptCapabilities = (
-  promptCapabilities?: PromptCapabilities
+  promptCapabilities?: PromptCapabilities | null
 ): PromptCapabilities => ({
   think: Boolean(promptCapabilities?.think),
   search: false
 })
-
-const deriveSessionTitle = (content: string) => {
-  const normalized = content.replace(/\s+/g, ' ').trim()
-  if (!normalized) {
-    return '新对话'
-  }
-
-  return normalized.length > 12 ? `${normalized.slice(0, 12)}...` : normalized
-}
 
 const findLastUserContentIndex = (contentList: ChatMessage[]) => {
   for (let index = contentList.length - 1; index >= 0; index -= 1) {
@@ -49,97 +50,261 @@ const findLastUserContentIndex = (contentList: ChatMessage[]) => {
   return -1
 }
 
+const toUserChatMessage = (
+  conversationId: string,
+  content: string,
+  promptCapabilities: PromptCapabilities
+): ChatMessage => ({
+  id: `user-${Date.now()}`,
+  conversationId,
+  role: 'user',
+  content,
+  createdAt: new Date().toISOString(),
+  citations: null,
+  model: null,
+  latencyMs: null,
+  reasoningSteps: null,
+  promptCapabilities,
+  status: 'done'
+})
+
+const toAssistantPlaceholderMessage = (
+  conversationId: string,
+  model: string | null,
+  promptCapabilities: PromptCapabilities
+): ChatMessage => ({
+  id: `assistant-${Date.now() + 1}`,
+  conversationId,
+  role: 'assistant',
+  content: '',
+  createdAt: new Date().toISOString(),
+  citations: null,
+  model,
+  latencyMs: null,
+  reasoningSteps: null,
+  promptCapabilities,
+  status: 'streaming',
+  responseFlow: promptCapabilities.think ? createThinkingPlaceholderFlow() : undefined
+})
+
+const toChatMessage = (message: {
+  id: string
+  conversationId: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: string
+  citations: ChatMessage['citations']
+  model: string | null
+  latencyMs: number | null
+  reasoningSteps: ChatMessage['reasoningSteps']
+  promptCapabilities: PromptCapabilities | null
+}): ChatMessage => {
+  const chatMessage: ChatMessage = {
+    ...message,
+    promptCapabilities: message.promptCapabilities,
+    status: 'done'
+  }
+
+  if (chatMessage.role === 'assistant') {
+    chatMessage.responseFlow = buildCompletedResponseFlow(chatMessage)
+  }
+
+  return chatMessage
+}
+
+function createStreamingErrorMessage(assistantMessage: ChatMessage, stopped: boolean): ChatMessage {
+  return {
+    ...assistantMessage,
+    status: 'error',
+    responseFlow: undefined,
+    content: stopped ? '\u5df2\u505c\u6b62\u751f\u6210\u3002' : '\u751f\u6210\u56de\u590d\u65f6\u51fa\u73b0\u95ee\u9898\uff0c\u8bf7\u91cd\u8bd5\u3002'
+  }
+}
+
+function applyStreamEventToAssistantMessage(
+  assistantMessage: ChatMessage,
+  event: WorkspaceChatStreamEvent
+): ChatMessage {
+  if (event.type === 'completed' || event.type === 'error') {
+    return assistantMessage
+  }
+
+  if (event.type === 'answer_delta') {
+    if (!assistantMessage.responseFlow) {
+      return {
+        ...assistantMessage,
+        content: assistantMessage.content + event.delta
+      }
+    }
+
+    const responseFlow = appendStreamingAnswerDelta(assistantMessage.responseFlow, event.delta)
+    return {
+      ...assistantMessage,
+      content: responseFlow.answer.content,
+      responseFlow
+    }
+  }
+
+  const responseFlow = assistantMessage.responseFlow ?? createThinkingPlaceholderFlow()
+
+  if (event.type === 'reasoning_step_started') {
+    return {
+      ...assistantMessage,
+      responseFlow: startStreamingThinkingStage(
+        responseFlow,
+        assistantMessage.id,
+        event.index,
+        event.step
+      )
+    }
+  }
+
+  if (event.type === 'reasoning_step_delta') {
+    return {
+      ...assistantMessage,
+      responseFlow: appendStreamingThinkingStageDelta(responseFlow, event.index, event.delta)
+    }
+  }
+
+  return {
+    ...assistantMessage,
+    responseFlow: completeStreamingThinkingStage(responseFlow, event.index, event.content)
+  }
+}
+
 export function useWorkspaceChat() {
-  // 左侧对话摘要列表
   const conversationList = useConversationList()
-  // 某一个会话内所有的消息
+
   const activeContentList = computed(
     () => contentListBySession.value[conversationList.activeConversationId.value] ?? []
   )
-  // 是否正在请求助手回复
+  const isLoadingMessages = computed(
+    () =>
+      Boolean(loadingConversationId.value) &&
+      loadingConversationId.value === conversationList.activeConversationId.value
+  )
   const isStreaming = computed(() => activeRequest.value !== null)
-  // 左侧对话列表用来标记哪个对话正在生成
   const isConversationStreaming = (conversationId: string) =>
     activeRequest.value?.conversationId === conversationId
 
-  // 请求助手回复，并把结果回填到当前会话最后一条 assistant 占位消息
-  const runAssistantRequest = async (
-    conversation: ConversationSummary,
-    content: string,
-    sessionContentList: ChatMessage[],
-    promptCapabilities?: PromptCapabilities,
-    knowledgeBaseId?: string
-  ) => {
-    const normalizedContent = content.trim()
-    const normalizedCapabilities = normalizePromptCapabilities(promptCapabilities)
-    const assistantContentIndex = sessionContentList.length
-
-    sessionContentList.push({
-      id: `assistant-${Date.now() + 1}`,
-      role: 'assistant',
-      content: '',
-      createdAt: new Date().toISOString(),
-      status: 'streaming',
-      model: conversation.model,
-      promptCapabilities: normalizedCapabilities
-    })
-
+  const setConversationMessages = (conversationId: string, messages: ChatMessage[]) => {
     contentListBySession.value = {
       ...contentListBySession.value,
-      [conversation.id]: sessionContentList
+      [conversationId]: messages
     }
-    conversationList.updateConversation(conversation.id, {
-      title:
-        conversation.messageCount === 0 ? deriveSessionTitle(normalizedContent) : conversation.title,
-      messageCount: sessionContentList.length,
-      updatedAt: new Date().toISOString()
-    })
+    loadedConversationMap.value = {
+      ...loadedConversationMap.value,
+      [conversationId]: true
+    }
+  }
 
-    error.value = null
-    const controller = new AbortController()
-    activeRequest.value = {
-      conversationId: conversation.id,
-      controller
+  const updateAssistantMessage = (
+    conversationId: string,
+    messages: ChatMessage[],
+    updater: (message: ChatMessage) => ChatMessage
+  ) => {
+    const assistantIndex = messages.length - 1
+    const assistantMessage = messages[assistantIndex]
+
+    if (!assistantMessage || assistantMessage.role !== 'assistant') {
+      return messages
+    }
+
+    const nextMessages = messages.slice()
+    nextMessages[assistantIndex] = updater(assistantMessage)
+    setConversationMessages(conversationId, nextMessages)
+    return nextMessages
+  }
+
+  const loadConversationMessages = async (conversationId: string, force = false) => {
+    if (!conversationId) {
+      return []
+    }
+
+    if (!force && loadedConversationMap.value[conversationId]) {
+      return contentListBySession.value[conversationId] ?? []
     }
 
     try {
-      const response = await requestWorkspaceChatAPI(
-        {
-          query: normalizedContent,
-          knowledgeBaseId,
-          think: normalizedCapabilities.think
-        },
-        controller.signal
-      )
-      const result = response.data
-
-      sessionContentList[assistantContentIndex] = {
-        ...sessionContentList[assistantContentIndex],
-        content: result?.answer ?? '',
-        status: 'done',
-        model: result?.model ?? 'AI',
-        citations: result?.sources ?? []
+      loadingConversationId.value = conversationId
+      const response = await findWorkspaceConversationMessagesAPI(conversationId)
+      const messages = (response.data ?? []).map(toChatMessage)
+      setConversationMessages(conversationId, messages)
+      return messages
+    } catch (caughtError) {
+      error.value =
+        caughtError instanceof Error ? caughtError.message : '\u52a0\u8f7d\u6d88\u606f\u5931\u8d25'
+      return []
+    } finally {
+      if (loadingConversationId.value === conversationId) {
+        loadingConversationId.value = ''
       }
+    }
+  }
+
+  const streamAssistantResponse = async (params: {
+    conversationId: string
+    query: string
+    promptCapabilities: PromptCapabilities
+    knowledgeBaseId?: string
+    regenerate?: boolean
+    sessionContentList: ChatMessage[]
+  }) => {
+    const controller = new AbortController()
+    activeRequest.value = {
+      conversationId: params.conversationId,
+      controller
+    }
+
+    let sessionContentList = params.sessionContentList
+
+    try {
+      const result = await requestWorkspaceChatStreamAPI(
+        {
+          conversationId: params.conversationId,
+          query: params.query,
+          knowledgeBaseId: params.knowledgeBaseId,
+          think: params.promptCapabilities.think,
+          regenerate: params.regenerate
+        },
+        {
+          signal: controller.signal,
+          onEvent: (event) => {
+            sessionContentList = updateAssistantMessage(
+              params.conversationId,
+              sessionContentList,
+              (assistantMessage) => applyStreamEventToAssistantMessage(assistantMessage, event)
+            )
+          }
+        }
+      )
+
+      sessionContentList = updateAssistantMessage(
+        params.conversationId,
+        sessionContentList,
+        (assistantMessage) =>
+          finalizeAssistantMessage(assistantMessage, result, params.promptCapabilities)
+      )
+
+      conversationList.upsertConversation(result.conversation)
+      conversationList.selectConversation(result.conversationId)
+
+      return result.conversationId
     } catch (caughtError) {
       const stopped = controller.signal.aborted
-      sessionContentList[assistantContentIndex] = {
-        ...sessionContentList[assistantContentIndex],
-        status: 'error',
-        content: stopped ? '已停止生成。' : '生成回复时出现问题，请重试。'
-      }
+      sessionContentList = updateAssistantMessage(
+        params.conversationId,
+        sessionContentList,
+        (assistantMessage) => createStreamingErrorMessage(assistantMessage, stopped)
+      )
 
       if (!stopped) {
-        error.value = caughtError instanceof Error ? caughtError.message : '发送消息失败'
+        error.value =
+          caughtError instanceof Error ? caughtError.message : '\u53d1\u9001\u6d88\u606f\u5931\u8d25'
       }
+
+      return params.conversationId
     } finally {
-      contentListBySession.value = {
-        ...contentListBySession.value,
-        [conversation.id]: sessionContentList
-      }
-      conversationList.updateConversation(conversation.id, {
-        messageCount: sessionContentList.length,
-        updatedAt: new Date().toISOString()
-      })
       activeRequest.value = null
     }
   }
@@ -150,29 +315,32 @@ export function useWorkspaceChat() {
     knowledgeBaseId?: string
   ) => {
     const normalizedContent = content.trim()
-    if (!normalizedContent || activeRequest.value) return
+    if (!normalizedContent || activeRequest.value) {
+      return ''
+    }
 
-    const conversation =
-      conversationList.activeConversation.value ?? conversationList.createConversation()
     const normalizedCapabilities = normalizePromptCapabilities(promptCapabilities)
+    const conversation =
+      conversationList.activeConversation.value ?? (await conversationList.createConversation())
     const sessionContentList = [...(contentListBySession.value[conversation.id] ?? [])]
-
-    sessionContentList.push({
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: normalizedContent,
-      createdAt: new Date().toISOString(),
-      status: 'done',
-      promptCapabilities: normalizedCapabilities
-    })
-
-    await runAssistantRequest(
-      conversation,
-      normalizedContent,
-      sessionContentList,
-      normalizedCapabilities,
-      knowledgeBaseId
+    const userMessage = toUserChatMessage(conversation.id, normalizedContent, normalizedCapabilities)
+    const assistantMessage = toAssistantPlaceholderMessage(
+      conversation.id,
+      conversation.model,
+      normalizedCapabilities
     )
+
+    sessionContentList.push(userMessage, assistantMessage)
+    setConversationMessages(conversation.id, sessionContentList)
+    error.value = null
+
+    return streamAssistantResponse({
+      conversationId: conversation.id,
+      query: normalizedContent,
+      promptCapabilities: normalizedCapabilities,
+      knowledgeBaseId,
+      sessionContentList
+    })
   }
 
   const stopStreaming = () => {
@@ -181,23 +349,44 @@ export function useWorkspaceChat() {
 
   const regenerateLastAnswer = async (knowledgeBaseId?: string) => {
     const conversation = conversationList.activeConversation.value
-    if (!conversation || activeRequest.value || regenerating.value) return
+    if (!conversation || activeRequest.value || regenerating.value) {
+      return
+    }
 
     const sessionContentList = contentListBySession.value[conversation.id] ?? []
     const lastUserContentIndex = findLastUserContentIndex(sessionContentList)
     const lastUserContent =
       lastUserContentIndex >= 0 ? sessionContentList[lastUserContentIndex] : null
-    if (!lastUserContent) return
+
+    if (!lastUserContent) {
+      return
+    }
+
+    const promptCapabilities = normalizePromptCapabilities(
+      lastUserContent.promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES
+    )
+    const nextSessionContentList = sessionContentList.slice(0, lastUserContentIndex + 1)
+    const assistantMessage = toAssistantPlaceholderMessage(
+      conversation.id,
+      conversation.model,
+      promptCapabilities
+    )
+
+    nextSessionContentList.push(assistantMessage)
+    setConversationMessages(conversation.id, nextSessionContentList)
 
     regenerating.value = true
+    error.value = null
+
     try {
-      await runAssistantRequest(
-        conversation,
-        lastUserContent.content,
-        sessionContentList.slice(0, lastUserContentIndex + 1),
-        lastUserContent.promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES,
-        knowledgeBaseId
-      )
+      await streamAssistantResponse({
+        conversationId: conversation.id,
+        query: lastUserContent.content,
+        promptCapabilities,
+        knowledgeBaseId,
+        regenerate: true,
+        sessionContentList: nextSessionContentList
+      })
     } finally {
       regenerating.value = false
     }
@@ -205,12 +394,49 @@ export function useWorkspaceChat() {
 
   return {
     activeContentList,
+    isLoadingMessages,
     isStreaming,
     error,
     regenerating,
     isConversationStreaming,
+    loadConversationMessages,
     sendMessage,
     stopStreaming,
     regenerateLastAnswer
   }
+}
+
+function finalizeAssistantMessage(
+  assistantMessage: ChatMessage,
+  result: WorkspaceChatResult,
+  promptCapabilities: PromptCapabilities
+): ChatMessage {
+  const completedMessage = toChatMessage({
+    id: assistantMessage.id,
+    conversationId: assistantMessage.conversationId,
+    role: 'assistant',
+    content: result.answer,
+    createdAt: assistantMessage.createdAt,
+    citations: result.sources,
+    model: result.model,
+    latencyMs: result.latencyMs,
+    reasoningSteps: result.reasoningSteps,
+    promptCapabilities
+  })
+
+  if (completedMessage.responseFlow && assistantMessage.responseFlow) {
+    completedMessage.responseFlow = finalizeStreamingResponseFlow(
+      {
+        ...assistantMessage.responseFlow,
+        answer: {
+          ...assistantMessage.responseFlow.answer,
+          content: result.answer,
+          visibleContent: result.answer
+        }
+      },
+      result.latencyMs
+    )
+  }
+
+  return completedMessage
 }

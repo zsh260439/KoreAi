@@ -1,17 +1,11 @@
 import { Database } from 'lucide-vue-next'
 
-import type { AdminNavGroup } from '@/types'
+import type { AdminNavItem } from '@/types/navigation'
 
-export const adminNavGroups: AdminNavGroup[] = [
+export const adminNavItems: AdminNavItem[] = [
   {
-    title: '管理',
-    items: [
-      {
-        title: '知识库管理',
-        href: '/admin/knowledge',
-        navKey: 'knowledge',
-        icon: Database
-      }
-    ]
+    title: '知识库管理',
+    href: '/admin/knowledge',
+    icon: Database
   }
 ]

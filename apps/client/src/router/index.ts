@@ -37,20 +37,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        redirect: '/admin/dashboard'
-      },
-      {
-        path: 'dashboard',
-        name: 'admin-dashboard',
-        component: () => import('@/views/admin/dashboard/index.vue'),
-        meta: {
-          appShell: 'admin',
-          title: 'Dashboard',
-          requiresAuth: false,
-          navGroup: '导航',
-          navKey: 'dashboard',
-          breadcrumb: ['首页', 'Dashboard']
-        }
+        redirect: '/admin/knowledge'
       },
       {
         path: 'knowledge',
@@ -89,58 +76,6 @@ const routes: RouteRecordRaw[] = [
           navGroup: '导航',
           navKey: 'knowledge',
           breadcrumb: ['首页', '知识库管理', '文档管理', '文档详情']
-        }
-      },
-      {
-        path: 'ingestion',
-        name: 'admin-ingestion',
-        component: () => import('@/views/admin/pipeline/index.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '流水线任务',
-          requiresAuth: false,
-          navGroup: '导航',
-          navKey: 'ingestion',
-          breadcrumb: ['首页', '流水线任务']
-        }
-      },
-      {
-        path: 'traces',
-        name: 'admin-traces',
-        component: () => import('@/views/admin/trace/index.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '链路追踪',
-          requiresAuth: false,
-          navGroup: '导航',
-          navKey: 'traces',
-          breadcrumb: ['首页', '链路追踪']
-        }
-      },
-      {
-        path: 'traces/:traceId',
-        name: 'admin-trace-detail',
-        component: () => import('@/views/admin/trace/detail.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '链路详情',
-          requiresAuth: false,
-          navGroup: '导航',
-          navKey: 'traces',
-          breadcrumb: ['首页', '链路追踪', '链路详情']
-        }
-      },
-      {
-        path: 'settings',
-        name: 'admin-settings',
-        component: () => import('@/views/admin/settings/index.vue'),
-        meta: {
-          appShell: 'admin',
-          title: 'Settings',
-          requiresAuth: false,
-          navGroup: '设置',
-          navKey: 'settings',
-          breadcrumb: ['首页', 'Settings']
         }
       }
     ]

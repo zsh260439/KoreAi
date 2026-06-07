@@ -1,15 +1,8 @@
 <script setup lang="ts">
-import { Github, Menu, MessageSquare } from 'lucide-vue-next'
-
-import type { User } from '@/types'
-
-defineProps<{
-  user: User
-}>()
+import { MessageSquare } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   openChat: []
-  openSidebar: []
 }>()
 </script>
 
@@ -17,15 +10,6 @@ const emit = defineEmits<{
   <header class="admin-topbar">
     <div class="admin-topbar-inner">
       <div class="flex items-center gap-3">
-        <button
-          type="button"
-          class="flex size-9 items-center justify-center rounded-[10px] text-slate-600 transition hover:bg-slate-100 lg:hidden"
-          aria-label="打开侧边栏"
-          @click="emit('openSidebar')"
-        >
-          <Menu class="h-5 w-5" />
-        </button>
-
         <div>
           <div class="text-sm font-semibold text-slate-900">KoreAI Admin</div>
           <div class="text-xs text-slate-500">RAG Knowledge Console</div>
@@ -42,23 +26,7 @@ const emit = defineEmits<{
           返回聊天
         </button>
 
-        <a
-          href="https://github.com/zsh260439/KoreAi"
-          target="_blank"
-          rel="noreferrer"
-          class="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 sm:flex"
-          aria-label="打开 GitHub 仓库"
-        >
-          <Github class="h-4 w-4" />
-          <span class="font-medium">GitHub</span>
-        </a>
-
-        <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 shadow-sm">
-          <span class="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-primary-soft)] text-xs font-semibold text-[var(--brand-primary)]">
-            {{ user.name.slice(0, 1) }}
-          </span>
-          <span class="hidden sm:inline">{{ user.name }}</span>
-        </div>
+  
       </div>
     </div>
   </header>

@@ -76,30 +76,6 @@
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
 
-  --trace-bg-surface: #ffffff;
-  --trace-bg-subtle: #f8fafc;
-  --trace-border: #e2e8f0;
-  --trace-border-strong: #cbd5e1;
-  --trace-text-primary: #0f172a;
-  --trace-text-secondary: #475569;
-  --trace-text-weak: #64748b;
-  --trace-radius-8: 8px;
-  --trace-font-12: 12px;
-  --trace-font-14: 14px;
-  --trace-font-22: 22px;
-  --trace-lh-base: 1.5;
-  --trace-lh-tight: 1.25;
-  --trace-space-4: 4px;
-  --trace-space-8: 8px;
-  --trace-space-12: 12px;
-  --trace-space-16: 16px;
-  --trace-space-24: 24px;
-  --trace-control-height: 36px;
-  --trace-stat-card-min-height: 84px;
-  --trace-table-head-height: 48px;
-  --trace-table-row-height: 72px;
-  --trace-pagination-btn-min-width: 72px;
-
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ═══════════════════════════════════════════

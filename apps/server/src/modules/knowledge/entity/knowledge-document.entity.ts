@@ -8,11 +8,12 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm'
+import type {
+  KnowledgeDocumentSourceType,
+  KnowledgeDocumentStatus
+} from 'share-type'
 import { KnowledgeBaseEntity } from './knowledge-base.entity'
 import { KnowledgeChunkEntity } from './knowledge-chunk.entity'
-
-export type DocumentSourceType = 'file' | 'url'
-export type DocumentStatus = 'pending' | 'processing' | 'indexed' | 'failed'
 
 @Entity('knowledge_document')
 export class KnowledgeDocumentEntity {
@@ -26,7 +27,7 @@ export class KnowledgeDocumentEntity {
   name!: string
 
   @Column({ type: 'varchar', length: 20 })
-  sourceType!: DocumentSourceType
+  sourceType!: KnowledgeDocumentSourceType
 
   @Column({ type: 'text', nullable: true })
   sourceLocation!: string | null
@@ -41,7 +42,7 @@ export class KnowledgeDocumentEntity {
   fileSizeBytes!: string | null
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
-  status!: DocumentStatus
+  status!: KnowledgeDocumentStatus
 
   @Column({ type: 'boolean', default: true })
   enabled!: boolean

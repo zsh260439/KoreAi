@@ -2,7 +2,7 @@
 import { ArrowUp, Brain, Square } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
-import type { PromptCapabilities } from '@/types'
+import type { PromptCapabilities } from '@/types/chat/models'
 import type { KnowledgeBase } from 'share-type'
 
 type PromptSubmitPayload = {

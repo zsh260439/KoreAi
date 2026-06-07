@@ -1,31 +1,16 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
-import { adminNavGroups } from '@/config/navigation'
-import type { User } from '@/types'
+import { adminNavItems } from '@/config/navigation'
 
 const route = useRoute()
 const router = useRouter()
 
-const collapsed = ref(false)
-const mobileSidebarOpen = ref(false)
-
-const currentUser = computed<User>(() => ({
-  id: 'local-user',
-  name: '访客',
-  email: '',
-  role: 'member',
-  status: 'active',
-  lastActive: ''
-}))
-
 const breadcrumbMap: Record<string, string> = {
-  dashboard: 'Dashboard',
-  knowledge: '知识库管理',
-  settings: 'Settings'
+  knowledge: '知识库管理'
 }
 
 const breadcrumbs = computed(() => {
@@ -55,13 +40,6 @@ const breadcrumbs = computed(() => {
   return items
 })
 
-const toggleCollapse = () => {
-  collapsed.value = !collapsed.value
-}
-
-const toggleMobileSidebar = (open?: boolean) => {
-  mobileSidebarOpen.value = typeof open === 'boolean' ? open : !mobileSidebarOpen.value
-}
 </script>
 
 <template>
@@ -69,19 +47,12 @@ const toggleMobileSidebar = (open?: boolean) => {
     <div class="flex h-screen">
       <AdminSidebar
         class="hidden lg:flex"
-        :collapsed="collapsed"
         :active-path="route.fullPath"
-        :groups="adminNavGroups"
-        :user="currentUser"
-        @toggle-collapse="toggleCollapse"
+        :items="adminNavItems"
       />
 
       <div class="flex min-h-screen flex-1 flex-col overflow-auto bg-slate-100">
-        <AdminTopbar
-          :user="currentUser"
-          @open-chat="router.push('/workspace')"
-          @open-sidebar="toggleMobileSidebar(true)"
-        />
+        <AdminTopbar @open-chat="router.push('/workspace')" />
 
         <div class="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
           <nav class="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500" aria-label="面包屑">
@@ -108,21 +79,5 @@ const toggleMobileSidebar = (open?: boolean) => {
       </div>
     </div>
 
-    <el-drawer
-      :model-value="mobileSidebarOpen"
-      @update:model-value="mobileSidebarOpen = $event"
-      :size="320"
-      direction="ltr"
-      :with-header="false"
-    >
-      <AdminSidebar
-        :collapsed="false"
-        :active-path="route.fullPath"
-        :groups="adminNavGroups"
-        :user="currentUser"
-        @toggle-collapse="toggleCollapse"
-        @navigate="toggleMobileSidebar(false)"
-      />
-    </el-drawer>
   </div>
 </template>
