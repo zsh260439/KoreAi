@@ -17,14 +17,12 @@ const props = withDefaults(
     knowledgeBases?: Pick<KnowledgeBase, 'id' | 'name'>[]
     selectedKnowledgeBaseId?: string
     modelValue: string
-    showHint?: boolean
     streaming?: boolean
   }>(),
   {
     disabled: false,
     knowledgeBases: () => [],
     selectedKnowledgeBaseId: '',
-    showHint: false,
     streaming: false
   }
 )
@@ -48,10 +46,10 @@ const hasContent = computed(() => props.modelValue.trim().length > 0)
 
 const currentPlaceholder = computed(() => {
   if (thinkEnabled.value) {
-    return '发起需要更长推理链路的问题...'
+    return '请输入你需要深度思考的内容'
   }
 
-  return '输入问题，直接开始对话...'
+  return '输入问题，直接开始对话'
 })
 
 const resizeTextarea = async () => {
@@ -71,15 +69,11 @@ const updateSelectedKnowledgeBase = (event: Event) => {
 }
 
 const updateValue = (event: Event) => {
-  const target = event.target as HTMLTextAreaElement
+const target = event.target as HTMLTextAreaElement
   emit('update:modelValue', target.value)
 }
 
 const toggleThinkMode = () => {
-  if (props.disabled || props.streaming) {
-    return
-  }
-
   thinkEnabled.value = !thinkEnabled.value
 }
 
@@ -92,7 +86,7 @@ const submit = () => {
   if (props.disabled || !hasContent.value) {
     return
   }
-
+ 
   emit('submit', {
     message: props.modelValue.trim(),
     capabilities: promptCapabilities.value,

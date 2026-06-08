@@ -31,11 +31,11 @@ const conversationListError = conversationList.error
 const messagesLoading = workspaceChat.isLoadingMessages
 const isStreaming = workspaceChat.isStreaming
 const regenerating = workspaceChat.regenerating
-
+// 格式化对话时间
 const formatConversationTime = (value: string) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return value
+  return value
   }
 
   const now = new Date()
@@ -72,10 +72,10 @@ const formatConversationTime = (value: string) => {
         }
   )
 }
-
+// 检查对话是否正在流式传输
 const isConversationStreaming = (conversationId: string) =>
   workspaceChat.isConversationStreaming(conversationId)
-
+//监听对话内容变化，滚动到最底部，选中activeConversation自动滚动到最底部
 watch(
   activeContentList,
   async () => {
@@ -83,7 +83,7 @@ watch(
   },
   { deep: true }
 )
-
+// 选择对话
 const handleConversationSelect = async (conversationId: string) => {
   conversationList.selectConversation(conversationId)
   await workspaceChat.loadConversationMessages(conversationId)
@@ -91,14 +91,14 @@ const handleConversationSelect = async (conversationId: string) => {
   await router.push(`/workspace/${conversationId}`)
   await chatAutoScroll.scrollToBottom(true)
 }
-
+// 创建新对话
 const handleCreateConversation = async () => {
   const conversation = await conversationList.createConversation()
   composerValue.value = ''
   await router.push(`/workspace/${conversation.id}`)
   await chatAutoScroll.scrollToBottom(true)
 }
-
+//发送消息
 const handleSend = async (
   message: string,
   capabilities: PromptCapabilities,
@@ -120,14 +120,12 @@ const handleComposerSubmit = (payload: {
   capabilities: PromptCapabilities
   knowledgeBaseId?: string
 }) => {
-  const nextMessage = payload.message.trim()
-
-  if (!nextMessage) {
+  if (!payload.message.trim()) {
     return
   }
 
   composerValue.value = ''
-  void handleSend(nextMessage, payload.capabilities, payload.knowledgeBaseId)
+  void handleSend(payload.message, payload.capabilities, payload.knowledgeBaseId)
 }
 
 const openAdmin = () => {
@@ -281,7 +279,6 @@ onMounted(async () => {
               :disabled="isStreaming"
               :knowledge-bases="knowledgeBases"
               :streaming="isStreaming"
-              :show-hint="!hasContent"
               @submit="handleComposerSubmit"
               @stop="workspaceChat.stopStreaming"
             />

@@ -22,11 +22,11 @@ export const useAutoScroll = (threshold = 32) => {
     if (!container) {
       return
     }
-
+    // 如果当前滚动位置在底部，且不强制滚动，直接返回
     if (!force && !shouldStickToBottom.value) {
       return
     }
-
+    // 滚动到最底部
     container.scrollTop = container.scrollHeight
     shouldStickToBottom.value = true
   }

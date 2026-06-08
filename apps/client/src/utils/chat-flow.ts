@@ -2,14 +2,17 @@ import type { AssistantResponseFlow, AssistantThinkingStage } from '@/types/chat
 import type { ChatMessage } from '@/types/chat/models'
 
 type ThinkingStageDraft = Pick<AssistantThinkingStage, 'stageKey' | 'title' | 'subtitle'>
+type ChatMessageWithThinking = ChatMessage & {
+  reasoningSteps: NonNullable<ChatMessage['reasoningSteps']>
+}
 
 const FINAL_ANSWER_TITLE = '\u6700\u7ec8\u56de\u7b54'
 
-const shouldRenderThinking = (message: ChatMessage) =>
+const shouldRenderThinking = (message: ChatMessage): message is ChatMessageWithThinking =>
   Boolean(message.promptCapabilities?.think) && Array.isArray(message.reasoningSteps)
 
 const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
-  if (!shouldRenderThinking(message) || !message.reasoningSteps) {
+  if (!shouldRenderThinking(message)) {
     return []
   }
 

@@ -128,7 +128,7 @@ function applyStreamEventToAssistantMessage(
   if (event.type === 'completed' || event.type === 'error') {
     return assistantMessage
   }
-
+  // 处理回答文字片段
   if (event.type === 'answer_delta') {
     if (!assistantMessage.responseFlow) {
       return {
@@ -146,7 +146,7 @@ function applyStreamEventToAssistantMessage(
   }
 
   const responseFlow = assistantMessage.responseFlow ?? createThinkingPlaceholderFlow()
-
+  // 处理推理增量
   if (event.type === 'reasoning_step_started') {
     return {
       ...assistantMessage,
@@ -158,7 +158,7 @@ function applyStreamEventToAssistantMessage(
       )
     }
   }
-
+  // 处理推理增量
   if (event.type === 'reasoning_step_delta') {
     return {
       ...assistantMessage,

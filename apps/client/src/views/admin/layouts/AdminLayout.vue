@@ -10,7 +10,8 @@ const route = useRoute()
 const router = useRouter()
 
 const breadcrumbMap: Record<string, string> = {
-  knowledge: '知识库管理'
+  knowledge: '知识库管理',
+  architecture: '代码地图'
 }
 
 const breadcrumbs = computed(() => {

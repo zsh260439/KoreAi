@@ -111,6 +111,12 @@ const showProcessSection = computed(
   () => promptCapabilities.value.think && (thinkingStages.value.length > 0 || props.message.status === 'streaming')
 )
 
+const tokenCount = computed(() => estimateTokenCount(buildVisibleTokenSource()))
+
+const showTokenCount = computed(
+  () => showProcessSection.value && (props.message.status === 'streaming' || tokenCount.value > 0)
+)
+
 const showAnswerSection = computed(
   () =>
     answerStatus.value === 'running' ||
@@ -127,6 +133,33 @@ const toggleProcessDetails = () => {
   }
 
   processExpanded.value = !processExpanded.value
+}
+
+function buildVisibleTokenSource(): string {
+  if (!responseFlow.value) {
+    return props.message.content || ''
+  }
+
+  const thinkingContent = responseFlow.value.thinking
+    .map((stage) => stage.visibleContent || stage.content || '')
+    .join('')
+  const answerVisibleContent =
+    responseFlow.value.answer.visibleContent ||
+    responseFlow.value.answer.content ||
+    props.message.content ||
+    ''
+
+  return `${thinkingContent}${answerVisibleContent}`
+}
+
+function estimateTokenCount(content: string): number {
+  const normalized = content.trim()
+  if (!normalized) {
+    return 0
+  }
+
+  // Keep the same approximation used elsewhere in the project for token-sized text.
+  return Math.max(1, Math.ceil(normalized.length / 4))
 }
 
 function parseContent(content: string): RenderPart[] {
@@ -192,7 +225,7 @@ function parseContent(content: string): RenderPart[] {
         <section v-if="showProcessSection" class="space-y-3">
           <button
             type="button"
-            class="inline-flex max-w-full items-center gap-2 rounded-xl bg-transparent px-0 py-1 text-left transition"
+            class="flex w-full max-w-full items-center justify-between gap-3 rounded-xl bg-transparent px-0 py-1 text-left transition"
             :class="canToggleProcessDetails ? 'cursor-pointer hover:bg-[#f8fafc]' : 'cursor-default'"
             :aria-expanded="showProcessDetails"
             @click="toggleProcessDetails"
@@ -205,11 +238,20 @@ function parseContent(content: string): RenderPart[] {
               </div>
             </div>
 
-            <ChevronRight
-              v-if="canToggleProcessDetails"
-              class="size-4 shrink-0 text-[#98a2b3] transition-transform"
-              :class="showProcessDetails ? 'rotate-90' : ''"
-            />
+            <div
+              v-if="showTokenCount || canToggleProcessDetails"
+              class="flex shrink-0 items-center gap-3 pl-3"
+            >
+              <span v-if="showTokenCount" class="text-[13px] font-medium text-[#98a2b3]">
+                Token:{{ tokenCount }}
+              </span>
+
+              <ChevronRight
+                v-if="canToggleProcessDetails"
+                class="size-4 shrink-0 text-[#98a2b3] transition-transform"
+                :class="showProcessDetails ? 'rotate-90' : ''"
+              />
+            </div>
           </button>
 
           <transition name="process-collapse">
