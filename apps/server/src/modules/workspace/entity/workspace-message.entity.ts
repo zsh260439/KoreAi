@@ -37,6 +37,9 @@ export class WorkspaceMessageEntity {
   @Column({ type: 'int', nullable: true })
   latencyMs!: number | null
 
+  @Column({ type: 'int', nullable: true })
+  totalTokens!: number | null
+
   @Column({ type: 'jsonb', nullable: true })
   reasoningSteps!: KnowledgeReasoningStep[] | null
 

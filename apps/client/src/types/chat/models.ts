@@ -14,7 +14,6 @@ export type PromptCapabilities = WorkspacePromptCapabilities
 export interface ChatMessage extends Omit<BaseWorkspaceMessage, 'promptCapabilities'> {
   status: ChatMessageStatus
   responseFlow?: AssistantResponseFlow
-  inputTokens?: number
-  outputTokens?: number
+  totalTokens: number | null
   promptCapabilities?: PromptCapabilities | null
 }

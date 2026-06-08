@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import { AIMessageChunk } from '@langchain/core/messages'
 import type {
   KnowledgeReasoningStep,
   KnowledgeReasoningStepKey,
@@ -9,7 +10,10 @@ import type {
 type KnowledgeQaResponse = {
   answer: string
   reasoningSteps: KnowledgeReasoningStep[] | null
+  totalTokens: number | null
 }
+
+type StructuredAnswerResult = Omit<KnowledgeQaResponse, 'totalTokens'>
 
 type StructuredAnswerPayload = {
   answer?: unknown
@@ -36,6 +40,11 @@ export type KnowledgeQaStreamEvent =
       type: 'answer_delta'
       delta: string
     }
+
+type KnowledgeQaStreamResult = {
+  stream: AsyncGenerator<KnowledgeQaStreamEvent>
+  totalTokens: Promise<number | null>
+}
 
 const STEP_OPEN_TAG = '<koreai_reasoning_step>'
 const STAGE_KEY_OPEN_TAG = '<koreai_stage_key>'
@@ -75,18 +84,22 @@ export class KnowledgeQaService {
     if (!includeReasoning) {
       return {
         answer: rawText,
-        reasoningSteps: null
+        reasoningSteps: null,
+        totalTokens: normalizeTotalTokens(response.usage_metadata)
       }
     }
 
-    return extractStructuredAnswer(rawText)
+    return {
+      ...extractStructuredAnswer(rawText),
+      totalTokens: normalizeTotalTokens(response.usage_metadata)
+    }
   }
 
-  async *streamAnswerQuestion(
+  async streamAnswerQuestion(
     query: string,
     hits: KnowledgeSearchHit[],
     options: { includeReasoning?: boolean; signal?: AbortSignal } = {}
-  ): AsyncGenerator<KnowledgeQaStreamEvent> {
+  ): Promise<KnowledgeQaStreamResult> {
     const includeReasoning = Boolean(options.includeReasoning)
     const stream = await this.getClient().stream(
       [
@@ -106,35 +119,57 @@ export class KnowledgeQaService {
       { signal: options.signal } as never
     )
 
-    if (!includeReasoning) {
-      for await (const chunk of stream) {
-        const delta = extractStreamingMessageText(chunk.content)
-        if (delta) {
-          yield {
-            type: 'answer_delta',
-            delta
+    let resolveTotalTokens!: (totalTokens: number | null) => void
+    const totalTokens = new Promise<number | null>((resolve) => {
+      resolveTotalTokens = resolve
+    })
+
+    const self = this
+
+    async function *run(): AsyncGenerator<KnowledgeQaStreamEvent> {
+      let combinedChunk: AIMessageChunk | null = null
+
+      try {
+        if (!includeReasoning) {
+          for await (const chunk of stream) {
+            combinedChunk = combinedChunk ? combinedChunk.concat(chunk) : chunk
+            const delta = extractStreamingMessageText(chunk.content)
+            if (delta) {
+              yield {
+                type: 'answer_delta',
+                delta
+              }
+            }
+          }
+
+          return
+        }
+
+        const parser = new StructuredAnswerStreamParser()
+
+        for await (const chunk of stream) {
+          combinedChunk = combinedChunk ? combinedChunk.concat(chunk) : chunk
+          const delta = extractStreamingMessageText(chunk.content)
+          if (!delta) {
+            continue
+          }
+
+          for (const event of parser.push(delta)) {
+            yield event
           }
         }
-      }
 
-      return
-    }
-
-    const parser = new StructuredAnswerStreamParser()
-
-    for await (const chunk of stream) {
-      const delta = extractStreamingMessageText(chunk.content)
-      if (!delta) {
-        continue
-      }
-
-      for (const event of parser.push(delta)) {
-        yield event
+        for (const event of parser.flush()) {
+          yield event
+        }
+      } finally {
+        resolveTotalTokens(self.extractTotalTokensFromChunk(combinedChunk))
       }
     }
 
-    for (const event of parser.flush()) {
-      yield event
+    return {
+      stream: run(),
+      totalTokens
     }
   }
 
@@ -165,6 +200,16 @@ export class KnowledgeQaService {
 
     return this.client
   }
+
+  private extractTotalTokensFromChunk(chunk: AIMessageChunk | null): number | null {
+    return normalizeTotalTokens(chunk?.usage_metadata)
+  }
+}
+
+type UsageMetadata = {
+  input_tokens?: number
+  output_tokens?: number
+  total_tokens?: number
 }
 
 class StructuredAnswerStreamParser {
@@ -463,7 +508,7 @@ content: ${item.content}`
     .join('\n\n')
 }
 
-function extractStructuredAnswer(rawText: string): KnowledgeQaResponse {
+function extractStructuredAnswer(rawText: string): StructuredAnswerResult {
   const payload = tryParseStructuredPayload(rawText)
 
   if (!payload) {
@@ -727,4 +772,9 @@ function normalizeLeadingStreamText(existingText: string, rawDelta: string): str
 function normalizeLlmBaseUrl(value?: string): string | undefined {
   if (!value) return undefined
   return value.replace(/\/chat\/completions\/?$/, '')
+}
+
+function normalizeTotalTokens(usage?: UsageMetadata): number | null {
+  const value = usage?.total_tokens
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }

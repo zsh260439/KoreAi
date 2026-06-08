@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 import { renderMessageMarkdown } from '@/utils/chat-markdown'
 
-const COPY_DEFAULT_LABEL = '复制'
-const COPY_SUCCESS_LABEL = '已复制'
+const COPY_DEFAULT_LABEL = '\u590d\u5236'
+const COPY_SUCCESS_LABEL = '\u5df2\u590d\u5236'
+const EXPAND_LABEL = '\u5c55\u5f00'
+const COLLAPSE_LABEL = '\u6536\u8d77'
 
 const props = withDefaults(
   defineProps<{
@@ -37,6 +39,19 @@ const resetCopiedButton = () => {
   }
 }
 
+const setToggleButtonState = (button: HTMLButtonElement, isCollapsed: boolean) => {
+  const currentLabel = isCollapsed
+    ? button.dataset.expandLabel || EXPAND_LABEL
+    : button.dataset.collapseLabel || COLLAPSE_LABEL
+  const language = button.dataset.language || ''
+  const title = language ? `${currentLabel} ${language}` : currentLabel
+
+  button.dataset.collapsed = String(isCollapsed)
+  button.setAttribute('aria-expanded', String(!isCollapsed))
+  button.setAttribute('aria-label', title)
+  button.title = title
+}
+
 const updateRenderedHtml = async (content: string) => {
   const taskId = ++renderTaskId
 
@@ -50,7 +65,6 @@ const updateRenderedHtml = async (content: string) => {
     const html = await renderMessageMarkdown(content)
     if (taskId === renderTaskId) {
       renderedHtml.value = html
-      await nextTick()
     }
   } catch {
     if (taskId === renderTaskId) {
@@ -58,6 +72,28 @@ const updateRenderedHtml = async (content: string) => {
       resetCopiedButton()
     }
   }
+}
+
+const handleToggle = (event: MouseEvent): boolean => {
+  const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>(
+    '[data-toggle-code]'
+  )
+  if (!button) {
+    return false
+  }
+
+  const shell = button.closest<HTMLElement>('.message-code-shell')
+  if (!shell) {
+    return true
+  }
+
+  const isCollapsed = shell.dataset.collapsed === 'true'
+  const nextCollapsed = !isCollapsed
+
+  shell.dataset.collapsed = String(nextCollapsed)
+  setToggleButtonState(button, nextCollapsed)
+
+  return true
 }
 
 const handleCopy = async (event: MouseEvent) => {
@@ -95,6 +131,14 @@ const handleCopy = async (event: MouseEvent) => {
   }, 1600)
 }
 
+const handleToolbarAction = (event: MouseEvent) => {
+  if (handleToggle(event)) {
+    return
+  }
+
+  void handleCopy(event)
+}
+
 watch(
   () => props.content,
   (content) => {
@@ -108,7 +152,7 @@ watch(
   <div
     v-if="renderedHtml"
     class="message-markdown"
-    @click="handleCopy"
+    @click="handleToolbarAction"
   >
     <div v-html="renderedHtml" />
     <span v-if="showCursor" class="message-markdown__cursor" />
@@ -180,26 +224,62 @@ watch(
   gap: 1rem;
   border-bottom: 1px solid #eceff3;
   background: linear-gradient(180deg, #fbfbfc 0%, #f5f7fa 100%);
-  padding: 0.78rem 1rem;
+  padding: 0.7rem 1rem;
+  transition: border-color 0.24s ease;
+}
+
+.message-markdown :deep(.message-code-shell[data-collapsed='true'] .message-code-toolbar) {
+  border-bottom-color: transparent;
 }
 
 .message-markdown :deep(.message-code-toolbar__meta) {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
   min-width: 0;
 }
 
-.message-markdown :deep(.message-code-toolbar__language) {
-  color: #667085;
-  font-size: 0.82rem;
+.message-markdown :deep(.message-code-toolbar__actions) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.message-markdown :deep(.message-code-toolbar__toggle) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #475467;
+  font-size: 0.9rem;
+  font-weight: 600;
   line-height: 1;
-  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.message-markdown :deep(.message-code-toolbar__toggle:hover) {
+  color: #111827;
 }
 
 .message-markdown :deep(.message-code-toolbar__language) {
-  font-weight: 600;
+  white-space: nowrap;
   text-transform: lowercase;
+}
+
+.message-markdown :deep(.message-code-toolbar__chevron) {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  transition: transform 0.24s ease;
+}
+
+.message-markdown :deep(.message-code-toolbar__toggle[data-collapsed='true'] .message-code-toolbar__chevron) {
+  transform: rotate(135deg);
 }
 
 .message-markdown :deep(.message-code-toolbar__copy) {
@@ -227,6 +307,25 @@ watch(
   border-color: #bfdbfe;
   background: #eff6ff;
   color: #1d4ed8;
+}
+
+.message-markdown :deep(.message-code-content) {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.26s ease,
+    opacity 0.22s ease;
+}
+
+.message-markdown :deep(.message-code-content__inner) {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.message-markdown :deep(.message-code-shell[data-collapsed='true'] .message-code-content) {
+  grid-template-rows: 0fr;
+  opacity: 0;
 }
 
 .message-markdown :deep(pre.shiki),

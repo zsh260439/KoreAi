@@ -6,6 +6,9 @@ import {
 } from 'shiki'
 
 const CHAT_CODE_THEME = 'ayu-light'
+const COPY_LABEL = '\u590d\u5236'
+const EXPAND_LABEL = '\u5c55\u5f00'
+const COLLAPSE_LABEL = '\u6536\u8d77'
 const FENCE_LANGUAGE_REGEX = /```([^\s`]+)?/g
 const DISPLAY_LANGUAGE_MAP: Record<string, string> = {
   js: 'javascript',
@@ -64,17 +67,55 @@ function getLanguageLabel(language: string): string {
 }
 
 function wrapCodeBlock(content: string, language: string): string {
-  const label = escapeHtml(getLanguageLabel(language))
+  const rawLabel = getLanguageLabel(language)
+  const label = escapeHtml(rawLabel)
+  const copyLabel = escapeHtml(COPY_LABEL)
+  const expandLabel = escapeHtml(EXPAND_LABEL)
+  const collapseLabel = escapeHtml(COLLAPSE_LABEL)
+  const collapseTitle = escapeHtml(`${COLLAPSE_LABEL} ${rawLabel}`)
 
   return [
-    `<div class="message-code-shell" data-language="${label}">`,
+    `<div class="message-code-shell" data-language="${label}" data-collapsed="false">`,
     '<div class="message-code-toolbar">',
     '<div class="message-code-toolbar__meta">',
+    [
+      '<button',
+      'type="button"',
+      'class="message-code-toolbar__toggle"',
+      'data-toggle-code',
+      `data-language="${label}"`,
+      `data-expand-label="${expandLabel}"`,
+      `data-collapse-label="${collapseLabel}"`,
+      'data-collapsed="false"',
+      'aria-expanded="true"',
+      `aria-label="${collapseTitle}"`,
+      `title="${collapseTitle}"`,
+      '>'
+    ].join(' '),
     `<span class="message-code-toolbar__language">${label}</span>`,
+    '<span class="message-code-toolbar__chevron" aria-hidden="true"></span>',
+    '</button>',
     '</div>',
-    '<button type="button" class="message-code-toolbar__copy" data-copy-code data-default-label="复制">复制</button>',
+    '<div class="message-code-toolbar__actions">',
+    [
+      '<button',
+      'type="button"',
+      'class="message-code-toolbar__copy"',
+      'data-copy-code',
+      `data-default-label="${copyLabel}"`,
+      `aria-label="${copyLabel}"`,
+      `title="${copyLabel}"`,
+      '>'
+    ].join(' '),
+    copyLabel,
+    '</button>',
     '</div>',
+    '</div>',
+    '<div class="message-code-content">',
+    '<div class="message-code-content__inner">',
     content,
+    '</div>',
+    '</div>',
     '</div>'
   ].join('')
 }

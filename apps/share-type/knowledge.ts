@@ -103,4 +103,5 @@ export interface KnowledgeAskResult {
   sources: KnowledgeSearchHit[]
   model: string | null
   reasoningSteps: KnowledgeReasoningStep[] | null
+  totalTokens: number | null
 }

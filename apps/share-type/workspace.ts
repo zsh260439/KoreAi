@@ -1,4 +1,8 @@
-import type { KnowledgeAskResult, KnowledgeReasoningStep, KnowledgeSearchHit } from './knowledge.js'
+import type {
+  KnowledgeAskResult,
+  KnowledgeReasoningStep,
+  KnowledgeSearchHit
+} from './knowledge.js'
 
 export type WorkspaceMessageRole = 'user' | 'assistant'
 
@@ -24,6 +28,7 @@ export interface WorkspaceMessage {
   citations: KnowledgeSearchHit[] | null
   model: string | null
   latencyMs: number | null
+  totalTokens: number | null
   reasoningSteps: KnowledgeReasoningStep[] | null
   promptCapabilities: WorkspacePromptCapabilities | null
 }

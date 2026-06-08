@@ -63,6 +63,7 @@ const toUserChatMessage = (
   citations: null,
   model: null,
   latencyMs: null,
+  totalTokens: null,
   reasoningSteps: null,
   promptCapabilities,
   status: 'done'
@@ -81,6 +82,7 @@ const toAssistantPlaceholderMessage = (
   citations: null,
   model,
   latencyMs: null,
+  totalTokens: null,
   reasoningSteps: null,
   promptCapabilities,
   status: 'streaming',
@@ -96,6 +98,7 @@ const toChatMessage = (message: {
   citations: ChatMessage['citations']
   model: string | null
   latencyMs: number | null
+  totalTokens: number | null
   reasoningSteps: ChatMessage['reasoningSteps']
   promptCapabilities: PromptCapabilities | null
 }): ChatMessage => {
@@ -420,6 +423,7 @@ function finalizeAssistantMessage(
     citations: result.sources,
     model: result.model,
     latencyMs: result.latencyMs,
+    totalTokens: result.totalTokens,
     reasoningSteps: result.reasoningSteps,
     promptCapabilities
   })

@@ -31,6 +31,7 @@ import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
 type KnowledgeAskStream = {
   sources: KnowledgeSearchHit[]
   model: string | null
+  totalTokens: Promise<number | null>
   stream: AsyncGenerator<KnowledgeQaStreamEvent>
 }
 
@@ -83,7 +84,8 @@ export class KnowledgeService {
       answer: qaResult.answer,
       sources,
       model: this.knowledgeQaService.getModelName(),
-      reasoningSteps: qaResult.reasoningSteps
+      reasoningSteps: qaResult.reasoningSteps,
+      totalTokens: qaResult.totalTokens
     }
   }
 
@@ -103,13 +105,16 @@ export class KnowledgeService {
     const topK = normalizeTopK(dto.topK)
     const sources = await this.retrieveKnowledge(dto.knowledgeBaseId, query, topK)
 
+    const qaStream = await this.knowledgeQaService.streamAnswerQuestion(query, sources, {
+      includeReasoning: dto.think,
+      signal: options.signal
+    })
+
     return {
       sources,
       model: this.knowledgeQaService.getModelName(),
-      stream: this.knowledgeQaService.streamAnswerQuestion(query, sources, {
-        includeReasoning: dto.think,
-        signal: options.signal
-      })
+      totalTokens: qaStream.totalTokens,
+      stream: qaStream.stream
     }
   }
 

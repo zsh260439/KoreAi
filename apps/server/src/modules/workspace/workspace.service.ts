@@ -31,6 +31,7 @@ type PersistAssistantResponseInput = {
   model: string | null
   reasoningSteps: KnowledgeReasoningStep[] | null
   latencyMs: number
+  totalTokens: number | null
 }
 
 @Injectable()
@@ -94,7 +95,8 @@ export class WorkspaceService {
       sources: result.sources,
       model: result.model,
       reasoningSteps: result.reasoningSteps,
-      latencyMs
+      latencyMs,
+      totalTokens: result.totalTokens
     })
   }
 
@@ -160,6 +162,7 @@ export class WorkspaceService {
     }
 
     const latencyMs = Date.now() - startedAt
+    const totalTokens = await streamResult.totalTokens
     const finalResult = await this.persistAssistantResponse({
       conversation: context.conversation,
       query: context.query,
@@ -168,7 +171,8 @@ export class WorkspaceService {
       sources: streamResult.sources,
       model: streamResult.model,
       reasoningSteps: normalizePersistedReasoningSteps(reasoningSteps),
-      latencyMs
+      latencyMs,
+      totalTokens
     })
 
     yield {
@@ -206,6 +210,7 @@ export class WorkspaceService {
           citations: null,
           model: null,
           latencyMs: null,
+          totalTokens: null,
           reasoningSteps: null,
           promptCapabilities
         })
@@ -230,6 +235,7 @@ export class WorkspaceService {
         citations: input.sources,
         model: input.model,
         latencyMs: input.latencyMs,
+        totalTokens: input.totalTokens,
         reasoningSteps: input.reasoningSteps,
         promptCapabilities: input.promptCapabilities
       })
@@ -250,7 +256,8 @@ export class WorkspaceService {
       reasoningSteps: input.reasoningSteps,
       conversationId: input.conversation.id,
       conversation: toWorkspaceConversationSummary(updatedConversation),
-      latencyMs: input.latencyMs
+      latencyMs: input.latencyMs,
+      totalTokens: input.totalTokens
     }
   }
 
@@ -358,6 +365,7 @@ function toWorkspaceMessage(entity: WorkspaceMessageEntity): WorkspaceMessage {
     citations: entity.citations,
     model: entity.model,
     latencyMs: entity.latencyMs,
+    totalTokens: entity.totalTokens,
     reasoningSteps: entity.reasoningSteps,
     promptCapabilities: entity.promptCapabilities
   }
