@@ -39,7 +39,7 @@ defineEmits<{
       v-else
       class="rounded-[16px] border border-dashed border-[#e5e7eb] bg-white p-4 text-sm text-[#9ca3af]"
     >
-      暂无会话。
+      暂无会话
     </div>
   </div>
 </template>

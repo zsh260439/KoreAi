@@ -99,13 +99,17 @@ const handleCreateConversation = async () => {
   await chatAutoScroll.scrollToBottom(true)
 }
 //发送消息
-const handleSend = async (
-  message: string,
-  capabilities: PromptCapabilities,
+const handleSend = async (payload:
+{
+  message: string
+  capabilities: PromptCapabilities
   knowledgeBaseId?: string
+}
 ) => {
-  const conversationId = await workspaceChat.sendMessage(message, capabilities, knowledgeBaseId)
-
+  
+  composerValue.value = ''
+  const conversationId = await workspaceChat.sendMessage(payload.message, payload.capabilities, payload.knowledgeBaseId)
+  
   if (
     conversationId &&
     conversationId !==
@@ -113,19 +117,6 @@ const handleSend = async (
   ) {
     await router.push(`/workspace/${conversationId}`)
   }
-}
-
-const handleComposerSubmit = (payload: {
-  message: string
-  capabilities: PromptCapabilities
-  knowledgeBaseId?: string
-}) => {
-  if (!payload.message.trim()) {
-    return
-  }
-
-  composerValue.value = ''
-  void handleSend(payload.message, payload.capabilities, payload.knowledgeBaseId)
 }
 
 const openAdmin = () => {
@@ -263,10 +254,7 @@ onMounted(async () => {
             </template>
 
             <template v-else>
-              <div class="space-y-3 text-[14px] leading-[1.6] text-[#111827]">
-                <p>你好，我是工作台助手。你可以直接输入问题开始对话。</p>
-                <p>开启深度思考后，会先展示思考过程，再逐步生成最终回答。</p>
-              </div>
+              这里以后会引入新的样式 目前占位
             </template>
           </div>
         </div>
@@ -279,7 +267,7 @@ onMounted(async () => {
               :disabled="isStreaming"
               :knowledge-bases="knowledgeBases"
               :streaming="isStreaming"
-              @submit="handleComposerSubmit"
+              @submit="handleSend"
               @stop="workspaceChat.stopStreaming"
             />
           </div>

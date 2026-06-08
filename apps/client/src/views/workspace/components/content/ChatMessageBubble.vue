@@ -4,18 +4,8 @@ import { computed, ref } from 'vue'
 
 import ShiningText from '@/components/ui/ShiningText.vue'
 import type { ChatMessage } from '@/types/chat/models'
+import ChatMarkdownContent from './ChatMarkdownContent.vue'
 import WorkspaceMark from './WorkspaceMark.vue'
-
-type RenderPart =
-  | {
-      type: 'text'
-      content: string
-    }
-  | {
-      type: 'code'
-      language: string
-      code: string
-    }
 
 const props = defineProps<{
   message: ChatMessage
@@ -65,7 +55,7 @@ const answerContent = computed(() => {
   )
 })
 
-const answerParts = computed(() => parseContent(answerContent.value))
+const answerHasContent = computed(() => Boolean(answerContent.value.trim()))
 
 const isThinkingRunning = computed(() =>
   thinkingStages.value.some((stage) => stage.status === 'running')
@@ -108,7 +98,9 @@ const showProcessDetails = computed(() => {
 })
 
 const showProcessSection = computed(
-  () => promptCapabilities.value.think && (thinkingStages.value.length > 0 || props.message.status === 'streaming')
+  () =>
+    promptCapabilities.value.think &&
+    (thinkingStages.value.length > 0 || props.message.status === 'streaming')
 )
 
 const tokenCount = computed(() => estimateTokenCount(buildVisibleTokenSource()))
@@ -121,7 +113,7 @@ const showAnswerSection = computed(
   () =>
     answerStatus.value === 'running' ||
     answerStatus.value === 'done' ||
-    answerParts.value.length > 0 ||
+    answerHasContent.value ||
     (answerStatus.value === 'pending' && !thinkingStages.value.length)
 )
 
@@ -158,45 +150,7 @@ function estimateTokenCount(content: string): number {
     return 0
   }
 
-  // Keep the same approximation used elsewhere in the project for token-sized text.
   return Math.max(1, Math.ceil(normalized.length / 4))
-}
-
-function parseContent(content: string): RenderPart[] {
-  if (!content.trim()) {
-    return []
-  }
-
-  const parts: RenderPart[] = []
-  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-
-  while ((match = codeBlockRegex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({
-        type: 'text',
-        content: content.slice(lastIndex, match.index)
-      })
-    }
-
-    parts.push({
-      type: 'code',
-      language: match[1] || 'text',
-      code: match[2].trim()
-    })
-
-    lastIndex = match.index + match[0].length
-  }
-
-  if (lastIndex < content.length) {
-    parts.push({
-      type: 'text',
-      content: content.slice(lastIndex)
-    })
-  }
-
-  return parts
 }
 </script>
 
@@ -288,23 +242,11 @@ function parseContent(content: string): RenderPart[] {
         </section>
 
         <section v-if="showAnswerSection" class="px-1 pt-1 text-[15px] leading-8 text-slate-900">
-          <template v-if="answerParts.length">
-            <div class="space-y-3">
-              <template v-for="(part, index) in answerParts" :key="`${message.id}-${index}`">
-                <div v-if="part.type === 'text'" class="whitespace-pre-wrap">
-                  {{ part.content }}
-                  <span
-                    v-if="answerStatus === 'running' && index === answerParts.length - 1"
-                    class="workspace-cursor"
-                  />
-                </div>
-
-                <pre
-                  v-else
-                  class="overflow-x-auto rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-[13px] leading-6 text-[#374151]"
-                ><code>{{ part.code }}</code></pre>
-              </template>
-            </div>
+          <template v-if="answerHasContent">
+            <ChatMarkdownContent
+              :content="answerContent"
+              :show-cursor="answerStatus === 'running'"
+            />
           </template>
 
           <div v-else class="flex items-center gap-2 text-sm text-slate-500">
@@ -333,8 +275,9 @@ function parseContent(content: string): RenderPart[] {
       </div>
 
       <template v-else>
-        <div class="whitespace-pre-wrap text-[15px] leading-8 text-slate-900">
-          {{ message.content || '正在生成回答...' }}
+        <ChatMarkdownContent v-if="message.content" :content="message.content" />
+        <div v-else class="whitespace-pre-wrap text-[15px] leading-8 text-slate-900">
+          正在生成回答...
         </div>
       </template>
     </div>

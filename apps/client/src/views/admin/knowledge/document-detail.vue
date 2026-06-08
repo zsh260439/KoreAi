@@ -7,7 +7,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
 import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
 import type { KnowledgeChunk } from 'share-type'
-import { getKnowledgeHighlightParts, getKnowledgePreviewHighlightParts } from '@/utils/knowledge-highlight'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,15 +16,11 @@ const { chunks, loadKnowledgeChunks, rebuildKnowledgeChunks } = useKnowledgeChun
 
 const kbId = computed(() => String(route.params.kbId || ''))
 const docId = computed(() => String(route.params.docId || ''))
-
-// 选中的分块 ID, 跳转会传入
 const highlightedChunkId = computed(() => {
   const value = route.query.chunkId
   return typeof value === 'string' ? value : ''
 })
-
-// 当前命中关键词，来自命中测试页跳转参数
-const highlightedKeyword = computed(() => {
+const searchText = computed(() => {
   const value = route.query.text
   return typeof value === 'string' ? value.trim() : ''
 })
@@ -47,13 +42,14 @@ const handleRefresh = async () => {
   await scrollToHighlightedChunk()
 }
 
-const isHighlightedChunk = (chunkId: string) => {
-  return chunkId === highlightedChunkId.value
-}
+const isHighlightedChunk = (chunkId: string) => chunkId === highlightedChunkId.value
 
 const getChunkPreview = (content: string) => {
   const normalized = content.replace(/\s+/g, ' ').trim()
-  if (normalized.length <= 180) return normalized
+  if (normalized.length <= 180) {
+    return normalized
+  }
+
   return `${normalized.slice(0, 180)}...`
 }
 
@@ -62,30 +58,23 @@ const openChunkContent = (chunk: KnowledgeChunk) => {
   contentDialogOpen.value = true
 }
 
-const getHighlightedContentParts = (content: string) => {
-  return getKnowledgeHighlightParts(content, highlightedKeyword.value)
-}
-
-const getHighlightedPreviewParts = (content: string) => {
-  if (!highlightedKeyword.value) {
-    return [{ text: getChunkPreview(content), matched: false }]
+const scrollToHighlightedChunk = async () => {
+  if (!highlightedChunkId.value) {
+    return
   }
 
-  return getKnowledgePreviewHighlightParts(content, highlightedKeyword.value, 180)
-}
-
-const scrollToHighlightedChunk = async () => {
-  if (!highlightedChunkId.value) return
-
   const targetChunk = chunks.value.find((item) => item.id === highlightedChunkId.value)
-  if (!targetChunk) return
- 
-  highlightedChunkElementId.value = `chunk-card-${targetChunk.id}`
+  if (!targetChunk) {
+    return
+  }
 
+  highlightedChunkElementId.value = `chunk-card-${targetChunk.id}`
   await nextTick()
 
   const element = document.getElementById(highlightedChunkElementId.value)
-  if (!element) return
+  if (!element) {
+    return
+  }
 
   element.scrollIntoView({
     behavior: 'smooth',
@@ -112,10 +101,16 @@ onMounted(async () => {
     <div class="chunk-stage__canvas">
       <div class="chunk-stage__toolbar">
         <div class="chunk-stage__path">
-          <button class="chunk-stage__back" type="button" @click="router.push({
-            path: `/admin/knowledge/${kbId}`,
-            query: highlightedChunkId ? { tab: 'preview',text: highlightedKeyword } : {}
-          })">
+          <button
+            class="chunk-stage__back"
+            type="button"
+            @click="
+              router.push({
+                path: `/admin/knowledge/${kbId}`,
+                query: highlightedChunkId ? { tab: 'preview', text: searchText || undefined } : {}
+              })
+            "
+          >
             <ChevronLeft class="h-4 w-4" />
             返回文档
           </button>
@@ -140,8 +135,7 @@ onMounted(async () => {
       </div>
 
       <div v-if="highlightedChunkId" class="chunk-stage__notice">
-        已根据搜索结果自动定位命中 chunk。
-        <span v-if="highlightedKeyword" class="chunk-stage__keyword">关键词：{{ highlightedKeyword }}</span>
+        已根据搜索结果自动定位到命中 chunk。
       </div>
 
       <div class="chunk-list">
@@ -161,10 +155,7 @@ onMounted(async () => {
           </div>
 
           <div class="chunk-item__content">
-            <template v-for="(part, index) in getHighlightedPreviewParts(chunk.content)" :key="`${chunk.id}-${index}-${part.text}`">
-              <mark v-if="part.matched" class="chunk-item__mark">{{ part.text }}</mark>
-              <template v-else>{{ part.text }}</template>
-            </template>
+            {{ getChunkPreview(chunk.content) }}
           </div>
 
           <div class="chunk-item__footer">
@@ -198,10 +189,7 @@ onMounted(async () => {
       </template>
 
       <div v-if="activeChunk" class="chunk-dialog__content">
-        <template v-for="(part, index) in getHighlightedContentParts(activeChunk.content)" :key="`${index}-${part.text}`">
-          <mark v-if="part.matched" class="chunk-dialog__mark">{{ part.text }}</mark>
-          <template v-else>{{ part.text }}</template>
-        </template>
+        {{ activeChunk.content }}
       </div>
     </el-dialog>
   </section>
@@ -283,11 +271,6 @@ onMounted(async () => {
   color: #4338ca;
 }
 
-.chunk-stage__keyword {
-  margin-left: 8px;
-  font-weight: 700;
-}
-
 .chunk-list {
   margin-top: 22px;
   display: flex;
@@ -361,13 +344,6 @@ onMounted(async () => {
   white-space: pre-wrap;
 }
 
-.chunk-item__mark {
-  border-radius: 4px;
-  background: #fde68a;
-  padding: 0 2px;
-  color: #92400e;
-}
-
 .chunk-item__footer {
   margin-top: 14px;
   display: flex;
@@ -422,13 +398,6 @@ onMounted(async () => {
   line-height: 1.85;
   color: #334155;
   white-space: pre-wrap;
-}
-
-.chunk-dialog__mark {
-  border-radius: 4px;
-  background: #fde68a;
-  padding: 0 2px;
-  color: #92400e;
 }
 
 @media (max-width: 960px) {

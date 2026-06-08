@@ -241,7 +241,7 @@ export function useWorkspaceChat() {
       }
     }
   }
-
+ // 流式传输助手响应
   const streamAssistantResponse = async (params: {
     conversationId: string
     query: string
