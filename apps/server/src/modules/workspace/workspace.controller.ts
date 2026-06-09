@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common'
 import type {
-  WorkspaceChatResult,
   WorkspaceChatStreamEvent,
   WorkspaceConversationSummary,
   WorkspaceMessage
@@ -46,12 +45,6 @@ export class WorkspaceController {
   ): Promise<ApiResponse<WorkspaceMessage[]>> {
     const data = await this.workspaceService.findConversationMessages(conversationId)
     return ApiResponse.success(0, '\u67e5\u8be2\u6210\u529f', data)
-  }
-
-  @Post('chat')
-  async chat(@Body() dto: WorkspaceChatDto): Promise<ApiResponse<WorkspaceChatResult>> {
-    const data = await this.workspaceService.chat(dto)
-    return ApiResponse.success(0, '\u95ee\u7b54\u6210\u529f', data)
   }
 
   @Post('chat/stream')

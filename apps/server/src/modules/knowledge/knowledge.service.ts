@@ -5,8 +5,6 @@ import { readFile, stat } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { DataSource, Repository } from 'typeorm'
 import type {
-  KnowledgeAskInput,
-  KnowledgeAskResult,
   KnowledgeBase,
   KnowledgeBaseStatus,
   KnowledgeChunk,
@@ -28,6 +26,15 @@ import { KnowledgeBaseEntity } from './entity/knowledge-base.entity'
 import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
 import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
 
+//声明知识问答流式输入结构
+type KnowledgeAskStreamInput = {
+  query: string
+  knowledgeBaseId?: string
+  topK?: number
+  think?: boolean
+}
+
+//声明知识问答流式返回结构
 type KnowledgeAskStream = {
   sources: KnowledgeSearchHit[]
   model: string | null
@@ -50,49 +57,22 @@ export class KnowledgeService {
     private readonly dataSource: DataSource
   ) {}
 
-  // 最小搜索：按 knowledgeBaseId 限定范围，在该知识库下搜索 chunk 内容
+  //声明知识库最小搜索能力
   async searchKnowledge(dto: KnowledgeSearchInput): Promise<KnowledgeSearchHit[]> {
     const query = dto.query.trim()
     if (!query) {
       throw new BadRequestException('query cannot be empty')
     }
 
-    // 确保知识库存在
+    //声明搜索前先校验知识库是否存在
     await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId)
-    // 检索知识库
+    //声明搜索接口固定返回较宽的召回结果用于预览调试
     return this.retrieveKnowledge(dto.knowledgeBaseId, query, 20)
   }
 
-  // 知识库问答
-
-  async askKnowledge(dto: KnowledgeAskInput): Promise<KnowledgeAskResult> {
-    const query = dto.query.trim()
-    if (!query) {
-      throw new BadRequestException('query cannot be empty')
-    }
-
-    // 确保知识库存在
-    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId)
-
-    const topK = normalizeTopK(dto.topK)
-    const sources = await this.retrieveKnowledge(dto.knowledgeBaseId, query, topK)
-    const qaResult = await this.knowledgeQaService.answerQuestion(query, sources, {
-      includeReasoning: dto.think
-    })
-
-    return {
-      answer: qaResult.answer,
-      sources,
-      model: this.knowledgeQaService.getModelName(),
-      reasoningSteps: qaResult.reasoningSteps,
-      totalTokens: qaResult.totalTokens
-    }
-  }
-
-  // 查询所有知识库，同时带出文档数量
-
+  //声明流式知识问答入口
   async streamAskKnowledge(
-    dto: KnowledgeAskInput,
+    dto: KnowledgeAskStreamInput,
     options: { signal?: AbortSignal } = {}
   ): Promise<KnowledgeAskStream> {
     const query = dto.query.trim()
@@ -100,11 +80,11 @@ export class KnowledgeService {
       throw new BadRequestException('query cannot be empty')
     }
 
+    //声明问答前先校验知识库是否存在
     await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId)
 
     const topK = normalizeTopK(dto.topK)
     const sources = await this.retrieveKnowledge(dto.knowledgeBaseId, query, topK)
-
     const qaStream = await this.knowledgeQaService.streamAnswerQuestion(query, sources, {
       includeReasoning: dto.think,
       signal: options.signal
@@ -118,7 +98,7 @@ export class KnowledgeService {
     }
   }
 
-  // 鏌ヨ鎵€鏈夌煡璇嗗簱锛屽悓鏃跺甫鍑烘枃妗ｆ暟閲?  async findKnowledgeBases(): Promise<KnowledgeBase[]> {
+  //声明知识库列表查询
   async findKnowledgeBases(): Promise<KnowledgeBase[]> {
     const items = await this.knowledgeBaseRepo.find({
       order: { updatedAt: 'DESC' },
@@ -128,7 +108,7 @@ export class KnowledgeService {
     return items.map(toKnowledgeBase)
   }
 
-  // 创建知识库
+  //声明知识库创建
   async createKnowledgeBase(dto: CreateKnowledgeBaseDto): Promise<KnowledgeBase> {
     const name = dto.name.trim()
     if (!name) {
@@ -144,7 +124,7 @@ export class KnowledgeService {
     return toKnowledgeBase(created, 0)
   }
 
-  // 更新知识库稳定字段
+  //声明知识库更新
   async updateKnowledgeBase(
     knowledgeBaseId: string,
     dto: UpdateKnowledgeBaseInput
@@ -173,7 +153,7 @@ export class KnowledgeService {
     return toKnowledgeBase(updated)
   }
 
-  // 查询某个知识库下的文档列表
+  //声明知识库文档列表查询
   async findKnowledgeDocuments(knowledgeBaseId: string): Promise<KnowledgeDocument[]> {
     const items = await this.knowledgeDocumentRepo.find({
       where: { knowledgeBaseId },
@@ -183,7 +163,7 @@ export class KnowledgeService {
     return items.map(toKnowledgeDocument)
   }
 
-  // 查询单个文档详情
+  //声明单文档详情查询
   async findKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.knowledgeDocumentRepo.findOne({
       where: { id: documentId }
@@ -196,7 +176,7 @@ export class KnowledgeService {
     return toKnowledgeDocument(document)
   }
 
-  // 更新文档可编辑配置
+  //声明文档可编辑配置更新
   async updateKnowledgeDocument(
     docId: string,
     dto: UpdateKnowledgeDocumentInput
@@ -233,7 +213,7 @@ export class KnowledgeService {
     return toKnowledgeDocument(document)
   }
 
-  // 创建文档记录，当前只支持本地 txt / md 文件
+  //声明知识库文档创建
   async createKnowledgeDocument(
     knowledgeBaseId: string,
     dto: CreateKnowledgeDocumentDto
@@ -256,11 +236,11 @@ export class KnowledgeService {
       throw new BadRequestException('storagePath cannot be empty')
     }
 
+    //声明当前阶段只允许本地文本类文件入库
     ensureSupportedLocalTextFile(storagePath)
 
     const fileStats = await this.readLocalFileStats(storagePath)
     const fileType = inferFileTypeFromPath(storagePath)
-
     const entity = this.knowledgeDocumentRepo.create({
       knowledgeBaseId,
       name,
@@ -278,7 +258,7 @@ export class KnowledgeService {
     return toKnowledgeDocument(created)
   }
 
-  // 查询某个文档下的 chunk 列表
+  //声明文档 chunk 列表查询
   async findDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
     const items = await this.knowledgeChunkRepo.find({
       where: { documentId },
@@ -288,7 +268,7 @@ export class KnowledgeService {
     return items.map(toKnowledgeChunk)
   }
 
-  // 根据文档当前配置重建 chunk
+  //声明文档 chunk 重建
   async rebuildDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
     const document = await this.knowledgeDocumentRepo.findOne({
       where: { id: documentId }
@@ -298,11 +278,11 @@ export class KnowledgeService {
       throw new NotFoundException('Document not found')
     }
 
-    // 先把文档状态切到 processing，便于前端感知任务中状态
+    //声明重建开始前先切换处理中状态
     await this.knowledgeDocumentRepo.update({ id: documentId }, { status: 'processing' })
 
     try {
-      // 从 storagePath 读取真实文件内容，而不是相信前端传正文
+      //声明始终从 storagePath 读取真实文本而不是信任前端正文
       const rawContent = await this.loadDocumentContent(document)
       const config = (document.chunkConfig ?? {}) as Record<string, unknown>
       const chunkSize = Number(config.chunkSize ?? 500)
@@ -311,7 +291,7 @@ export class KnowledgeService {
       const embeddings = await this.embeddingService.embedChunks(parts)
 
       await this.dataSource.transaction(async (manager) => {
-        // 每次重建前先清空旧 chunk，再写入新 chunk
+        //声明重建前先清空旧 chunk 再写入新 chunk
         await manager.delete(KnowledgeChunkEntity, { documentId })
 
         const chunkEntities = parts.map((content, index) =>
@@ -348,13 +328,13 @@ export class KnowledgeService {
 
       return items.map(toKnowledgeChunk)
     } catch (error) {
-      // 任意一步失败都把文档状态标记为 failed
+      //声明任何重建异常都要把文档状态改成失败
       await this.knowledgeDocumentRepo.update({ id: documentId }, { status: 'failed' })
       throw error
     }
   }
 
-  // 删除知识库，文档和 chunk 依赖外键 onDelete 级联删除
+  //声明知识库删除
   async deleteKnowledgeBase(knowledgeBaseId: string): Promise<KnowledgeBase> {
     const kb = await this.knowledgeBaseRepo.findOne({
       where: { id: knowledgeBaseId },
@@ -369,7 +349,7 @@ export class KnowledgeService {
     return toKnowledgeBase(kb)
   }
 
-  // 删除单个文档，chunk 依赖外键 onDelete 级联删除
+  //声明单文档删除
   async deleteKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.knowledgeDocumentRepo.findOne({
       where: { id: documentId }
@@ -383,7 +363,7 @@ export class KnowledgeService {
     return toKnowledgeDocument(document)
   }
 
-  // 统一召回入口
+  //声明统一知识召回入口
   private async retrieveKnowledge(
     knowledgeBaseId: string | undefined,
     query: string,
@@ -391,17 +371,16 @@ export class KnowledgeService {
   ): Promise<KnowledgeSearchHit[]> {
     const keywordHits = await this.keywordRecall(knowledgeBaseId, query, topK)
     const vectorHits = await this.vectorRecall(knowledgeBaseId, query, topK)
-
     return this.mergeHits(keywordHits, vectorHits, topK)
   }
 
-  // 从 storagePath 读取文档正文
+  //声明从 storagePath 读取真实文档正文
   private async loadDocumentContent(document: KnowledgeDocumentEntity): Promise<string> {
     if (!document.storagePath) {
       throw new BadRequestException('Document storagePath is empty')
     }
 
-    // 当前学习阶段只支持本地 txt / md
+    //声明当前阶段仅支持本地 txt 和 md 文件
     ensureSupportedLocalTextFile(document.storagePath)
 
     try {
@@ -422,7 +401,7 @@ export class KnowledgeService {
     }
   }
 
-  // 读取本地文件基础信息，例如文件大小
+  //声明读取本地文件基础信息
   private async readLocalFileStats(storagePath: string) {
     try {
       return await stat(storagePath)
@@ -431,14 +410,13 @@ export class KnowledgeService {
     }
   }
 
-  // 全部 chunk 拉出来召回
+  //声明关键词召回链路
   private async keywordRecall(
     knowledgeBaseId: string | undefined,
     query: string,
     limit = 20
   ): Promise<KnowledgeSearchHit[]> {
     const keywords = buildSearchKeywords(query)
-
     const items = await this.knowledgeChunkRepo.find({
       where: knowledgeBaseId
         ? {
@@ -469,13 +447,12 @@ export class KnowledgeService {
       .slice(0, limit)
   }
 
-  // 向量召回
+  //声明向量召回链路
   private async vectorRecall(
     knowledgeBaseId: string | undefined,
     query: string,
     limit = 20
   ): Promise<KnowledgeSearchHit[]> {
-    // 返回的是 [文档，分数]
     const results = await this.knowledgeVectorStoreService.similaritySearchWithScore(
       query,
       limit,
@@ -491,7 +468,7 @@ export class KnowledgeService {
     }))
   }
 
-  // 确保知识库存在
+  //声明知识库存在性校验
   private async ensureKnowledgeBaseExists(knowledgeBaseId?: string): Promise<void> {
     if (!knowledgeBaseId) {
       return
@@ -506,25 +483,23 @@ export class KnowledgeService {
     }
   }
 
-  // 关键词 + 向量合并，使用 rrf 合并
+  //声明关键词与向量召回合并逻辑
   private mergeHits(
     keywordHits: KnowledgeSearchHit[],
     vectorHits: KnowledgeSearchHit[],
     limit = 20
   ): KnowledgeSearchHit[] {
     const rrfK = 60
-    // 默认的最高分
     const maxScore = 2 / (rrfK + 1)
     const merged = new Map<string, KnowledgeSearchHit & { rrfScore: number }>()
 
-    // 两路召回所得到的分数
+    //声明把每一路召回结果都按名次换算成 rrf 分数
     const addRankScores = (items: KnowledgeSearchHit[]) => {
       items.forEach((item, index) => {
-        // 关键词序列排名第几
         const rank = index + 1
         const rankScore = 1 / (rrfK + rank)
-
         const current = merged.get(item.chunkId)
+
         if (!current) {
           merged.set(item.chunkId, {
             ...item,
@@ -540,7 +515,6 @@ export class KnowledgeService {
     addRankScores(keywordHits)
     addRankScores(vectorHits)
 
-    // 对 rrfScore 排序，同时保留 2 位小数
     return Array.from(merged.values())
       .sort((a, b) => b.rrfScore - a.rrfScore)
       .slice(0, limit)
@@ -551,7 +525,7 @@ export class KnowledgeService {
   }
 }
 
-// 校验当前阶段支持的本地文本文件类型
+//声明本地文本文件类型校验
 function ensureSupportedLocalTextFile(storagePath: string): void {
   const extension = extname(storagePath).toLowerCase()
 
@@ -560,16 +534,18 @@ function ensureSupportedLocalTextFile(storagePath: string): void {
   }
 }
 
-// 从路径后缀推断文件类型
+//声明文件类型推断逻辑
 function inferFileTypeFromPath(value: string): string {
   const extension = extname(value).toLowerCase()
   return extension ? extension.slice(1) : 'txt'
 }
 
-// 按固定大小 + overlap 规则切分文本
+//声明固定尺寸文本切分逻辑
 async function splitText(content: string, chunkSize = 500, overlap = 100): Promise<string[]> {
   const text = content.trim()
-  if (!text) return []
+  if (!text) {
+    return []
+  }
 
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize,
@@ -580,21 +556,22 @@ async function splitText(content: string, chunkSize = 500, overlap = 100): Promi
   return parts.map((item) => item.trim()).filter(Boolean)
 }
 
-// 简单估算 token 数，当前先按字符数近似
+//声明近似 token 估算逻辑
 function estimateTokenCount(content: string): number {
   return Math.max(1, Math.ceil(content.length / 4))
 }
 
-// 搜索词按空格、换行和常见中文标点拆成关键词
+//声明搜索关键词拆分逻辑
 function buildSearchKeywords(query: string): string[] {
   const normalizedQuery = query.trim()
-  if (!normalizedQuery) return []
+  if (!normalizedQuery) {
+    return []
+  }
 
   const keywords = normalizedQuery
     .split(/[\s,，。；;、]+/)
     .map((item) => item.trim())
     .filter(Boolean)
-
   const compact = removeSearchWhitespace(normalizedQuery)
   const candidates = [normalizedQuery, ...keywords]
 
@@ -605,22 +582,26 @@ function buildSearchKeywords(query: string): string[] {
   return Array.from(new Set(candidates))
 }
 
+//声明关键词命中次数统计
 function countKeywordMatches(content: string, keyword: string): number {
   const normalizedContent = content.toLowerCase()
   const normalizedKeyword = keyword.toLowerCase()
-  if (!normalizedKeyword) return 0
+  if (!normalizedKeyword) {
+    return 0
+  }
 
   const compactContent = removeSearchWhitespace(normalizedContent)
   const compactKeyword = removeSearchWhitespace(normalizedKeyword)
   const matchCount = normalizedContent.split(normalizedKeyword).length - 1
   const compactMatchCount = compactContent.split(compactKeyword).length - 1
-
   return matchCount > 0 ? matchCount : compactMatchCount
 }
 
-// 最小可解释分数：命中关键词越多、命中次数越多，分数越高
+//声明最小可解释关键词分数
 function calcSimpleScore(content: string, keywords: string[]): number {
-  if (!keywords.length) return 0
+  if (!keywords.length) {
+    return 0
+  }
 
   let matchedKeywordCount = 0
   let totalMatchCount = 0
@@ -628,26 +609,31 @@ function calcSimpleScore(content: string, keywords: string[]): number {
 
   for (const keyword of keywords) {
     const matchCount = countKeywordMatches(content, keyword)
-    if (matchCount <= 0) continue
+    if (matchCount <= 0) {
+      continue
+    }
 
     matchedKeywordCount += 1
     totalMatchCount += matchCount
     matchedKeywordLength += keyword.length
   }
 
-  if (matchedKeywordCount <= 0) return 0
+  if (matchedKeywordCount <= 0) {
+    return 0
+  }
 
   const coverageScore = (matchedKeywordCount / keywords.length) * 60
   const countScore = Math.min(25, totalMatchCount * 8)
   const densityScore = Math.min(15, (matchedKeywordLength / Math.max(1, content.length)) * 100)
-
   return Number(Math.min(100, coverageScore + countScore + densityScore).toFixed(2))
 }
 
+//声明搜索空白压缩逻辑
 function removeSearchWhitespace(value: string): string {
   return value.replace(/\s+/g, '')
 }
 
+//声明 chunk 元数据构建逻辑
 function buildChunkMetadata(document: KnowledgeDocumentEntity): Record<string, unknown> {
   return {
     knowledgeBaseId: document.knowledgeBaseId,
@@ -656,7 +642,7 @@ function buildChunkMetadata(document: KnowledgeDocumentEntity): Record<string, u
   }
 }
 
-// 实体转知识库响应结构
+//声明知识库实体映射逻辑
 function toKnowledgeBase(
   entity: KnowledgeBaseEntity,
   documentCount = entity.documents?.length ?? 0
@@ -675,7 +661,7 @@ function toKnowledgeBase(
   }
 }
 
-// 校验 topK 参数，确保在 1-8 范围内
+//声明 topK 规范化逻辑
 function normalizeTopK(value?: number): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return 5
@@ -684,7 +670,7 @@ function normalizeTopK(value?: number): number {
   return Math.min(Math.max(Math.floor(value), 1), 8)
 }
 
-// 实体转文档响应结构
+//声明文档实体映射逻辑
 function toKnowledgeDocument(entity: KnowledgeDocumentEntity): KnowledgeDocument {
   return {
     id: entity.id,
@@ -707,7 +693,7 @@ function toKnowledgeDocument(entity: KnowledgeDocumentEntity): KnowledgeDocument
   }
 }
 
-// 实体转 chunk 响应结构
+//声明 chunk 实体映射逻辑
 function toKnowledgeChunk(entity: KnowledgeChunkEntity): KnowledgeChunk {
   return {
     id: entity.id,

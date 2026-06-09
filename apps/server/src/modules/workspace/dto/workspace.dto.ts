@@ -14,7 +14,6 @@ export class WorkspaceChatDto implements WorkspaceChatInput {
   conversationId?: string
 
   @IsString()
-  @MaxLength(200)
   query!: string
 
   @IsOptional()

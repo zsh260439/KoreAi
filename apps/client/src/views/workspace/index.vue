@@ -6,7 +6,7 @@ import { useAutoScroll } from '@/composables/useAutoScroll'
 import { useConversationList } from '@/composables/useConversationList'
 import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
 import { useWorkspaceChat } from '@/composables/useWorkspaceChat'
-import type { PromptCapabilities } from '@/types/chat/models'
+import type { WorkspacePromptCapabilities } from 'share-type'
 import ContentList from './components/content/ContentList.vue'
 import WorkspacePromptBox from './components/input/WorkspacePromptBox.vue'
 import MessageList from './components/sidebar/MessageList.vue'
@@ -102,7 +102,7 @@ const handleCreateConversation = async () => {
 const handleSend = async (payload:
 {
   message: string
-  capabilities: PromptCapabilities
+  capabilities: WorkspacePromptCapabilities
   knowledgeBaseId?: string
 }
 ) => {

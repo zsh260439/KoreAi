@@ -1,11 +1,14 @@
+import type { KnowledgeReasoningStepKey } from 'share-type'
+
 export type AssistantRenderStatus = 'pending' | 'running' | 'done' | 'error'
 
-export type AssistantThinkingStageKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
+//复用共享推理阶段类型
+export type { KnowledgeReasoningStepKey as AssistantThinkingStageKey } from 'share-type'
 
 export interface AssistantThinkingStage {
   kind: 'thinking'
   id: string
-  stageKey: AssistantThinkingStageKey
+  stageKey: KnowledgeReasoningStepKey
   title: string
   subtitle?: string
   status: AssistantRenderStatus

@@ -31,3 +31,13 @@ Thumbs.db
 
 docs/
 *.log
+
+# local evaluation artifacts
+.venv-ragas/
+apps/server/tsconfig.tsbuildinfo
+scripts/ragas_eval/__pycache__/
+scripts/ragas_eval/generated_corpus/
+scripts/ragas_eval/corpus_manifest.json
+scripts/ragas_eval/eval_dataset.json
+scripts/ragas_eval/ragas_progress.json
+scripts/ragas_eval/ragas_report.json

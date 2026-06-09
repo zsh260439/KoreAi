@@ -1,8 +1,9 @@
 import { computed, ref } from 'vue'
 import { createWorkspaceConversationAPI, findWorkspaceConversationsAPI } from '@/servers/workspace'
-import type { ConversationSummary } from '@/types/chat/models'
+import type { WorkspaceConversationSummary } from 'share-type'
 
-const conversations = ref<ConversationSummary[]>([])
+//声明会话列表状态
+const conversations = ref<WorkspaceConversationSummary[]>([])
 const activeConversationId = ref('')
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -53,7 +54,7 @@ export function useConversationList() {
     return response.data
   }
 
-  const upsertConversation = (conversation: ConversationSummary) => {
+  const upsertConversation = (conversation: WorkspaceConversationSummary) => {
     conversations.value = [
       conversation,
       ...conversations.value.filter((item) => item.id !== conversation.id)

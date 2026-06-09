@@ -84,11 +84,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/knowledge/document-detail.vue'),
         meta: {
           appShell: 'admin',
-          title: '文档详情',
+          title: '分块详情',
           requiresAuth: false,
           navGroup: '导航',
           navKey: 'knowledge',
-          breadcrumb: ['首页', '知识库管理', '文档管理', '文档详情']
+          breadcrumb: ['首页', '知识库管理', '文档管理', '分块详情']
         }
       }
     ]

@@ -76,30 +76,6 @@ export class WorkspaceService {
     return items.map(toWorkspaceMessage)
   }
 
-  async chat(dto: WorkspaceChatInput): Promise<WorkspaceChatResult> {
-    const context = await this.prepareChatContext(dto)
-    const startedAt = Date.now()
-    const result = await this.knowledgeService.askKnowledge({
-      query: context.query,
-      knowledgeBaseId: dto.knowledgeBaseId,
-      topK: 4,
-      think: dto.think
-    })
-    const latencyMs = Date.now() - startedAt
-
-    return this.persistAssistantResponse({
-      conversation: context.conversation,
-      query: context.query,
-      promptCapabilities: context.promptCapabilities,
-      answer: result.answer,
-      sources: result.sources,
-      model: result.model,
-      reasoningSteps: result.reasoningSteps,
-      latencyMs,
-      totalTokens: result.totalTokens
-    })
-  }
-
   async *chatStream(
     dto: WorkspaceChatInput,
     options: { signal?: AbortSignal } = {}
@@ -280,9 +256,13 @@ export class WorkspaceService {
     return lastUserMessage.content
   }
 
+  //刷新会话基础信息
   private async refreshConversation(
     conversationId: string,
-    patch: Pick<WorkspaceConversationEntity, 'title' | 'model'>
+    patch: {
+      title: string
+      model: string | null
+    }
   ): Promise<WorkspaceConversationEntity> {
     const conversation = await this.findConversationEntity(conversationId)
     const messageCount = await this.workspaceMessageRepo.count({

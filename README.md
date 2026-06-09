@@ -98,7 +98,7 @@ apps/
 
 服务端接口：
 
-- `POST /api/knowledge/ask`
+- `POST /api/workspace/chat/stream`
 
 返回内容包含：
 
@@ -211,7 +211,7 @@ pnpm run dev
 ### 搜索与问答
 
 - `POST /api/knowledge/search`
-- `POST /api/knowledge/ask`
+- `POST /api/workspace/chat/stream`
 
 ## 当前实现边界
 

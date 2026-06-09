@@ -2,19 +2,22 @@
 import { ArrowUp, Brain, Square } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
-import type { PromptCapabilities } from '@/types/chat/models'
-import type { KnowledgeBase } from 'share-type'
+import type { WorkspacePromptCapabilities } from 'share-type'
 
+//声明输入框提交载荷
 type PromptSubmitPayload = {
   message: string
-  capabilities: PromptCapabilities
+  capabilities: WorkspacePromptCapabilities
   knowledgeBaseId?: string
 }
 
 const props = withDefaults(
   defineProps<{
     disabled?: boolean
-    knowledgeBases?: Pick<KnowledgeBase, 'id' | 'name'>[]
+    knowledgeBases?: {
+      id: string
+      name: string
+    }[]
     selectedKnowledgeBaseId?: string
     modelValue: string
     streaming?: boolean
@@ -37,7 +40,8 @@ const emit = defineEmits<{
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const thinkEnabled = ref(false)
 
-const promptCapabilities = computed<PromptCapabilities>(() => ({
+//声明输入框能力开关
+const promptCapabilities = computed<WorkspacePromptCapabilities>(() => ({
   think: thinkEnabled.value,
   search: false
 }))

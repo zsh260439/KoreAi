@@ -14,21 +14,28 @@ const router = useRouter()
 const { currentDocument, loadKnowledgeDocument } = useKnowledgeDocuments()
 const { chunks, loadKnowledgeChunks, rebuildKnowledgeChunks } = useKnowledgeChunks()
 
+//声明知识库标识读取
 const kbId = computed(() => String(route.params.kbId || ''))
+
+//声明文档标识读取
 const docId = computed(() => String(route.params.docId || ''))
+
+//声明命中分块标识读取
 const highlightedChunkId = computed(() => {
   const value = route.query.chunkId
   return typeof value === 'string' ? value : ''
 })
+
+//声明搜索文本读取
 const searchText = computed(() => {
   const value = route.query.text
   return typeof value === 'string' ? value.trim() : ''
 })
 
-const highlightedChunkElementId = ref('')
 const contentDialogOpen = ref(false)
 const activeChunk = ref<KnowledgeChunk | null>(null)
 
+//声明重新分块处理
 const rebuildChunks = async () => {
   await rebuildKnowledgeChunks(docId.value)
   await loadKnowledgeDocument(docId.value)
@@ -36,14 +43,17 @@ const rebuildChunks = async () => {
   await scrollToHighlightedChunk()
 }
 
+//声明刷新处理
 const handleRefresh = async () => {
   await loadKnowledgeDocument(docId.value)
   await loadKnowledgeChunks(docId.value)
   await scrollToHighlightedChunk()
 }
 
+//声明命中分块高亮判断
 const isHighlightedChunk = (chunkId: string) => chunkId === highlightedChunkId.value
 
+//声明分块摘要裁剪
 const getChunkPreview = (content: string) => {
   const normalized = content.replace(/\s+/g, ' ').trim()
   if (normalized.length <= 180) {
@@ -53,26 +63,26 @@ const getChunkPreview = (content: string) => {
   return `${normalized.slice(0, 180)}...`
 }
 
+//声明分块内容弹窗打开
 const openChunkContent = (chunk: KnowledgeChunk) => {
   activeChunk.value = chunk
   contentDialogOpen.value = true
 }
 
+//声明分块表格行样式
+const getChunkRowClassName = ({ row }: { row: KnowledgeChunk }) =>
+  (isHighlightedChunk(row.id) ? 'chunk-row--active' : '')
+
+//声明命中分块滚动定位
 const scrollToHighlightedChunk = async () => {
   if (!highlightedChunkId.value) {
     return
   }
 
-  const targetChunk = chunks.value.find((item) => item.id === highlightedChunkId.value)
-  if (!targetChunk) {
-    return
-  }
-
-  highlightedChunkElementId.value = `chunk-card-${targetChunk.id}`
   await nextTick()
 
-  const element = document.getElementById(highlightedChunkElementId.value)
-  if (!element) {
+  const element = document.querySelector('.chunk-row--active')
+  if (!(element instanceof HTMLElement)) {
     return
   }
 
@@ -82,6 +92,7 @@ const scrollToHighlightedChunk = async () => {
   })
 }
 
+//声明命中分块监听
 watch(
   () => [highlightedChunkId.value, chunks.value.length],
   async () => {
@@ -89,6 +100,7 @@ watch(
   }
 )
 
+//声明页面初始化加载
 onMounted(async () => {
   await loadKnowledgeDocument(docId.value)
   await loadKnowledgeChunks(docId.value)
@@ -131,43 +143,57 @@ onMounted(async () => {
 
       <div class="chunk-stage__headline">
         <h1 class="chunk-stage__title">{{ currentDocument?.name || '分块详情' }}</h1>
-        <p class="chunk-stage__subtitle">默认只展示 chunk 摘要，完整内容可按需展开查看。</p>
+        <p class="chunk-stage__subtitle">默认展示 chunk 摘要，完整内容可按需展开查看。</p>
       </div>
 
       <div v-if="highlightedChunkId" class="chunk-stage__notice">
         已根据搜索结果自动定位到命中 chunk。
       </div>
 
-      <div class="chunk-list">
-        <article
-          v-for="chunk in chunks"
-          :id="`chunk-card-${chunk.id}`"
-          :key="chunk.id"
-          class="chunk-item"
-          :class="{ 'chunk-item--active': isHighlightedChunk(chunk.id) }"
-        >
-          <div class="chunk-item__header">
-            <div class="chunk-item__meta">
-              <span class="chunk-item__index">Chunk #{{ chunk.sequence }}</span>
-              <span v-if="isHighlightedChunk(chunk.id)" class="chunk-item__badge">搜索命中</span>
+      <el-table
+        :data="chunks"
+        row-key="id"
+        class="chunk-table"
+        :row-class-name="getChunkRowClassName"
+      >
+        <el-table-column label="Chunk" width="110">
+          <template #default="{ row }">
+            <span class="chunk-sequence">#{{ row.sequence }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="内容摘要" min-width="520">
+          <template #default="{ row }">
+            <div class="chunk-preview">
+              {{ getChunkPreview(row.content) }}
             </div>
-            <span class="chunk-item__time">{{ chunk.updatedAt }}</span>
-          </div>
+          </template>
+        </el-table-column>
 
-          <div class="chunk-item__content">
-            {{ getChunkPreview(chunk.content) }}
-          </div>
+        <el-table-column label="字数" width="110" align="center">
+          <template #default="{ row }">
+            {{ row.charCount }}
+          </template>
+        </el-table-column>
 
-          <div class="chunk-item__footer">
-            <span>字符数：{{ chunk.charCount }}</span>
-            <span>Token 数：{{ chunk.tokenCount }}</span>
-            <span class="chunk-item__id">Chunk ID：{{ chunk.id }}</span>
-            <el-button link type="primary" class="chunk-item__view" @click="openChunkContent(chunk)">
-              查看内容
-            </el-button>
-          </div>
-        </article>
-      </div>
+        <el-table-column label="约 Token" width="120" align="center">
+          <template #default="{ row }">
+            ≈ {{ row.tokenCount }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="更新时间" min-width="190">
+          <template #default="{ row }">
+            {{ row.updatedAt }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="110" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="openChunkContent(row)">查看内容</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
       <div class="chunk-footer">
         <span>共 {{ chunks.length }} 条</span>
@@ -181,8 +207,8 @@ onMounted(async () => {
             {{ activeChunk ? `Chunk #${activeChunk.sequence}` : 'Chunk 详情' }}
           </div>
           <div v-if="activeChunk" class="chunk-dialog__meta">
-            <span>字符数：{{ activeChunk.charCount }}</span>
-            <span>Token 数：{{ activeChunk.tokenCount }}</span>
+            <span>字数：{{ activeChunk.charCount }}</span>
+            <span>约 Token：≈ {{ activeChunk.tokenCount }}</span>
             <span>更新时间：{{ activeChunk.updatedAt }}</span>
           </div>
         </div>
@@ -271,94 +297,22 @@ onMounted(async () => {
   color: #4338ca;
 }
 
-.chunk-list {
+.chunk-table {
   margin-top: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
-.chunk-item {
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.96);
-  padding: 20px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-  scroll-margin-top: 120px;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-}
-
-.chunk-item--active {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
-  transform: translateY(-1px);
-}
-
-.chunk-item__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.chunk-item__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.chunk-item__index {
-  font-size: 15px;
+.chunk-sequence {
   font-weight: 700;
   color: #0f172a;
 }
 
-.chunk-item__badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
-  background: #e0e7ff;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #4338ca;
-}
-
-.chunk-item__time {
-  font-size: 13px;
-  color: #667085;
-}
-
-.chunk-item__content {
-  margin-top: 14px;
-  border-radius: 14px;
-  background: #f8fafc;
-  padding: 16px;
-  line-height: 1.85;
+.chunk-preview {
   color: #334155;
-  white-space: pre-wrap;
-}
-
-.chunk-item__footer {
-  margin-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  font-size: 13px;
-  color: #667085;
-}
-
-.chunk-item__id {
-  word-break: break-all;
-}
-
-.chunk-item__view {
-  margin-left: auto;
+  line-height: 1.75;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .chunk-footer {
@@ -400,6 +354,30 @@ onMounted(async () => {
   white-space: pre-wrap;
 }
 
+:deep(.chunk-table .el-table) {
+  border-radius: 20px;
+}
+
+:deep(.chunk-table .el-table__inner-wrapper::before) {
+  display: none;
+}
+
+:deep(.chunk-table .el-table__header th.el-table__cell) {
+  background: #f8fafc;
+  color: #475467;
+  font-weight: 700;
+}
+
+:deep(.chunk-table .el-table__body td.el-table__cell) {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  vertical-align: top;
+}
+
+:deep(.chunk-table .el-table__row.chunk-row--active > td.el-table__cell) {
+  background: #eef2ff;
+}
+
 @media (max-width: 960px) {
   .chunk-stage__toolbar {
     flex-direction: column;
@@ -414,20 +392,6 @@ onMounted(async () => {
   .chunk-stage__canvas {
     padding: 22px 16px 24px;
     border-radius: 20px;
-  }
-
-  .chunk-item {
-    padding: 16px;
-  }
-
-  .chunk-item__header,
-  .chunk-item__footer {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .chunk-item__view {
-    margin-left: 0;
   }
 }
 </style>

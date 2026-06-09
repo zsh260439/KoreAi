@@ -1,19 +1,29 @@
 import type { AssistantResponseFlow } from './flow'
 import type {
-  WorkspaceConversationSummary,
-  WorkspaceMessage as BaseWorkspaceMessage,
+  KnowledgeReasoningStep,
+  KnowledgeSearchHit,
   WorkspacePromptCapabilities
 } from 'share-type'
 
-export type ChatRole = BaseWorkspaceMessage['role'] | 'system-summary'
+//声明聊天角色类型
+export type ChatRole = 'user' | 'assistant' | 'system-summary'
+
+//声明聊天消息状态
 export type ChatMessageStatus = 'done' | 'streaming' | 'error'
 
-export type ConversationSummary = WorkspaceConversationSummary
-export type PromptCapabilities = WorkspacePromptCapabilities
-
-export interface ChatMessage extends Omit<BaseWorkspaceMessage, 'promptCapabilities'> {
+//声明聊天消息完整结构
+export interface ChatMessage {
+  id: string
+  conversationId: string
+  role: ChatRole
+  content: string
+  createdAt: string
+  citations: KnowledgeSearchHit[] | null
+  model: string | null
+  latencyMs: number | null
+  totalTokens: number | null
+  reasoningSteps: KnowledgeReasoningStep[] | null
   status: ChatMessageStatus
   responseFlow?: AssistantResponseFlow
-  totalTokens: number | null
-  promptCapabilities?: PromptCapabilities | null
+  promptCapabilities?: WorkspacePromptCapabilities | null
 }

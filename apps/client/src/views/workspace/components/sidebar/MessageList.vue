@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { ConversationSummary } from '@/types/chat/models'
+import type { WorkspaceConversationSummary } from 'share-type'
 import ConversationListItem from './ConversationListItem.vue'
 
 defineProps<{
-  conversations: ConversationSummary[]
+  conversations: WorkspaceConversationSummary[]
   activeConversationId?: string
   loading?: boolean
   getConversationTimeLabel: (value: string) => string

@@ -3,8 +3,7 @@ import {
   findWorkspaceConversationMessagesAPI,
   requestWorkspaceChatStreamAPI
 } from '@/servers/workspace'
-import type { ChatMessage, PromptCapabilities } from '@/types/chat/models'
-import type { WorkspaceChatResult, WorkspaceChatStreamEvent } from 'share-type'
+import type { ChatMessage } from '@/types/chat/models'
 import {
   appendStreamingAnswerDelta,
   appendStreamingThinkingStageDelta,
@@ -14,9 +13,15 @@ import {
   finalizeStreamingResponseFlow,
   startStreamingThinkingStage
 } from '@/utils/chat-flow'
+import type {
+  WorkspaceChatResult,
+  WorkspaceChatStreamEvent,
+  WorkspacePromptCapabilities
+} from 'share-type'
 import { useConversationList } from './useConversationList'
 
-const DEFAULT_PROMPT_CAPABILITIES: PromptCapabilities = {
+//声明默认输入能力
+const DEFAULT_PROMPT_CAPABILITIES: WorkspacePromptCapabilities = {
   think: false,
   search: false
 }
@@ -33,9 +38,10 @@ const loadingConversationId = ref('')
 const error = ref<string | null>(null)
 const regenerating = ref(false)
 
+//声明输入能力标准化逻辑
 const normalizePromptCapabilities = (
-  promptCapabilities?: PromptCapabilities | null
-): PromptCapabilities => ({
+  promptCapabilities?: WorkspacePromptCapabilities | null
+): WorkspacePromptCapabilities => ({
   think: Boolean(promptCapabilities?.think),
   search: false
 })
@@ -53,7 +59,7 @@ const findLastUserContentIndex = (contentList: ChatMessage[]) => {
 const toUserChatMessage = (
   conversationId: string,
   content: string,
-  promptCapabilities: PromptCapabilities
+  promptCapabilities: WorkspacePromptCapabilities
 ): ChatMessage => ({
   id: `user-${Date.now()}`,
   conversationId,
@@ -72,7 +78,7 @@ const toUserChatMessage = (
 const toAssistantPlaceholderMessage = (
   conversationId: string,
   model: string | null,
-  promptCapabilities: PromptCapabilities
+  promptCapabilities: WorkspacePromptCapabilities
 ): ChatMessage => ({
   id: `assistant-${Date.now() + 1}`,
   conversationId,
@@ -100,7 +106,7 @@ const toChatMessage = (message: {
   latencyMs: number | null
   totalTokens: number | null
   reasoningSteps: ChatMessage['reasoningSteps']
-  promptCapabilities: PromptCapabilities | null
+  promptCapabilities: WorkspacePromptCapabilities | null
 }): ChatMessage => {
   const chatMessage: ChatMessage = {
     ...message,
@@ -123,7 +129,7 @@ function createStreamingErrorMessage(assistantMessage: ChatMessage, stopped: boo
     content: stopped ? '\u5df2\u505c\u6b62\u751f\u6210\u3002' : '\u751f\u6210\u56de\u590d\u65f6\u51fa\u73b0\u95ee\u9898\uff0c\u8bf7\u91cd\u8bd5\u3002'
   }
 }
-
+// 应用流式事件到助手消息
 function applyStreamEventToAssistantMessage(
   assistantMessage: ChatMessage,
   event: WorkspaceChatStreamEvent
@@ -189,7 +195,7 @@ export function useWorkspaceChat() {
   const isStreaming = computed(() => activeRequest.value !== null)
   const isConversationStreaming = (conversationId: string) =>
     activeRequest.value?.conversationId === conversationId
-
+// 设置会话消息（更新会话消息列表，标记为已加载状态）
   const setConversationMessages = (conversationId: string, messages: ChatMessage[]) => {
     contentListBySession.value = {
       ...contentListBySession.value,
@@ -248,11 +254,12 @@ export function useWorkspaceChat() {
   const streamAssistantResponse = async (params: {
     conversationId: string
     query: string
-    promptCapabilities: PromptCapabilities
+    promptCapabilities: WorkspacePromptCapabilities
     knowledgeBaseId?: string
     regenerate?: boolean
     sessionContentList: ChatMessage[]
   }) => {
+
     const controller = new AbortController()
     activeRequest.value = {
       conversationId: params.conversationId,
@@ -273,6 +280,7 @@ export function useWorkspaceChat() {
         {
           signal: controller.signal,
           onEvent: (event) => {
+            //每次后端吐出消息，前端就接受更新会话消息
             sessionContentList = updateAssistantMessage(
               params.conversationId,
               sessionContentList,
@@ -281,15 +289,16 @@ export function useWorkspaceChat() {
           }
         }
       )
-
+   // 更新会话消息，包含最终回答
       sessionContentList = updateAssistantMessage(
         params.conversationId,
         sessionContentList,
         (assistantMessage) =>
           finalizeAssistantMessage(assistantMessage, result, params.promptCapabilities)
       )
-
+      // 更新会话列表
       conversationList.upsertConversation(result.conversation)
+      // 更新会话列表，选择当前会话
       conversationList.selectConversation(result.conversationId)
 
       return result.conversationId
@@ -313,8 +322,8 @@ export function useWorkspaceChat() {
   }
 
   const sendMessage = async (
-    content: string,
-    promptCapabilities?: PromptCapabilities,
+     content: string,
+    promptCapabilities?: WorkspacePromptCapabilities,
     knowledgeBaseId?: string
   ) => {
     const normalizedContent = content.trim()
@@ -334,6 +343,7 @@ export function useWorkspaceChat() {
     )
 
     sessionContentList.push(userMessage, assistantMessage)
+    // 更新会话消息
     setConversationMessages(conversation.id, sessionContentList)
     error.value = null
 
@@ -412,7 +422,7 @@ export function useWorkspaceChat() {
 function finalizeAssistantMessage(
   assistantMessage: ChatMessage,
   result: WorkspaceChatResult,
-  promptCapabilities: PromptCapabilities
+  promptCapabilities: WorkspacePromptCapabilities
 ): ChatMessage {
   const completedMessage = toChatMessage({
     id: assistantMessage.id,

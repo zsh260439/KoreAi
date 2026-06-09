@@ -84,24 +84,17 @@ export interface KnowledgeSearchHit {
 
 export type KnowledgeReasoningStepKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
 
+//声明共享推理步骤元信息
+export interface ReasoningStepMeta {
+  stageKey: KnowledgeReasoningStepKey
+  title: string
+  subtitle?: string
+}
+
+//声明共享推理步骤完整结构
 export interface KnowledgeReasoningStep {
   stageKey: KnowledgeReasoningStepKey
   title: string
   subtitle?: string
   content: string
-}
-
-export interface KnowledgeAskInput {
-  query: string
-  knowledgeBaseId?: string
-  topK?: number
-  think?: boolean
-}
-
-export interface KnowledgeAskResult {
-  answer: string
-  sources: KnowledgeSearchHit[]
-  model: string | null
-  reasoningSteps: KnowledgeReasoningStep[] | null
-  totalTokens: number | null
 }

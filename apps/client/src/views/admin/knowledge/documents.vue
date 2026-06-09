@@ -53,7 +53,7 @@ const uploadChunkStrategy = ref<'fixed_size' | 'structure_aware'>('fixed_size')
 const uploadChunkSize = ref('500')
 const uploadOverlap = ref('100')
 const uploadTargetChars = ref('1400')
-const uploadMaxChars = ref('1800')
+const uploadMaxChars = ref('1800') 
 const uploadMinChars = ref('600')
 const uploadOverlapChars = ref('0')
 

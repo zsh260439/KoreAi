@@ -1,10 +1,8 @@
 import type {
-  KnowledgeAskResult,
   KnowledgeReasoningStep,
-  KnowledgeSearchHit
+  KnowledgeSearchHit,
+  ReasoningStepMeta
 } from './knowledge.js'
-
-export type WorkspaceMessageRole = 'user' | 'assistant'
 
 export interface WorkspacePromptCapabilities {
   think: boolean
@@ -22,7 +20,7 @@ export interface WorkspaceConversationSummary {
 export interface WorkspaceMessage {
   id: string
   conversationId: string
-  role: WorkspaceMessageRole
+  role: 'user' | 'assistant'
   content: string
   createdAt: string
   citations: KnowledgeSearchHit[] | null
@@ -45,17 +43,24 @@ export interface WorkspaceChatInput {
   regenerate?: boolean
 }
 
-export interface WorkspaceChatResult extends KnowledgeAskResult {
+//声明工作台问答结果
+export interface WorkspaceChatResult {
+  answer: string
+  sources: KnowledgeSearchHit[]
+  model: string | null
+  reasoningSteps: KnowledgeReasoningStep[] | null
+  totalTokens: number | null
   conversationId: string
   conversation: WorkspaceConversationSummary
   latencyMs: number
 }
 
+//声明工作台流式事件
 export type WorkspaceChatStreamEvent =
   | {
       type: 'reasoning_step_started'
       index: number
-      step: Omit<KnowledgeReasoningStep, 'content'>
+      step: ReasoningStepMeta
     }
   | {
       type: 'reasoning_step_delta'

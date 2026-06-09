@@ -9,7 +9,6 @@ import {
 import type {
   KnowledgeReasoningStep,
   KnowledgeSearchHit,
-  WorkspaceMessageRole,
   WorkspacePromptCapabilities
 } from 'share-type'
 import { WorkspaceConversationEntity } from './workspace-conversation.entity'
@@ -23,7 +22,7 @@ export class WorkspaceMessageEntity {
   conversationId!: string
 
   @Column({ type: 'varchar', length: 20 })
-  role!: WorkspaceMessageRole
+  role!: 'user' | 'assistant'
 
   @Column({ type: 'text' })
   content!: string

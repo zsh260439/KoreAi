@@ -1,16 +1,44 @@
 import type { AssistantResponseFlow, AssistantThinkingStage } from '@/types/chat/flow'
-import type { ChatMessage } from '@/types/chat/models'
+import type { ChatMessage, ChatMessageStatus, ChatRole } from '@/types/chat/models'
+import type {
+  KnowledgeReasoningStep,
+  KnowledgeReasoningStepKey,
+  KnowledgeSearchHit,
+  WorkspacePromptCapabilities
+} from 'share-type'
 
-type ThinkingStageDraft = Pick<AssistantThinkingStage, 'stageKey' | 'title' | 'subtitle'>
-type ChatMessageWithThinking = ChatMessage & {
-  reasoningSteps: NonNullable<ChatMessage['reasoningSteps']>
+// 流式思考阶段草稿
+interface ThinkingStageDraft {
+  stageKey: KnowledgeReasoningStepKey
+  title: string
+  subtitle?: string
 }
 
+// 带推理步骤的聊天消息
+interface ChatMessageWithThinking {
+  id: string
+  conversationId: string
+  role: ChatRole
+  content: string
+  createdAt: string
+  citations: KnowledgeSearchHit[] | null
+  model: string | null
+  latencyMs: number | null
+  totalTokens: number | null
+  reasoningSteps: KnowledgeReasoningStep[]
+  status: ChatMessageStatus
+  responseFlow?: AssistantResponseFlow
+  promptCapabilities?: WorkspacePromptCapabilities | null
+}
+
+// 最终回答标题
 const FINAL_ANSWER_TITLE = '\u6700\u7ec8\u56de\u7b54'
 
+// 判断是否需要渲染思考过程
 const shouldRenderThinking = (message: ChatMessage): message is ChatMessageWithThinking =>
   Boolean(message.promptCapabilities?.think) && Array.isArray(message.reasoningSteps)
 
+// 构建思考阶段列表
 const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
   if (!shouldRenderThinking(message)) {
     return []
@@ -28,6 +56,7 @@ const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => 
   }))
 }
 
+// 构建已完成的响应流
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
   thinking: buildThinkingStages(message),
   answer: {
@@ -41,6 +70,7 @@ export const buildCompletedResponseFlow = (message: ChatMessage): AssistantRespo
   showActions: true
 })
 
+// 创建空的流式占位响应流
 export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
   thinking: [],
   answer: {
@@ -53,6 +83,7 @@ export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
   showActions: false
 })
 
+// 开始流式思考阶段
 export const startStreamingThinkingStage = (
   flow: AssistantResponseFlow,
   messageId: string,
@@ -78,6 +109,7 @@ export const startStreamingThinkingStage = (
   }
 }
 
+// 追加流式思考内容
 export const appendStreamingThinkingStageDelta = (
   flow: AssistantResponseFlow,
   index: number,
@@ -102,6 +134,7 @@ export const appendStreamingThinkingStageDelta = (
   }
 }
 
+// 完成单个思考阶段
 export const completeStreamingThinkingStage = (
   flow: AssistantResponseFlow,
   index: number,
@@ -126,6 +159,7 @@ export const completeStreamingThinkingStage = (
   }
 }
 
+// 追加流式回答内容
 export const appendStreamingAnswerDelta = (
   flow: AssistantResponseFlow,
   delta: string
@@ -139,6 +173,7 @@ export const appendStreamingAnswerDelta = (
   }
 })
 
+// 完成整个流式响应
 export const finalizeStreamingResponseFlow = (
   flow: AssistantResponseFlow,
   latencyMs?: number | null

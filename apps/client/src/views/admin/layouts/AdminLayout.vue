@@ -9,38 +9,49 @@ import { adminNavItems } from '@/config/navigation'
 const route = useRoute()
 const router = useRouter()
 
-const breadcrumbMap: Record<string, string> = {
-  knowledge: '知识库管理',
-  architecture: '代码地图'
+type BreadcrumbItem = {
+  label: string
+  to?: string
 }
 
-const breadcrumbs = computed(() => {
-  const segments = route.path.split('/').filter(Boolean)
-  const items: { label: string; to?: string }[] = [{ label: '首页', to: '/admin/knowledge' }]
+//声明面包屑固定跳转映射
+const breadcrumbPathMap: Record<string, string> = {
+  首页: '/admin/knowledge',
+  知识库管理: '/admin/knowledge',
+  代码地图: '/admin/architecture'
+}
 
-  if (segments[0] !== 'admin') {
-    return items
+//声明文档管理页路径生成
+const getKnowledgeDocumentsPath = () => {
+  const kbId = typeof route.params.kbId === 'string' ? route.params.kbId : ''
+  return kbId ? `/admin/knowledge/${kbId}` : '/admin/knowledge'
+}
+
+//声明面包屑跳转路径解析
+const resolveBreadcrumbPath = (label: string, isLast: boolean) => {
+  if (isLast) {
+    return undefined
   }
 
-  const section = segments[1]
-  if (section) {
-    items.push({
-      label: breadcrumbMap[section] || section,
-      to: `/admin/${section}`
-    })
+  if (label === '文档管理') {
+    return getKnowledgeDocumentsPath()
   }
 
-  if (section === 'knowledge' && segments.length > 2) {
-    items.push({ label: '文档管理' })
-  }
+  return breadcrumbPathMap[label]
+}
 
-  if (section === 'knowledge' && segments.includes('docs')) {
-    items.push({ label: '切片管理' })
-  }
+//声明面包屑列表生成
+const breadcrumbs = computed<BreadcrumbItem[]>(() => {
+  const labels =
+    Array.isArray(route.meta.breadcrumb) && route.meta.breadcrumb.length
+      ? route.meta.breadcrumb
+      : ['首页']
 
-  return items
+  return labels.map((label, index) => ({
+    label,
+    to: resolveBreadcrumbPath(label, index === labels.length - 1)
+  }))
 })
-
 </script>
 
 <template>
@@ -79,6 +90,5 @@ const breadcrumbs = computed(() => {
         </div>
       </div>
     </div>
-
   </div>
 </template>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { ConversationSummary } from '@/types/chat/models'
+import type { WorkspaceConversationSummary } from 'share-type'
 import WorkspaceSidebarMark from './WorkspaceSidebarMark.vue'
 
 defineProps<{
-  conversation: ConversationSummary
+  conversation: WorkspaceConversationSummary
   active?: boolean
   streaming?: boolean
   timeLabel: string

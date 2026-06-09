@@ -22,10 +22,7 @@ export const findWorkspaceConversationMessagesAPI = (conversationId: string) => 
   return request<WorkspaceMessage[]>(`workspace/conversations/${conversationId}/messages`)
 }
 
-export const requestWorkspaceChatAPI = (dto: WorkspaceChatInput, signal?: AbortSignal) => {
-  return request<WorkspaceChatResult>('workspace/chat', 'POST', dto, { signal })
-}
-
+//声明工作台仅保留流式聊天请求接口
 export const requestWorkspaceChatStreamAPI = async (
   dto: WorkspaceChatInput,
   options: {
@@ -68,7 +65,7 @@ export const requestWorkspaceChatStreamAPI = async (
       if (!event) {
         continue
       }
-
+      //核心逻辑：每次后端吐出消息，前端就接受更新会话消息
       options.onEvent(event)
 
       if (event.type === 'error') {
@@ -84,9 +81,10 @@ export const requestWorkspaceChatStreamAPI = async (
       break
     }
   }
-
+  
   const finalEvent = parseWorkspaceChatStreamEvent(buffer)
   if (finalEvent) {
+    //这里一般是更新ui界面，显示最终回答
     options.onEvent(finalEvent)
 
     if (finalEvent.type === 'error') {
@@ -105,6 +103,7 @@ export const requestWorkspaceChatStreamAPI = async (
   return completedResult
 }
 
+//声明工作台流式请求地址拼装
 function buildWorkspaceUrl(path: string): string {
   if (!API_BASE_URL) {
     return path
@@ -114,6 +113,7 @@ function buildWorkspaceUrl(path: string): string {
   return new URL(path, normalizedBase).toString()
 }
 
+//声明工作台流式错误消息读取
 async function readErrorMessage(response: Response): Promise<string> {
   const contentType = response.headers.get('content-type') || ''
 
