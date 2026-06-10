@@ -101,29 +101,8 @@ export class WorkspaceService {
       }
 
       switch (event.type) {
-        case 'reasoning_step_started':
-          reasoningSteps[event.index] = {
-            ...event.step,
-            content: ''
-          }
-          yield event
-          break
-        case 'reasoning_step_delta':
-          if (!reasoningSteps[event.index]) {
-            reasoningSteps[event.index] = {
-              stageKey: event.index === 0 ? 'deepsearch' : 'llm_reasoning',
-              title: event.index === 0 ? 'Analyze the Request' : 'Synthesize the Answer',
-              content: ''
-            }
-          }
-
-          reasoningSteps[event.index].content += event.delta
-          yield event
-          break
-        case 'reasoning_step_completed':
-          if (reasoningSteps[event.index]) {
-            reasoningSteps[event.index].content = event.content
-          }
+        case 'thinking_delta':
+          appendReasoningDelta(reasoningSteps, event.delta)
           yield event
           break
         case 'answer_delta':
@@ -139,11 +118,21 @@ export class WorkspaceService {
 
     const latencyMs = Date.now() - startedAt
     const totalTokens = await streamResult.totalTokens
+    //声明流式结束后统一校验最终答案不能为空，避免落库空 assistant 消息
+    const finalAnswer = answer.trim()
+    if (!finalAnswer) {
+      throw new BadRequestException(
+        context.promptCapabilities.think
+          ? '思考模式未生成最终答案，请重新生成'
+          : '本次回答未生成有效内容，请重新生成'
+      )
+    }
+
     const finalResult = await this.persistAssistantResponse({
       conversation: context.conversation,
       query: context.query,
       promptCapabilities: context.promptCapabilities,
-      answer: answer.trim(),
+      answer: finalAnswer,
       sources: streamResult.sources,
       model: streamResult.model,
       reasoningSteps: normalizePersistedReasoningSteps(reasoningSteps),
@@ -321,6 +310,23 @@ function normalizePersistedReasoningSteps(
     .filter((step) => step.content)
 
   return items.length ? items : null
+}
+
+//声明思考增量聚合逻辑
+function appendReasoningDelta(reasoningSteps: KnowledgeReasoningStep[], delta: string): void {
+  if (!delta) {
+    return
+  }
+
+  if (!reasoningSteps[0]) {
+    reasoningSteps[0] = {
+      stageKey: 'llm_reasoning',
+      title: '思考过程',
+      content: ''
+    }
+  }
+
+  reasoningSteps[0].content += delta
 }
 
 function toWorkspaceConversationSummary(

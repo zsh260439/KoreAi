@@ -96,15 +96,14 @@ export const flowScenarios: FlowScenario[] = [
     title: 'KoreAI is thinking... 流式思考链路',
     area: 'streaming-thinking',
     summary:
-      '这条链路只关注 think 模式下的行为，包括 placeholder 创建、服务端结构化事件、前端 responseFlow 拼装，以及 Token 实时变化。',
+      '这条链路只关注 think 模式下的行为，包括 placeholder 创建、服务端 thinking/answer 双流拆分、前端 responseFlow 拼装，以及最终 completed 收口。',
     functionIds: [
       'workspace-create-placeholder',
       'chat-flow-create-placeholder',
       'knowledge-qa-stream-answer',
-      'knowledge-parser-push',
       'workspace-apply-stream-event',
       'chat-flow-append-thinking',
-      'bubble-build-token-source'
+      'workspace-service-chat-stream'
     ]
   },
   {
@@ -481,23 +480,9 @@ export const functionDocs: FunctionDoc[] = [
       '',
       '  const responseFlow = assistantMessage.responseFlow ?? createThinkingPlaceholderFlow()',
       '',
-      "  if (event.type === 'reasoning_step_started') {",
-      '    return {',
-      '      ...assistantMessage,',
-      '      responseFlow: startStreamingThinkingStage(responseFlow, assistantMessage.id, event.index, event.step)',
-      '    }',
-      '  }',
-      '',
-      "  if (event.type === 'reasoning_step_delta') {",
-      '    return {',
-      '      ...assistantMessage,',
-      '      responseFlow: appendStreamingThinkingStageDelta(responseFlow, event.index, event.delta)',
-      '    }',
-      '  }',
-      '',
       '  return {',
       '    ...assistantMessage,',
-      '    responseFlow: completeStreamingThinkingStage(responseFlow, event.index, event.content)',
+      '    responseFlow: appendStreamingThinkingStageDelta(responseFlow, event.delta)',
       '  }',
       '}'
     ],
@@ -519,14 +504,13 @@ export const functionDocs: FunctionDoc[] = [
       {
         title: '思考阶段统一走 responseFlow',
         start: 18,
-        end: 35,
+        end: 22,
         detail:
-          'reasoning_step_started / delta / completed 三种事件全部落到 responseFlow.thinking。这样 ChatMessageBubble 不需要知道事件细节，只需要读 thinking 数组。'
+          '当前实现已经不再区分多个 reasoning_step 事件，而是把所有 thinking_delta 直接追加到单块 thinking 文本中。这样 ChatMessageBubble 只需要读取一个思考区。'
       }
     ],
     callers: [
-      { id: 'workspace-stream-assistant-response', label: '在 onEvent 中持续调用' },
-      { id: 'knowledge-parser-push', label: '最终消费其产出的事件类型' }
+      { id: 'workspace-stream-assistant-response', label: '在 onEvent 中持续调用' }
     ],
     callees: [
       { id: 'chat-flow-create-placeholder', label: '无 responseFlow 时创建 placeholder' },
@@ -577,7 +561,7 @@ export const functionDocs: FunctionDoc[] = [
         start: 17,
         end: 17,
         detail:
-          '只要 think 为 true，这条 placeholder 就会预装 createThinkingPlaceholderFlow。这样 ChatMessageBubble 无需等待第一条 reasoning_step_started 才开始渲染思考区。'
+          '只要 think 为 true，这条 placeholder 就会预装 createThinkingPlaceholderFlow。这样 ChatMessageBubble 无需等待第一条 thinking_delta 才开始渲染思考区。'
       }
     ],
     callers: [{ id: 'workspace-send-message', label: 'sendMessage 创建占位消息时调用' }],
@@ -613,7 +597,7 @@ export const functionDocs: FunctionDoc[] = [
         start: 2,
         end: 2,
         detail:
-          'thinking 数组一开始为空，后续只在 reasoning_step_started 到来时按 index 动态插入 stage。'
+          'thinking 数组一开始为空，后续第一次收到 thinking_delta 时才会插入唯一的一块思考文本。'
       },
       {
         title: 'answer 初始状态是 pending',
@@ -650,23 +634,37 @@ export const functionDocs: FunctionDoc[] = [
     code: [
       'export const appendStreamingThinkingStageDelta = (',
       '  flow: AssistantResponseFlow,',
-      '  index: number,',
       '  delta: string',
       '): AssistantResponseFlow => {',
-      '  const stage = flow.thinking[index]',
-      '  if (!stage || !delta) {',
+      '  const stage = flow.thinking[0]',
+      '  if (!delta) {',
       '    return flow',
       '  }',
       '',
-      '  const thinking = flow.thinking.slice()',
-      '  thinking[index] = {',
-      '    ...stage,',
-      "    status: 'running',",
-      '    content: stage.content + delta,',
-      '    visibleContent: stage.visibleContent + delta',
+      '  if (!stage) {',
+      '    return {',
+      '      ...flow,',
+      '      thinking: [{',
+      "        kind: 'thinking',",
+      "        id: 'streaming-thinking',",
+      "        stageKey: 'llm_reasoning',",
+      "        title: '思考过程',",
+      "        status: 'running',",
+      '        content: delta,',
+      '        visibleContent: delta',
+      '      }]',
+      '    }',
       '  }',
       '',
-      '  return { ...flow, thinking }',
+      '  return {',
+      '    ...flow,',
+      '    thinking: [{',
+      '      ...stage,',
+      "      status: 'running',",
+      '      content: stage.content + delta,',
+      '      visibleContent: stage.visibleContent + delta',
+      '    }]',
+      '  }',
       '}',
       '',
       'export const appendStreamingAnswerDelta = (',
@@ -684,11 +682,11 @@ export const functionDocs: FunctionDoc[] = [
     ],
     comments: [
       {
-        title: 'thinking 增量只修改指定 index 的 stage',
-        start: 6,
-        end: 19,
+        title: 'thinking 增量固定写入唯一一块思考文本',
+        start: 5,
+        end: 24,
         detail:
-          '服务端 reasoning_step_delta 会带 index，所以前端不用猜当前更新的是哪个阶段，而是只重写对应 thinking[index]。'
+          '当前项目已经不再维护多个推理阶段。无论后端吐出多少 thinking_delta，前端都只会把它们持续追加到同一个 thinking[0] 上。'
       },
       {
         title: 'content 与 visibleContent 同步累加',
@@ -706,7 +704,7 @@ export const functionDocs: FunctionDoc[] = [
       }
     ],
     callers: [{ id: 'workspace-apply-stream-event', label: '由 applyStreamEventToAssistantMessage 调用' }],
-    callees: [{ id: 'bubble-build-token-source', label: '最终被消息气泡读取并估算 Token' }]
+    callees: []
   },
   {
     id: 'workspace-request-stream-api',
@@ -978,10 +976,12 @@ export const functionDocs: FunctionDoc[] = [
       '    if (options.signal?.aborted) return',
       '',
       '    switch (event.type) {',
-      "      case 'reasoning_step_started':",
-      "      case 'reasoning_step_delta':",
-      "      case 'reasoning_step_completed':",
+      "      case 'thinking_delta':",
+      "        appendReasoningDelta(reasoningSteps, event.delta)",
+      '        yield event',
+      '        break',
       "      case 'answer_delta':",
+      "        answer += event.delta",
       '        yield event',
       '        break',
       '    }',
@@ -1098,7 +1098,7 @@ export const functionDocs: FunctionDoc[] = [
     area: 'streaming-thinking',
     layer: 'llm',
     summary:
-      '这是最接近 LLM 的地方。它决定是否启用结构化 reasoning 流，并在 think 模式下把原始模型输出交给 StructuredAnswerStreamParser 继续切成标准事件。',
+      '这是最接近 LLM 的地方。它会根据 think 开关决定是直接输出答案流，还是先输出可见思考，再用最终答案分隔标记切到 answer 流。',
     code: [
       'async streamAnswerQuestion(',
       '  query: string,',
@@ -1121,17 +1121,16 @@ export const functionDocs: FunctionDoc[] = [
       '    return',
       '  }',
       '',
-      '  const parser = new StructuredAnswerStreamParser()',
       '  for await (const chunk of stream) {',
       '    const delta = extractStreamingMessageText(chunk.content)',
       '    if (!delta) continue',
       '',
-      '    for (const event of parser.push(delta)) {',
+      '    for (const event of splitThinkingAndAnswerDelta(splitState, delta)) {',
       '      yield event',
       '    }',
       '  }',
       '',
-      '  for (const event of parser.flush()) {',
+      '  for (const event of flushSplitThinkingAndAnswerDelta(splitState)) {',
       '    yield event',
       '  }',
       '}'
@@ -1152,146 +1151,15 @@ export const functionDocs: FunctionDoc[] = [
           '如果 includeReasoning 为 false，函数根本不会经过解析器，而是把模型文本直接转成 answer_delta 连续向上游吐出。'
       },
       {
-        title: 'think 模式交给结构化解析器',
-        start: 21,
+        title: 'think 模式走分隔标记拆流',
+        start: 20,
         end: 31,
         detail:
-          '模型输出先被 extractStreamingMessageText 转成纯文本增量，再由 parser.push 切成 reasoning_step_started / delta / completed / answer_delta。'
+          '模型输出先被 extractStreamingMessageText 转成纯文本增量，再由 splitThinkingAndAnswerDelta 按 `<koreai_final_answer>` 这个分隔标记切成 thinking_delta 与 answer_delta。'
       }
     ],
     callers: [{ id: 'knowledge-service-stream-ask', label: '由 KnowledgeService.streamAskKnowledge 调用' }],
-    callees: [{ id: 'knowledge-parser-push', label: 'think 模式下继续进入结构化流解析' }]
-  },
-  {
-    id: 'knowledge-parser-push',
-    title: '结构化思考流解析器',
-    symbol: 'StructuredAnswerStreamParser.push',
-    owner: 'knowledge-qa.service.ts',
-    file: 'apps/server/src/modules/knowledge/composables/knowledge-qa.service.ts',
-    lookupHint: '搜索 `push(chunk: string): KnowledgeQaStreamEvent[]`',
-    area: 'streaming-thinking',
-    layer: 'llm',
-    summary:
-      '这个解析器是把“模型自定义标签流”翻译成“标准 reasoning 事件流”的核心。没有它，前端就只能接到一团未经切分的文本。',
-    code: [
-      'push(chunk: string): KnowledgeQaStreamEvent[] {',
-      '  if (!chunk) {',
-      '    return []',
-      '  }',
-      '',
-      '  this.buffer += chunk',
-      '  this.rawOutput += chunk',
-      '  const events: KnowledgeQaStreamEvent[] = []',
-      '',
-      '  while (true) {',
-      "    if (this.mode === 'seeking') {",
-      '      // 寻找下一段 structured tag 的起点',
-      '    }',
-      '',
-      "    if (this.mode === 'step_meta') {",
-      '      // 解析 stageKey / title / subtitle',
-      "      events.push({ type: 'reasoning_step_started', index: this.currentStepIndex, step: { stageKey, title, subtitle } })",
-      '      continue',
-      '    }',
-      '',
-      "    if (this.mode === 'step_content') {",
-      '      // 持续抽取 content，并反复产出 reasoning_step_delta',
-      "      events.push({ type: 'reasoning_step_delta', index: this.currentStepIndex, delta: result.delta })",
-      "      events.push({ type: 'reasoning_step_completed', index: this.currentStepIndex, content: this.currentStepContent.trim() })",
-      '      continue',
-      '    }',
-      '',
-      '    // answer 模式持续产出 answer_delta',
-      "    events.push({ type: 'answer_delta', delta: result.delta })",
-      '  }',
-      '',
-      '  return events',
-      '}'
-    ],
-    comments: [
-      {
-        title: 'buffer 负责跨 chunk 拼接',
-        start: 6,
-        end: 7,
-        detail:
-          '模型流不是按业务边界切的，一个 stage 的标签可能会被拆成多段网络 chunk，所以 parser 必须自己维护 buffer。'
-      },
-      {
-        title: 'mode 决定当前正在解析哪个阶段',
-        start: 10,
-        end: 28,
-        detail:
-          '解析器不是简单正则替换，而是一个小状态机。它会在 seeking / step_meta / step_content / answer 四个模式之间切换。'
-      },
-      {
-        title: '最终目标是产出标准事件',
-        start: 16,
-        end: 28,
-        detail:
-          '对前端来说，它不需要知道任何自定义标签协议；它只关心标准事件。parser 正是在这里完成“协议翻译”的。'
-      }
-    ],
-    callers: [{ id: 'knowledge-qa-stream-answer', label: '由 streamAnswerQuestion 持续喂入 delta' }],
-    callees: [
-      { id: 'workspace-apply-stream-event', label: '最终事件会被前端映射进 responseFlow' }
-    ]
-  },
-  {
-    id: 'bubble-build-token-source',
-    title: 'Token 实时来源拼装',
-    symbol: 'buildVisibleTokenSource / estimateTokenCount',
-    owner: 'ChatMessageBubble.vue',
-    file: 'apps/client/src/views/workspace/components/content/ChatMessageBubble.vue',
-    lookupHint: '搜索 `function buildVisibleTokenSource()` 与 `function estimateTokenCount(`',
-    area: 'streaming-thinking',
-    layer: 'component',
-    summary:
-      'Token 数不是从后端返回的，而是前端把当前可见的 thinking 文本和 answer 文本拼起来后再做近似估算，所以它可以随着界面实时变化。',
-    code: [
-      'function buildVisibleTokenSource(): string {',
-      '  if (!responseFlow.value) {',
-      "    return props.message.content || ''",
-      '  }',
-      '',
-      '  const thinkingContent = responseFlow.value.thinking',
-      "    .map((stage) => stage.visibleContent || stage.content || '')",
-      "    .join('')",
-      '  const answerVisibleContent =',
-      '    responseFlow.value.answer.visibleContent ||',
-      '    responseFlow.value.answer.content ||',
-      '    props.message.content ||',
-      "    ''",
-      '',
-      '  return `${thinkingContent}${answerVisibleContent}`',
-      '}',
-      '',
-      'function estimateTokenCount(content: string): number {',
-      '  const normalized = content.trim()',
-      '  if (!normalized) {',
-      '    return 0',
-      '  }',
-      '',
-      '  return Math.max(1, Math.ceil(normalized.length / 4))',
-      '}'
-    ],
-    comments: [
-      {
-        title: 'Token 基于“当前可见内容”而不是最终内容',
-        start: 6,
-        end: 15,
-        detail:
-          'thinking 区只取每个 stage 的 visibleContent / content，answer 区只取当前已经生成出来的内容。因此流式过程里 Token 会随着界面一起增长。'
-      },
-      {
-        title: '最终只是近似估算，不是模型官方 token 统计',
-        start: 18,
-        end: 24,
-        detail:
-          '当前项目采用字符数 / 4 的简化估算规则。这能满足“实时变化量展示”的 UI 需求，但它不是服务端精确 token 计费结果。'
-      }
-    ],
-    callers: [{ id: 'chat-flow-append-thinking', label: '读取 responseFlow 中实时累加的文本' }],
-    callees: []
+    callees: [{ id: 'workspace-apply-stream-event', label: '最终事件会被前端映射进 responseFlow' }]
   },
   {
     id: 'documents-submit-upload',

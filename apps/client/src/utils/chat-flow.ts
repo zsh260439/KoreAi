@@ -2,17 +2,9 @@ import type { AssistantResponseFlow, AssistantThinkingStage } from '@/types/chat
 import type { ChatMessage, ChatMessageStatus, ChatRole } from '@/types/chat/models'
 import type {
   KnowledgeReasoningStep,
-  KnowledgeReasoningStepKey,
   KnowledgeSearchHit,
   WorkspacePromptCapabilities
 } from 'share-type'
-
-// 流式思考阶段草稿
-interface ThinkingStageDraft {
-  stageKey: KnowledgeReasoningStepKey
-  title: string
-  subtitle?: string
-}
 
 // 带推理步骤的聊天消息
 interface ChatMessageWithThinking {
@@ -34,26 +26,44 @@ interface ChatMessageWithThinking {
 // 最终回答标题
 const FINAL_ANSWER_TITLE = '\u6700\u7ec8\u56de\u7b54'
 
+//声明单块思考消息固定下标
+const SINGLE_THINKING_STAGE_INDEX = 0
+
 // 判断是否需要渲染思考过程
 const shouldRenderThinking = (message: ChatMessage): message is ChatMessageWithThinking =>
   Boolean(message.promptCapabilities?.think) && Array.isArray(message.reasoningSteps)
 
-// 构建思考阶段列表
-const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
+//声明历史推理步骤合并为单块思考文本
+const buildThinkingContent = (message: ChatMessage): string => {
   if (!shouldRenderThinking(message)) {
+    return ''
+  }
+
+  return message.reasoningSteps
+    .map((step) => step.content.trim())
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+//声明单块思考消息构造逻辑
+const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
+  const thinkingContent = buildThinkingContent(message)
+  if (!thinkingContent) {
     return []
   }
 
-  return message.reasoningSteps.map((step, index) => ({
+  const firstStep = message.reasoningSteps?.[0]
+
+  return [{
     kind: 'thinking',
-    id: `${message.id}-thinking-${index + 1}`,
-    stageKey: step.stageKey,
-    title: step.title,
-    subtitle: step.subtitle,
+    id: `${message.id}-thinking`,
+    stageKey: firstStep?.stageKey ?? 'llm_reasoning',
+    title: firstStep?.title ?? '思考过程',
+    subtitle: undefined,
     status: 'done',
-    content: step.content,
-    visibleContent: step.content
-  }))
+    content: thinkingContent,
+    visibleContent: thinkingContent
+  }]
 }
 
 // 构建已完成的响应流
@@ -83,79 +93,39 @@ export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
   showActions: false
 })
 
-// 开始流式思考阶段
-export const startStreamingThinkingStage = (
-  flow: AssistantResponseFlow,
-  messageId: string,
-  index: number,
-  step: ThinkingStageDraft
-): AssistantResponseFlow => {
-  const thinking = flow.thinking.slice()
-
-  thinking[index] = {
-    kind: 'thinking',
-    id: `${messageId}-thinking-${index + 1}`,
-    stageKey: step.stageKey,
-    title: step.title,
-    subtitle: step.subtitle,
-    status: 'running',
-    content: '',
-    visibleContent: ''
-  }
-
-  return {
-    ...flow,
-    thinking
-  }
-}
-
 // 追加流式思考内容
 export const appendStreamingThinkingStageDelta = (
   flow: AssistantResponseFlow,
-  index: number,
   delta: string
 ): AssistantResponseFlow => {
-  const stage = flow.thinking[index]
-  if (!stage || !delta) {
+  const stage = flow.thinking[SINGLE_THINKING_STAGE_INDEX]
+  if (!delta) {
     return flow
   }
 
-  const thinking = flow.thinking.slice()
-  thinking[index] = {
-    ...stage,
-    status: 'running',
-    content: stage.content + delta,
-    visibleContent: stage.visibleContent + delta
-  }
-
-  return {
-    ...flow,
-    thinking
-  }
-}
-
-// 完成单个思考阶段
-export const completeStreamingThinkingStage = (
-  flow: AssistantResponseFlow,
-  index: number,
-  content: string
-): AssistantResponseFlow => {
-  const stage = flow.thinking[index]
   if (!stage) {
-    return flow
-  }
-
-  const thinking = flow.thinking.slice()
-  thinking[index] = {
-    ...stage,
-    status: 'done',
-    content,
-    visibleContent: content
+    return {
+      ...flow,
+      thinking: [{
+        kind: 'thinking',
+        id: 'streaming-thinking',
+        stageKey: 'llm_reasoning',
+        title: '思考过程',
+        status: 'running',
+        content: delta,
+        visibleContent: delta
+      }]
+    }
   }
 
   return {
     ...flow,
-    thinking
+    thinking: [{
+      ...stage,
+      status: 'running',
+      content: stage.content + delta,
+      visibleContent: stage.visibleContent + delta
+    }]
   }
 }
 
@@ -165,6 +135,11 @@ export const appendStreamingAnswerDelta = (
   delta: string
 ): AssistantResponseFlow => ({
   ...flow,
+  //声明答案开始输出后立即结束思考区流式状态
+  thinking: flow.thinking.map((stage) => ({
+    ...stage,
+    status: 'done'
+  })),
   answer: {
     ...flow.answer,
     status: 'running',

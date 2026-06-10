@@ -1,7 +1,6 @@
 import type {
   KnowledgeReasoningStep,
-  KnowledgeSearchHit,
-  ReasoningStepMeta
+  KnowledgeSearchHit
 } from './knowledge.js'
 
 export interface WorkspacePromptCapabilities {
@@ -43,7 +42,7 @@ export interface WorkspaceChatInput {
   regenerate?: boolean
 }
 
-//声明工作台问答结果
+//声明工作台问答结果结构
 export interface WorkspaceChatResult {
   answer: string
   sources: KnowledgeSearchHit[]
@@ -55,22 +54,11 @@ export interface WorkspaceChatResult {
   latencyMs: number
 }
 
-//声明工作台流式事件
+//声明工作台流式事件结构
 export type WorkspaceChatStreamEvent =
   | {
-      type: 'reasoning_step_started'
-      index: number
-      step: ReasoningStepMeta
-    }
-  | {
-      type: 'reasoning_step_delta'
-      index: number
+      type: 'thinking_delta'
       delta: string
-    }
-  | {
-      type: 'reasoning_step_completed'
-      index: number
-      content: string
     }
   | {
       type: 'answer_delta'

@@ -83,6 +83,20 @@ watch(
   },
   { deep: true }
 )
+
+//声明流式输出期间持续跟随到底部
+watch(
+  () => isStreaming.value,
+  (streaming) => {
+    if (streaming) {
+      chatAutoScroll.startAutoFollow()
+      return
+    }
+
+    chatAutoScroll.stopAutoFollow()
+  },
+  { immediate: true }
+)
 // 选择对话
 const handleConversationSelect = async (conversationId: string) => {
   conversationList.selectConversation(conversationId)

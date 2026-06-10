@@ -7,66 +7,68 @@ import type { ChatMessage } from '@/types/chat/models'
 import ChatMarkdownContent from './ChatMarkdownContent.vue'
 import WorkspaceMark from './WorkspaceMark.vue'
 
-// 组件 Props：消息对象、是否显示底部操作栏、是否正在重生成
+//声明聊天气泡组件入参
 const props = defineProps<{
   message: ChatMessage
   showMeta?: boolean
   regenerating?: boolean
 }>()
 
-// 事件：向父组件抛出重新生成请求
+//声明聊天气泡组件事件
 defineEmits<{
   regenerate: []
 }>()
 
-// 消息创建时间兜底值（防止时间解析失败）
+//声明消息时间解析兜底值
 const createdAtFallbackMs = Date.now()
 
-// 响应式流式数据（思考 + 回答结构）
+//声明响应流数据引用
 const responseFlow = computed(() => props.message.responseFlow)
 
-// 思考面板是否手动展开（用户控制）
+//声明思考面板展开状态
 const processExpanded = ref(false)
 
-// 实时时间戳：用于流式计时
+//声明流式实时计时基准
 const liveNowMs = ref(Date.now())
 
-// 当前消息是否开启思考模式（默认关闭）
+//声明提示词能力兜底值
 const promptCapabilities = computed(
   () => props.message.promptCapabilities ?? { think: false, search: false }
 )
 
-// 过滤后的思考步骤：只显示有效步骤（非空、非纯 pending）
-const thinkingStages = computed(
-  () =>
-    responseFlow.value?.thinking.filter(
-      (stage) => stage.status !== 'pending' || stage.visibleContent || stage.content
-    ) ?? []
-)
+//声明单块思考消息
+const thinkingMessage = computed(() => {
+  const stage = responseFlow.value?.thinking[0]
+  if (!stage) {
+    return null
+  }
 
-// 回答状态：pending / running / done
+  if (stage.status === 'pending' && !stage.visibleContent && !stage.content) {
+    return null
+  }
+
+  return stage
+})
+
+//声明答案状态
 const answerStatus = computed(() => {
   if (!responseFlow.value) {
-    // 无流式结构 → 根据消息状态判断
     return props.message.status === 'streaming' ? 'streaming' : 'done'
   }
-  // 有流式结构 → 取 answer 自身状态
+
   return responseFlow.value.answer.status
 })
 
-// 最终要显示的回答内容（兼容所有场景）
+//声明当前答案文本
 const answerContent = computed(() => {
-  // 无流式 → 直接用原始内容
   if (!responseFlow.value) {
     return props.message.content || ''
   }
 
-  // 正在流式 → 显示可见内容（打字机）
   if (props.message.status === 'streaming') {
     return responseFlow.value.answer.visibleContent || ''
   }
 
-  // 已完成 → 多层兜底保证不空白
   return (
     responseFlow.value.answer.visibleContent ||
     responseFlow.value.answer.content ||
@@ -75,116 +77,115 @@ const answerContent = computed(() => {
   )
 })
 
-// 回答是否有真实内容（非空）
+//声明答案是否已有内容
 const answerHasContent = computed(() => Boolean(answerContent.value.trim()))
 
-// 是否有思考步骤正在运行
-const isThinkingRunning = computed(() =>
-  thinkingStages.value.some((stage) => stage.status === 'running')
-)
+//声明思考区是否仍在流式中
+const isThinkingRunning = computed(() => thinkingMessage.value?.status === 'running')
 
-// AI 是否正在工作（流式中 或 思考中）
+//声明助手是否仍在工作
 const isAssistantWorking = computed(
   () => props.message.status === 'streaming' || isThinkingRunning.value
 )
 
-// 消息创建时间（解析失败则用兜底值）
+//声明消息创建时间戳
 const createdAtMs = computed(() => {
   const parsed = Date.parse(props.message.createdAt)
   return Number.isFinite(parsed) ? parsed : createdAtFallbackMs
 })
 
-// 实时已用时间（流式阶段）
+//声明流式实时耗时
 const liveDurationMs = computed(() => Math.max(0, liveNowMs.value - createdAtMs.value))
 
-// 最终显示的耗时（流式中=实时，已完成=固定值）
+//声明展示耗时
 const resolvedDurationMs = computed(() => {
   if (props.message.status === 'streaming') {
     return liveDurationMs.value
   }
+
   return responseFlow.value?.totalDurationMs ?? props.message.latencyMs ?? 0
 })
 
-// 思考面板头部文字
+//声明思考头部文案
 const processHeaderLabel = computed(() =>
-  isAssistantWorking.value ? 'KoreAi is Thinking...' : '已完成思考'
+  isThinkingRunning.value ? 'KoreAi is Thinking...' : '已完成思考'
 )
 
-// 思考面板显示的耗时
+//声明思考头部耗时文案
 const processDurationLabel = computed(() => {
   if (!resolvedDurationMs.value) {
     return ''
   }
+
   return `用时：${formatLatency(resolvedDurationMs.value)}`
 })
 
-// 是否允许手动展开/收起思考面板
+//声明是否允许展开收起思考详情
 const canToggleProcessDetails = computed(
-  () => !isAssistantWorking.value && thinkingStages.value.length > 0
+  () => !isThinkingRunning.value && Boolean(thinkingMessage.value)
 )
 
-// 是否显示思考详情（自动控制）
+//声明是否显示思考详情
 const showProcessDetails = computed(() => {
-  // 无步骤 → 不显示
-  if (!thinkingStages.value.length) {
+  if (!thinkingMessage.value) {
     return false
   }
-  // AI 工作中 → 强制展开
-  if (isAssistantWorking.value) {
+
+  if (isThinkingRunning.value) {
     return true
   }
-  // 已完成 → 由用户手动控制
+
   return processExpanded.value
 })
 
-// 是否显示【整个思考面板区域】
-// 条件：开启思考 + 有步骤 或 正在流式
+//声明是否显示思考区
 const showProcessSection = computed(
-  () =>
-    promptCapabilities.value.think &&
-    (thinkingStages.value.length > 0 || props.message.status === 'streaming')
+  () => promptCapabilities.value.think && (Boolean(thinkingMessage.value) || props.message.status === 'streaming')
 )
 
+//声明最终 token 数
 const finalTokenCount = computed(() => props.message.totalTokens)
+
+//声明是否有最终 token 数
 const hasFinalTokenCount = computed(
   () => finalTokenCount.value !== null && finalTokenCount.value > 0
 )
 
-// 思考面板内是否显示 Token
+//声明思考区是否显示 token
 const showProcessTokenCount = computed(
   () => showProcessSection.value && props.message.status !== 'streaming' && hasFinalTokenCount.value
 )
 
-// 是否显示底部简易状态栏（无思考面板时才显示）
+//声明是否显示简版状态栏
 const showReplySummary = computed(
   () =>
     !showProcessSection.value &&
     (props.message.status === 'streaming' || resolvedDurationMs.value > 0 || hasFinalTokenCount.value)
 )
 
-// 底部状态栏是否显示耗时
+//声明简版状态栏是否显示耗时
 const showReplyDuration = computed(
   () => !showProcessSection.value && (props.message.status === 'streaming' || resolvedDurationMs.value > 0)
 )
 
-// 底部状态栏是否显示 Token
+//声明简版状态栏是否显示 token
 const showReplyTokenCount = computed(
   () => !showProcessSection.value && props.message.status !== 'streaming' && hasFinalTokenCount.value
 )
 
-// 是否显示回答区域
+//声明是否显示答案区
 const showAnswerSection = computed(
   () =>
-    answerStatus.value === 'running' ||     // 正在输出
-    answerStatus.value === 'done' ||        // 已完成
-    answerHasContent.value ||               // 已有内容
-    (answerStatus.value === 'pending' && !thinkingStages.value.length) // 无思考，直接等待回答
+    answerStatus.value === 'running' ||
+    answerStatus.value === 'done' ||
+    answerHasContent.value ||
+    (answerStatus.value === 'pending' && !thinkingMessage.value)
 )
 
-// 实时计时器 ID
+//声明实时计时器
 let liveTimer: number | null = null
 
-// 停止计时器（防止内存泄漏）
+//声明停止实时计时器
 const stopLiveTimer = () => {
   if (liveTimer) {
     window.clearInterval(liveTimer)
@@ -192,7 +193,7 @@ const stopLiveTimer = () => {
   }
 }
 
-// 同步计时器：只有 AI 助手消息且正在流式时才计时
+//声明同步实时计时器
 const syncLiveTimer = () => {
   stopLiveTimer()
 
@@ -206,7 +207,7 @@ const syncLiveTimer = () => {
   }, 100)
 }
 
-// 监听消息变化，重启计时器
+//声明监听消息状态变化
 watch(
   () => [props.message.role, props.message.status, props.message.createdAt] as const,
   () => {
@@ -215,27 +216,34 @@ watch(
   { immediate: true }
 )
 
-// 组件卸载时清理计时器
+//声明思考结束后自动折叠思考详情
+watch(isThinkingRunning, (running, previousRunning) => {
+  if (previousRunning && !running) {
+    processExpanded.value = false
+  }
+})
+
+//声明组件卸载清理逻辑
 onBeforeUnmount(() => {
   stopLiveTimer()
 })
 
-// 切换思考面板展开/收起
+//声明切换思考详情显示状态
 const toggleProcessDetails = () => {
   if (!canToggleProcessDetails.value) {
     return
   }
+
   processExpanded.value = !processExpanded.value
 }
 
-// 格式化耗时：毫秒 → 秒（保留1位小数）
+//声明耗时格式化逻辑
 function formatLatency(latencyMs?: number | null) {
   return `${((latencyMs || 0) / 1000).toFixed(1)} 秒`
 }
 </script>
 
 <template>
-  <!-- ====================== 用户消息 ====================== -->
   <div v-if="message.role === 'user'" class="flex items-start justify-end gap-3">
     <div
       class="max-w-[360px] rounded-[18px] bg-[#f3f5f8] px-5 py-4 text-[15px] leading-8 text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
@@ -250,15 +258,12 @@ function formatLatency(latencyMs?: number | null) {
     </div>
   </div>
 
-  <!-- ====================== AI 助手消息 ====================== -->
   <div v-else class="flex items-start gap-4">
-    <!-- AI 头像 -->
     <div class="mt-0.5 flex size-11 shrink-0 items-center justify-center">
       <WorkspaceMark :size="50" :active="isAssistantWorking" />
     </div>
 
     <div class="min-w-0 flex-1 space-y-4">
-      <!-- ====================== 思考面板区域 ====================== -->
       <section v-if="showProcessSection" class="space-y-3">
         <button
           type="button"
@@ -269,7 +274,7 @@ function formatLatency(latencyMs?: number | null) {
         >
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px]">
-              <ShiningText v-if="isAssistantWorking" :text="processHeaderLabel" />
+              <ShiningText v-if="isThinkingRunning" :text="processHeaderLabel" />
               <span v-else class="font-medium text-[#4b5565]">{{ processHeaderLabel }}</span>
               <span v-if="processDurationLabel" class="text-[#98a2b3]">
                 {{ processDurationLabel }}
@@ -293,35 +298,27 @@ function formatLatency(latencyMs?: number | null) {
           </div>
         </button>
 
-        <!-- 展开的思考步骤 -->
         <transition name="process-collapse">
-          <div v-if="showProcessDetails" class="space-y-4 pl-4">
-            <div
-              v-for="stage in thinkingStages"
-              :key="stage.id"
-              class="relative border-l border-[#eceff4] pl-5"
-            >
-              <!-- 步骤左侧圆点 -->
+          <div v-if="showProcessDetails && thinkingMessage" class="space-y-4 pl-4">
+            <div class="relative border-l border-[#eceff4] pl-5">
               <div
                 class="absolute left-[-6px] top-1.5 flex size-3 items-center justify-center rounded-full bg-white"
               >
                 <span class="size-2 rounded-full bg-[#111827]" />
               </div>
 
-              <!-- 步骤标题 + 加载动画 -->
               <div class="flex items-center gap-2 text-[13px] text-[#667085]">
-                <span class="font-medium text-[#4b5565]">{{ stage.title }}</span>
+                <span class="font-medium text-[#4b5565]">思考过程</span>
                 <LoaderCircle
-                  v-if="stage.status === 'running'"
+                  v-if="thinkingMessage.status === 'running'"
                   class="size-3.5 animate-spin text-[#111827]"
                 />
               </div>
 
-              <!-- 步骤内容 + 闪烁光标 -->
               <div class="mt-2 whitespace-pre-wrap text-[15px] leading-8 text-[#475467]">
-                {{ stage.visibleContent || stage.content }}
+                {{ thinkingMessage.visibleContent || thinkingMessage.content }}
                 <span
-                  v-if="stage.status === 'running' && stage.visibleContent"
+                  v-if="thinkingMessage.status === 'running' && thinkingMessage.visibleContent"
                   class="workspace-cursor"
                 />
               </div>
@@ -330,7 +327,6 @@ function formatLatency(latencyMs?: number | null) {
         </transition>
       </section>
 
-      <!-- ====================== 底部简易状态栏（无思考时显示） ====================== -->
       <section v-if="showReplySummary" class="px-1">
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-medium text-[#98a2b3]">
           <span v-if="showReplyDuration">用时：{{ formatLatency(resolvedDurationMs) }}</span>
@@ -338,28 +334,24 @@ function formatLatency(latencyMs?: number | null) {
         </div>
       </section>
 
-      <!-- ====================== 回答内容区域 ====================== -->
       <section
         v-if="showAnswerSection"
         class="px-1 text-[15px] leading-8 text-slate-900"
         :class="showReplySummary ? 'pt-0' : 'pt-1'"
       >
         <template v-if="answerHasContent">
-          <!-- Markdown 渲染 -->
           <ChatMarkdownContent
             :content="answerContent"
             :show-cursor="answerStatus === 'running'"
           />
         </template>
 
-        <!-- 无内容时显示加载提示 -->
         <div v-else class="flex items-center gap-2 text-sm text-slate-500">
           <LoaderCircle class="size-4 animate-spin" />
           {{ promptCapabilities.think ? '正在整理回答...' : '正在生成回答...' }}
         </div>
       </section>
 
-      <!-- ====================== 重新生成按钮 ====================== -->
       <div
         v-if="showMeta && responseFlow?.showActions"
         class="mt-3 flex flex-wrap items-center gap-3 text-[12px] text-slate-500"
@@ -378,7 +370,6 @@ function formatLatency(latencyMs?: number | null) {
 </template>
 
 <style scoped>
-/* 思考面板展开/收起动画 */
 .process-collapse-enter-active,
 .process-collapse-leave-active {
   transition: all 0.22s ease;
@@ -390,7 +381,6 @@ function formatLatency(latencyMs?: number | null) {
   transform: translateY(-6px);
 }
 
-/* 打字机闪烁光标 */
 .workspace-cursor {
   display: inline-block;
   width: 1px;

@@ -84,13 +84,6 @@ export interface KnowledgeSearchHit {
 
 export type KnowledgeReasoningStepKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
 
-//声明共享推理步骤元信息
-export interface ReasoningStepMeta {
-  stageKey: KnowledgeReasoningStepKey
-  title: string
-  subtitle?: string
-}
-
 //声明共享推理步骤完整结构
 export interface KnowledgeReasoningStep {
   stageKey: KnowledgeReasoningStepKey
