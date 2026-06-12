@@ -154,7 +154,7 @@ watch(
     class="message-markdown"
     @click="handleToolbarAction"
   >
-    <div v-html="renderedHtml" />
+    <div class="message-markdown__body" v-html="renderedHtml" />
     <span v-if="showCursor" class="message-markdown__cursor" />
   </div>
 </template>
@@ -164,18 +164,54 @@ watch(
   color: inherit;
 }
 
+.message-markdown__body {
+  display: flow-root;
+}
+
 .message-markdown :deep(p),
+.message-markdown :deep(h1),
+.message-markdown :deep(h2),
+.message-markdown :deep(h3),
+.message-markdown :deep(h4),
+.message-markdown :deep(h5),
+.message-markdown :deep(h6),
 .message-markdown :deep(ul),
 .message-markdown :deep(ol),
 .message-markdown :deep(blockquote),
+.message-markdown :deep(table),
+.message-markdown :deep(pre),
 .message-markdown :deep(.message-code-shell) {
   margin: 0 0 0.9rem;
 }
 
+.message-markdown :deep(p:first-child),
+.message-markdown :deep(h1:first-child),
+.message-markdown :deep(h2:first-child),
+.message-markdown :deep(h3:first-child),
+.message-markdown :deep(h4:first-child),
+.message-markdown :deep(h5:first-child),
+.message-markdown :deep(h6:first-child),
+.message-markdown :deep(ul:first-child),
+.message-markdown :deep(ol:first-child),
+.message-markdown :deep(blockquote:first-child),
+.message-markdown :deep(table:first-child),
+.message-markdown :deep(pre:first-child),
+.message-markdown :deep(.message-code-shell:first-child) {
+  margin-top: 0;
+}
+
 .message-markdown :deep(p:last-child),
+.message-markdown :deep(h1:last-child),
+.message-markdown :deep(h2:last-child),
+.message-markdown :deep(h3:last-child),
+.message-markdown :deep(h4:last-child),
+.message-markdown :deep(h5:last-child),
+.message-markdown :deep(h6:last-child),
 .message-markdown :deep(ul:last-child),
 .message-markdown :deep(ol:last-child),
 .message-markdown :deep(blockquote:last-child),
+.message-markdown :deep(table:last-child),
+.message-markdown :deep(pre:last-child),
 .message-markdown :deep(.message-code-shell:last-child) {
   margin-bottom: 0;
 }

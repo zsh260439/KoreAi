@@ -1,11 +1,10 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 export const useAutoScroll = (threshold = 32) => {
-  const scrollRef = ref<HTMLDivElement>()
-  const shouldStickToBottom = ref(true)
+  const messagesRef = ref<HTMLDivElement>()
+  const stickToBottom = ref(true)
   let observer: MutationObserver | null = null
   let resizeObserver: ResizeObserver | null = null
-  let followTimer: number | null = null
 
   //声明销毁滚动区域变更监听
   const stopObserveContainer = () => {
@@ -15,23 +14,14 @@ export const useAutoScroll = (threshold = 32) => {
     resizeObserver = null
   }
 
-  //声明停止流式期间的持续跟底任务
-  const stopAutoFollow = () => {
-    if (followTimer) {
-      window.clearInterval(followTimer)
-      followTimer = null
-    }
-  }
-
   //声明直接同步到底部滚动位置
-  const syncScrollToBottom = () => {
-    const container = scrollRef.value
+  const syncMessagesToBottom = () => {
+    const container = messagesRef.value
     if (!container) {
       return
     }
 
     container.scrollTop = container.scrollHeight
-    shouldStickToBottom.value = true
   }
 
   //声明监听滚动容器内部异步高度变化
@@ -44,13 +34,13 @@ export const useAutoScroll = (threshold = 32) => {
 
     //声明统一处理异步渲染后的跟底动作
     const syncFollowPosition = () => {
-      if (!followTimer && !shouldStickToBottom.value) {
+      if (!stickToBottom.value) {
         return
       }
 
       requestAnimationFrame(() => {
-        if (followTimer || shouldStickToBottom.value) {
-          syncScrollToBottom()
+        if (stickToBottom.value) {
+          syncMessagesToBottom()
         }
       })
     }
@@ -75,65 +65,47 @@ export const useAutoScroll = (threshold = 32) => {
     }
   }
 
-  const updateShouldStickToBottom = () => {
-    const container = scrollRef.value
+  //声明更新是否保持底部吸附
+  const updateStickToBottom = () => {
+    const container = messagesRef.value
     if (!container) {
-      shouldStickToBottom.value = true
-      return
-    }
-
-    //声明流式跟随期间始终保持底部吸附
-    if (followTimer) {
-      shouldStickToBottom.value = true
+      stickToBottom.value = true
       return
     }
 
     const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight
-    shouldStickToBottom.value = distanceToBottom <= threshold
+    stickToBottom.value = distanceToBottom <= threshold
   }
 
-  const scrollToBottom = async (force = false) => {
+  //声明滚动消息区域到底部
+  const scrollMessagesToBottom = async (force = false) => {
     await nextTick()
 
-    const container = scrollRef.value
+    const container = messagesRef.value
     if (!container) {
       return
     }
     // 如果当前滚动位置在底部，且不强制滚动，直接返回
-    if (!force && !shouldStickToBottom.value) {
+    if (!force && !stickToBottom.value) {
       return
     }
     //声明滚动到最底部
-    syncScrollToBottom()
+    syncMessagesToBottom()
+    stickToBottom.value = true
   }
 
-  //声明开启流式期间的持续跟底任务
-  const startAutoFollow = () => {
-    if (followTimer) {
-      return
-    }
-
-    syncScrollToBottom()
-    followTimer = window.setInterval(() => {
-      syncScrollToBottom()
-    }, 32)
-  }
-
-  watch(scrollRef, (container) => {
+  watch(messagesRef, (container) => {
     observeContainer(container)
   })
 
   onBeforeUnmount(() => {
     stopObserveContainer()
-    stopAutoFollow()
   })
 
   return {
-    scrollRef,
-    shouldStickToBottom,
-    startAutoFollow,
-    stopAutoFollow,
-    updateShouldStickToBottom,
-    scrollToBottom
+    messagesRef,
+    stickToBottom,
+    updateStickToBottom,
+    scrollMessagesToBottom
   }
 }

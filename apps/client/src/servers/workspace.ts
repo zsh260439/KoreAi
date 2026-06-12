@@ -18,6 +18,10 @@ export const createWorkspaceConversationAPI = (dto: CreateWorkspaceConversationI
   return request<WorkspaceConversationSummary>('workspace/conversations', 'POST', dto)
 }
 
+export const deleteWorkspaceConversationAPI = (conversationId: string) => {
+  return request<WorkspaceConversationSummary>(`workspace/conversations/${conversationId}`, 'DELETE')
+}
+
 export const findWorkspaceConversationMessagesAPI = (conversationId: string) => {
   return request<WorkspaceMessage[]>(`workspace/conversations/${conversationId}/messages`)
 }

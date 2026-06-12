@@ -1,7 +1,5 @@
 import type { KnowledgeSearchHit } from 'share-type'
-
-//声明最终答案分隔标记
-export const FINAL_ANSWER_MARKER = '<koreai_final_answer>'
+import { KNOWLEDGE_QA_ANSWER_TAG, KNOWLEDGE_QA_THINK_TAG } from './knowledge-qa.parser'
 
 //声明流式知识问答系统提示词构造器
 export function buildKnowledgeQaStreamingSystemPrompt(hasKnowledge: boolean): string {
@@ -19,10 +17,17 @@ export function buildKnowledgeQaStreamingSystemPrompt(hasKnowledge: boolean): st
         'Match the language of the user question.'
       ]
 
+  const thinkOpenTag = `<${KNOWLEDGE_QA_THINK_TAG}>`
+  const thinkCloseTag = `</${KNOWLEDGE_QA_THINK_TAG}>`
+  const answerOpenTag = `<${KNOWLEDGE_QA_ANSWER_TAG}>`
+  const answerCloseTag = `</${KNOWLEDGE_QA_ANSWER_TAG}>`
+
   return [
     ...baseInstructions,
-    `When the user enables thinking mode, stream a concise visible reasoning summary first, then output ${FINAL_ANSWER_MARKER} on its own line, then output the final answer.`,
-    `Do not use any XML tags or wrapper markers other than ${FINAL_ANSWER_MARKER}.`,
+    `When the user enables thinking mode, you must output exactly two XML sections in order: ${thinkOpenTag}visible reasoning summary${thinkCloseTag}${answerOpenTag}final answer${answerCloseTag}.`,
+    `Do not use any XML tags or wrapper markers other than ${thinkOpenTag}, ${thinkCloseTag}, ${answerOpenTag}, and ${answerCloseTag}.`,
+    'Do not nest or reorder these tags.',
+    'If the content contains special characters such as <, >, or &, escape them as &lt;, &gt;, and &amp;.',
     'Do not include hidden chain-of-thought or policy text.'
   ].join('\n')
 }
@@ -48,15 +53,18 @@ export function buildKnowledgeQaStreamingUserPrompt(
     `User question:\n${query}`,
     `Knowledge excerpts:\n${context}`,
     'Output format:',
-    '1. First output a concise visible reasoning summary in plain text for the user.',
-    `2. Then output this exact separator on a new line: ${FINAL_ANSWER_MARKER}`,
-    '3. Then output the final answer in plain text.',
+    `1. First open <${KNOWLEDGE_QA_THINK_TAG}> and stream a concise visible reasoning summary.`,
+    `2. Then close </${KNOWLEDGE_QA_THINK_TAG}> and open <${KNOWLEDGE_QA_ANSWER_TAG}>.`,
+    `3. Then stream the final answer and close </${KNOWLEDGE_QA_ANSWER_TAG}>.`,
     'Rules:',
     '- Start the visible reasoning summary immediately instead of waiting for the whole answer.',
     '- The visible reasoning summary must be concise and safe for display.',
     '- Do not expose raw hidden chain-of-thought.',
     '- Keep the visible reasoning summary focused on how you are approaching the answer.',
-    `- Never output protocol leftovers such as ${FINAL_ANSWER_MARKER}, </koreai_final_answer>, <koreai_finish> or </koreai_finish> in the final answer.`,
+    `- Use only <${KNOWLEDGE_QA_THINK_TAG}> and <${KNOWLEDGE_QA_ANSWER_TAG}> as wrapper tags.`,
+    '- Do not output any text outside these two tag sections.',
+    '- Do not nest tags or output the answer before the think section is closed.',
+    '- Escape special characters in content: < as &lt;, > as &gt;, & as &amp;.',
     '- Match the language of the user question.'
   ].join('\n\n')
 }

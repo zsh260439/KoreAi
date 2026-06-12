@@ -1,5 +1,9 @@
 import { computed, ref } from 'vue'
-import { createWorkspaceConversationAPI, findWorkspaceConversationsAPI } from '@/servers/workspace'
+import {
+  createWorkspaceConversationAPI,
+  deleteWorkspaceConversationAPI,
+  findWorkspaceConversationsAPI
+} from '@/servers/workspace'
 import type { WorkspaceConversationSummary } from 'share-type'
 
 //声明会话列表状态
@@ -61,6 +65,15 @@ export function useConversationList() {
     ]
   }
 
+  const deleteConversation = async (conversationId: string) => {
+    await deleteWorkspaceConversationAPI(conversationId)
+    conversations.value = conversations.value.filter((item) => item.id !== conversationId)
+
+    if (activeConversationId.value === conversationId) {
+      activeConversationId.value = ''
+    }
+  }
+
   return {
     conversations,
     activeConversationId,
@@ -70,6 +83,7 @@ export function useConversationList() {
     loadConversationList,
     selectConversation,
     createConversation,
+    deleteConversation,
     upsertConversation
   }
 }

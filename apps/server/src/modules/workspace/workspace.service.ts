@@ -43,7 +43,7 @@ export class WorkspaceService {
     private readonly workspaceMessageRepo: Repository<WorkspaceMessageEntity>,
     private readonly knowledgeService: KnowledgeService
   ) {}
-
+  //返回所有对话记录
   async findConversations(): Promise<WorkspaceConversationSummary[]> {
     const items = await this.workspaceConversationRepo.find({
       order: { updatedAt: 'DESC' }
@@ -51,7 +51,7 @@ export class WorkspaceService {
 
     return items.map(toWorkspaceConversationSummary)
   }
-
+  //创建对话记录
   async createConversation(
     dto: CreateWorkspaceConversationInput
   ): Promise<WorkspaceConversationSummary> {
@@ -65,6 +65,15 @@ export class WorkspaceService {
     return toWorkspaceConversationSummary(created)
   }
 
+  //声明删除指定对话记录
+  async deleteConversation(conversationId: string): Promise<WorkspaceConversationSummary> {
+    const conversation = await this.findConversationEntity(conversationId)
+    const summary = toWorkspaceConversationSummary(conversation)
+    await this.workspaceConversationRepo.remove(conversation)
+    return summary
+  }
+
+  //返回指定对话记录的所有消息
   async findConversationMessages(conversationId: string): Promise<WorkspaceMessage[]> {
     await this.findConversationEntity(conversationId)
 
@@ -180,8 +189,12 @@ export class WorkspaceService {
           promptCapabilities
         })
       )
+      //声明用户消息保存完成后立即刷新会话消息数与首轮标题
+      await this.refreshConversation(conversation.id, {
+        title: conversation.messageCount === 0 ? buildConversationTitle(query) : conversation.title,
+        model: conversation.model
+      })
     }
-
     return {
       conversation,
       promptCapabilities,

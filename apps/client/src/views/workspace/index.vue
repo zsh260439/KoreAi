@@ -79,23 +79,9 @@ const isConversationStreaming = (conversationId: string) =>
 watch(
   activeContentList,
   async () => {
-    await chatAutoScroll.scrollToBottom()
+    await chatAutoScroll.scrollMessagesToBottom()
   },
   { deep: true }
-)
-
-//声明流式输出期间持续跟随到底部
-watch(
-  () => isStreaming.value,
-  (streaming) => {
-    if (streaming) {
-      chatAutoScroll.startAutoFollow()
-      return
-    }
-
-    chatAutoScroll.stopAutoFollow()
-  },
-  { immediate: true }
 )
 // 选择对话
 const handleConversationSelect = async (conversationId: string) => {
@@ -103,14 +89,30 @@ const handleConversationSelect = async (conversationId: string) => {
   await workspaceChat.loadConversationMessages(conversationId)
   composerValue.value = ''
   await router.push(`/workspace/${conversationId}`)
-  await chatAutoScroll.scrollToBottom(true)
+  await chatAutoScroll.scrollMessagesToBottom(true)
 }
+
+//删除对话
+const handleConversationDelete = async (conversationId: string) => {
+  if (!window.confirm('确认删除这个会话吗？')) {
+    return
+  }
+
+  const deletingActiveConversation = conversationId === activeConversationId.value
+  await conversationList.deleteConversation(conversationId)
+
+  if (deletingActiveConversation) {
+    composerValue.value = ''
+    await router.push('/workspace')
+  }
+}
+
 // 创建新对话
 const handleCreateConversation = async () => {
   const conversation = await conversationList.createConversation()
   composerValue.value = ''
   await router.push(`/workspace/${conversation.id}`)
-  await chatAutoScroll.scrollToBottom(true)
+  await chatAutoScroll.scrollMessagesToBottom(true)
 }
 //发送消息
 const handleSend = async (payload:
@@ -143,7 +145,7 @@ watch(
     if (typeof conversationId === 'string' && conversationId) {
       conversationList.selectConversation(conversationId)
       await workspaceChat.loadConversationMessages(conversationId)
-      await chatAutoScroll.scrollToBottom(true)
+      await chatAutoScroll.scrollMessagesToBottom(true)
     }
   }
 )
@@ -163,7 +165,7 @@ onMounted(async () => {
     await workspaceChat.loadConversationMessages(conversationId)
   }
 
-  await chatAutoScroll.scrollToBottom(true)
+  await chatAutoScroll.scrollMessagesToBottom(true)
 })
 </script>
 
@@ -193,6 +195,7 @@ onMounted(async () => {
             :loading="conversationListLoading"
             :get-conversation-time-label="formatConversationTime"
             :is-conversation-streaming="isConversationStreaming"
+            @delete="handleConversationDelete"
             @select="handleConversationSelect"
           />
         </div>
@@ -227,9 +230,9 @@ onMounted(async () => {
         </header>
 
         <div
-          :ref="chatAutoScroll.scrollRef"
+          :ref="chatAutoScroll.messagesRef"
           class="min-h-0 flex-1 overflow-y-auto bg-white"
-          @scroll="chatAutoScroll.updateShouldStickToBottom"
+          @scroll="chatAutoScroll.updateStickToBottom"
         >
           <div class="mx-auto w-full max-w-[920px] px-6 py-8">
             <template v-if="conversationListLoading || messagesLoading">

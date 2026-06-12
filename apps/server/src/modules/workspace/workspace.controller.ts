@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Post, Req, Res } from '@nestjs/common'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import type {
   WorkspaceChatStreamEvent,
   WorkspaceConversationSummary,
@@ -7,19 +8,6 @@ import type {
 import { ApiResponse } from '../../common/api-response'
 import { CreateWorkspaceConversationDto, WorkspaceChatDto } from './dto/workspace.dto'
 import { WorkspaceService } from './workspace.service'
-
-type StreamingRequest = {
-  on: (event: 'close', listener: () => void) => void
-}
-
-type StreamingResponse = {
-  writableEnded: boolean
-  status: (code: number) => StreamingResponse
-  setHeader: (name: string, value: string) => void
-  flushHeaders?: () => void
-  write: (chunk: string) => void
-  end: () => void
-}
 
 @Controller('workspace')
 export class WorkspaceController {
@@ -47,11 +35,19 @@ export class WorkspaceController {
     return ApiResponse.success(0, '\u67e5\u8be2\u6210\u529f', data)
   }
 
+  @Delete('conversations/:conversationId')
+  async deleteConversation(
+    @Param('conversationId') conversationId: string
+  ): Promise<ApiResponse<WorkspaceConversationSummary>> {
+    const data = await this.workspaceService.deleteConversation(conversationId)
+    return ApiResponse.success(0, '\u5220\u9664\u6210\u529f', data)
+  }
+
   @Post('chat/stream')
   async chatStream(
     @Body() dto: WorkspaceChatDto,
-    @Req() request: StreamingRequest,
-    @Res() response: StreamingResponse
+    @Req() request: IncomingMessage,
+    @Res() response: ServerResponse
   ): Promise<void> {
     const abortController = new AbortController()
     request.on('close', () => {
@@ -60,11 +56,12 @@ export class WorkspaceController {
       }
     })
 
-    response.status(200)
+    //声明原生响应状态码设置
+    response.statusCode = 200
     response.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8')
     response.setHeader('Cache-Control', 'no-cache, no-transform')
     response.setHeader('Connection', 'keep-alive')
-    response.flushHeaders?.()
+    response.flushHeaders()
 
     try {
       for await (const event of this.workspaceService.chatStream(dto, {

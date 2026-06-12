@@ -12,6 +12,7 @@ defineProps<{
 
 defineEmits<{
   select: [conversationId: string]
+  delete: [conversationId: string]
 }>()
 </script>
 
@@ -32,6 +33,7 @@ defineEmits<{
         :active="conversation.id === activeConversationId"
         :streaming="isConversationStreaming(conversation.id)"
         :time-label="getConversationTimeLabel(conversation.updatedAt)"
+        @delete="$emit('delete', $event)"
         @select="$emit('select', $event)"
       />
     </template>

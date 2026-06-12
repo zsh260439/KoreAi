@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MoreHorizontal } from 'lucide-vue-next'
 import type { WorkspaceConversationSummary } from 'share-type'
 import WorkspaceSidebarMark from './WorkspaceSidebarMark.vue'
 
@@ -11,22 +12,25 @@ defineProps<{
 
 defineEmits<{
   select: [conversationId: string]
+  delete: [conversationId: string]
 }>()
 </script>
 
 <template>
-  <button
-    type="button"
-    :aria-label="conversation.title"
+  <div
     :class="[
-      'w-full rounded-[16px] border px-4 py-3 text-left transition-colors',
+      'group flex w-full items-center gap-2 rounded-[16px] border py-3 pl-4 pr-3 transition-colors',
       active
         ? 'border-[#e5e7eb] bg-[#f9fafb]'
         : 'border-transparent bg-transparent hover:border-[#f3f4f6] hover:bg-[#fafafa]'
     ]"
-    @click="$emit('select', conversation.id)"
   >
-    <div class="flex items-center gap-3">
+    <button
+      type="button"
+      :aria-label="conversation.title"
+      class="min-w-0 flex flex-1 items-center gap-3 text-left"
+      @click="$emit('select', conversation.id)"
+    >
       <WorkspaceSidebarMark :size="36" :busy="streaming" />
 
       <div class="min-w-0 flex-1">
@@ -45,6 +49,15 @@ defineEmits<{
           {{ conversation.model || '助手' }}
         </p>
       </div>
-    </div>
-  </button>
+    </button>
+
+    <button
+      type="button"
+      class="flex size-8 shrink-0 items-center justify-center rounded-full text-[#9ca3af] opacity-0 transition hover:bg-[#f3f4f6] hover:text-[#111827] group-hover:opacity-100"
+      aria-label="删除会话"
+      @click.stop="$emit('delete', conversation.id)"
+    >
+      <MoreHorizontal class="size-4" />
+    </button>
+  </div>
 </template>

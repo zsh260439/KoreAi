@@ -30,14 +30,6 @@ type ActiveChatRequest = {
   controller: AbortController
 }
 
-//声明流式输出队列结构
-type StreamingDeltaQueue = {
-  thinkingChunks: string[]
-  answerChunks: string[]
-  timer: number | null
-  idleResolvers: Array<() => void>
-}
-
 //声明消息列表缓存
 const contentListBySession = ref<Record<string, ChatMessage[]>>({})
 
@@ -58,15 +50,6 @@ const error = ref<string | null>(null)
 
 //声明重新生成状态
 const regenerating = ref(false)
-
-//声明流式输出队列映射
-const streamingDeltaQueueMap = new Map<string, StreamingDeltaQueue>()
-
-//声明单次平滑输出切片长度
-const STREAMING_SLICE_SIZE = 4
-
-//声明单次平滑输出调度间隔
-const STREAMING_DRAIN_INTERVAL_MS = 24
 
 //声明输入能力标准化逻辑
 const normalizePromptCapabilities = (
@@ -165,61 +148,6 @@ function createStreamingErrorMessage(assistantMessage: ChatMessage, stopped: boo
   }
 }
 
-//声明流式输出队列读取逻辑
-function getStreamingDeltaQueue(conversationId: string): StreamingDeltaQueue {
-  const current = streamingDeltaQueueMap.get(conversationId)
-  if (current) {
-    return current
-  }
-
-  const nextQueue: StreamingDeltaQueue = {
-    thinkingChunks: [],
-    answerChunks: [],
-    timer: null,
-    idleResolvers: []
-  }
-
-  streamingDeltaQueueMap.set(conversationId, nextQueue)
-  return nextQueue
-}
-
-//声明流式输出队列清理逻辑
-function clearStreamingDeltaQueue(conversationId: string): void {
-  const queue = streamingDeltaQueueMap.get(conversationId)
-  if (!queue) {
-    return
-  }
-
-  if (queue.timer) {
-    window.clearTimeout(queue.timer)
-  }
-
-  resolveStreamingDeltaQueueWaiters(queue)
-  streamingDeltaQueueMap.delete(conversationId)
-}
-
-//声明流式输出队列等待回调统一释放逻辑
-function resolveStreamingDeltaQueueWaiters(queue: StreamingDeltaQueue): void {
-  const resolvers = queue.idleResolvers.splice(0)
-  resolvers.forEach((resolve) => resolve())
-}
-
-//声明等待当前会话流式切片全部吐完
-function waitForStreamingDeltaQueue(conversationId: string): Promise<void> {
-  const queue = streamingDeltaQueueMap.get(conversationId)
-  if (!queue) {
-    return Promise.resolve()
-  }
-
-  if (!queue.timer && !queue.thinkingChunks.length && !queue.answerChunks.length) {
-    return Promise.resolve()
-  }
-
-  return new Promise((resolve) => {
-    queue.idleResolvers.push(resolve)
-  })
-}
-
 //声明流式事件应用逻辑
 function applyStreamEventToAssistantMessage(
   assistantMessage: ChatMessage,
@@ -250,75 +178,6 @@ function applyStreamEventToAssistantMessage(
     ...assistantMessage,
     responseFlow: appendStreamingThinkingStageDelta(responseFlow, event.delta)
   }
-}
-
-//声明流式输出入队逻辑
-function enqueueStreamingDelta(
-  conversationId: string,
-  kind: 'thinking' | 'answer',
-  delta: string,
-  onDrain: (chunk: string, kind: 'thinking' | 'answer') => void
-): void {
-  const queue = getStreamingDeltaQueue(conversationId)
-  if (!delta) {
-    return
-  }
-
-  if (kind === 'thinking') {
-    queue.thinkingChunks.push(delta)
-  } else {
-    queue.answerChunks.push(delta)
-  }
-
-  scheduleStreamingDeltaDrain(conversationId, onDrain)
-}
-
-//声明流式输出调度逻辑
-function scheduleStreamingDeltaDrain(
-  conversationId: string,
-  onDrain: (chunk: string, kind: 'thinking' | 'answer') => void
-): void {
-  const queue = getStreamingDeltaQueue(conversationId)
-  if (queue.timer) {
-    return
-  }
-
-  const drain = () => {
-    const currentQueue = getStreamingDeltaQueue(conversationId)
-    currentQueue.timer = null
-
-    const nextThinkingChunk = currentQueue.thinkingChunks[0]
-    if (nextThinkingChunk) {
-      const chunk = nextThinkingChunk.slice(0, STREAMING_SLICE_SIZE)
-      currentQueue.thinkingChunks[0] = nextThinkingChunk.slice(STREAMING_SLICE_SIZE)
-      if (!currentQueue.thinkingChunks[0]) {
-        currentQueue.thinkingChunks.shift()
-      }
-
-      onDrain(chunk, 'thinking')
-    } else {
-      const nextAnswerChunk = currentQueue.answerChunks[0]
-      if (nextAnswerChunk) {
-        const chunk = nextAnswerChunk.slice(0, STREAMING_SLICE_SIZE)
-        currentQueue.answerChunks[0] = nextAnswerChunk.slice(STREAMING_SLICE_SIZE)
-        if (!currentQueue.answerChunks[0]) {
-          currentQueue.answerChunks.shift()
-        }
-
-        onDrain(chunk, 'answer')
-      }
-    }
-
-    if (currentQueue.thinkingChunks.length || currentQueue.answerChunks.length) {
-      currentQueue.timer = window.setTimeout(drain, STREAMING_DRAIN_INTERVAL_MS)
-      return
-    }
-
-    resolveStreamingDeltaQueueWaiters(currentQueue)
-    streamingDeltaQueueMap.delete(conversationId)
-  }
-
-  queue.timer = window.setTimeout(drain, STREAMING_DRAIN_INTERVAL_MS)
 }
 
 export function useWorkspaceChat() {
@@ -429,30 +288,16 @@ export function useWorkspaceChat() {
           signal: controller.signal,
           onEvent: (event) => {
             if (event.type === 'thinking_delta' || event.type === 'answer_delta') {
-              enqueueStreamingDelta(
+              sessionContentList = updateAssistantMessage(
                 params.conversationId,
-                event.type === 'thinking_delta' ? 'thinking' : 'answer',
-                event.delta,
-                (chunk, kind) => {
-                  sessionContentList = updateAssistantMessage(
-                    params.conversationId,
-                    sessionContentList,
-                    (assistantMessage) =>
-                      applyStreamEventToAssistantMessage(assistantMessage, {
-                        type: kind === 'thinking' ? 'thinking_delta' : 'answer_delta',
-                        delta: chunk
-                      })
-                  )
-                }
+                sessionContentList,
+                (assistantMessage) => applyStreamEventToAssistantMessage(assistantMessage, event)
               )
-              return
             }
           }
         }
       )
 
-      //声明先等待本地平滑队列吐完，再用最终结果统一收口
-      await waitForStreamingDeltaQueue(params.conversationId)
       sessionContentList = updateAssistantMessage(
         params.conversationId,
         sessionContentList,
@@ -466,7 +311,6 @@ export function useWorkspaceChat() {
       return result.conversationId
     } catch (caughtError) {
       const stopped = controller.signal.aborted
-      clearStreamingDeltaQueue(params.conversationId)
       sessionContentList = updateAssistantMessage(
         params.conversationId,
         sessionContentList,
@@ -480,7 +324,6 @@ export function useWorkspaceChat() {
 
       return params.conversationId
     } finally {
-      clearStreamingDeltaQueue(params.conversationId)
       activeRequest.value = null
     }
   }

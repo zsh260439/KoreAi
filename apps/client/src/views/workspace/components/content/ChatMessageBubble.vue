@@ -336,8 +336,7 @@ function formatLatency(latencyMs?: number | null) {
 
       <section
         v-if="showAnswerSection"
-        class="px-1 text-[15px] leading-8 text-slate-900"
-        :class="showReplySummary ? 'pt-0' : 'pt-1'"
+        class="px-1 pt-0 text-[15px] leading-8 text-slate-900"
       >
         <template v-if="answerHasContent">
           <ChatMarkdownContent
