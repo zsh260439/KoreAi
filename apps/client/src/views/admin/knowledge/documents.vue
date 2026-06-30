@@ -49,9 +49,7 @@ const hasSearchedContent = ref(false)
 const uploadDialogOpen = ref(false)
 const uploadName = ref('')
 const uploadStoragePath = ref('')
-const uploadChunkStrategy = ref<'fixed_size' | 'structure_aware'>('fixed_size')
-const uploadChunkSize = ref('500')
-const uploadOverlap = ref('100')
+const uploadChunkStrategy = ref<'structure_aware'>('structure_aware')
 const uploadTargetChars = ref('1400')
 const uploadMaxChars = ref('1800') 
 const uploadMinChars = ref('600')
@@ -60,9 +58,7 @@ const uploadOverlapChars = ref('0')
 const editDialogOpen = ref(false)
 const activeDocumentId = ref('')
 const editName = ref('')
-const editChunkStrategy = ref<'fixed_size' | 'structure_aware'>('fixed_size')
-const editChunkSize = ref('500')
-const editOverlap = ref('100')
+const editChunkStrategy = ref<'structure_aware'>('structure_aware')
 const editTargetChars = ref('1400')
 const editMaxChars = ref('1800')
 const editMinChars = ref('600')
@@ -87,8 +83,6 @@ const currentKnowledgeBaseCode = computed(() => {
 
 const activeDocument = computed(() => documents.value.find((item) => item.id === activeDocumentId.value) ?? null)
 const activeDocumentName = computed(() => activeDocument.value?.name || '-')
-const editIsFixedSize = computed(() => editChunkStrategy.value === 'fixed_size')
-const uploadIsFixedSize = computed(() => uploadChunkStrategy.value === 'fixed_size')
 
 // 数据库查询文档列表
 const filteredDocuments = computed(() => {
@@ -137,14 +131,7 @@ const parseChunkConfig = (value?: string | Record<string, unknown> | null) => {
 }
 
 // 构建上传分块配置文本
-const buildChunkConfigText = (strategy: 'fixed_size' | 'structure_aware') => {
-  if (strategy === 'fixed_size') {
-    return JSON.stringify({
-      chunkSize: Number(uploadChunkSize.value),
-      overlap: Number(uploadOverlap.value)
-    })
-  }
-
+const buildChunkConfigText = () => {
   return JSON.stringify({
     targetChars: Number(uploadTargetChars.value),
     maxChars: Number(uploadMaxChars.value),
@@ -154,14 +141,7 @@ const buildChunkConfigText = (strategy: 'fixed_size' | 'structure_aware') => {
 }
 
 // 构建编辑分块配置文本
-const buildEditChunkConfigText = (strategy: 'fixed_size' | 'structure_aware') => {
-  if (strategy === 'fixed_size') {
-    return JSON.stringify({
-      chunkSize: Number(editChunkSize.value),
-      overlap: Number(editOverlap.value)
-    })
-  }
-
+const buildEditChunkConfigText = () => {
   return JSON.stringify({
     targetChars: Number(editTargetChars.value),
     maxChars: Number(editMaxChars.value),
@@ -235,9 +215,7 @@ const resetUploadDialog = () => {
   uploadDialogOpen.value = false
   uploadName.value = ''
   uploadStoragePath.value = ''
-  uploadChunkStrategy.value = 'fixed_size'
-  uploadChunkSize.value = '500'
-  uploadOverlap.value = '100'
+  uploadChunkStrategy.value = 'structure_aware'
   uploadTargetChars.value = '1400'
   uploadMaxChars.value = '1800'
   uploadMinChars.value = '600'
@@ -250,7 +228,7 @@ const submitUpload = async () => {
     name: uploadName.value.trim() || '新文档',
     storagePath: uploadStoragePath.value.trim(),
     chunkStrategy: uploadChunkStrategy.value,
-    chunkConfig: buildChunkConfigText(uploadChunkStrategy.value)
+    chunkConfig: buildChunkConfigText()
   }
 
   await createKnowledgeDocument(kbId.value, {
@@ -269,11 +247,9 @@ const submitUpload = async () => {
 const openEdit = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   editName.value = document.name
-  editChunkStrategy.value = (document.chunkStrategy as 'fixed_size' | 'structure_aware') || 'fixed_size'
+  editChunkStrategy.value = 'structure_aware'
 
   const config = parseChunkConfig(document.chunkConfig)
-  editChunkSize.value = String(config.chunkSize ?? 500)
-  editOverlap.value = String(config.overlap ?? 100)
   editTargetChars.value = String(config.targetChars ?? 1400)
   editMaxChars.value = String(config.maxChars ?? 1800)
   editMinChars.value = String(config.minChars ?? 600)
@@ -288,7 +264,7 @@ const submitEdit = async () => {
   const payload: KnowledgeDocumentEditForm = {
     name: editName.value.trim(),
     chunkStrategy: editChunkStrategy.value,
-    chunkConfig: buildEditChunkConfigText(editChunkStrategy.value)
+    chunkConfig: buildEditChunkConfigText()
   }
 
   await updateKnowledgeDocument(activeDocument.value.id, {
@@ -607,23 +583,11 @@ onMounted(async () => {
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
           <el-select v-model="uploadChunkStrategy" class="w-full">
-            <el-option value="fixed_size" label="fixed_size" />
             <el-option value="structure_aware" label="structure_aware" />
           </el-select>
         </div>
 
-        <div v-if="uploadIsFixedSize" class="grid gap-4 md:grid-cols-2">
-          <div>
-            <div class="mb-2 text-sm font-medium text-slate-900">chunkSize</div>
-            <el-input v-model="uploadChunkSize" />
-          </div>
-          <div>
-            <div class="mb-2 text-sm font-medium text-slate-900">overlap</div>
-            <el-input v-model="uploadOverlap" />
-          </div>
-        </div>
-
-        <div v-else class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-2">
           <div>
             <div class="mb-2 text-sm font-medium text-slate-900">targetChars</div>
             <el-input v-model="uploadTargetChars" />
@@ -663,23 +627,11 @@ onMounted(async () => {
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
           <el-select v-model="editChunkStrategy" class="w-full">
-            <el-option value="fixed_size" label="fixed_size" />
             <el-option value="structure_aware" label="structure_aware" />
           </el-select>
         </div>
 
-        <div v-if="editIsFixedSize" class="grid gap-4 md:grid-cols-2">
-          <div>
-            <div class="mb-2 text-sm font-medium text-slate-900">chunkSize</div>
-            <el-input v-model="editChunkSize" />
-          </div>
-          <div>
-            <div class="mb-2 text-sm font-medium text-slate-900">overlap</div>
-            <el-input v-model="editOverlap" />
-          </div>
-        </div>
-
-        <div v-else class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-2">
           <div>
             <div class="mb-2 text-sm font-medium text-slate-900">targetChars</div>
             <el-input v-model="editTargetChars" />

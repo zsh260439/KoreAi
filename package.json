@@ -8,5 +8,8 @@
     "dev:server": "pnpm --filter server start:dev",
     "build:client": "pnpm --filter client build",
     "build:server": "pnpm --filter server build"
+  },
+  "dependencies": {
+    "puppeteer": "^25.1.0"
   }
 }
