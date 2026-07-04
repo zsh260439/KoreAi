@@ -471,7 +471,7 @@ onMounted(async () => {
       <span>共 {{ chunks.length }} 条 chunk</span>
     </div>
 
-    <el-dialog v-model="contentDialogOpen" width="980px" destroy-on-close>
+    <el-dialog v-model="contentDialogOpen" width="980px" destroy-on-close class="chunk-dialog">
       <template #header>
         <div class="chunk-dialog__header">
           <div class="chunk-dialog__title">
@@ -482,54 +482,64 @@ onMounted(async () => {
             <span>约 Token ≈{{ activeChunk.tokenCount }}</span>
             <span>块数 {{ activeChunkBlocks.length }}</span>
             <span>偏移 {{ getChunkOffsetRange(activeChunk) }}</span>
+            <span v-if="getChunkPrimaryPath(activeChunk)">路径 {{ getChunkPrimaryPath(activeChunk) }}</span>
+            <span v-if="getChunkTypeLabels(activeChunk).length">
+              类型 {{ getChunkTypeLabels(activeChunk).join(' / ') }}
+            </span>
           </div>
         </div>
       </template>
 
-      <div v-if="activeChunk" class="chunk-dialog__content">
-        <section v-if="activeChunkHasBlocks" class="chunk-dialog__overview">
-          <dl class="chunk-dialog__overview-grid">
-            <div v-for="fact in activeChunkFacts" :key="fact.label" class="chunk-dialog__overview-item">
-              <dt>{{ fact.label }}</dt>
-              <dd>{{ fact.value }}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section v-if="activeChunkHasBlocks" class="chunk-dialog__section chunk-dialog__section--dense">
-          <div class="chunk-dialog__section-title">Block 列表</div>
-          <el-table :data="activeChunkBlocks" row-key="startOffset" class="chunk-blocks__table">
-            <el-table-column label="#" width="70">
+      <div
+        v-if="activeChunk"
+        :class="[
+          'chunk-dialog__content',
+          activeChunkHasBlocks ? 'chunk-dialog__content--stacked' : ''
+        ]"
+      >
+        <section v-if="activeChunkHasBlocks" class="chunk-dialog__section chunk-dialog__section--table">
+          <div class="chunk-dialog__section-head">
+            <div class="chunk-dialog__section-title">Block 列表</div>
+            <div class="chunk-dialog__section-caption">{{ activeChunkBlocks.length }} 个 block</div>
+          </div>
+          <el-table
+            :data="activeChunkBlocks"
+            row-key="startOffset"
+            height="100%"
+            class="chunk-blocks__table"
+            table-layout="fixed"
+          >
+            <el-table-column label="#" width="56">
               <template #default="{ $index }">
                 {{ $index + 1 }}
               </template>
             </el-table-column>
 
-            <el-table-column label="类型" width="120">
+            <el-table-column label="类型" width="112">
               <template #default="{ row }">
                 <span class="chunk-tag chunk-tag--strong">{{ row.blockType }}</span>
               </template>
             </el-table-column>
 
-            <el-table-column label="路径" min-width="220">
+            <el-table-column label="路径" width="220" show-overflow-tooltip>
               <template #default="{ row }">
                 <div class="block-path">{{ formatSectionPath(row.sectionPath) || '-' }}</div>
               </template>
             </el-table-column>
 
-            <el-table-column label="范围" width="130">
+            <el-table-column label="范围" width="120">
               <template #default="{ row }">
                 {{ formatBlockOffsetRange(row) }}
               </template>
             </el-table-column>
 
-            <el-table-column label="附加信息" min-width="180">
+            <el-table-column label="附加信息" width="160" show-overflow-tooltip>
               <template #default="{ row }">
                 <div class="block-extra">{{ getBlockMetaSummary(row) || '-' }}</div>
               </template>
             </el-table-column>
 
-            <el-table-column label="内容预览" min-width="280">
+            <el-table-column label="内容预览" min-width="260">
               <template #default="{ row }">
                 <div class="block-preview">
                   {{ getChunkPreview(row.content, 120) }}
@@ -563,12 +573,12 @@ onMounted(async () => {
           </p>
         </section>
 
-        <section class="chunk-dialog__section">
-          <div class="chunk-dialog__section-title">Chunk 原文</div>
+        <details class="chunk-dialog__details" open>
+          <summary class="chunk-dialog__details-summary">Chunk 原文</summary>
           <div class="chunk-dialog__raw">
             {{ activeChunk.content }}
           </div>
-        </section>
+        </details>
       </div>
     </el-dialog>
   </section>
@@ -805,39 +815,13 @@ onMounted(async () => {
 
 .chunk-dialog__content {
   display: grid;
-  gap: 16px;
+  gap: 10px;
 }
 
-.chunk-dialog__overview {
-  overflow: hidden;
-  border: 1px solid #d9e2ec;
-  border-radius: 16px;
-  background: #ffffff;
-}
-
-.chunk-dialog__overview-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-}
-
-.chunk-dialog__overview-item {
-  padding: 14px 16px;
-}
-
-.chunk-dialog__overview-item:not(:last-child) {
-  border-right: 1px solid #e5edf5;
-}
-
-.chunk-dialog__overview-item dt {
-  font-size: 12px;
-  color: #7b8794;
-}
-
-.chunk-dialog__overview-item dd {
-  margin-top: 8px;
-  line-height: 1.65;
-  color: #102a43;
+.chunk-dialog__content--stacked {
+  grid-template-rows: minmax(0, 1fr) minmax(0, 220px);
+  height: min(68vh, 620px);
+  min-height: 0;
 }
 
 .chunk-dialog__summary {
@@ -902,19 +886,37 @@ onMounted(async () => {
   padding: 16px 18px;
 }
 
-.chunk-dialog__section--dense {
-  padding-top: 12px;
+.chunk-dialog__section--table {
+  border: 0;
+  border-top: 1px solid #e5edf5;
+  border-radius: 0;
+  background: transparent;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 0 0;
 }
 
 .chunk-dialog__section--empty {
   background: #f8fafc;
 }
 
+.chunk-dialog__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 .chunk-dialog__section-title {
-  margin-bottom: 12px;
   font-size: 14px;
   font-weight: 700;
   color: #102a43;
+}
+
+.chunk-dialog__section-caption {
+  font-size: 12px;
+  color: #7b8794;
 }
 
 .chunk-dialog__empty-text {
@@ -933,12 +935,56 @@ onMounted(async () => {
 .block-path,
 .block-extra,
 .block-preview {
-  line-height: 1.7;
+  line-height: 1.65;
   color: #334155;
 }
 
+.block-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block-extra {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-size: 13px;
+}
+
+.chunk-dialog__details {
+  min-height: 0;
+  border-top: 1px solid #e5edf5;
+  background: #ffffff;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  padding-top: 12px;
+}
+
+.chunk-dialog__details-summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #102a43;
+}
+
+.chunk-dialog__details-summary::-webkit-details-marker {
+  display: none;
+}
+
 .chunk-dialog__raw {
-  max-height: 32vh;
+  margin-top: 12px;
+  height: 100%;
+  min-height: 0;
   overflow: auto;
   border-radius: 14px;
   background: #f8fafc;
@@ -951,6 +997,14 @@ onMounted(async () => {
 :deep(.chunk-table .el-table),
 :deep(.chunk-blocks__table .el-table) {
   border-radius: 0;
+}
+
+:deep(.chunk-dialog) {
+  max-height: calc(100vh - 48px);
+}
+
+:deep(.chunk-dialog .el-dialog__body) {
+  overflow: hidden;
 }
 
 :deep(.chunk-table .el-table__inner-wrapper::before),
@@ -967,8 +1021,8 @@ onMounted(async () => {
 
 :deep(.chunk-table .el-table__body td.el-table__cell),
 :deep(.chunk-blocks__table .el-table__body td.el-table__cell) {
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   vertical-align: top;
 }
 
@@ -977,7 +1031,6 @@ onMounted(async () => {
 }
 
 @media (max-width: 1080px) {
-  .chunk-dialog__overview-grid,
   .chunk-stage__intro,
   .chunk-dialog__summary {
     grid-template-columns: 1fr;
@@ -997,11 +1050,6 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .chunk-stage__facts {
     grid-template-columns: 1fr;
-  }
-
-  .chunk-dialog__overview-item:not(:last-child) {
-    border-right: 0;
-    border-bottom: 1px solid #e5edf5;
   }
 
   .chunk-dialog__facts-grid {
