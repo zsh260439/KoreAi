@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
 import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
-import type { KnowledgeChunk } from 'share-type'
+import type { KnowledgeChunk, KnowledgeChunkBlock, KnowledgeChunkMetadata } from 'share-type'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +35,80 @@ const searchText = computed(() => {
 const contentDialogOpen = ref(false)
 const activeChunk = ref<KnowledgeChunk | null>(null)
 
+//声明当前弹窗分块结构块列表
+const activeChunkBlocks = computed(() => getChunkBlocks(activeChunk.value))
+
+//声明当前弹窗是否存在结构块
+const activeChunkHasBlocks = computed(() => activeChunkBlocks.value.length > 0)
+
+//声明当前弹窗审阅提示文案
+const activeChunkReviewHint = computed(() => {
+  if (activeChunkHasBlocks.value) {
+    return '当前 chunk 包含结构化 block，适合直接检查切分边界、路径归属和附加元数据。'
+  }
+
+  if (currentDocument.value?.chunkStrategy === 'fixed-size') {
+    return '当前文档使用 fixed_size 切分，所以这里不会展示结构化 block。这个弹窗主要用于 review 原文和基础统计。'
+  }
+
+  return '当前 chunk 没有可展示的结构化 block，说明这一段只保留了基础 chunk 数据。'
+})
+
+//声明当前弹窗概览信息
+const activeChunkFacts = computed(() => {
+  if (!activeChunk.value) {
+    return []
+  }
+
+  return [
+    {
+      label: '章节路径',
+      value: getChunkPrimaryPath(activeChunk.value) || '未提供章节路径'
+    },
+    {
+      label: '结构类型',
+      value: getChunkTypeLabels(activeChunk.value).join(' / ') || '无'
+    },
+    {
+      label: '页码范围',
+      value: getChunkPageSummary(activeChunk.value)
+    },
+    {
+      label: '偏移范围',
+      value: getChunkOffsetRange(activeChunk.value)
+    }
+  ]
+})
+
+//声明页面顶部文档概览信息
+const documentFacts = computed(() => [
+  {
+    label: '文档状态',
+    value: getDocumentStatusLabel(currentDocument.value?.status)
+  },
+  {
+    label: '切分策略',
+    value: getChunkStrategyLabel(currentDocument.value?.chunkStrategy)
+  },
+  {
+    label: '文件类型',
+    value: formatDocumentFileType(currentDocument.value?.fileType)
+  },
+  {
+    label: 'Chunk 数',
+    value: String(chunks.value.length)
+  }
+])
+
+//声明表格说明文案
+const tableCaption = computed(() => {
+  if (highlightedChunkId.value) {
+    return '当前列表已自动定位到搜索命中的 chunk，方便直接检查召回质量和结构切分结果。'
+  }
+
+  return '列表按 chunk 顺序展示，重点保留结构路径、偏移范围、页码和块类型，方便逐条 review。'
+})
+
 //声明重新分块处理
 const rebuildChunks = async () => {
   await rebuildKnowledgeChunks(docId.value)
@@ -54,13 +128,13 @@ const handleRefresh = async () => {
 const isHighlightedChunk = (chunkId: string) => chunkId === highlightedChunkId.value
 
 //声明分块摘要裁剪
-const getChunkPreview = (content: string) => {
+const getChunkPreview = (content: string, limit = 180) => {
   const normalized = content.replace(/\s+/g, ' ').trim()
-  if (normalized.length <= 180) {
+  if (normalized.length <= limit) {
     return normalized
   }
 
-  return `${normalized.slice(0, 180)}...`
+  return `${normalized.slice(0, limit)}...`
 }
 
 //声明分块内容弹窗打开
@@ -92,6 +166,171 @@ const scrollToHighlightedChunk = async () => {
   })
 }
 
+//声明文档状态文案映射
+function getDocumentStatusLabel(status?: string | null): string {
+  if (status === 'indexed') {
+    return '已完成'
+  }
+
+  if (status === 'processing') {
+    return '处理中'
+  }
+
+  if (status === 'failed') {
+    return '失败'
+  }
+
+  if (status === 'pending') {
+    return '待处理'
+  }
+
+  return '-'
+}
+
+//声明切分策略文案映射
+function getChunkStrategyLabel(strategy?: string | null): string {
+  if (strategy === 'structure') {
+    return '结构化切分'
+  }
+
+  if (strategy === 'fixed-size') {
+    return '固定长度切分'
+  }
+
+  return strategy || '-'
+}
+
+//声明文档类型文案格式化
+function formatDocumentFileType(fileType?: string | null): string {
+  if (!fileType) {
+    return '-'
+  }
+
+  return fileType.toUpperCase()
+}
+
+//声明分块元数据读取
+function getChunkMetadata(chunk: KnowledgeChunk | null | undefined): KnowledgeChunkMetadata | null {
+  return chunk?.metadata ?? null
+}
+
+//声明分块结构块列表读取
+function getChunkBlocks(chunk: KnowledgeChunk | null | undefined): KnowledgeChunkBlock[] {
+  return getChunkMetadata(chunk)?.blocks ?? []
+}
+
+//声明分块结构块数量读取
+function getChunkBlockCount(chunk: KnowledgeChunk | null | undefined): number {
+  return getChunkBlocks(chunk).length
+}
+
+//声明分块主章节路径读取
+function getChunkPrimaryPath(chunk: KnowledgeChunk | null | undefined): string {
+  const blocks = getChunkBlocks(chunk)
+  const firstPath = blocks.find((item) => item.sectionPath.length > 0)?.sectionPath ?? []
+  if (firstPath.length > 0) {
+    return formatSectionPath(firstPath)
+  }
+
+  const metadata = getChunkMetadata(chunk)
+  const metadataPath = metadata?.sectionPaths?.find((item) => Array.isArray(item) && item.length > 0) ?? []
+  return formatSectionPath(metadataPath)
+}
+
+//声明分块结构类型标签读取
+function getChunkTypeLabels(chunk: KnowledgeChunk | null | undefined): string[] {
+  const types = getChunkBlocks(chunk).map((item) => item.blockType)
+  return Array.from(new Set(types)).slice(0, 4)
+}
+
+//声明分块结构状态文案读取
+function getChunkStructureStatus(chunk: KnowledgeChunk | null | undefined): string {
+  const count = getChunkBlockCount(chunk)
+  if (count > 0) {
+    return `${count} 个结构块`
+  }
+
+  if (currentDocument.value?.chunkStrategy === 'fixed-size') {
+    return '固定切分，无结构块'
+  }
+
+  return '无结构块元数据'
+}
+
+//声明分块查看按钮文案读取
+function getChunkInspectButtonLabel(chunk: KnowledgeChunk | null | undefined): string {
+  return getChunkBlockCount(chunk) > 0 ? '查看结构' : '查看详情'
+}
+
+//声明分块偏移范围读取
+function getChunkOffsetRange(chunk: KnowledgeChunk | null | undefined): string {
+  const blocks = getChunkBlocks(chunk)
+  const startOffset = blocks.find((item) => typeof item.startOffset === 'number')?.startOffset
+  const endOffset = [...blocks].reverse().find((item) => typeof item.endOffset === 'number')?.endOffset
+
+  if (typeof startOffset === 'number' && typeof endOffset === 'number') {
+    return `${startOffset} - ${endOffset}`
+  }
+
+  return '-'
+}
+
+//声明分块页码摘要读取
+function getChunkPageSummary(chunk: KnowledgeChunk | null | undefined): string {
+  const pageNumbers = getChunkMetadata(chunk)?.pageNumbers ?? []
+  if (!pageNumbers.length) {
+    return '-'
+  }
+
+  return pageNumbers.join(', ')
+}
+
+//声明结构块路径格式化
+function formatSectionPath(path: string[] | undefined): string {
+  if (!path?.length) {
+    return ''
+  }
+
+  return path.join(' / ')
+}
+
+//声明结构块偏移范围格式化
+function formatBlockOffsetRange(block: KnowledgeChunkBlock): string {
+  if (typeof block.startOffset === 'number' && typeof block.endOffset === 'number') {
+    return `${block.startOffset} - ${block.endOffset}`
+  }
+
+  return '-'
+}
+
+//声明结构块附加摘要格式化
+function getBlockMetaSummary(block: KnowledgeChunkBlock): string {
+  const metadata = block.metadata ?? {}
+  const parts: string[] = []
+
+  if (typeof metadata.listType === 'string') {
+    parts.push(`列表:${metadata.listType}`)
+  }
+
+  if (typeof metadata.ilvl === 'number') {
+    parts.push(`层级:${metadata.ilvl}`)
+  }
+
+  if (typeof metadata.rowCount === 'number' && typeof metadata.columnCount === 'number') {
+    parts.push(`表格:${metadata.rowCount}x${metadata.columnCount}`)
+  }
+
+  if (typeof metadata.mergedCellCount === 'number' && metadata.mergedCellCount > 0) {
+    parts.push(`合并:${metadata.mergedCellCount}`)
+  }
+
+  if (typeof block.pageNumber === 'number') {
+    parts.push(`页码:${block.pageNumber}`)
+  }
+
+  return parts.join(' / ')
+}
+
 //声明命中分块监听
 watch(
   () => [highlightedChunkId.value, chunks.value.length],
@@ -110,45 +349,58 @@ onMounted(async () => {
 
 <template>
   <section class="chunk-stage">
-    <div class="chunk-stage__canvas">
-      <div class="chunk-stage__toolbar">
-        <div class="chunk-stage__path">
-          <button
-            class="chunk-stage__back"
-            type="button"
-            @click="
-              router.push({
-                path: `/admin/knowledge/${kbId}`,
-                query: highlightedChunkId ? { tab: 'preview', text: searchText || undefined } : {}
-              })
-            "
-          >
-            <ChevronLeft class="h-4 w-4" />
-            返回文档
-          </button>
-          <span class="chunk-stage__divider">/</span>
-          <span>{{ currentDocument?.name || docId }}</span>
-          <span class="chunk-stage__divider">/</span>
-          <span>分块详情</span>
+    <div class="chunk-stage__topbar">
+      <div class="chunk-stage__path">
+        <button
+          class="chunk-stage__back"
+          type="button"
+          @click="
+            router.push({
+              path: `/admin/knowledge/${kbId}`,
+              query: highlightedChunkId ? { tab: 'preview', text: searchText || undefined } : {}
+            })
+          "
+        >
+          <ChevronLeft class="h-4 w-4" />
+          返回文档
+        </button>
+        <span class="chunk-stage__divider">/</span>
+        <span>{{ currentDocument?.name || docId }}</span>
+        <span class="chunk-stage__divider">/</span>
+        <span>结构查看</span>
+      </div>
+
+      <div class="chunk-stage__actions">
+        <el-button @click="handleRefresh">
+          <RefreshCw class="h-4 w-4" />
+          刷新
+        </el-button>
+        <el-button type="primary" @click="rebuildChunks">重新分块</el-button>
+      </div>
+    </div>
+
+    <div class="chunk-stage__intro">
+      <div class="chunk-stage__copy">
+        <h1 class="chunk-stage__title">{{ currentDocument?.name || '结构查看' }}</h1>
+        <p class="chunk-stage__subtitle">
+          这个页面只做 review，不做花哨展示。重点是快速看清 chunk 的结构来源、切分范围和真实内容，方便判断当前解析链路是否稳定。
+        </p>
+      </div>
+
+      <dl class="chunk-stage__facts">
+        <div v-for="fact in documentFacts" :key="fact.label" class="chunk-stage__fact">
+          <dt>{{ fact.label }}</dt>
+          <dd>{{ fact.value }}</dd>
         </div>
+      </dl>
+    </div>
 
-        <div class="chunk-stage__actions">
-          <el-button @click="handleRefresh">
-            <RefreshCw class="h-4 w-4" />
-            刷新
-          </el-button>
-          <el-button type="primary" @click="rebuildChunks">重新分块</el-button>
-        </div>
-      </div>
+    <div v-if="highlightedChunkId" class="chunk-stage__notice">
+      已根据搜索结果自动定位到命中的 chunk。
+    </div>
 
-      <div class="chunk-stage__headline">
-        <h1 class="chunk-stage__title">{{ currentDocument?.name || '分块详情' }}</h1>
-        <p class="chunk-stage__subtitle">默认展示 chunk 摘要，完整内容可按需展开查看。</p>
-      </div>
-
-      <div v-if="highlightedChunkId" class="chunk-stage__notice">
-        已根据搜索结果自动定位到命中 chunk。
-      </div>
+    <div class="chunk-stage__table-shell">
+      <div class="chunk-stage__table-caption">{{ tableCaption }}</div>
 
       <el-table
         :data="chunks"
@@ -162,7 +414,7 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="内容摘要" min-width="520">
+        <el-table-column label="内容摘要" min-width="420">
           <template #default="{ row }">
             <div class="chunk-preview">
               {{ getChunkPreview(row.content) }}
@@ -170,52 +422,153 @@ onMounted(async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="字数" width="110" align="center">
+        <el-table-column label="结构摘要" min-width="320">
+          <template #default="{ row }">
+            <div class="chunk-structure">
+              <div class="chunk-structure__status">
+                {{ getChunkStructureStatus(row) }}
+              </div>
+              <div v-if="getChunkPrimaryPath(row)" class="chunk-structure__path">
+                {{ getChunkPrimaryPath(row) }}
+              </div>
+              <div v-else class="chunk-structure__empty">未提供章节路径</div>
+              <div class="chunk-structure__meta">
+                <span>偏移 {{ getChunkOffsetRange(row) }}</span>
+                <span>页码 {{ getChunkPageSummary(row) }}</span>
+              </div>
+              <div v-if="getChunkTypeLabels(row).length" class="chunk-structure__tags">
+                <span v-for="label in getChunkTypeLabels(row)" :key="label" class="chunk-tag">
+                  {{ label }}
+                </span>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="字数" width="90" align="center">
           <template #default="{ row }">
             {{ row.charCount }}
           </template>
         </el-table-column>
 
-        <el-table-column label="约 Token" width="120" align="center">
+        <el-table-column label="约 Token" width="110" align="center">
           <template #default="{ row }">
-            ≈ {{ row.tokenCount }}
-          </template>
-        </el-table-column>
-
-        <el-table-column label="更新时间" min-width="190">
-          <template #default="{ row }">
-            {{ row.updatedAt }}
+            ≈{{ row.tokenCount }}
           </template>
         </el-table-column>
 
         <el-table-column label="操作" width="110" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openChunkContent(row)">查看内容</el-button>
+            <el-button link type="primary" @click="openChunkContent(row)">
+              {{ getChunkInspectButtonLabel(row) }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="chunk-footer">
-        <span>共 {{ chunks.length }} 条</span>
-      </div>
     </div>
 
-    <el-dialog v-model="contentDialogOpen" width="760px" destroy-on-close>
+    <div class="chunk-footer">
+      <span>共 {{ chunks.length }} 条 chunk</span>
+    </div>
+
+    <el-dialog v-model="contentDialogOpen" width="980px" destroy-on-close>
       <template #header>
         <div class="chunk-dialog__header">
           <div class="chunk-dialog__title">
             {{ activeChunk ? `Chunk #${activeChunk.sequence}` : 'Chunk 详情' }}
           </div>
           <div v-if="activeChunk" class="chunk-dialog__meta">
-            <span>字数：{{ activeChunk.charCount }}</span>
-            <span>约 Token：≈ {{ activeChunk.tokenCount }}</span>
-            <span>更新时间：{{ activeChunk.updatedAt }}</span>
+            <span>字数 {{ activeChunk.charCount }}</span>
+            <span>约 Token ≈{{ activeChunk.tokenCount }}</span>
+            <span>块数 {{ activeChunkBlocks.length }}</span>
+            <span>偏移 {{ getChunkOffsetRange(activeChunk) }}</span>
           </div>
         </div>
       </template>
 
       <div v-if="activeChunk" class="chunk-dialog__content">
-        {{ activeChunk.content }}
+        <section v-if="activeChunkHasBlocks" class="chunk-dialog__overview">
+          <dl class="chunk-dialog__overview-grid">
+            <div v-for="fact in activeChunkFacts" :key="fact.label" class="chunk-dialog__overview-item">
+              <dt>{{ fact.label }}</dt>
+              <dd>{{ fact.value }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section v-if="activeChunkHasBlocks" class="chunk-dialog__section chunk-dialog__section--dense">
+          <div class="chunk-dialog__section-title">Block 列表</div>
+          <el-table :data="activeChunkBlocks" row-key="startOffset" class="chunk-blocks__table">
+            <el-table-column label="#" width="70">
+              <template #default="{ $index }">
+                {{ $index + 1 }}
+              </template>
+            </el-table-column>
+
+            <el-table-column label="类型" width="120">
+              <template #default="{ row }">
+                <span class="chunk-tag chunk-tag--strong">{{ row.blockType }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="路径" min-width="220">
+              <template #default="{ row }">
+                <div class="block-path">{{ formatSectionPath(row.sectionPath) || '-' }}</div>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="范围" width="130">
+              <template #default="{ row }">
+                {{ formatBlockOffsetRange(row) }}
+              </template>
+            </el-table-column>
+
+            <el-table-column label="附加信息" min-width="180">
+              <template #default="{ row }">
+                <div class="block-extra">{{ getBlockMetaSummary(row) || '-' }}</div>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="内容预览" min-width="280">
+              <template #default="{ row }">
+                <div class="block-preview">
+                  {{ getChunkPreview(row.content, 120) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </section>
+
+        <section v-else class="chunk-dialog__summary">
+          <div class="chunk-dialog__summary-copy">
+            <div class="chunk-dialog__section-title">Review 重点</div>
+            <p class="chunk-dialog__hint">
+              {{ activeChunkReviewHint }}
+            </p>
+          </div>
+
+          <dl class="chunk-dialog__facts-grid">
+            <div v-for="fact in activeChunkFacts" :key="fact.label" class="chunk-dialog__fact-card">
+              <dt>{{ fact.label }}</dt>
+              <dd>{{ fact.value }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section v-if="!activeChunkHasBlocks" class="chunk-dialog__section chunk-dialog__section--empty">
+          <div class="chunk-dialog__section-title">结构状态</div>
+          <p class="chunk-dialog__empty-text">当前 chunk 没有结构化 block 数据。</p>
+          <p class="chunk-dialog__empty-subtitle">
+            如果你要 review 结构化切分效果，建议先切换到 `structure` 策略后再查看这个弹窗。
+          </p>
+        </section>
+
+        <section class="chunk-dialog__section">
+          <div class="chunk-dialog__section-title">Chunk 原文</div>
+          <div class="chunk-dialog__raw">
+            {{ activeChunk.content }}
+          </div>
+        </section>
       </div>
     </el-dialog>
   </section>
@@ -223,22 +576,18 @@ onMounted(async () => {
 
 <style scoped>
 .chunk-stage {
-  padding: 8px 0 4px;
-}
-
-.chunk-stage__canvas {
   margin: 0 auto;
-  max-width: 1120px;
-  border-radius: 28px;
-  background: #f3f6fb;
-  padding: 28px 28px 32px;
+  max-width: 1400px;
+  padding: 8px 0 24px;
 }
 
-.chunk-stage__toolbar {
+.chunk-stage__topbar {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
+  border-bottom: 1px solid #d9e2ec;
+  padding-bottom: 18px;
 }
 
 .chunk-stage__path {
@@ -247,7 +596,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #667085;
+  color: #52606d;
 }
 
 .chunk-stage__back {
@@ -257,12 +606,12 @@ onMounted(async () => {
   border: 0;
   background: transparent;
   padding: 0;
-  color: #4f46e5;
+  color: #0f766e;
   cursor: pointer;
 }
 
 .chunk-stage__divider {
-  color: #98a2b3;
+  color: #9aa5b1;
 }
 
 .chunk-stage__actions {
@@ -272,53 +621,164 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.chunk-stage__headline {
-  margin-top: 22px;
+.chunk-stage__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  padding: 24px 0 20px;
+}
+
+.chunk-stage__copy {
+  max-width: 680px;
 }
 
 .chunk-stage__title {
   font-size: 26px;
   font-weight: 700;
-  color: #111827;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #102a43;
 }
 
 .chunk-stage__subtitle {
-  margin-top: 8px;
+  margin-top: 10px;
   font-size: 14px;
-  color: #6b7280;
+  line-height: 1.8;
+  color: #52606d;
+}
+
+.chunk-stage__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #d9e2ec;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.chunk-stage__fact {
+  padding: 16px 18px;
+}
+
+.chunk-stage__fact:nth-child(odd) {
+  border-right: 1px solid #e5edf5;
+}
+
+.chunk-stage__fact:nth-child(-n + 2) {
+  border-bottom: 1px solid #e5edf5;
+}
+
+.chunk-stage__fact dt {
+  font-size: 12px;
+  color: #7b8794;
+}
+
+.chunk-stage__fact dd {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #102a43;
 }
 
 .chunk-stage__notice {
-  margin-top: 22px;
-  border-radius: 16px;
-  background: #eef2ff;
+  margin-bottom: 18px;
+  border-left: 3px solid #0f766e;
+  background: #f0fdfa;
   padding: 14px 16px;
   font-size: 14px;
-  color: #4338ca;
+  color: #115e59;
+}
+
+.chunk-stage__table-shell {
+  overflow: hidden;
+  border: 1px solid #d9e2ec;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.chunk-stage__table-caption {
+  border-bottom: 1px solid #e5edf5;
+  padding: 14px 18px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #52606d;
 }
 
 .chunk-table {
-  margin-top: 22px;
+  margin-top: 0;
 }
 
 .chunk-sequence {
   font-weight: 700;
-  color: #0f172a;
+  color: #102a43;
 }
 
 .chunk-preview {
-  color: #334155;
-  line-height: 1.75;
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
+  color: #334155;
+  line-height: 1.75;
+}
+
+.chunk-structure {
+  display: grid;
+  gap: 6px;
+}
+
+.chunk-structure__status {
+  font-size: 13px;
+  font-weight: 600;
+  color: #102a43;
+}
+
+.chunk-structure__path {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #0f172a;
+}
+
+.chunk-structure__empty {
+  font-size: 13px;
+  color: #7b8794;
+}
+
+.chunk-structure__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.chunk-structure__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chunk-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #f0fdfa;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.chunk-tag--strong {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .chunk-footer {
   display: flex;
   justify-content: flex-end;
-  padding: 18px 4px 0;
+  padding: 14px 4px 0;
   color: #64748b;
   font-size: 14px;
 }
@@ -332,7 +792,7 @@ onMounted(async () => {
 .chunk-dialog__title {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  color: #102a43;
 }
 
 .chunk-dialog__meta {
@@ -344,7 +804,141 @@ onMounted(async () => {
 }
 
 .chunk-dialog__content {
-  max-height: 60vh;
+  display: grid;
+  gap: 16px;
+}
+
+.chunk-dialog__overview {
+  overflow: hidden;
+  border: 1px solid #d9e2ec;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.chunk-dialog__overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+}
+
+.chunk-dialog__overview-item {
+  padding: 14px 16px;
+}
+
+.chunk-dialog__overview-item:not(:last-child) {
+  border-right: 1px solid #e5edf5;
+}
+
+.chunk-dialog__overview-item dt {
+  font-size: 12px;
+  color: #7b8794;
+}
+
+.chunk-dialog__overview-item dd {
+  margin-top: 8px;
+  line-height: 1.65;
+  color: #102a43;
+}
+
+.chunk-dialog__summary {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  border: 1px solid #d9e2ec;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 16px 18px;
+}
+
+.chunk-dialog__summary-copy {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.chunk-dialog__hint {
+  font-size: 13px;
+  line-height: 1.75;
+  color: #52606d;
+}
+
+.chunk-dialog__facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #e5edf5;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.chunk-dialog__fact-card {
+  padding: 14px 16px;
+}
+
+.chunk-dialog__fact-card:nth-child(odd) {
+  border-right: 1px solid #e5edf5;
+}
+
+.chunk-dialog__fact-card:nth-child(-n + 2) {
+  border-bottom: 1px solid #e5edf5;
+}
+
+.chunk-dialog__fact-card dt {
+  font-size: 12px;
+  color: #7b8794;
+}
+
+.chunk-dialog__fact-card dd {
+  margin-top: 6px;
+  line-height: 1.7;
+  color: #102a43;
+}
+
+.chunk-dialog__section {
+  border: 1px solid #d9e2ec;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 16px 18px;
+}
+
+.chunk-dialog__section--dense {
+  padding-top: 12px;
+}
+
+.chunk-dialog__section--empty {
+  background: #f8fafc;
+}
+
+.chunk-dialog__section-title {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #102a43;
+}
+
+.chunk-dialog__empty-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #102a43;
+}
+
+.chunk-dialog__empty-subtitle {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: #52606d;
+}
+
+.block-path,
+.block-extra,
+.block-preview {
+  line-height: 1.7;
+  color: #334155;
+}
+
+.chunk-dialog__raw {
+  max-height: 32vh;
   overflow: auto;
   border-radius: 14px;
   background: #f8fafc;
@@ -354,32 +948,44 @@ onMounted(async () => {
   white-space: pre-wrap;
 }
 
-:deep(.chunk-table .el-table) {
-  border-radius: 20px;
+:deep(.chunk-table .el-table),
+:deep(.chunk-blocks__table .el-table) {
+  border-radius: 0;
 }
 
-:deep(.chunk-table .el-table__inner-wrapper::before) {
+:deep(.chunk-table .el-table__inner-wrapper::before),
+:deep(.chunk-blocks__table .el-table__inner-wrapper::before) {
   display: none;
 }
 
-:deep(.chunk-table .el-table__header th.el-table__cell) {
+:deep(.chunk-table .el-table__header th.el-table__cell),
+:deep(.chunk-blocks__table .el-table__header th.el-table__cell) {
   background: #f8fafc;
   color: #475467;
   font-weight: 700;
 }
 
-:deep(.chunk-table .el-table__body td.el-table__cell) {
+:deep(.chunk-table .el-table__body td.el-table__cell),
+:deep(.chunk-blocks__table .el-table__body td.el-table__cell) {
   padding-top: 14px;
   padding-bottom: 14px;
   vertical-align: top;
 }
 
 :deep(.chunk-table .el-table__row.chunk-row--active > td.el-table__cell) {
-  background: #eef2ff;
+  background: #f0fdfa;
+}
+
+@media (max-width: 1080px) {
+  .chunk-dialog__overview-grid,
+  .chunk-stage__intro,
+  .chunk-dialog__summary {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 960px) {
-  .chunk-stage__toolbar {
+  .chunk-stage__topbar {
     flex-direction: column;
   }
 
@@ -389,9 +995,33 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .chunk-stage__canvas {
-    padding: 22px 16px 24px;
-    border-radius: 20px;
+  .chunk-stage__facts {
+    grid-template-columns: 1fr;
+  }
+
+  .chunk-dialog__overview-item:not(:last-child) {
+    border-right: 0;
+    border-bottom: 1px solid #e5edf5;
+  }
+
+  .chunk-dialog__facts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chunk-stage__fact:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .chunk-stage__fact:not(:last-child) {
+    border-bottom: 1px solid #e5edf5;
+  }
+
+  .chunk-dialog__fact-card:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .chunk-dialog__fact-card:not(:last-child) {
+    border-bottom: 1px solid #e5edf5;
   }
 }
 </style>

@@ -52,6 +52,37 @@ export interface KnowledgeDocument {
   updatedAt: string
 }
 
+//声明知识分块内单个结构块结构。
+export interface KnowledgeChunkBlock {
+  blockType: string
+  content: string
+  title?: string
+  pageNumber?: number
+  level?: number
+  sectionPath: string[]
+  startOffset?: number
+  endOffset?: number
+  metadata?: Record<string, unknown> | null
+}
+
+//声明知识分块结构化元数据结构。
+export interface KnowledgeChunkMetadata {
+  knowledgeBaseId: string
+  documentId: string
+  documentName: string
+  fileType?: string
+  sourceKind?: string
+  blockTypes?: string[]
+  pageNumbers?: number[]
+  sectionPaths?: string[][]
+  titles?: string[]
+  levels?: number[]
+  startOffsets?: number[]
+  endOffsets?: number[]
+  blockMetadatas?: Array<Record<string, unknown>>
+  blocks?: KnowledgeChunkBlock[]
+}
+
 export interface KnowledgeChunk {
   id: string
   documentId: string
@@ -59,6 +90,7 @@ export interface KnowledgeChunk {
   content: string
   charCount: number
   tokenCount: number
+  metadata: KnowledgeChunkMetadata | null
   createdAt: string
   updatedAt: string
 }

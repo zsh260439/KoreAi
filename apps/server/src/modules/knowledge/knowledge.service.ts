@@ -7,6 +7,7 @@ import type {
   KnowledgeBase,
   KnowledgeBaseStatus,
   KnowledgeChunk,
+  KnowledgeChunkMetadata,
   KnowledgeDocument,
   KnowledgeSearchHit,
   KnowledgeSearchInput,
@@ -273,10 +274,12 @@ export class KnowledgeService {
 
   //声明文档分块列表查询。
   async findDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
-    const items = await this.knowledgeChunkRepo.find({
-      where: { documentId },
-      order: { sequence: 'ASC' }
-    })
+    const items = await this.knowledgeChunkRepo
+      .createQueryBuilder('chunk')
+      .addSelect('chunk.metadata')
+      .where('chunk.documentId = :documentId', { documentId })
+      .orderBy('chunk.sequence', 'ASC')
+      .getMany()
 
     return items.map(toKnowledgeChunk)
   }
@@ -331,10 +334,12 @@ export class KnowledgeService {
         )
       })
 
-      const items = await this.knowledgeChunkRepo.find({
-        where: { documentId },
-        order: { sequence: 'ASC' }
-      })
+      const items = await this.knowledgeChunkRepo
+        .createQueryBuilder('chunk')
+        .addSelect('chunk.metadata')
+        .where('chunk.documentId = :documentId', { documentId })
+        .orderBy('chunk.sequence', 'ASC')
+        .getMany()
 
       return items.map(toKnowledgeChunk)
     } catch (error) {
@@ -646,6 +651,7 @@ function buildChunkMetadata(
   parsedDocument: { fileType: string; sourceKind: string },
   blocks: {
     blockType: string
+    content: string
     pageNumber?: number
     sectionPath?: string[]
     level?: number
@@ -668,7 +674,18 @@ function buildChunkMetadata(
     levels: blocks.map((item) => item.level).filter((value) => value !== undefined),
     startOffsets: blocks.map((item) => item.startOffset).filter((value) => value !== undefined),
     endOffsets: blocks.map((item) => item.endOffset).filter((value) => value !== undefined),
-    blockMetadatas: blocks.map((item) => item.metadata).filter(Boolean)
+    blockMetadatas: blocks.map((item) => item.metadata).filter(Boolean),
+    blocks: blocks.map((item) => ({
+      blockType: item.blockType,
+      content: item.content,
+      title: item.title,
+      pageNumber: item.pageNumber,
+      level: item.level,
+      sectionPath: item.sectionPath,
+      startOffset: item.startOffset,
+      endOffset: item.endOffset,
+      metadata: item.metadata ?? null
+    }))
   }
 }
 
@@ -731,6 +748,7 @@ function toKnowledgeChunk(entity: KnowledgeChunkEntity): KnowledgeChunk {
     content: entity.content,
     charCount: entity.charCount,
     tokenCount: entity.tokenCount,
+    metadata: (entity.metadata as KnowledgeChunkMetadata | null) ?? null,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString()
   }
