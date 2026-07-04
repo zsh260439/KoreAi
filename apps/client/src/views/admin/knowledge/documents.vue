@@ -471,7 +471,7 @@ onMounted(async () => {
           <div>
             <h2 class="doc-panel__title">文档列表</h2>
             <p class="doc-panel__desc">
-              当前阶段只支持本地 txt / md 文档，后端会根据 storagePath 读取真实文件再切块。这里的搜索只按文档名称筛选，不会搜索正文内容。
+              当前支持本地 txt / md / docx / pdf 文档，后端会根据 storagePath 读取真实文件并按结构化规则切块。这里的搜索只按文档名称筛选，不会搜索正文内容。
             </p>
           </div>
 
@@ -569,14 +569,14 @@ onMounted(async () => {
       <div class="space-y-4">
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">文档名称</div>
-          <el-input v-model="uploadName" placeholder="例如：demo-doc.txt" />
+          <el-input v-model="uploadName" placeholder="例如：demo-doc.md / demo-doc.docx / demo-doc.pdf" />
         </div>
 
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">本地文件路径</div>
           <el-input
             v-model="uploadStoragePath"
-            placeholder="例如：C:\\Users\\123\\Desktop\\Mustfollow-prompt\\demo-doc.txt"
+            placeholder="例如：C:\\Users\\123\\Desktop\\Mustfollow-prompt\\demo-doc.pdf"
           />
         </div>
 

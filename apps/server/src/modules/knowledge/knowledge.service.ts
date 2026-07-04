@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { MarkdownTextSplitter } from '@langchain/textsplitters'
-import { readFile, stat } from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { DataSource, Repository } from 'typeorm'
 import type {
@@ -25,6 +24,8 @@ import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
 import { KnowledgeBaseEntity } from './entity/knowledge-base.entity'
 import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
 import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
+import { buildChunksFromBlocks } from './composables/knowledge-chunk-builder'
+import { parseKnowledgeDocument } from './composables/knowledge-document.parser'
 
 //声明知识问答流式输入结构。
 type KnowledgeAskStreamInput = {
@@ -250,7 +251,6 @@ export class KnowledgeService {
     }
 
     //声明当前阶段只允许本地文本类文件入库。
-    ensureSupportedLocalTextFile(storagePath)
 
     const fileStats = await this.readLocalFileStats(storagePath)
     const fileType = inferFileTypeFromPath(storagePath)
@@ -294,25 +294,22 @@ export class KnowledgeService {
     await this.knowledgeDocumentRepo.update({ id: documentId }, { status: 'processing' })
 
     try {
-      //声明始终从 storagePath 读取真实文本而不是信任前端正文。
-      const rawContent = await this.loadDocumentContent(document)
       const chunkConfig = normalizeStructureAwareChunkConfig(document.chunkConfig)
-      //声明使用 LangChain 原生 Markdown 分块器执行结构化切分。
-      const parts = await splitTextByStructure(rawContent, chunkConfig)
-      const embeddings = await this.embeddingService.embedChunks(parts)
+      const parsedDocument = await parseKnowledgeDocument(document.storagePath ?? '')
+      const chunkDrafts = buildChunksFromBlocks(parsedDocument.blocks, chunkConfig)
+      const embeddings = await this.embeddingService.embedChunks(chunkDrafts.map((item) => item.content))
 
       await this.dataSource.transaction(async (manager) => {
-        //声明重建前先清空旧分块再写入新分块。
         await manager.delete(KnowledgeChunkEntity, { documentId })
 
-        const chunkEntities = parts.map((content, index) =>
+        const chunkEntities = chunkDrafts.map((chunk, index) =>
           manager.create(KnowledgeChunkEntity, {
             documentId,
-            content,
+            content: chunk.content,
             sequence: index,
-            charCount: content.length,
-            tokenCount: estimateTokenCount(content),
-            metadata: buildChunkMetadata(document),
+            charCount: chunk.content.length,
+            tokenCount: estimateTokenCount(chunk.content),
+            metadata: buildChunkMetadata(document, parsedDocument, chunk.blocks),
             embedding: embeddings[index]?.length ? embeddings[index] : null
           })
         )
@@ -329,7 +326,7 @@ export class KnowledgeService {
             chunkStrategy: 'structure_aware',
             chunkConfig,
             chunkCount: chunkEntities.length,
-            contentPreview: rawContent.slice(0, 500)
+            contentPreview: parsedDocument.rawContent.slice(0, 500)
           }
         )
       })
@@ -341,13 +338,11 @@ export class KnowledgeService {
 
       return items.map(toKnowledgeChunk)
     } catch (error) {
-      //声明任何重建异常都要把文档状态改成失败。
       await this.knowledgeDocumentRepo.update({ id: documentId }, { status: 'failed' })
       throw error
     }
   }
 
-  //声明知识库删除。
   async deleteKnowledgeBase(knowledgeBaseId: string): Promise<KnowledgeBase> {
     const kb = await this.knowledgeBaseRepo.findOne({
       where: { id: knowledgeBaseId },
@@ -388,33 +383,6 @@ export class KnowledgeService {
   }
 
   //声明从 storagePath 读取真实文档正文。
-  private async loadDocumentContent(document: KnowledgeDocumentEntity): Promise<string> {
-    if (!document.storagePath) {
-      throw new BadRequestException('Document storagePath is empty')
-    }
-
-    //声明当前阶段仅支持本地 txt 和 md 文件。
-    ensureSupportedLocalTextFile(document.storagePath)
-
-    try {
-      const content = await readFile(document.storagePath, 'utf-8')
-      const normalized = content.trim()
-
-      if (!normalized) {
-        throw new BadRequestException('Document content is empty')
-      }
-
-      return normalized
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error
-      }
-
-      throw new NotFoundException(`Cannot read file: ${document.storagePath}`)
-    }
-  }
-
-  //声明读取本地文件基础信息。
   private async readLocalFileStats(storagePath: string) {
     try {
       return await stat(storagePath)
@@ -538,14 +506,6 @@ export class KnowledgeService {
   }
 }
 
-//声明本地文本文件类型校验。
-function ensureSupportedLocalTextFile(storagePath: string): void {
-  const extension = extname(storagePath).toLowerCase()
-
-  if (!['.txt', '.md'].includes(extension)) {
-    throw new BadRequestException('Only .txt and .md files are supported in this step')
-  }
-}
 
 //声明文件类型推断逻辑。
 function inferFileTypeFromPath(value: string): string {
@@ -584,25 +544,6 @@ function normalizeStructureAwareChunkConfig(
   }
 }
 
-//声明使用 LangChain 原生 Markdown 分块器执行结构化切分。
-async function splitTextByStructure(
-  content: string,
-  config: StructureAwareChunkConfig
-): Promise<string[]> {
-  const text = content.trim()
-  if (!text) {
-    return []
-  }
-
-  const splitter = new MarkdownTextSplitter({
-    chunkSize: config.targetChars,
-    chunkOverlap: config.overlapChars
-  })
-  const parts = await splitter.splitText(text)
-  return parts.map((item) => item.trim()).filter(Boolean)
-}
-
-//声明正整数配置归一化。
 function normalizePositiveInteger(value: unknown, fallback: number): number {
   const normalizedValue = Number(value)
   if (!Number.isFinite(normalizedValue) || normalizedValue <= 0) {
@@ -700,15 +641,37 @@ function removeSearchWhitespace(value: string): string {
 }
 
 //声明分块元数据构建逻辑。
-function buildChunkMetadata(document: KnowledgeDocumentEntity): Record<string, unknown> {
+function buildChunkMetadata(
+  document: KnowledgeDocumentEntity,
+  parsedDocument: { fileType: string; sourceKind: string },
+  blocks: {
+    blockType: string
+    pageNumber?: number
+    sectionPath?: string[]
+    level?: number
+    title?: string
+    startOffset?: number
+    endOffset?: number
+    metadata?: Record<string, unknown>
+  }[]
+): Record<string, unknown> {
   return {
     knowledgeBaseId: document.knowledgeBaseId,
     documentId: document.id,
-    documentName: document.name
+    documentName: document.name,
+    fileType: parsedDocument.fileType,
+    sourceKind: parsedDocument.sourceKind,
+    blockTypes: blocks.map((item) => item.blockType),
+    pageNumbers: Array.from(new Set(blocks.map((item) => item.pageNumber).filter((value) => value !== undefined))),
+    sectionPaths: blocks.map((item) => item.sectionPath).filter(Boolean),
+    titles: blocks.map((item) => item.title).filter(Boolean),
+    levels: blocks.map((item) => item.level).filter((value) => value !== undefined),
+    startOffsets: blocks.map((item) => item.startOffset).filter((value) => value !== undefined),
+    endOffsets: blocks.map((item) => item.endOffset).filter((value) => value !== undefined),
+    blockMetadatas: blocks.map((item) => item.metadata).filter(Boolean)
   }
 }
 
-//声明知识库实体映射逻辑。
 function toKnowledgeBase(
   entity: KnowledgeBaseEntity,
   documentCount = entity.documents?.length ?? 0
