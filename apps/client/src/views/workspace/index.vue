@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, Settings2 } from 'lucide-vue-next'
+import { ArrowDown, Plus, Settings2 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAutoScroll } from '@/composables/useAutoScroll'
@@ -42,11 +42,11 @@ const conversationListError = conversationList.error
 const messagesLoading = workspaceChat.isLoadingMessages
 const isStreaming = workspaceChat.isStreaming
 const regenerating = workspaceChat.regenerating
-// 格式化对话时间
+
 const formatConversationTime = (value: string) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-  return value
+    return value
   }
 
   const now = new Date()
@@ -83,10 +83,10 @@ const formatConversationTime = (value: string) => {
         }
   )
 }
-// 检查对话是否正在流式传输
+
 const isConversationStreaming = (conversationId: string) =>
   workspaceChat.isConversationStreaming(conversationId)
-//监听对话内容变化，滚动到最底部，选中activeConversation自动滚动到最底部
+
 watch(
   activeContentList,
   async () => {
@@ -94,7 +94,7 @@ watch(
   },
   { deep: true }
 )
-// 选择对话
+
 const handleConversationSelect = async (conversationId: string) => {
   conversationList.selectConversation(conversationId)
   await workspaceChat.loadConversationMessages(conversationId)
@@ -103,7 +103,6 @@ const handleConversationSelect = async (conversationId: string) => {
   await chatAutoScroll.scrollMessagesToBottom(true)
 }
 
-//删除对话
 const handleConversationDelete = async (conversationId: string) => {
   if (!window.confirm('确认删除这个会话吗？')) {
     return
@@ -118,25 +117,25 @@ const handleConversationDelete = async (conversationId: string) => {
   }
 }
 
-// 创建新对话
 const handleCreateConversation = async () => {
   const conversation = await conversationList.createConversation()
   composerValue.value = ''
   await router.push(`/workspace/${conversation.id}`)
   await chatAutoScroll.scrollMessagesToBottom(true)
 }
-//发送消息
-const handleSend = async (payload:
-{
+
+const handleSend = async (payload: {
   message: string
   capabilities: WorkspacePromptCapabilities
   knowledgeBaseId?: string
-}
-) => {
-  
+}) => {
   composerValue.value = ''
-  const conversationId = await workspaceChat.sendMessage(payload.message, payload.capabilities, payload.knowledgeBaseId)
-  
+  const conversationId = await workspaceChat.sendMessage(
+    payload.message,
+    payload.capabilities,
+    payload.knowledgeBaseId
+  )
+
   if (
     conversationId &&
     conversationId !==
@@ -148,6 +147,10 @@ const handleSend = async (payload:
 
 const openAdmin = () => {
   void router.push('/admin/knowledge')
+}
+
+const handleScrollToBottom = () => {
+  void chatAutoScroll.scrollMessagesToBottom(true)
 }
 
 watch(
@@ -251,52 +254,77 @@ onMounted(async () => {
           </div>
         </header>
 
-        <div
-          :ref="chatAutoScroll.messagesRef"
-          class="min-h-0 flex-1 overflow-y-auto bg-white"
-          @scroll="chatAutoScroll.updateStickToBottom"
-        >
-          <div class="mx-auto w-full max-w-[920px] px-6 py-8">
-            <template v-if="conversationListLoading || messagesLoading">
-              <div class="space-y-8">
-                <div v-for="item in 4" :key="item" class="space-y-3">
-                  <div class="h-5 w-5 rounded-full bg-[#f3f4f6]" />
-                  <div class="space-y-2">
-                    <div class="h-4 w-full rounded bg-[#f3f4f6]" />
-                    <div class="h-4 w-[88%] rounded bg-[#f3f4f6]" />
-                    <div class="h-4 w-[62%] rounded bg-[#f3f4f6]" />
+        <div class="relative min-h-0 flex-1 bg-white">
+          <div
+            :ref="chatAutoScroll.messagesRef"
+            class="h-full overflow-y-auto bg-white"
+            @scroll="chatAutoScroll.updateStickToBottom"
+          >
+            <div class="mx-auto w-full max-w-[920px] px-6 py-8">
+              <template v-if="conversationListLoading || messagesLoading">
+                <div class="space-y-8">
+                  <div v-for="item in 4" :key="item" class="space-y-3">
+                    <div class="h-5 w-5 rounded-full bg-[#f3f4f6]" />
+                    <div class="space-y-2">
+                      <div class="h-4 w-full rounded bg-[#f3f4f6]" />
+                      <div class="h-4 w-[88%] rounded bg-[#f3f4f6]" />
+                      <div class="h-4 w-[62%] rounded bg-[#f3f4f6]" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
+              </template>
 
-            <template v-else-if="conversationListError">
-              <div class="rounded-xl border border-red-200 bg-red-50 p-5">
-                <p class="text-sm font-medium text-red-700">工作台加载失败</p>
-                <p class="mt-2 text-sm text-red-600">{{ conversationListError }}</p>
-                <button
-                  type="button"
-                  class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                  @click="conversationList.loadConversationList()"
-                >
-                  重试
-                </button>
-              </div>
-            </template>
+              <template v-else-if="conversationListError">
+                <div class="rounded-xl border border-red-200 bg-red-50 p-5">
+                  <p class="text-sm font-medium text-red-700">工作台加载失败</p>
+                  <p class="mt-2 text-sm text-red-600">{{ conversationListError }}</p>
+                  <button
+                    type="button"
+                    class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+                    @click="conversationList.loadConversationList()"
+                  >
+                    重试
+                  </button>
+                </div>
+              </template>
 
-            <template v-else-if="hasContent">
-              <ContentList
-                :content-list="activeContentList"
-                :regenerating="regenerating"
-                @edit="handleEditMessage"
-                @regenerate="handleRegenerate"
-              />
-            </template>
+              <template v-else-if="hasContent">
+                <ContentList
+                  :content-list="activeContentList"
+                  :regenerating="regenerating"
+                  @edit="handleEditMessage"
+                  @regenerate="handleRegenerate"
+                />
+              </template>
 
-            <template v-else>
-              这里以后会引入新的样式 目前占位
-            </template>
+              <template v-else>
+                这里以后会引入新的样式，目前占位
+              </template>
+            </div>
           </div>
+
+          <Transition
+            enter-active-class="transition duration-180 ease-out"
+            enter-from-class="translate-y-2 opacity-0"
+            enter-to-class="translate-y-0 opacity-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="translate-y-0 opacity-100"
+            leave-to-class="translate-y-2 opacity-0"
+          >
+            <div
+              v-if="hasContent && !chatAutoScroll.stickToBottom"
+              class="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center"
+            >
+              <button
+                type="button"
+                aria-label="跳转到底部"
+                class="pointer-events-auto flex size-12 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111827] shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition hover:bg-[#fafafa]"
+                @click="handleScrollToBottom"
+              >
+                <ArrowDown class="size-5" />
+              </button>
+            </div>
+          </Transition>
         </div>
 
         <footer class="border-t border-t-[#f3f4f6] bg-white">
