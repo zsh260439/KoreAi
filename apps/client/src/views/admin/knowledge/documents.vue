@@ -401,69 +401,96 @@ onMounted(async () => {
       </div>
 
       <div v-if="activeTab === 'preview'" class="preview-panel">
-        <div class="preview-search">
-          <div class="preview-search__box">
-            <input
+        <div class="preview-panel__header">
+          <div>
+            <div class="preview-panel__eyebrow">RAG PREVIEW</div>
+            <h2 class="preview-panel__title">Chunk recall cockpit</h2>
+          </div>
+          <div class="preview-panel__stat">
+            <span>{{ hasSearchedContent ? previewResults.length : documents.length }}</span>
+            <small>{{ hasSearchedContent ? 'hits' : 'docs' }}</small>
+          </div>
+        </div>
+
+        <div class="preview-workbench">
+          <div class="preview-query">
+            <div class="preview-query__label">QUERY</div>
+            <textarea
               v-model="contentSearchInput"
-              class="preview-search__input"
-              type="text"
-              placeholder="输入问题，测试知识库召回效果..."
-              @keyup.enter="handleContentSearch"
+              class="preview-query__input"
+              placeholder="输入一个真实问题，直接测试当前知识库的 chunk 召回效果..."
+              rows="4"
+              @keydown.ctrl.enter.prevent="handleContentSearch"
             />
-            <button class="preview-search__button" type="button" :disabled="isSearching" @click="handleContentSearch">
-              {{ isSearching ? '检索中...' : '检索' }}
-            </button>
+            <div class="preview-query__actions">
+              <button
+                class="preview-query__button"
+                type="button"
+                :disabled="isSearching"
+                @click="handleContentSearch"
+              >
+                {{ isSearching ? '检索中' : '检索' }}
+              </button>
+              <button
+                v-if="contentSearchInput || hasSearchedContent"
+                class="preview-query__clear"
+                type="button"
+                @click="handleClearContentSearch"
+              >
+                清空
+              </button>
+            </div>
           </div>
 
-          <button
-            v-if="contentSearchInput || hasSearchedContent"
-            class="preview-search__clear"
-            type="button"
-            @click="handleClearContentSearch"
-          >
-            清空结果
-          </button>
-        </div>
+          <div class="preview-results">
+            <div class="preview-results__topline">
+              <span>命中文档片段</span>
+              <span>{{ hasSearchedContent ? `${previewResults.length} 条` : '等待检索' }}</span>
+            </div>
 
-        <div class="preview-search__hint">这里搜索的是当前知识库内已切分的 chunk 内容，不是文档名称。</div>
+            <div v-if="searchError" class="preview-panel__error">{{ searchError }}</div>
 
-        <div v-if="searchError" class="preview-panel__error">{{ searchError }}</div>
-
-        <div v-if="hasSearchedContent" class="preview-results">
-          <div v-if="!previewResults.length && !isSearching" class="preview-results__empty">
-            当前知识库下没有命中内容
-          </div>
-
-          <div v-else class="preview-results__list">
-            <article v-for="item in previewResults" :key="item.chunkId" class="preview-result">
-              <div class="preview-result__top">
-                <div class="preview-result__info">
-                  <span class="preview-score" :class="`preview-score--${getPreviewScoreTone(item.score)}`">
-                    融合排序分: {{ item.scoreLabel }}
-                  </span>
-                  <span class="preview-result__source">来源: {{ item.documentName }}</span>
-                </div>
-
-                <el-button
-                  link
-                  type="primary"
-                  class="preview-result__link"
-                  @click="openSearchHitDocument(item.documentId, item.chunkId)"
-                >
-                  查看文档
-                </el-button>
+            <div v-if="hasSearchedContent">
+              <div v-if="!previewResults.length && !isSearching" class="preview-results__empty">
+                当前知识库下没有命中内容
               </div>
 
-              <div class="preview-result__content">{{ item.content }}</div>
+              <div v-else class="preview-results__list">
+                <article v-for="item in previewResults" :key="item.chunkId" class="preview-result">
+                  <div class="preview-result__score" :class="`preview-score--${getPreviewScoreTone(item.score)}`">
+                    {{ item.scoreLabel }}
+                  </div>
 
-              <div class="preview-result__meta">
-                <span>Chunk ID: {{ item.chunkId }}</span>
+                  <div class="preview-result__main">
+                    <div class="preview-result__top">
+                      <span class="preview-result__source">{{ item.documentName }}</span>
+                      <el-button
+                        link
+                        type="primary"
+                        class="preview-result__link"
+                        @click="openSearchHitDocument(item.documentId, item.chunkId)"
+                      >
+                        查看文档
+                      </el-button>
+                    </div>
+
+                    <div class="preview-result__content">{{ item.content }}</div>
+
+                    <div class="preview-result__meta">
+                      <span>{{ item.chunkId }}</span>
+                    </div>
+                  </div>
+                </article>
               </div>
-            </article>
+            </div>
+
+            <div v-else class="preview-results__placeholder">
+              <span>EMPTY RECALL</span>
+              <strong>还没有发起命中测试</strong>
+              <p>左侧输入问题后，这里会直接展示召回片段和融合排序分。</p>
+            </div>
           </div>
         </div>
-
-        <div v-else class="preview-results__placeholder">输入问题后，这里会展示当前知识库内命中的文档片段。</div>
       </div>
 
       <div v-else class="doc-panel">
@@ -686,15 +713,30 @@ onMounted(async () => {
 
 <style scoped>
 .doc-stage {
-  padding: 8px 0 4px;
+  position: relative;
+  padding: 8px 0 28px;
+  isolation: isolate;
+}
+
+.doc-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0 -72px -28px -180px;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(15, 118, 110, 0.08), transparent 30%),
+    radial-gradient(circle at 52% 10%, rgba(148, 163, 184, 0.06), transparent 24%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.025) 0, transparent 38%);
+  border-radius: 0;
 }
 
 .doc-stage__canvas {
   margin: 0 auto;
-  max-width: 1120px;
-  border-radius: 28px;
-  background: #f3f6fb;
-  padding: 28px 28px 32px;
+  max-width: 1480px;
+  min-height: calc(100vh - 190px);
+  border-radius: 0;
+  background: transparent;
+  padding: 34px 36px 38px;
 }
 
 .doc-stage__toolbar {
@@ -720,7 +762,7 @@ onMounted(async () => {
   border: 0;
   background: transparent;
   padding: 0;
-  color: #4f46e5;
+  color: #0f766e;
   cursor: pointer;
 }
 
@@ -740,7 +782,7 @@ onMounted(async () => {
 }
 
 .doc-stage__title {
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 700;
   color: #111827;
 }
@@ -770,7 +812,7 @@ onMounted(async () => {
 }
 
 .doc-tab--active {
-  color: #4f46e5;
+  color: #0f766e;
   font-weight: 700;
 }
 
@@ -781,8 +823,7 @@ onMounted(async () => {
   right: 0;
   bottom: 0;
   height: 3px;
-  border-radius: 9999px;
-  background: #4f46e5;
+  background: #0f766e;
 }
 
 .preview-panel,
@@ -790,93 +831,234 @@ onMounted(async () => {
   margin-top: 22px;
 }
 
-.preview-search__box {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 2px solid #4f46e5;
-  border-radius: 18px;
-  background: #fff;
-  padding: 10px 12px 10px 20px;
-  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.08);
+.preview-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d6dee8;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+  min-height: 640px;
 }
 
-.preview-search__input {
+.preview-panel__header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #dbe4ee;
+  background: #f8fafc;
+  padding: 20px 24px 18px;
+}
+
+.preview-panel__eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f766e;
+}
+
+.preview-panel__title {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.preview-panel__stat {
+  display: grid;
+  min-width: 92px;
+  border-left: 2px solid #0f766e;
+  padding-left: 16px;
+  text-align: left;
+}
+
+.preview-panel__stat span {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.preview-panel__stat small {
+  margin-top: 6px;
+  color: #64748b;
+}
+
+.preview-workbench {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  min-height: 360px;
+}
+
+.preview-query {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  border-right: 1px solid #dbe4ee;
+  background: #fbfdff;
+  padding: 24px;
+}
+
+.preview-query__label,
+.preview-results__placeholder span {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f766e;
+}
+
+.preview-query__input {
   width: 100%;
+  min-height: 210px;
+  resize: none;
   border: 0;
-  background: transparent;
+  border-left: 3px solid #0f766e;
+  background: #f8fafc;
+  padding: 16px 18px 16px 20px;
   font-size: 16px;
-  color: #111827;
+  line-height: 1.75;
+  color: #0f172a;
   outline: none;
 }
 
-.preview-search__input::placeholder {
-  color: #98a2b3;
+.preview-query__input::placeholder {
+  color: #94a3b8;
 }
 
-.preview-search__button {
-  min-width: 88px;
+.preview-query__input:focus {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #0f766e;
+}
+
+.preview-query__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.preview-query__button {
+  min-width: 112px;
   border: 0;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #5b5cff 0%, #4f46e5 100%);
-  padding: 12px 20px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
+  background: #0f172a;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
   cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease;
 }
 
-.preview-search__button:disabled {
+.preview-query__button:hover {
+  background: #0f766e;
+}
+
+.preview-query__button:active {
+  transform: translateY(1px);
+}
+
+.preview-query__button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
 }
 
-.preview-search__clear {
-  margin-top: 12px;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font-size: 13px;
-  color: #667085;
+.preview-query__clear {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #475569;
   cursor: pointer;
 }
 
-.preview-search__hint {
-  margin-top: 10px;
-  font-size: 13px;
-  color: #667085;
-}
-
 .preview-panel__error {
-  margin-top: 12px;
+  margin: 16px 0 0;
+  border-left: 3px solid #dc2626;
+  background: #fef2f2;
+  padding: 12px 14px;
   font-size: 13px;
   color: #dc2626;
 }
 
 .preview-results {
-  margin-top: 20px;
+  min-width: 0;
+  background: #f8fafc;
+  padding: 24px;
+}
+
+.preview-results__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .preview-results__list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  gap: 12px;
+  max-height: 540px;
+  overflow: auto;
+  padding-right: 8px;
 }
 
 .preview-results__empty,
 .preview-results__placeholder {
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.74);
-  padding: 22px 24px;
+  background: #ffffff;
+  padding: 28px;
   font-size: 14px;
-  color: #6b7280;
+  color: #64748b;
+}
+
+.preview-results__placeholder {
+  display: grid;
+  align-content: center;
+  min-height: 238px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.68)),
+    #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.72);
+}
+
+.preview-results__placeholder strong {
+  margin-top: 12px;
+  font-size: 24px;
+  color: #0f172a;
+}
+
+.preview-results__placeholder p {
+  margin-top: 10px;
+  max-width: 360px;
 }
 
 .preview-result {
-  border-radius: 18px;
-  background: #fff;
-  padding: 18px 18px 16px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 16px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.preview-result__score {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  min-height: 74px;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.preview-result__main {
+  min-width: 0;
 }
 
 .preview-result__top {
@@ -887,35 +1069,19 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.preview-result__info {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.preview-score {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
-  padding: 5px 12px;
-  font-size: 14px;
-  font-weight: 700;
-}
-
 .preview-score--success {
-  background: #dcfce7;
-  color: #16a34a;
+  background: #ccfbf1;
+  color: #0f766e;
 }
 
 .preview-score--warning {
-  background: #ffedd5;
-  color: #f97316;
+  background: #fef3c7;
+  color: #b45309;
 }
 
 .preview-score--info {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .preview-result__source,
@@ -926,9 +1092,9 @@ onMounted(async () => {
 
 .preview-result__content {
   margin-top: 14px;
-  border-radius: 12px;
+  border-left: 2px solid #cbd5e1;
   background: #f8fafc;
-  padding: 14px 16px;
+  padding: 12px 14px;
   line-height: 1.8;
   color: #334155;
   white-space: pre-wrap;
@@ -940,6 +1106,9 @@ onMounted(async () => {
 
 .preview-result__meta {
   margin-top: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
@@ -1027,10 +1196,13 @@ onMounted(async () => {
     justify-content: flex-start;
   }
 
-  .preview-search__box {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 14px;
+  .preview-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-query {
+    border-right: 0;
+    border-bottom: 1px solid #dbe4ee;
   }
 }
 
@@ -1048,6 +1220,20 @@ onMounted(async () => {
   .doc-footer {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .preview-panel__header,
+  .preview-query,
+  .preview-results {
+    padding: 18px;
+  }
+
+  .preview-result {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-result__score {
+    min-height: 48px;
   }
 }
 </style>

@@ -16,6 +16,10 @@ import { KnowledgeService } from '../knowledge/knowledge.service'
 import { WorkspaceConversationEntity } from './entity/workspace-conversation.entity'
 import { WorkspaceMessageEntity } from './entity/workspace-message.entity'
 
+const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
+const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
+const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
+
 type PreparedChatContext = {
   conversation: WorkspaceConversationEntity
   promptCapabilities: WorkspacePromptCapabilities
@@ -91,6 +95,18 @@ export class WorkspaceService {
   ): AsyncGenerator<WorkspaceChatStreamEvent> {
     const context = await this.prepareChatContext(dto)
     const startedAt = Date.now()
+
+    yield {
+      type: 'stage_started',
+      data: {
+        id: KNOWLEDGE_RECALL_STAGE_ID,
+        stageKey: 'knowledge_recall',
+        title: '检索知识库',
+        subtitle: '正在定位与问题相关的文档片段',
+        status: 'running'
+      }
+    }
+
     const streamResult = await this.knowledgeService.streamAskKnowledge(
       {
         query: context.query,
@@ -104,6 +120,26 @@ export class WorkspaceService {
     const reasoningSteps: KnowledgeReasoningStep[] = []
     let answer = ''
 
+    yield {
+      type: 'sources',
+      data: {
+        sources: streamResult.sources
+      }
+    }
+
+    yield {
+      type: 'stage_completed',
+      data: {
+        stageId: KNOWLEDGE_RECALL_STAGE_ID,
+        subtitle: streamResult.sources.length
+          ? `已命中 ${streamResult.sources.length} 个 chunk`
+          : '没有命中可引用的知识库片段'
+      }
+    }
+
+    let reasoningStageStarted = false
+    let answerStageStarted = false
+
     for await (const event of streamResult.stream) {
       if (options.signal?.aborted) {
         return
@@ -111,13 +147,60 @@ export class WorkspaceService {
 
       switch (event.type) {
         case 'thinking_delta':
+          if (!reasoningStageStarted) {
+            reasoningStageStarted = true
+            yield {
+              type: 'stage_started',
+              data: {
+                id: VISIBLE_REASONING_STAGE_ID,
+                stageKey: 'llm_reasoning',
+                title: '分析问题与证据',
+                subtitle: '正在把命中片段整理成可展示的推理摘要',
+                status: 'running'
+              }
+            }
+          }
           appendReasoningDelta(reasoningSteps, event.delta)
           yield event
           break
         case 'answer_delta':
+          if (reasoningStageStarted) {
+            reasoningStageStarted = false
+            yield {
+              type: 'stage_completed',
+              data: {
+                stageId: VISIBLE_REASONING_STAGE_ID,
+                subtitle: '已形成可展示推理摘要'
+              }
+            }
+          }
+
+          if (!answerStageStarted) {
+            answerStageStarted = true
+            yield {
+              type: 'stage_started',
+              data: {
+                id: ANSWER_SYNTHESIS_STAGE_ID,
+                stageKey: 'answer_synthesis',
+                title: '组织最终回答',
+                subtitle: '正在输出面向用户的完整回复',
+                status: 'running'
+              }
+            }
+          }
           answer += event.delta
           yield event
           break
+      }
+    }
+
+    if (answerStageStarted) {
+      yield {
+        type: 'stage_completed',
+        data: {
+          stageId: ANSWER_SYNTHESIS_STAGE_ID,
+          subtitle: '最终回答已生成'
+        }
       }
     }
 
@@ -334,7 +417,7 @@ function appendReasoningDelta(reasoningSteps: KnowledgeReasoningStep[], delta: s
   if (!reasoningSteps[0]) {
     reasoningSteps[0] = {
       stageKey: 'llm_reasoning',
-      title: '思考过程',
+      title: '分析问题与证据',
       content: ''
     }
   }

@@ -19,9 +19,9 @@ defineEmits<{
 <template>
   <div
     :class="[
-      'group flex w-full items-center gap-2 rounded-[16px] border py-3 pl-4 pr-3 transition-colors',
+      'group flex w-full items-center gap-2 rounded-[12px] border py-3.5 pl-4 pr-3 transition-colors',
       active
-        ? 'border-[#e5e7eb] bg-[#f9fafb]'
+        ? 'border-[#e5e7eb] bg-[#f8fafc]'
         : 'border-transparent bg-transparent hover:border-[#f3f4f6] hover:bg-[#fafafa]'
     ]"
   >
@@ -31,7 +31,7 @@ defineEmits<{
       class="min-w-0 flex flex-1 items-center gap-3 text-left"
       @click="$emit('select', conversation.id)"
     >
-      <WorkspaceSidebarMark :size="36" :busy="streaming" />
+      <WorkspaceSidebarMark :size="28" :busy="streaming" />
 
       <div class="min-w-0 flex-1">
         <div class="flex items-center justify-between gap-3">
@@ -41,11 +41,11 @@ defineEmits<{
           >
             {{ conversation.title }}
           </p>
-          <span class="shrink-0 text-[11px] tracking-[0.08em] text-[#9ca3af]">
+          <span class="shrink-0 text-[11px] tracking-[0.08em] text-[#94a3b8]">
             {{ timeLabel }}
           </span>
         </div>
-        <p class="mt-1 truncate text-[12px] text-[#9ca3af]">
+        <p class="mt-1 truncate text-[12px] text-[#94a3b8]">
           {{ conversation.model || '助手' }}
         </p>
       </div>
@@ -53,7 +53,7 @@ defineEmits<{
 
     <button
       type="button"
-      class="flex size-8 shrink-0 items-center justify-center rounded-full text-[#9ca3af] opacity-0 transition hover:bg-[#f3f4f6] hover:text-[#111827] group-hover:opacity-100"
+      class="flex size-8 shrink-0 items-center justify-center rounded-full text-[#94a3b8] opacity-0 transition hover:bg-[#f1f5f9] hover:text-[#111827] group-hover:opacity-100"
       aria-label="删除会话"
       @click.stop="$emit('delete', conversation.id)"
     >

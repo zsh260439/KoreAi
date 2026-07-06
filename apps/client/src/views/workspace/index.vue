@@ -173,14 +173,14 @@ onMounted(async () => {
   <main class="h-screen bg-white text-[#111827]">
     <div class="grid h-screen grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)]">
       <aside class="hidden h-screen w-full shrink-0 flex-col border-r border-r-[#f3f4f6] bg-white xl:flex">
-        <div class="px-6 pt-8">
+        <div class="px-7 pt-10">
           <WorkspaceSidebarBrand />
         </div>
 
-        <div class="px-6 pt-6">
+        <div class="px-7 pt-8">
           <button
             type="button"
-            class="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white text-[14px] font-medium text-[#111827] transition hover:border-[#d1d5db] hover:bg-[#fafafa]"
+            class="flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white text-[14px] font-semibold text-[#111827] transition hover:border-[#d1d5db] hover:bg-[#fafafa]"
             @click="handleCreateConversation"
           >
             <Plus class="size-4" />
@@ -188,7 +188,7 @@ onMounted(async () => {
           </button>
         </div>
 
-        <div class="mt-6 min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        <div class="mt-6 min-h-0 flex-1 overflow-y-auto px-5 pb-4">
           <MessageList
             :conversations="conversationList.conversations.value"
             :active-conversation-id="activeConversationId"
@@ -200,10 +200,10 @@ onMounted(async () => {
           />
         </div>
 
-        <div class="border-t border-t-[#f3f4f6] px-4 py-4">
+        <div class="border-t border-t-[#f3f4f6] px-5 py-4">
           <button
             type="button"
-            class="flex w-full items-center justify-between rounded-[16px] border border-[#e5e7eb] bg-white px-4 py-3 text-left transition hover:border-[#d1d5db] hover:bg-[#fafafa]"
+            class="flex w-full items-center justify-between rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 text-left transition hover:border-[#d1d5db] hover:bg-[#fafafa]"
             @click="openAdmin"
           >
             <div>

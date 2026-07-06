@@ -3,6 +3,7 @@ import type { ChatMessage, ChatMessageStatus, ChatRole } from '@/types/chat/mode
 import type {
   KnowledgeReasoningStep,
   KnowledgeSearchHit,
+  WorkspaceRunStage,
   WorkspacePromptCapabilities
 } from 'share-type'
 
@@ -26,49 +27,66 @@ interface ChatMessageWithThinking {
 // 最终回答标题
 const FINAL_ANSWER_TITLE = '\u6700\u7ec8\u56de\u7b54'
 
-//声明单块思考消息固定下标
-const SINGLE_THINKING_STAGE_INDEX = 0
+const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
+const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
+const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
+
+const buildKnowledgeRecallStage = (
+  messageId: string,
+  sources: KnowledgeSearchHit[]
+): AssistantThinkingStage[] => {
+  if (!sources.length) {
+    return []
+  }
+
+  return [{
+    kind: 'process',
+    id: `${messageId}-${KNOWLEDGE_RECALL_STAGE_ID}`,
+    stageKey: 'knowledge_recall',
+    title: '检索知识库',
+    subtitle: `已命中 ${sources.length} 个 chunk`,
+    status: 'done',
+    content: '',
+    visibleContent: ''
+  }]
+}
 
 // 判断是否需要渲染思考过程
 const shouldRenderThinking = (message: ChatMessage): message is ChatMessageWithThinking =>
   Boolean(message.promptCapabilities?.think) && Array.isArray(message.reasoningSteps)
 
-//声明历史推理步骤合并为单块思考文本
-const buildThinkingContent = (message: ChatMessage): string => {
-  if (!shouldRenderThinking(message)) {
-    return ''
-  }
-
-  return message.reasoningSteps
-    .map((step) => step.content.trim())
-    .filter(Boolean)
-    .join('\n\n')
-}
-
-//声明单块思考消息构造逻辑
+//声明历史推理步骤构造逻辑
 const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
-  const thinkingContent = buildThinkingContent(message)
-  if (!thinkingContent) {
+  if (!shouldRenderThinking(message)) {
     return []
   }
 
-  const firstStep = message.reasoningSteps?.[0]
+  return message.reasoningSteps
+    .flatMap((step, index) => {
+      const content = step.content.trim()
+      if (!content) {
+        return []
+      }
 
-  return [{
-    kind: 'thinking',
-    id: `${message.id}-thinking`,
-    stageKey: firstStep?.stageKey ?? 'llm_reasoning',
-    title: firstStep?.title ?? '思考过程',
-    subtitle: undefined,
-    status: 'done',
-    content: thinkingContent,
-    visibleContent: thinkingContent
-  }]
+      return [{
+        kind: 'process' as const,
+        id: `${message.id}-${step.stageKey}-${index}`,
+        stageKey: step.stageKey,
+        title: step.title,
+        subtitle: step.subtitle,
+        status: 'done' as const,
+        content,
+        visibleContent: content
+      }]
+    })
 }
 
 // 构建已完成的响应流
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
-  thinking: buildThinkingStages(message),
+  thinking: [
+    ...buildKnowledgeRecallStage(message.id, message.citations ?? []),
+    ...buildThinkingStages(message)
+  ],
   answer: {
     kind: 'answer',
     title: FINAL_ANSWER_TITLE,
@@ -76,6 +94,8 @@ export const buildCompletedResponseFlow = (message: ChatMessage): AssistantRespo
     content: message.content,
     visibleContent: message.content
   },
+  sources: message.citations ?? [],
+  sourcesStatus: message.citations?.length ? 'done' : 'pending',
   totalDurationMs: message.latencyMs ?? undefined,
   showActions: true
 })
@@ -90,7 +110,67 @@ export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
     content: '',
     visibleContent: ''
   },
+  sources: [],
+  sourcesStatus: 'pending',
   showActions: false
+})
+
+export const startStreamingProcessStage = (
+  flow: AssistantResponseFlow,
+  stage: WorkspaceRunStage
+): AssistantResponseFlow => {
+  const existing = flow.thinking.find((item) => item.id === stage.id)
+  if (existing) {
+    return {
+      ...flow,
+      thinking: flow.thinking.map((item) =>
+        item.id === stage.id
+          ? {
+              ...item,
+              stageKey: stage.stageKey,
+              title: stage.title,
+              subtitle: stage.subtitle,
+              status: stage.status
+            }
+          : item
+      )
+    }
+  }
+
+  return {
+    ...flow,
+    thinking: [
+      ...flow.thinking,
+      {
+        kind: 'process',
+        id: stage.id,
+        stageKey: stage.stageKey,
+        title: stage.title,
+        subtitle: stage.subtitle,
+        status: stage.status,
+        content: '',
+        visibleContent: ''
+      }
+    ]
+  }
+}
+
+export const completeStreamingProcessStage = (
+  flow: AssistantResponseFlow,
+  stageId: string,
+  subtitle?: string
+): AssistantResponseFlow => ({
+  ...flow,
+  thinking: flow.thinking.map((stage) =>
+    stage.id === stageId
+      ? {
+          ...stage,
+          subtitle: subtitle ?? stage.subtitle,
+          status: 'done',
+          visibleContent: stage.content
+        }
+      : stage
+  )
 })
 
 // 追加流式思考内容
@@ -98,55 +178,99 @@ export const appendStreamingThinkingStageDelta = (
   flow: AssistantResponseFlow,
   delta: string
 ): AssistantResponseFlow => {
-  const stage = flow.thinking[SINGLE_THINKING_STAGE_INDEX]
+  const stage =
+    [...flow.thinking].reverse().find((item) => item.stageKey === 'llm_reasoning') ??
+    flow.thinking.find((item) => item.id === VISIBLE_REASONING_STAGE_ID)
+
   if (!delta) {
     return flow
   }
 
   if (!stage) {
-    return {
-      ...flow,
-      thinking: [{
-        kind: 'thinking',
-        id: 'streaming-thinking',
+    return appendStreamingThinkingStageDelta(
+      startStreamingProcessStage(flow, {
+        id: VISIBLE_REASONING_STAGE_ID,
         stageKey: 'llm_reasoning',
-        title: '思考过程',
-        status: 'running',
-        content: delta,
-        visibleContent: delta
-      }]
-    }
+        title: '分析问题与证据',
+        subtitle: '正在形成可展示推理摘要',
+        status: 'running'
+      }),
+      delta
+    )
   }
 
   return {
     ...flow,
-    thinking: [{
-      ...stage,
-      status: 'running',
-      content: stage.content + delta,
-      visibleContent: stage.visibleContent + delta
-    }]
+    thinking: flow.thinking.map((item) =>
+      item.id === stage.id
+        ? {
+            ...item,
+            status: 'running',
+            content: item.content + delta,
+            visibleContent: item.visibleContent + delta
+          }
+        : item
+    )
   }
+}
+
+export const attachStreamingSources = (
+  flow: AssistantResponseFlow,
+  sources: KnowledgeSearchHit[]
+): AssistantResponseFlow => {
+  const ensuredFlow = flow.thinking.some((stage) => stage.id === KNOWLEDGE_RECALL_STAGE_ID)
+    ? flow
+    : startStreamingProcessStage(flow, {
+        id: KNOWLEDGE_RECALL_STAGE_ID,
+        stageKey: 'knowledge_recall',
+        title: '检索知识库',
+        subtitle: '正在匹配相关 chunk',
+        status: 'running'
+      })
+
+  const nextFlow = {
+    ...ensuredFlow,
+    sources,
+    sourcesStatus: 'done' as const
+  }
+
+  return completeStreamingProcessStage(
+    nextFlow,
+    KNOWLEDGE_RECALL_STAGE_ID,
+    sources.length ? `已命中 ${sources.length} 个 chunk` : '没有命中可引用的知识库片段'
+  )
 }
 
 // 追加流式回答内容
 export const appendStreamingAnswerDelta = (
   flow: AssistantResponseFlow,
   delta: string
-): AssistantResponseFlow => ({
-  ...flow,
-  //声明答案开始输出后立即结束思考区流式状态
-  thinking: flow.thinking.map((stage) => ({
-    ...stage,
-    status: 'done'
-  })),
-  answer: {
-    ...flow.answer,
-    status: 'running',
-    content: flow.answer.content + delta,
-    visibleContent: flow.answer.visibleContent + delta
+): AssistantResponseFlow => {
+  const withAnswerStage = flow.thinking.some((stage) => stage.id === ANSWER_SYNTHESIS_STAGE_ID)
+    ? flow
+    : startStreamingProcessStage(flow, {
+        id: ANSWER_SYNTHESIS_STAGE_ID,
+        stageKey: 'answer_synthesis',
+        title: '组织最终回答',
+        subtitle: '正在输出面向用户的完整回复',
+        status: 'running'
+      })
+
+  return {
+    ...withAnswerStage,
+    //声明答案开始输出后立即结束其他过程阶段流式状态
+    thinking: withAnswerStage.thinking.map((stage) => ({
+      ...stage,
+      status: stage.id === ANSWER_SYNTHESIS_STAGE_ID ? 'running' : 'done'
+    })),
+    answer: {
+      ...withAnswerStage.answer,
+      status: 'running',
+      content: withAnswerStage.answer.content + delta,
+      visibleContent: withAnswerStage.answer.visibleContent + delta
+    }
   }
-})
+}
 
 // 完成整个流式响应
 export const finalizeStreamingResponseFlow = (
@@ -163,6 +287,8 @@ export const finalizeStreamingResponseFlow = (
     status: 'done',
     visibleContent: flow.answer.content
   },
+  sources: flow.sources,
+  sourcesStatus: flow.sourcesStatus,
   totalDurationMs: latencyMs ?? undefined,
   showActions: true
 })

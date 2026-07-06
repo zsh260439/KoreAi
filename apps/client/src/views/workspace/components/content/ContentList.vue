@@ -16,6 +16,24 @@ const latestRegenerableAssistantContentId = computed(() => {
   const latestContent = props.contentList[props.contentList.length - 1]
   return latestContent?.role === 'assistant' ? latestContent.id : ''
 })
+
+const retrievalQueryByMessageId = computed(() => {
+  const queryMap: Record<string, string> = {}
+  let lastUserContent = ''
+
+  for (const message of props.contentList) {
+    if (message.role === 'user') {
+      lastUserContent = message.content
+      continue
+    }
+
+    if (message.role === 'assistant') {
+      queryMap[message.id] = lastUserContent
+    }
+  }
+
+  return queryMap
+})
 </script>
 
 <template>
@@ -27,6 +45,7 @@ const latestRegenerableAssistantContentId = computed(() => {
       :show-meta="
         message.role === 'assistant' && message.id === latestRegenerableAssistantContentId
       "
+      :retrieval-query="retrievalQueryByMessageId[message.id] || ''"
       :regenerating="regenerating"
       @regenerate="$emit('regenerate')"
     />

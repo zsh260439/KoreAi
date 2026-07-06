@@ -4,7 +4,7 @@ import WorkspaceSidebarMark from './WorkspaceSidebarMark.vue'
 
 <template>
   <div class="workspace-sidebar-brand">
-    <WorkspaceSidebarMark :size="36" />
+    <WorkspaceSidebarMark :size="30" variant="orbit" />
     <p class="workspace-sidebar-brand__name" aria-label="koreAi">
       <span class="workspace-sidebar-brand__base">kore</span>
       <span class="workspace-sidebar-brand__accent">Ai</span>
@@ -16,16 +16,16 @@ import WorkspaceSidebarMark from './WorkspaceSidebarMark.vue'
 .workspace-sidebar-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .workspace-sidebar-brand__name {
   display: inline-flex;
   align-items: baseline;
-  font-size: 22px;
-  font-weight: 500;
+  font-size: 24px;
+  font-weight: 760;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: #111827;
 }
 
@@ -35,6 +35,6 @@ import WorkspaceSidebarMark from './WorkspaceSidebarMark.vue'
 
 .workspace-sidebar-brand__accent {
   color: #38bdf8;
-  font-weight: 300;
+  font-weight: 760;
 }
 </style>

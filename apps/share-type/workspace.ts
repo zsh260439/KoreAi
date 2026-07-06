@@ -1,4 +1,5 @@
 import type {
+  KnowledgeReasoningStepKey,
   KnowledgeReasoningStep,
   KnowledgeSearchHit
 } from './knowledge.js'
@@ -54,11 +55,38 @@ export interface WorkspaceChatResult {
   latencyMs: number
 }
 
+export type WorkspaceRunStageStatus = 'running' | 'done'
+
+export interface WorkspaceRunStage {
+  id: string
+  stageKey: KnowledgeReasoningStepKey
+  title: string
+  subtitle?: string
+  status: WorkspaceRunStageStatus
+}
+
 //声明工作台流式事件结构
 export type WorkspaceChatStreamEvent =
   | {
+      type: 'stage_started'
+      data: WorkspaceRunStage
+    }
+  | {
+      type: 'stage_completed'
+      data: {
+        stageId: string
+        subtitle?: string
+      }
+    }
+  | {
       type: 'thinking_delta'
       delta: string
+    }
+  | {
+      type: 'sources'
+      data: {
+        sources: KnowledgeSearchHit[]
+      }
     }
   | {
       type: 'answer_delta'

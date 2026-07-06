@@ -1,4 +1,4 @@
-import type { KnowledgeReasoningStepKey } from 'share-type'
+import type { KnowledgeReasoningStepKey, KnowledgeSearchHit } from 'share-type'
 
 export type AssistantRenderStatus = 'pending' | 'running' | 'done' | 'error'
 
@@ -6,7 +6,7 @@ export type AssistantRenderStatus = 'pending' | 'running' | 'done' | 'error'
 export type { KnowledgeReasoningStepKey as AssistantThinkingStageKey } from 'share-type'
 
 export interface AssistantThinkingStage {
-  kind: 'thinking'
+  kind: 'process'
   id: string
   stageKey: KnowledgeReasoningStepKey
   title: string
@@ -27,6 +27,8 @@ export interface AssistantAnswerStage {
 export interface AssistantResponseFlow {
   thinking: AssistantThinkingStage[]
   answer: AssistantAnswerStage
+  sources: KnowledgeSearchHit[]
+  sourcesStatus: AssistantRenderStatus
   totalDurationMs?: number
   showActions: boolean
 }

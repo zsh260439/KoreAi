@@ -114,7 +114,12 @@ export interface KnowledgeSearchHit {
   score: number
 }
 
-export type KnowledgeReasoningStepKey = 'llm_reasoning' | 'deepsearch' | 'web_search'
+export type KnowledgeReasoningStepKey =
+  | 'knowledge_recall'
+  | 'llm_reasoning'
+  | 'answer_synthesis'
+  | 'deepsearch'
+  | 'web_search'
 
 //声明共享推理步骤完整结构
 export interface KnowledgeReasoningStep {

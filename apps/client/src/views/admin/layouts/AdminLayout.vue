@@ -55,7 +55,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
 </script>
 
 <template>
-  <div class="admin-layout min-h-screen bg-slate-100 text-slate-900">
+  <div class="admin-layout min-h-screen bg-[#edf3f7] text-slate-900">
     <div class="flex h-screen">
       <AdminSidebar
         class="hidden lg:flex"
@@ -63,10 +63,10 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
         :items="adminNavItems"
       />
 
-      <div class="flex min-h-screen flex-1 flex-col overflow-auto bg-slate-100">
+      <div class="admin-layout__content flex min-h-screen flex-1 flex-col">
         <AdminTopbar @open-chat="router.push('/workspace')" />
 
-        <div class="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
+        <div class="admin-layout__body mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
           <nav class="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500" aria-label="面包屑">
             <span
               v-for="(item, index) in breadcrumbs"
@@ -92,3 +92,19 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.admin-layout__content {
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  background: linear-gradient(180deg, #eef4f7 0%, #edf3f7 100%);
+}
+
+.admin-layout__body {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 10% 4%, rgba(15, 118, 110, 0.05), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+}
+</style>

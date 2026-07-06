@@ -7,9 +7,12 @@ import type { ChatMessage } from '@/types/chat/models'
 import {
   appendStreamingAnswerDelta,
   appendStreamingThinkingStageDelta,
+  attachStreamingSources,
   buildCompletedResponseFlow,
+  completeStreamingProcessStage,
   createThinkingPlaceholderFlow,
-  finalizeStreamingResponseFlow
+  finalizeStreamingResponseFlow,
+  startStreamingProcessStage
 } from '@/utils/chat-flow'
 import type {
   WorkspaceChatResult,
@@ -157,6 +160,44 @@ function applyStreamEventToAssistantMessage(
     return assistantMessage
   }
 
+  if (event.type === 'stage_started') {
+    const responseFlow = startStreamingProcessStage(
+      assistantMessage.responseFlow ?? createThinkingPlaceholderFlow(),
+      event.data
+    )
+
+    return {
+      ...assistantMessage,
+      responseFlow
+    }
+  }
+
+  if (event.type === 'stage_completed') {
+    const responseFlow = completeStreamingProcessStage(
+      assistantMessage.responseFlow ?? createThinkingPlaceholderFlow(),
+      event.data.stageId,
+      event.data.subtitle
+    )
+
+    return {
+      ...assistantMessage,
+      responseFlow
+    }
+  }
+
+  if (event.type === 'sources') {
+    const responseFlow = attachStreamingSources(
+      assistantMessage.responseFlow ?? createThinkingPlaceholderFlow(),
+      event.data.sources
+    )
+
+    return {
+      ...assistantMessage,
+      citations: event.data.sources,
+      responseFlow
+    }
+  }
+
   if (event.type === 'answer_delta') {
     if (!assistantMessage.responseFlow) {
       return {
@@ -287,7 +328,13 @@ export function useWorkspaceChat() {
         {
           signal: controller.signal,
           onEvent: (event) => {
-            if (event.type === 'thinking_delta' || event.type === 'answer_delta') {
+            if (
+              event.type === 'stage_started' ||
+              event.type === 'stage_completed' ||
+              event.type === 'thinking_delta' ||
+              event.type === 'sources' ||
+              event.type === 'answer_delta'
+            ) {
               sessionContentList = updateAssistantMessage(
                 params.conversationId,
                 sessionContentList,
@@ -459,6 +506,8 @@ function finalizeAssistantMessage(
     completedMessage.responseFlow = finalizeStreamingResponseFlow(
       {
         ...assistantMessage.responseFlow,
+        sources: result.sources,
+        sourcesStatus: result.sources.length ? 'done' : assistantMessage.responseFlow.sourcesStatus,
         answer: {
           ...assistantMessage.responseFlow.answer,
           content: result.answer,
