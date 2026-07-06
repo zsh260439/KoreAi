@@ -12,6 +12,7 @@ import {
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import ShiningText from '@/components/ui/ShiningText.vue'
+import { useTypewriter } from '@/composables/useTypewriter'
 import type {
   AssistantRenderStatus,
   AssistantThinkingStage
@@ -53,16 +54,28 @@ const evidenceDrawerOpen = ref(false)
 const copied = ref(false)
 const userCopied = ref(false)
 const liveNowMs = ref(Date.now())
-const renderPhase = ref<'thinking' | 'finishing' | 'answering' | 'done'>('thinking')
-const displayedAnswerContent = ref('')
-const liveTimelineEntries = ref<ThoughtTimelineEntry[]>([])
-const frozenTimelineEntries = ref<ThoughtTimelineEntry[] | null>(null)
 
 const responseFlow = computed(() => props.message.responseFlow)
 const promptCapabilities = computed(
   () => props.message.promptCapabilities ?? { think: false, search: false }
 )
 const processStages = computed(() => responseFlow.value?.thinking ?? [])
+
+const sources = computed<KnowledgeSearchHit[]>(() => {
+  const flowSources = responseFlow.value?.sources ?? []
+  if (flowSources.length > 0) {
+    return flowSources
+  }
+
+  return props.message.citations ?? []
+})
+
+const visibleSources = computed(() => sources.value)
+const hasSources = computed(() => visibleSources.value.length > 0)
+const isStreamingMessage = computed(
+  () => props.message.role === 'assistant' && props.message.status === 'streaming'
+)
+
 const visibleThinkingStages = computed(() =>
   processStages.value.filter((stage) => {
     if (stage.stageKey === 'answer_synthesis' || stage.id === 'answer-synthesis') {
@@ -77,17 +90,9 @@ const visibleThinkingStages = computed(() =>
   })
 )
 
-const sources = computed<KnowledgeSearchHit[]>(() => {
-  const flowSources = responseFlow.value?.sources ?? []
-  if (flowSources.length > 0) {
-    return flowSources
-  }
-
-  return props.message.citations ?? []
-})
-
-const visibleSources = computed(() => sources.value)
-const hasSources = computed(() => visibleSources.value.length > 0)
+const thinkingTimelineEntries = computed(() =>
+  buildTimelineEntries(visibleThinkingStages.value, visibleSources.value.length)
+)
 
 const normalizeAnswerLeadingBlankLines = (content: string) =>
   content.replace(/^(?:[ \t\u3000]*\r?\n)+/, '')
@@ -102,33 +107,33 @@ const streamedAnswerContent = computed(() => {
   )
 })
 
-const answerStatus = computed(() => {
-  if (!responseFlow.value) {
-    return props.message.status === 'streaming' ? 'running' : 'done'
-  }
-
-  return responseFlow.value.answer.status
+const displayedAnswerContent = useTypewriter(streamedAnswerContent, {
+  enabled: isStreamingMessage,
+  intervalMs: 16,
+  step: 2
 })
 
 const showProcessSection = computed(
   () =>
     promptCapabilities.value.think &&
-    (visibleThinkingStages.value.length > 0 || hasSources.value || props.message.status === 'streaming')
+    (thinkingTimelineEntries.value.length > 0 || hasSources.value || isStreamingMessage.value)
 )
 
-const activeAnswerContent = computed(() =>
-  showProcessSection.value ? displayedAnswerContent.value : streamedAnswerContent.value
+const isThinkingActive = computed(() =>
+  thinkingTimelineEntries.value.some((entry) => entry.status === 'running')
 )
 
-const answerHasContent = computed(() => Boolean(activeAnswerContent.value.trim()))
-const thinkingStreamCompleted = computed(() => props.message.status !== 'streaming')
-
-const isThinkingRunning = computed(() =>
-  visibleThinkingStages.value.some((stage) => stage.status === 'running')
+const showThinkingHeader = computed(
+  () =>
+    showProcessSection.value &&
+    isStreamingMessage.value &&
+    (isThinkingActive.value || !streamedAnswerContent.value.trim())
 )
+
+const answerHasContent = computed(() => Boolean(displayedAnswerContent.value.trim()))
 
 const isAssistantWorking = computed(
-  () => props.message.status === 'streaming' || isThinkingRunning.value
+  () => isStreamingMessage.value || isThinkingActive.value
 )
 
 const createdAtMs = computed(() => {
@@ -139,7 +144,7 @@ const createdAtMs = computed(() => {
 const liveDurationMs = computed(() => Math.max(0, liveNowMs.value - createdAtMs.value))
 
 const resolvedDurationMs = computed(() => {
-  if (props.message.status === 'streaming') {
+  if (isStreamingMessage.value) {
     return liveDurationMs.value
   }
 
@@ -159,38 +164,34 @@ const hasFinalTokenCount = computed(
   () => finalTokenCount.value !== null && finalTokenCount.value > 0
 )
 
-const rawTimelineEntries = computed(() =>
-  buildTimelineEntries(processStages.value, visibleSources.value.length)
-)
-
 const canToggleProcessDetails = computed(
-  () => renderPhase.value === 'done' && visibleThinkingStages.value.length > 0
+  () => !showThinkingHeader.value && thinkingTimelineEntries.value.length > 0
 )
 
 const showProcessDetails = computed(
-  () => renderPhase.value !== 'done' || processExpanded.value
+  () => showThinkingHeader.value || processExpanded.value
 )
 
 const showThoughtCompletion = computed(
-  () => showProcessSection.value && renderPhase.value !== 'thinking'
+  () => showProcessSection.value && !showThinkingHeader.value
 )
 
 const showThoughtDivider = computed(
-  () => showProcessSection.value && renderPhase.value !== 'thinking'
+  () => showProcessSection.value && !showThinkingHeader.value
 )
 
 const showReplySummary = computed(
   () =>
     !showProcessSection.value &&
-    (props.message.status === 'streaming' || resolvedDurationMs.value > 0 || hasFinalTokenCount.value)
+    (isStreamingMessage.value || resolvedDurationMs.value > 0 || hasFinalTokenCount.value)
 )
 
 const showReplyDuration = computed(
-  () => !showProcessSection.value && (props.message.status === 'streaming' || resolvedDurationMs.value > 0)
+  () => !showProcessSection.value && (isStreamingMessage.value || resolvedDurationMs.value > 0)
 )
 
 const showReplyTokenCount = computed(
-  () => !showProcessSection.value && props.message.status !== 'streaming' && hasFinalTokenCount.value
+  () => !showProcessSection.value && !isStreamingMessage.value && hasFinalTokenCount.value
 )
 
 const showAnswerSection = computed(() => {
@@ -198,23 +199,22 @@ const showAnswerSection = computed(() => {
     return true
   }
 
-  return (
-    answerStatus.value === 'running' ||
-    answerStatus.value === 'done' ||
-    answerHasContent.value ||
-    (answerStatus.value === 'pending' && visibleThinkingStages.value.length === 0)
-  )
+  return isStreamingMessage.value || answerHasContent.value || Boolean(streamedAnswerContent.value.trim())
 })
 
 const canShowBufferedAnswer = computed(
-  () => !showProcessSection.value || renderPhase.value === 'answering' || renderPhase.value === 'done'
+  () =>
+    !showProcessSection.value ||
+    !showThinkingHeader.value ||
+    Boolean(streamedAnswerContent.value.trim()) ||
+    !isStreamingMessage.value
 )
 
 const showAnswerActions = computed(
   () =>
     props.showMeta &&
     Boolean(responseFlow.value?.showActions) &&
-    renderPhase.value === 'done' &&
+    !isStreamingMessage.value &&
     answerHasContent.value
 )
 
@@ -235,31 +235,14 @@ const retrievalQueryText = computed(() => {
 })
 
 let liveTimer: number | null = null
-let finishTimer: number | null = null
-let answerRevealTimer: number | null = null
 let copiedTimer: number | null = null
 let userCopiedTimer: number | null = null
-let thoughtRevealTimer: number | null = null
-let lastTimelineMutationAt = Date.now()
+let autoCollapseTimer: number | null = null
 
 const stopLiveTimer = () => {
   if (liveTimer !== null) {
     window.clearInterval(liveTimer)
     liveTimer = null
-  }
-}
-
-const stopFinishTimer = () => {
-  if (finishTimer !== null) {
-    window.clearTimeout(finishTimer)
-    finishTimer = null
-  }
-}
-
-const stopAnswerRevealTimer = () => {
-  if (answerRevealTimer !== null) {
-    window.clearInterval(answerRevealTimer)
-    answerRevealTimer = null
   }
 }
 
@@ -277,17 +260,17 @@ const stopUserCopiedTimer = () => {
   }
 }
 
-const stopThoughtRevealTimer = () => {
-  if (thoughtRevealTimer !== null) {
-    window.clearTimeout(thoughtRevealTimer)
-    thoughtRevealTimer = null
+const stopAutoCollapseTimer = () => {
+  if (autoCollapseTimer !== null) {
+    window.clearTimeout(autoCollapseTimer)
+    autoCollapseTimer = null
   }
 }
 
 const syncLiveTimer = () => {
   stopLiveTimer()
 
-  if (props.message.role !== 'assistant' || props.message.status !== 'streaming') {
+  if (!isStreamingMessage.value) {
     return
   }
 
@@ -297,309 +280,14 @@ const syncLiveTimer = () => {
   }, 100)
 }
 
-const cloneTimelineEntries = (entries: ThoughtTimelineEntry[]) =>
-  entries.map((entry) => ({ ...entry }))
-
-const getRevealStepSize = (remaining: number) => {
-  if (remaining > 120) {
-    return 8
-  }
-
-  if (remaining > 48) {
-    return 4
-  }
-
-  return 2
-}
-
-const getAnswerRevealStepSize = (remaining: number) => {
-  if (remaining > 160) {
-    return 4
-  }
-
-  if (remaining > 72) {
-    return 3
-  }
-
-  if (remaining > 28) {
-    return 2
-  }
-
-  return 1
-}
-
-const isTimelineEntrySettled = (
-  currentEntry: ThoughtTimelineEntry | undefined,
-  targetEntry: ThoughtTimelineEntry | undefined
-) => {
-  if (!currentEntry || !targetEntry) {
-    return false
-  }
-
-  return (
-    currentEntry.title === targetEntry.title &&
-    currentEntry.body === targetEntry.body &&
-    (currentEntry.note ?? '') === (targetEntry.note ?? '') &&
-    currentEntry.status === targetEntry.status &&
-    currentEntry.kind === targetEntry.kind &&
-    Boolean(currentEntry.sourceLink) === Boolean(targetEntry.sourceLink)
-  )
-}
-
-const isTimelineSettled = () => {
-  const currentEntries = liveTimelineEntries.value
-  const targetEntries = rawTimelineEntries.value
-
-  if (currentEntries.length !== targetEntries.length) {
-    return false
-  }
-
-  return targetEntries.every((entry, index) =>
-    isTimelineEntrySettled(currentEntries[index], entry)
-  )
-}
-
-const markTimelineMutation = () => {
-  lastTimelineMutationAt = Date.now()
-}
-
-const isStructuredThoughtTitle = (title?: string) => /[:：]$/.test((title || '').trim())
-
-const buildStreamingTargetEntries = (
-  rawEntries: ThoughtTimelineEntry[],
-  currentEntries: ThoughtTimelineEntry[]
-) => {
-  const mergedEntries = rawEntries.map((entry, index) => {
-    const currentEntry = currentEntries[index]
-    if (!currentEntry) {
-      return { ...entry }
-    }
-
-    const currentBody = currentEntry.body || ''
-    const currentNote = currentEntry.note || ''
-    const nextBody = entry.body || ''
-    const nextNote = entry.note || ''
-
-    return {
-      ...entry,
-      title:
-        isStructuredThoughtTitle(currentEntry.title) && !isStructuredThoughtTitle(entry.title)
-          ? currentEntry.title
-          : entry.title,
-      body: nextBody.length >= currentBody.length ? nextBody : currentBody,
-      note: nextNote.length >= currentNote.length ? entry.note : currentEntry.note,
-      status: (
-        entry.status === 'done' ||
-        (currentEntry.status === 'done' && currentEntries.length > rawEntries.length)
-          ? 'done'
-          : entry.status
-      ) as AssistantRenderStatus,
-      sourceLink: entry.sourceLink || currentEntry.sourceLink
-    }
-  })
-
-  if (currentEntries.length > mergedEntries.length) {
-    mergedEntries.push(
-      ...currentEntries.slice(mergedEntries.length).map((entry) => ({ ...entry }))
-    )
-  }
-
-  return mergedEntries
-}
-
-const syncAnswerReveal = () => {
-  if (renderPhase.value !== 'answering' && renderPhase.value !== 'done') {
-    return
-  }
-
-  stopAnswerRevealTimer()
-
-  const revealOnce = () => {
-    const fullAnswer = streamedAnswerContent.value
-    if (displayedAnswerContent.value.length >= fullAnswer.length) {
-      displayedAnswerContent.value = fullAnswer
-
-      if (props.message.status !== 'streaming' && renderPhase.value === 'answering') {
-        renderPhase.value = 'done'
-      }
-
-      return true
-    }
-
-    const remaining = fullAnswer.length - displayedAnswerContent.value.length
-    const nextLength =
-      displayedAnswerContent.value.length + getAnswerRevealStepSize(remaining)
-    displayedAnswerContent.value = fullAnswer.slice(0, nextLength)
-
-    if (
-      props.message.status !== 'streaming' &&
-      displayedAnswerContent.value.length >= fullAnswer.length
-    ) {
-      renderPhase.value = 'done'
-    }
-
-    return false
-  }
-
-  if (revealOnce()) {
-    return
-  }
-
-  answerRevealTimer = window.setInterval(() => {
-    if (revealOnce()) {
-      stopAnswerRevealTimer()
-    }
-  }, 26)
-}
-
-const queueFinishingSequence = (delay = 0) => {
-  stopFinishTimer()
-
-  finishTimer = window.setTimeout(() => {
-    if (renderPhase.value !== 'thinking' || !thinkingStreamCompleted.value) {
-      return
-    }
-
-    const quietForMs = Date.now() - lastTimelineMutationAt
-    if (!isTimelineSettled() || quietForMs < 180) {
-      queueFinishingSequence(Math.max(36, 180 - quietForMs))
-      return
-    }
-
-    frozenTimelineEntries.value = cloneTimelineEntries(liveTimelineEntries.value)
-    renderPhase.value = 'finishing'
-    finishTimer = window.setTimeout(() => {
-      renderPhase.value = 'answering'
-      syncAnswerReveal()
-    }, 260)
-  }, delay)
-}
-
-const syncLiveTimeline = () => {
-  if (renderPhase.value !== 'thinking') {
-    return
-  }
-
-  stopThoughtRevealTimer()
-
-  const pump = () => {
-    if (renderPhase.value !== 'thinking') {
-      return
-    }
-
-    const targetEntries = buildStreamingTargetEntries(
-      rawTimelineEntries.value,
-      liveTimelineEntries.value
-    )
-    const nextEntries = liveTimelineEntries.value.map((entry) => ({ ...entry }))
-
-    if (nextEntries.length < targetEntries.length) {
-      const targetEntry = targetEntries[nextEntries.length]
-      nextEntries.push({
-        ...targetEntry,
-        body: '',
-        note: targetEntry.note ? '' : undefined,
-        status: 'running'
-      })
-      liveTimelineEntries.value = nextEntries
-      thoughtRevealTimer = window.setTimeout(pump, 140)
-      return
-    }
-
-    for (let index = 0; index < targetEntries.length; index += 1) {
-      const targetEntry = targetEntries[index]
-      const currentEntry = nextEntries[index]
-
-      if (!currentEntry) {
-        break
-      }
-
-      if (
-        currentEntry.title !== targetEntry.title ||
-        currentEntry.kind !== targetEntry.kind ||
-        Boolean(currentEntry.sourceLink) !== Boolean(targetEntry.sourceLink)
-      ) {
-        nextEntries[index] = {
-          ...currentEntry,
-          title: targetEntry.title,
-          kind: targetEntry.kind,
-          sourceLink: targetEntry.sourceLink
-        }
-        liveTimelineEntries.value = nextEntries
-        thoughtRevealTimer = window.setTimeout(pump, 0)
-        return
-      }
-
-      if (currentEntry.body.length < targetEntry.body.length) {
-        const remaining = targetEntry.body.length - currentEntry.body.length
-        const nextLength = currentEntry.body.length + getRevealStepSize(remaining)
-        currentEntry.body = targetEntry.body.slice(0, nextLength)
-        currentEntry.status = 'running'
-        liveTimelineEntries.value = nextEntries
-        thoughtRevealTimer = window.setTimeout(pump, 18)
-        return
-      }
-
-      const targetNote = targetEntry.note ?? ''
-      const currentNote = currentEntry.note ?? ''
-      if (currentNote.length < targetNote.length) {
-        const remaining = targetNote.length - currentNote.length
-        const nextLength = currentNote.length + getRevealStepSize(remaining)
-        currentEntry.note = targetNote.slice(0, nextLength)
-        currentEntry.status = 'running'
-        liveTimelineEntries.value = nextEntries
-        thoughtRevealTimer = window.setTimeout(pump, 20)
-        return
-      }
-
-      if (currentEntry.status !== targetEntry.status) {
-        currentEntry.status = targetEntry.status
-        liveTimelineEntries.value = nextEntries
-        thoughtRevealTimer = window.setTimeout(pump, 120)
-        return
-      }
-    }
-
-    if (thinkingStreamCompleted.value) {
-      queueFinishingSequence()
-    }
-  }
-
-  pump()
-}
-
 const resetVisualSequence = () => {
-  stopFinishTimer()
-  stopAnswerRevealTimer()
+  stopAutoCollapseTimer()
   stopCopiedTimer()
   stopUserCopiedTimer()
-  stopThoughtRevealTimer()
   copied.value = false
   userCopied.value = false
-  liveTimelineEntries.value = []
-  frozenTimelineEntries.value = null
-  markTimelineMutation()
-
-  if (!showProcessSection.value) {
-    processExpanded.value = false
-    renderPhase.value = props.message.status === 'streaming' ? 'answering' : 'done'
-    displayedAnswerContent.value = streamedAnswerContent.value
-    return
-  }
-
-  if (props.message.status !== 'streaming') {
-    processExpanded.value = false
-    renderPhase.value = 'done'
-    liveTimelineEntries.value = cloneTimelineEntries(rawTimelineEntries.value)
-    frozenTimelineEntries.value = cloneTimelineEntries(rawTimelineEntries.value)
-    displayedAnswerContent.value = streamedAnswerContent.value
-    return
-  }
-
-  processExpanded.value = true
-  renderPhase.value = 'thinking'
-  displayedAnswerContent.value = ''
-  syncLiveTimeline()
+  evidenceDrawerOpen.value = false
+  processExpanded.value = Boolean(showProcessSection.value && isStreamingMessage.value)
 }
 
 watch(
@@ -619,73 +307,31 @@ watch(
 )
 
 watch(
-  () => rawTimelineEntries.value,
-  () => {
-    markTimelineMutation()
+  () => [showProcessSection.value, showThinkingHeader.value] as const,
+  ([hasThoughtProcess, thinkingHeader], previousValue) => {
+    const previousThinkingHeader = previousValue?.[1]
 
-    if (!showProcessSection.value) {
-      return
-    }
-
-    if (renderPhase.value === 'thinking') {
-      syncLiveTimeline()
-      return
-    }
-
-    if (renderPhase.value === 'done') {
-      const nextEntries = cloneTimelineEntries(rawTimelineEntries.value)
-      const hasExistingEntries =
-        liveTimelineEntries.value.length > 0 ||
-        (frozenTimelineEntries.value?.length ?? 0) > 0
-
-      if (nextEntries.length === 0 && hasExistingEntries) {
-        return
-      }
-
-      liveTimelineEntries.value = nextEntries
-      frozenTimelineEntries.value = nextEntries
-    }
-  },
-  { deep: true }
-)
-
-watch(
-  () => [showProcessSection.value, thinkingStreamCompleted.value] as const,
-  ([hasThoughtProcess, streamCompleted]) => {
     if (!hasThoughtProcess) {
-      displayedAnswerContent.value = streamedAnswerContent.value
-      return
-    }
-
-    if (streamCompleted && renderPhase.value === 'thinking') {
-      queueFinishingSequence()
-    }
-  }
-)
-
-watch(
-  () => streamedAnswerContent.value,
-  () => {
-    if (!showProcessSection.value) {
-      displayedAnswerContent.value = streamedAnswerContent.value
-      return
-    }
-
-    if (renderPhase.value === 'answering' || renderPhase.value === 'done') {
-      syncAnswerReveal()
-    }
-  }
-)
-
-watch(
-  () => renderPhase.value,
-  (phase) => {
-    if (phase === 'done') {
       processExpanded.value = false
+      stopAutoCollapseTimer()
       return
     }
 
-    processExpanded.value = true
+    if (thinkingHeader) {
+      stopAutoCollapseTimer()
+      processExpanded.value = true
+      return
+    }
+
+    if (!previousThinkingHeader) {
+      return
+    }
+
+    stopAutoCollapseTimer()
+    autoCollapseTimer = window.setTimeout(() => {
+      processExpanded.value = false
+      autoCollapseTimer = null
+    }, 500)
   }
 )
 
@@ -697,11 +343,9 @@ watch(hasSources, (value) => {
 
 onBeforeUnmount(() => {
   stopLiveTimer()
-  stopFinishTimer()
-  stopAnswerRevealTimer()
   stopCopiedTimer()
   stopUserCopiedTimer()
-  stopThoughtRevealTimer()
+  stopAutoCollapseTimer()
 })
 
 const toggleProcessDetails = () => {
@@ -725,12 +369,12 @@ const closeEvidenceDrawer = () => {
 }
 
 const copyAnswer = async () => {
-  if (!activeAnswerContent.value.trim()) {
+  if (!displayedAnswerContent.value.trim()) {
     return
   }
 
   try {
-    await navigator.clipboard.writeText(activeAnswerContent.value)
+    await navigator.clipboard.writeText(displayedAnswerContent.value)
     copied.value = true
     stopCopiedTimer()
     copiedTimer = window.setTimeout(() => {
@@ -830,6 +474,7 @@ function buildTimelineEntries(
             id: `${stage.id}-${index}`,
             title: entry.title,
             body: entry.body,
+            note: undefined,
             status: index === parsedEntries.length - 1 ? stage.status : 'done',
             kind: 'reasoning' as const
           }))
@@ -995,14 +640,12 @@ function renderThoughtBody(body: string) {
         <button
           type="button"
           class="thinking-header"
-          :class="{ 'thinking-header--button': canToggleProcessDetails }"
           :aria-expanded="showProcessDetails"
           @click="toggleProcessDetails"
-          
         >
           <div class="thinking-header__left">
             <ShiningText
-              v-if="renderPhase === 'thinking'"
+              v-if="showThinkingHeader"
               :text="thinkingHeaderText"
               class="thinking-header__shine"
             />
@@ -1012,9 +655,10 @@ function renderThoughtBody(body: string) {
             </span>
           </div>
 
-
           <div v-if="hasFinalTokenCount || canToggleProcessDetails" class="thinking-header__right">
-            <span v-if="hasFinalTokenCount" class="thinking-header__meta">Token:{{ finalTokenCount }}</span>
+            <span v-if="hasFinalTokenCount" class="thinking-header__meta">
+              Token:{{ finalTokenCount }}
+            </span>
             <ChevronRight
               v-if="canToggleProcessDetails"
               class="size-4 transition-transform"
@@ -1027,7 +671,7 @@ function renderThoughtBody(body: string) {
           <div v-if="showProcessDetails" class="thinking-panel">
             <div class="thinking-timeline">
               <article
-                v-for="stage in visibleThinkingStages"
+                v-for="stage in thinkingTimelineEntries"
                 :key="stage.id"
                 class="thought-entry"
               >
@@ -1038,7 +682,7 @@ function renderThoughtBody(body: string) {
 
                   <div class="thought-entry__title-row">
                     <ShiningText
-                      v-if="stage.status === 'running' && renderPhase === 'thinking'"
+                      v-if="stage.status === 'running' && showThinkingHeader"
                       :text="stage.title"
                       class="thought-entry__title thought-entry__title--active"
                     />
@@ -1046,26 +690,23 @@ function renderThoughtBody(body: string) {
                   </div>
 
                   <button
-                    v-if="isKnowledgeRecallStage(stage) && hasSources"
+                    v-if="stage.kind === 'retrieval' && hasSources"
                     type="button"
                     class="thought-entry__source"
                     @click="openEvidenceDrawer"
                   >
-                    <span>{{ getStageNote(stage, visibleSources.length) }}</span>
+                    <span>{{ stage.note }}</span>
                     <span class="thought-entry__source-arrow">&gt;</span>
                   </button>
 
                   <div
-                    v-else-if="stage.visibleContent || stage.content"
+                    v-else-if="stage.body"
                     class="thought-entry__body"
-                    v-html="renderThoughtBody(stage.visibleContent || stage.content)"
+                    v-html="renderThoughtBody(stage.body)"
                   />
 
-                  <p
-                    v-else-if="getStageNote(stage, visibleSources.length)"
-                    class="thought-entry__note"
-                  >
-                    {{ getStageNote(stage, visibleSources.length) }}
+                  <p v-else-if="stage.note" class="thought-entry__note">
+                    {{ stage.note }}
                   </p>
                 </div>
               </article>
@@ -1107,8 +748,8 @@ function renderThoughtBody(body: string) {
       >
         <template v-if="canShowBufferedAnswer && answerHasContent">
           <ChatMarkdownContent
-            :content="activeAnswerContent"
-            :show-cursor="renderPhase === 'answering'"
+            :content="displayedAnswerContent"
+            :show-cursor="isStreamingMessage && canShowBufferedAnswer"
           />
         </template>
 
@@ -1179,7 +820,7 @@ function renderThoughtBody(body: string) {
                 <p>{{ retrievalQueryText }}</p>
               </div>
               <div class="evidence-summary evidence-summary--score">
-                <span class="evidence-label">召回置信</span>
+                <span class="evidence-label">召回置信度</span>
                 <strong>{{ recallScore }}</strong>
                 <p>RRF 融合分</p>
               </div>
@@ -1307,7 +948,7 @@ function renderThoughtBody(body: string) {
 .thought-entry__dot-shell {
   position: absolute;
   left: -26px;
-  top:0px;
+  top: 0;
   display: flex;
   width: 12px;
   height: 12px;
@@ -1351,7 +992,7 @@ function renderThoughtBody(body: string) {
 }
 
 .thought-entry__body {
-  margin-top:10px;
+  margin-top: 10px;
   color: #475467;
   font-size: 15px;
   line-height: 1.72;

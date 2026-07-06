@@ -47,8 +47,11 @@ export function buildKnowledgeQaStreamingUserPrompt(
     '- Then output ## Answer on its own line and put the final answer under it.',
     '- The visible reasoning summary should be natural, concise, and useful for understanding how the answer was formed.',
     '- Do not expose raw hidden chain-of-thought.',
-    '- Keep the visible reasoning summary focused on observable work such as question scope, relevant evidence, missing or weak evidence, and answer strategy.',
-    '- You may use short notes, bullet points, or brief paragraphs. Do not force a fixed analysis template unless the user explicitly asks for one.',
+    '- Keep the visible reasoning summary focused on observable work such as what the user is asking, what evidence matters, what is missing, and how the answer will be framed.',
+    '- Do not use a canned review template or repeated rubric.',
+    '- Explicitly avoid fixed labels such as "问题边界", "证据定位", "风险与缺口", "回答策略" unless the user explicitly asks for that exact structure.',
+    '- If you use bullets or mini-headings, make them specific to the current question and let them vary naturally from one query to another.',
+    '- For simple questions, 1 to 3 short lines are enough. For complex questions, use a few natural notes or short paragraphs.',
     '- Do not output any extra headings or wrapper markers.',
     '- Match the language of the user question.'
   ].join('\n\n')
