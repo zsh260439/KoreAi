@@ -1,13 +1,6 @@
-import { Parser } from 'htmlparser2'
+import type { ChatModelStreamEvent } from '@langchain/core/language_models/event'
 
-//声明知识问答思考标签名
-export const KNOWLEDGE_QA_THINK_TAG = 'koreai_think'
-
-//声明知识问答答案标签名
-export const KNOWLEDGE_QA_ANSWER_TAG = 'koreai_answer'
-
-//声明知识问答流式标签事件结构
-export type KnowledgeQaTaggedDeltaEvent =
+export type KnowledgeQaStreamDeltaEvent =
   | {
       type: 'thinking_delta'
       delta: string
@@ -17,113 +10,122 @@ export type KnowledgeQaTaggedDeltaEvent =
       delta: string
     }
 
-//声明知识问答流式标签解析状态
-export type KnowledgeQaTagStreamState = {
-  parser: Parser
-  activeTag: typeof KNOWLEDGE_QA_THINK_TAG | typeof KNOWLEDGE_QA_ANSWER_TAG | null
-  pendingEvents: KnowledgeQaTaggedDeltaEvent[]
+type KnowledgeQaSectionStreamPhase = 'seeking_thinking' | 'thinking' | 'answer'
+
+export type KnowledgeQaSectionStreamState = {
+  phase: KnowledgeQaSectionStreamPhase
+  buffer: string
+  pendingEvents: KnowledgeQaStreamDeltaEvent[]
 }
 
-//声明流式消息文本提取器
-export function extractStreamingMessageText(content: unknown): string {
-  if (typeof content === 'string') {
-    return content
-  }
+const THINKING_HEADER = '## Thinking'
+const ANSWER_HEADER = '## Answer'
+const SECTION_TAIL_SIZE = ANSWER_HEADER.length + 6
+const THINKING_HEADER_PATTERN = /^## Thinking[ \t]*\r?\n/
 
-  if (!Array.isArray(content)) {
+export function createKnowledgeQaSectionStreamState(): KnowledgeQaSectionStreamState {
+  return {
+    phase: 'seeking_thinking',
+    buffer: '',
+    pendingEvents: []
+  }
+}
+
+export function extractStreamingTextDelta(event: ChatModelStreamEvent): string {
+  if (event.event !== 'content-block-delta') {
     return ''
   }
 
-  return content
-    .map((item) => {
-      if (typeof item === 'string') {
-        return item
-      }
-
-      if (!item || typeof item !== 'object') {
-        return ''
-      }
-
-      const text = (item as { text?: unknown }).text
-      if (typeof text === 'string') {
-        return text
-      }
-
-      const reasoning = (item as { reasoning?: unknown }).reasoning
-      return typeof reasoning === 'string' ? reasoning : ''
-    })
-    .join('')
+  return event.delta.type === 'text-delta' ? event.delta.text : ''
 }
 
-//声明知识问答标签流解析状态构造器
-export function createKnowledgeQaTagStreamState(): KnowledgeQaTagStreamState {
-  const state: KnowledgeQaTagStreamState = {
-    parser: null as unknown as Parser,
-    activeTag: null,
-    pendingEvents: []
-  }
-
-  state.parser = new Parser(
-    {
-      onopentag: (name) => {
-        if (name === KNOWLEDGE_QA_THINK_TAG || name === KNOWLEDGE_QA_ANSWER_TAG) {
-          state.activeTag = name
-        }
-      },
-      ontext: (text) => {
-        if (!text) {
-          return
-        }
-
-        if (state.activeTag === KNOWLEDGE_QA_THINK_TAG) {
-          pushKnowledgeQaTaggedDeltaEvent(state, 'thinking_delta', text)
-          return
-        }
-
-        if (state.activeTag === KNOWLEDGE_QA_ANSWER_TAG) {
-          pushKnowledgeQaTaggedDeltaEvent(state, 'answer_delta', text)
-        }
-      },
-      onclosetag: (name) => {
-        if (name === state.activeTag) {
-          state.activeTag = null
-        }
-      }
-    },
-    {
-      decodeEntities: true,//解析html实体
-      lowerCaseTags: true,//将标签名转换为小写
-    }
-  )
-
-  return state
-}
-
-//声明知识问答标签流增量解析器
-export function parseKnowledgeQaTaggedDelta(
-  state: KnowledgeQaTagStreamState,
+export function parseKnowledgeQaSectionedDelta(
+  state: KnowledgeQaSectionStreamState,
   delta: string
-): KnowledgeQaTaggedDeltaEvent[] {
+): KnowledgeQaStreamDeltaEvent[] {
   if (!delta) {
     return []
   }
 
-  state.parser.write(delta)
-  return takeKnowledgeQaTaggedDeltaEvents(state)
+  state.buffer += delta
+  consumeKnowledgeQaSectionStream(state, false)
+  return takeKnowledgeQaStreamDeltaEvents(state)
 }
 
-//声明知识问答标签流收尾解析器
-export function flushKnowledgeQaTaggedDelta(
-  state: KnowledgeQaTagStreamState
-): KnowledgeQaTaggedDeltaEvent[] {
-  state.parser.end()
-  return takeKnowledgeQaTaggedDeltaEvents(state)
+export function flushKnowledgeQaSectionedDelta(
+  state: KnowledgeQaSectionStreamState
+): KnowledgeQaStreamDeltaEvent[] {
+  consumeKnowledgeQaSectionStream(state, true)
+  return takeKnowledgeQaStreamDeltaEvents(state)
 }
 
-//声明知识问答标签事件入队逻辑
-function pushKnowledgeQaTaggedDeltaEvent(
-  state: KnowledgeQaTagStreamState,
-  type: KnowledgeQaTaggedDeltaEvent['type'],
+function consumeKnowledgeQaSectionStream(
+  state: KnowledgeQaSectionStreamState,
+  isFinal: boolean
+): void {
+  if (state.phase === 'seeking_thinking') {
+    const matched = state.buffer.match(THINKING_HEADER_PATTERN)
+    if (matched) {
+      state.buffer = state.buffer.slice(matched[0].length)
+      state.phase = 'thinking'
+    } else if (!isFinal && state.buffer.length <= THINKING_HEADER.length + 4) {
+      return
+    } else {
+      state.phase = 'thinking'
+    }
+  }
+
+  if (state.phase === 'thinking') {
+    const answerHeader = findAnswerHeader(state.buffer, isFinal)
+    if (answerHeader) {
+      pushKnowledgeQaStreamDeltaEvent(
+        state,
+        'thinking_delta',
+        trimTrailingSectionBreaks(state.buffer.slice(0, answerHeader.start))
+      )
+      state.buffer = trimLeadingSectionBreaks(state.buffer.slice(answerHeader.end))
+      state.phase = 'answer'
+    } else {
+      const stableLength = isFinal ? state.buffer.length : Math.max(0, state.buffer.length - SECTION_TAIL_SIZE)
+      if (stableLength > 0) {
+        pushKnowledgeQaStreamDeltaEvent(state, 'thinking_delta', state.buffer.slice(0, stableLength))
+        state.buffer = state.buffer.slice(stableLength)
+      }
+    }
+  }
+
+  if (state.phase === 'answer' && state.buffer) {
+    pushKnowledgeQaStreamDeltaEvent(
+      state,
+      'answer_delta',
+      isFinal ? trimLeadingSectionBreaks(state.buffer) : state.buffer
+    )
+    state.buffer = ''
+  }
+}
+
+function findAnswerHeader(
+  buffer: string,
+  isFinal: boolean
+): { start: number; end: number } | null {
+  const pattern = isFinal
+    ? /(?:^|\r?\n\r?\n|\r?\n)## Answer[ \t]*(?:\r?\n|$)/
+    : /(?:^|\r?\n\r?\n|\r?\n)## Answer[ \t]*\r?\n/
+
+  const matched = pattern.exec(buffer)
+  if (!matched) {
+    return null
+  }
+
+  return {
+    start: matched.index,
+    end: matched.index + matched[0].length
+  }
+}
+
+function pushKnowledgeQaStreamDeltaEvent(
+  state: KnowledgeQaSectionStreamState,
+  type: KnowledgeQaStreamDeltaEvent['type'],
   delta: string
 ): void {
   if (!delta) {
@@ -136,11 +138,18 @@ function pushKnowledgeQaTaggedDeltaEvent(
   })
 }
 
-//声明知识问答标签事件出队逻辑
-function takeKnowledgeQaTaggedDeltaEvents(
-  state: KnowledgeQaTagStreamState
-): KnowledgeQaTaggedDeltaEvent[] {
+function takeKnowledgeQaStreamDeltaEvents(
+  state: KnowledgeQaSectionStreamState
+): KnowledgeQaStreamDeltaEvent[] {
   const events = state.pendingEvents.slice()
   state.pendingEvents.length = 0
   return events
+}
+
+function trimLeadingSectionBreaks(value: string): string {
+  return value.replace(/^(?:[ \t]*\r?\n)+/, '')
+}
+
+function trimTrailingSectionBreaks(value: string): string {
+  return value.replace(/(?:\r?\n[ \t]*)+$/, '')
 }

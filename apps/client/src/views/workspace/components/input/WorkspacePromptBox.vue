@@ -13,6 +13,7 @@ type PromptSubmitPayload = {
 
 const props = withDefaults(
   defineProps<{
+    capabilities?: WorkspacePromptCapabilities
     disabled?: boolean
     knowledgeBases?: {
       id: string
@@ -23,6 +24,10 @@ const props = withDefaults(
     streaming?: boolean
   }>(),
   {
+    capabilities: () => ({
+      think: false,
+      search: false
+    }),
     disabled: false,
     knowledgeBases: () => [],
     selectedKnowledgeBaseId: '',
@@ -82,6 +87,18 @@ const toggleThinkMode = () => {
   thinkEnabled.value = !thinkEnabled.value
 }
 
+const focusComposer = async () => {
+  await nextTick()
+
+  if (!textareaRef.value) {
+    return
+  }
+
+  const length = textareaRef.value.value.length
+  textareaRef.value.focus()
+  textareaRef.value.setSelectionRange(length, length)
+}
+
 const submit = () => {
   if (props.streaming) {
     emit('stop')
@@ -109,6 +126,14 @@ const handleKeydown = (event: KeyboardEvent) => {
 watch(() => props.modelValue, resizeTextarea, { immediate: true })
 
 watch(
+  () => props.capabilities,
+  (value) => {
+    thinkEnabled.value = Boolean(value?.think)
+  },
+  { immediate: true, deep: true }
+)
+
+watch(
   promptCapabilities,
   (value) => {
     emit('update:capabilities', value)
@@ -118,6 +143,10 @@ watch(
 
 onMounted(() => {
   void resizeTextarea()
+})
+
+defineExpose({
+  focusComposer
 })
 </script>
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Plus, Settings2 } from 'lucide-vue-next'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAutoScroll } from '@/composables/useAutoScroll'
 import { useConversationList } from '@/composables/useConversationList'
 import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
 import { useWorkspaceChat } from '@/composables/useWorkspaceChat'
+import type { ChatMessage } from '@/types/chat/models'
 import type { WorkspacePromptCapabilities } from 'share-type'
 import ContentList from './components/content/ContentList.vue'
 import WorkspacePromptBox from './components/input/WorkspacePromptBox.vue'
@@ -24,6 +25,7 @@ const currentPromptCapabilities = ref<WorkspacePromptCapabilities>({
   think: false,
   search: false
 })
+const promptBoxRef = ref<InstanceType<typeof WorkspacePromptBox> | null>(null)
 const chatAutoScroll = useAutoScroll(32)
 
 const activeConversation = conversationList.activeConversation
@@ -161,6 +163,17 @@ const handleRegenerate = () => {
   )
 }
 
+const handleEditMessage = async (message: ChatMessage) => {
+  composerValue.value = message.content
+  currentPromptCapabilities.value = message.promptCapabilities ?? {
+    think: false,
+    search: false
+  }
+
+  await nextTick()
+  promptBoxRef.value?.focusComposer()
+}
+
 onMounted(async () => {
   const conversationId =
     typeof route.params.conversationId === 'string' ? route.params.conversationId : undefined
@@ -273,6 +286,7 @@ onMounted(async () => {
               <ContentList
                 :content-list="activeContentList"
                 :regenerating="regenerating"
+                @edit="handleEditMessage"
                 @regenerate="handleRegenerate"
               />
             </template>
@@ -286,7 +300,9 @@ onMounted(async () => {
         <footer class="border-t border-t-[#f3f4f6] bg-white">
           <div class="mx-auto max-w-[920px] px-6 py-4">
             <WorkspacePromptBox
+              ref="promptBoxRef"
               v-model="composerValue"
+              :capabilities="currentPromptCapabilities"
               v-model:selected-knowledge-base-id="selectedKnowledgeBaseId"
               :disabled="isStreaming"
               :knowledge-bases="knowledgeBases"

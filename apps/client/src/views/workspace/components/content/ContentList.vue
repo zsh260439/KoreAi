@@ -9,6 +9,7 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
+  edit: [message: ChatMessage]
   regenerate: []
 }>()
 
@@ -47,6 +48,7 @@ const retrievalQueryByMessageId = computed(() => {
       "
       :retrieval-query="retrievalQueryByMessageId[message.id] || ''"
       :regenerating="regenerating"
+      @edit="$emit('edit', $event)"
       @regenerate="$emit('regenerate')"
     />
   </div>
