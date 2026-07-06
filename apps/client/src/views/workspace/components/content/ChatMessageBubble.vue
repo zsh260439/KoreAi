@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Copy,
   LoaderCircle,
+  PencilLine,
   RefreshCw,
   X
 } from 'lucide-vue-next'
@@ -40,6 +41,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  edit: [message: ChatMessage]
   regenerate: []
 }>()
 
@@ -49,6 +51,7 @@ const thinkingHeaderText = 'KoreAi is Thinking'
 const processExpanded = ref(false)
 const evidenceDrawerOpen = ref(false)
 const copied = ref(false)
+const userCopied = ref(false)
 const liveNowMs = ref(Date.now())
 const renderPhase = ref<'thinking' | 'finishing' | 'answering' | 'done'>('thinking')
 const displayedAnswerContent = ref('')
@@ -235,6 +238,7 @@ let liveTimer: number | null = null
 let finishTimer: number | null = null
 let answerRevealTimer: number | null = null
 let copiedTimer: number | null = null
+let userCopiedTimer: number | null = null
 let thoughtRevealTimer: number | null = null
 let lastTimelineMutationAt = Date.now()
 
@@ -263,6 +267,13 @@ const stopCopiedTimer = () => {
   if (copiedTimer !== null) {
     window.clearTimeout(copiedTimer)
     copiedTimer = null
+  }
+}
+
+const stopUserCopiedTimer = () => {
+  if (userCopiedTimer !== null) {
+    window.clearTimeout(userCopiedTimer)
+    userCopiedTimer = null
   }
 }
 
@@ -561,8 +572,10 @@ const resetVisualSequence = () => {
   stopFinishTimer()
   stopAnswerRevealTimer()
   stopCopiedTimer()
+  stopUserCopiedTimer()
   stopThoughtRevealTimer()
   copied.value = false
+  userCopied.value = false
   liveTimelineEntries.value = []
   frozenTimelineEntries.value = null
   markTimelineMutation()
@@ -687,6 +700,7 @@ onBeforeUnmount(() => {
   stopFinishTimer()
   stopAnswerRevealTimer()
   stopCopiedTimer()
+  stopUserCopiedTimer()
   stopThoughtRevealTimer()
 })
 
@@ -725,6 +739,24 @@ const copyAnswer = async () => {
     }, 1600)
   } catch (error) {
     console.error('Failed to copy answer.', error)
+  }
+}
+
+const copyUserMessage = async () => {
+  if (!props.message.content.trim()) {
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(props.message.content)
+    userCopied.value = true
+    stopUserCopiedTimer()
+    userCopiedTimer = window.setTimeout(() => {
+      userCopied.value = false
+      userCopiedTimer = null
+    }, 1600)
+  } catch (error) {
+    console.error('Failed to copy user message.', error)
   }
 }
 
@@ -917,10 +949,33 @@ function renderThoughtBody(body: string) {
 
 <template>
   <div v-if="message.role === 'user'" class="flex items-start justify-end gap-3">
-    <div
-      class="max-w-[360px] rounded-[18px] bg-[#f3f5f8] px-5 py-4 text-[15px] leading-8 text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
-    >
-      <div class="whitespace-pre-wrap">{{ message.content || '...' }}</div>
+    <div class="user-message-shell">
+      <div
+        class="max-w-[360px] rounded-[18px] bg-[#f3f5f8] px-5 py-4 text-[15px] leading-8 text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+      >
+        <div class="whitespace-pre-wrap">{{ message.content || '...' }}</div>
+      </div>
+
+      <div class="user-actions">
+        <button
+          type="button"
+          class="answer-action"
+          :aria-label="userCopied ? '已复制' : '复制'"
+          @click="copyUserMessage"
+        >
+          <Check v-if="userCopied" class="size-4" />
+          <Copy v-else class="size-4" />
+        </button>
+
+        <button
+          type="button"
+          class="answer-action"
+          aria-label="编辑"
+          @click="emit('edit', message)"
+        >
+          <PencilLine class="size-4" />
+        </button>
+      </div>
     </div>
 
     <div
@@ -1078,17 +1133,16 @@ function renderThoughtBody(body: string) {
         >
           <Check v-if="copied" class="size-4" />
           <Copy v-else class="size-4" />
-          <span>{{ copied ? '已复制' : '复制' }}</span>
         </button>
 
         <button
           type="button"
           class="answer-action"
+          aria-label="重新生成"
           :disabled="regenerating"
           @click="emit('regenerate')"
         >
           <RefreshCw class="size-4" :class="{ 'animate-spin': regenerating }" />
-          <span>重新生成</span>
         </button>
       </div>
     </div>
@@ -1161,6 +1215,21 @@ function renderThoughtBody(body: string) {
 </template>
 
 <style scoped>
+.user-message-shell {
+  display: flex;
+  max-width: 360px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.user-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 4px;
+}
+
 .thinking-shell {
   max-width: min(860px, 100%);
 }

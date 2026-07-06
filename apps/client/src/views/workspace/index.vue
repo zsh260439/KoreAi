@@ -13,6 +13,11 @@ import WorkspacePromptBox from './components/input/WorkspacePromptBox.vue'
 import MessageList from './components/sidebar/MessageList.vue'
 import WorkspaceSidebarBrand from './components/sidebar/WorkspaceSidebarBrand.vue'
 
+type EditableUserMessage = {
+  message: ChatMessage
+  promptCapabilities: WorkspacePromptCapabilities
+}
+
 const route = useRoute()
 const router = useRouter()
 const conversationList = useConversationList()
@@ -163,12 +168,9 @@ const handleRegenerate = () => {
   )
 }
 
-const handleEditMessage = async (message: ChatMessage) => {
-  composerValue.value = message.content
-  currentPromptCapabilities.value = message.promptCapabilities ?? {
-    think: false,
-    search: false
-  }
+const handleEditMessage = async (payload: EditableUserMessage) => {
+  composerValue.value = payload.message.content
+  currentPromptCapabilities.value = payload.promptCapabilities
 
   await nextTick()
   promptBoxRef.value?.focusComposer()

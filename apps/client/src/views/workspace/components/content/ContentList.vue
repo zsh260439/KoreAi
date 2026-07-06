@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ChatMessage } from '@/types/chat/models'
+import type { WorkspacePromptCapabilities } from 'share-type'
 import ChatMessageBubble from './ChatMessageBubble.vue'
+
+type EditableUserMessage = {
+  message: ChatMessage
+  promptCapabilities: WorkspacePromptCapabilities
+}
 
 const props = defineProps<{
   contentList: ChatMessage[]
@@ -9,7 +15,7 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  edit: [message: ChatMessage]
+  edit: [payload: EditableUserMessage]
   regenerate: []
 }>()
 
@@ -35,6 +41,35 @@ const retrievalQueryByMessageId = computed(() => {
 
   return queryMap
 })
+
+const editPayloadByMessageId = computed<Record<string, EditableUserMessage>>(() => {
+  const payloadMap: Record<string, EditableUserMessage> = {}
+  let pendingUserMessage: ChatMessage | null = null
+
+  for (const message of props.contentList) {
+    if (message.role === 'user') {
+      payloadMap[message.id] = {
+        message,
+        promptCapabilities: message.promptCapabilities ?? {
+          think: false,
+          search: false
+        }
+      }
+      pendingUserMessage = message
+      continue
+    }
+
+    if (message.role === 'assistant' && pendingUserMessage && message.promptCapabilities) {
+      payloadMap[pendingUserMessage.id] = {
+        message: pendingUserMessage,
+        promptCapabilities: message.promptCapabilities
+      }
+      pendingUserMessage = null
+    }
+  }
+
+  return payloadMap
+})
 </script>
 
 <template>
@@ -48,7 +83,15 @@ const retrievalQueryByMessageId = computed(() => {
       "
       :retrieval-query="retrievalQueryByMessageId[message.id] || ''"
       :regenerating="regenerating"
-      @edit="$emit('edit', $event)"
+      @edit="
+        $emit(
+          'edit',
+          editPayloadByMessageId[$event.id] ?? {
+            message: $event,
+            promptCapabilities: $event.promptCapabilities ?? { think: false, search: false }
+          }
+        )
+      "
       @regenerate="$emit('regenerate')"
     />
   </div>
