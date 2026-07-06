@@ -46,7 +46,7 @@ const emit = defineEmits<{
 const createdAtFallbackMs = Date.now()
 const thinkingHeaderText = 'KoreAi is Thinking'
 
-const processExpanded = ref(true)
+const processExpanded = ref(false)
 const evidenceDrawerOpen = ref(false)
 const copied = ref(false)
 const liveNowMs = ref(Date.now())
@@ -86,12 +86,17 @@ const sources = computed<KnowledgeSearchHit[]>(() => {
 const visibleSources = computed(() => sources.value)
 const hasSources = computed(() => visibleSources.value.length > 0)
 
+const normalizeAnswerLeadingBlankLines = (content: string) =>
+  content.replace(/^(?:[ \t\u3000]*\r?\n)+/, '')
+
 const streamedAnswerContent = computed(() => {
   if (!responseFlow.value) {
-    return props.message.content || ''
+    return normalizeAnswerLeadingBlankLines(props.message.content || '')
   }
 
-  return responseFlow.value.answer.content || props.message.content || ''
+  return normalizeAnswerLeadingBlankLines(
+    responseFlow.value.answer.content || props.message.content || ''
+  )
 })
 
 const answerStatus = computed(() => {
@@ -159,13 +164,9 @@ const canToggleProcessDetails = computed(
   () => renderPhase.value === 'done' && visibleThinkingStages.value.length > 0
 )
 
-const showProcessDetails = computed(() => {
-  if (renderPhase.value !== 'done') {
-    return true
-  }
-
-  return processExpanded.value
-})
+const showProcessDetails = computed(
+  () => renderPhase.value !== 'done' || processExpanded.value
+)
 
 const showThoughtCompletion = computed(
   () => showProcessSection.value && renderPhase.value !== 'thinking'
@@ -562,18 +563,19 @@ const resetVisualSequence = () => {
   stopCopiedTimer()
   stopThoughtRevealTimer()
   copied.value = false
-  processExpanded.value = true
   liveTimelineEntries.value = []
   frozenTimelineEntries.value = null
   markTimelineMutation()
 
   if (!showProcessSection.value) {
+    processExpanded.value = false
     renderPhase.value = props.message.status === 'streaming' ? 'answering' : 'done'
     displayedAnswerContent.value = streamedAnswerContent.value
     return
   }
 
   if (props.message.status !== 'streaming') {
+    processExpanded.value = false
     renderPhase.value = 'done'
     liveTimelineEntries.value = cloneTimelineEntries(rawTimelineEntries.value)
     frozenTimelineEntries.value = cloneTimelineEntries(rawTimelineEntries.value)
@@ -581,6 +583,7 @@ const resetVisualSequence = () => {
     return
   }
 
+  processExpanded.value = true
   renderPhase.value = 'thinking'
   displayedAnswerContent.value = ''
   syncLiveTimeline()
@@ -658,6 +661,18 @@ watch(
     if (renderPhase.value === 'answering' || renderPhase.value === 'done') {
       syncAnswerReveal()
     }
+  }
+)
+
+watch(
+  () => renderPhase.value,
+  (phase) => {
+    if (phase === 'done') {
+      processExpanded.value = false
+      return
+    }
+
+    processExpanded.value = true
   }
 )
 
@@ -928,6 +943,7 @@ function renderThoughtBody(body: string) {
           :class="{ 'thinking-header--button': canToggleProcessDetails }"
           :aria-expanded="showProcessDetails"
           @click="toggleProcessDetails"
+          
         >
           <div class="thinking-header__left">
             <ShiningText
@@ -940,6 +956,7 @@ function renderThoughtBody(body: string) {
               {{ processDurationLabel }}
             </span>
           </div>
+
 
           <div v-if="hasFinalTokenCount || canToggleProcessDetails" class="thinking-header__right">
             <span v-if="hasFinalTokenCount" class="thinking-header__meta">Token:{{ finalTokenCount }}</span>
@@ -1158,9 +1175,6 @@ function renderThoughtBody(body: string) {
   background: transparent;
   padding: 0;
   text-align: left;
-}
-
-.thinking-header--button {
   cursor: pointer;
 }
 
@@ -1224,7 +1238,7 @@ function renderThoughtBody(body: string) {
 .thought-entry__dot-shell {
   position: absolute;
   left: -26px;
-  top: 5px;
+  top:0px;
   display: flex;
   width: 12px;
   height: 12px;
@@ -1262,14 +1276,13 @@ function renderThoughtBody(body: string) {
   color: #2f3745;
 }
 
-.thought-entry__body,
 .thought-entry__note,
 .thought-entry__source {
   margin-top: 6px;
 }
 
 .thought-entry__body {
-  max-width: 72ch;
+  margin-top:10px;
   color: #475467;
   font-size: 15px;
   line-height: 1.72;
