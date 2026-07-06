@@ -422,7 +422,10 @@ export function useWorkspaceChat() {
   }
 
   //声明重新生成上一条回答逻辑
-  const regenerateLastAnswer = async (knowledgeBaseId?: string) => {
+  const regenerateLastAnswer = async (
+    knowledgeBaseId?: string,
+    promptCapabilities?: WorkspacePromptCapabilities
+  ) => {
     const conversation = conversationList.activeConversation.value
     if (!conversation || activeRequest.value || regenerating.value) {
       return
@@ -437,15 +440,15 @@ export function useWorkspaceChat() {
       return
     }
 
-    const promptCapabilities = normalizePromptCapabilities(
-      lastUserContent.promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES
+    const normalizedCapabilities = normalizePromptCapabilities(
+      promptCapabilities ?? lastUserContent.promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES
     )
 
     const nextSessionContentList = sessionContentList.slice(0, lastUserContentIndex + 1)
     const assistantMessage = toAssistantPlaceholderMessage(
       conversation.id,
       conversation.model,
-      promptCapabilities
+      normalizedCapabilities
     )
 
     nextSessionContentList.push(assistantMessage)
@@ -458,7 +461,7 @@ export function useWorkspaceChat() {
       await streamAssistantResponse({
         conversationId: conversation.id,
         query: lastUserContent.content,
-        promptCapabilities,
+        promptCapabilities: normalizedCapabilities,
         knowledgeBaseId,
         regenerate: true,
         sessionContentList: nextSessionContentList

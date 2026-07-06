@@ -20,6 +20,10 @@ const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
 
 const composerValue = ref('')
 const selectedKnowledgeBaseId = ref('')
+const currentPromptCapabilities = ref<WorkspacePromptCapabilities>({
+  think: false,
+  search: false
+})
 const chatAutoScroll = useAutoScroll(32)
 
 const activeConversation = conversationList.activeConversation
@@ -151,7 +155,10 @@ watch(
 )
 
 const handleRegenerate = () => {
-  void workspaceChat.regenerateLastAnswer(selectedKnowledgeBaseId.value || undefined)
+  void workspaceChat.regenerateLastAnswer(
+    selectedKnowledgeBaseId.value || undefined,
+    currentPromptCapabilities.value
+  )
 }
 
 onMounted(async () => {
@@ -284,6 +291,7 @@ onMounted(async () => {
               :disabled="isStreaming"
               :knowledge-bases="knowledgeBases"
               :streaming="isStreaming"
+              @update:capabilities="currentPromptCapabilities = $event"
               @submit="handleSend"
               @stop="workspaceChat.stopStreaming"
             />

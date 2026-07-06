@@ -1046,7 +1046,7 @@ function renderThoughtBody(body: string) {
         v-if="showAnswerSection"
         class="answer-shell"
         :class="{
-          'answer-shell--divided': showThoughtDivider,
+          'answer-shell--divided': showThoughtDivider && showProcessDetails,
           'answer-shell--blank': showProcessSection && !canShowBufferedAnswer
         }"
       >

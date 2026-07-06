@@ -33,6 +33,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   submit: [payload: PromptSubmitPayload]
   stop: []
+  'update:capabilities': [value: WorkspacePromptCapabilities]
   'update:selectedKnowledgeBaseId': [value: string]
   'update:modelValue': [value: string]
 }>()
@@ -106,6 +107,14 @@ const handleKeydown = (event: KeyboardEvent) => {
 }
 
 watch(() => props.modelValue, resizeTextarea, { immediate: true })
+
+watch(
+  promptCapabilities,
+  (value) => {
+    emit('update:capabilities', value)
+  },
+  { immediate: true, deep: true }
+)
 
 onMounted(() => {
   void resizeTextarea()
