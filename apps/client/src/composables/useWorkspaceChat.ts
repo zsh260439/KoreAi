@@ -15,6 +15,7 @@ import {
   startStreamingProcessStage
 } from '@/utils/chat-flow'
 import type {
+  WorkspaceMessage,
   WorkspaceChatResult,
   WorkspaceChatStreamEvent,
   WorkspacePromptCapabilities
@@ -23,8 +24,7 @@ import { useConversationList } from './useConversationList'
 
 //声明默认输入能力
 const DEFAULT_PROMPT_CAPABILITIES: WorkspacePromptCapabilities = {
-  think: false,
-  search: false
+  think: false
 }
 
 //声明激活中的聊天请求结构
@@ -57,10 +57,7 @@ const regenerating = ref(false)
 //声明输入能力标准化逻辑
 const normalizePromptCapabilities = (
   promptCapabilities?: WorkspacePromptCapabilities | null
-): WorkspacePromptCapabilities => ({
-  think: Boolean(promptCapabilities?.think),
-  search: false
-})
+): WorkspacePromptCapabilities => promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES
 
 //声明查找最后一条用户消息下标
 const findLastUserContentIndex = (contentList: ChatMessage[]) => {
@@ -115,22 +112,9 @@ const toAssistantPlaceholderMessage = (
 })
 
 //声明历史消息转聊天消息逻辑
-const toChatMessage = (message: {
-  id: string
-  conversationId: string
-  role: 'user' | 'assistant'
-  content: string
-  createdAt: string
-  citations: ChatMessage['citations']
-  model: string | null
-  latencyMs: number | null
-  totalTokens: number | null
-  reasoningSteps: ChatMessage['reasoningSteps']
-  promptCapabilities: WorkspacePromptCapabilities | null
-}): ChatMessage => {
+const toChatMessage = (message: WorkspaceMessage): ChatMessage => {
   const chatMessage: ChatMessage = {
     ...message,
-    promptCapabilities: message.promptCapabilities,
     status: 'done'
   }
 

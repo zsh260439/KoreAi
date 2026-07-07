@@ -1,4 +1,5 @@
 import type {
+  KnowledgeQaDeltaEvent,
   KnowledgeReasoningStepKey,
   KnowledgeReasoningStep,
   KnowledgeSearchHit
@@ -6,7 +7,6 @@ import type {
 
 export interface WorkspacePromptCapabilities {
   think: boolean
-  search: boolean
 }
 
 export interface WorkspaceConversationSummary {
@@ -55,14 +55,12 @@ export interface WorkspaceChatResult {
   latencyMs: number
 }
 
-export type WorkspaceRunStageStatus = 'running' | 'done'
-
 export interface WorkspaceRunStage {
   id: string
   stageKey: KnowledgeReasoningStepKey
   title: string
   subtitle?: string
-  status: WorkspaceRunStageStatus
+  status: 'running' | 'done'
 }
 
 //声明工作台流式事件结构
@@ -88,10 +86,7 @@ export type WorkspaceChatStreamEvent =
         sources: KnowledgeSearchHit[]
       }
     }
-  | {
-      type: 'answer_delta'
-      delta: string
-    }
+  | KnowledgeQaDeltaEvent
   | {
       type: 'completed'
       data: WorkspaceChatResult

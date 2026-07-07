@@ -1,15 +1,13 @@
 import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
-import type { UpdateKnowledgeDocumentInput } from 'share-type'
+import type { StructureAwareChunkConfig, UpdateKnowledgeDocumentInput } from 'share-type'
+
 export class UpdateKnowledgeDocumentDto implements UpdateKnowledgeDocumentInput {
-    @IsString()
-    @IsOptional()
-    @MaxLength(255)
-  name?: string
-  @IsOptional()
   @IsString()
+  @IsOptional()
   @MaxLength(255)
-  chunkStrategy?: string
+  name?: string
+
   @IsOptional()
   @IsObject()
-  chunkConfig?: Record<string, unknown>
+  chunkConfig?: StructureAwareChunkConfig
 }

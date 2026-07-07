@@ -23,9 +23,6 @@ export class KnowledgeChunkEntity {
   @Column({ type: 'text' })
   content!: string
 
-  @Column({ type: 'boolean', default: true })
-  enabled!: boolean
-
   @Column({ type: 'int' })
   charCount!: number
 
@@ -44,7 +41,7 @@ export class KnowledgeChunkEntity {
   @UpdateDateColumn()
   updatedAt!: Date
 
-  @ManyToOne(() => KnowledgeDocumentEntity, (document) => document.chunks, { onDelete: 'CASCADE' })
+  @ManyToOne(() => KnowledgeDocumentEntity, { onDelete: 'CASCADE' })
   @JoinColumn()
   document!: KnowledgeDocumentEntity
 }

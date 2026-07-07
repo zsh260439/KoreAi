@@ -1,0 +1,39 @@
+对于思考模式问答，我增加了content和visiblecontent来区分两个模式。visablecontent可显示思考流程的实时效果
+
+首先是handlesend发送用户输入的消息，接着会进入composable内的sendmessage的函数，他会检查当前页面是否存在activeConversation，否则会创建一个新的conversation，接着会给本地占位用户消息和ai消息，准备好之后进入核心组件stremAssistantResponse开始流式输出的效果（期间会创建一个abort来控制是否自主结束流式传输的过程），它会调用requestWorkspaceChatStreamAPI来传输必要的信息同时不断调用Event（传入的函数updateAssistantMessage）来不断更新当前的sessioncontentlist（其中内部的流式输出和思考链路都是updater：applyStreamEventToAssistantMessage来更新的），最后会更新会话消息同时返回最终内容（updateAssistantMessage内部含有setConversationMessages 这个会自动更新最新数组）
+
+requestWorkspaceChatStreamAPI 内部解析出一个 event
+  ↓
+调用你传入的 onEvent 回调函数
+  ↓
+onEvent 内部调用 updateAssistantMessage
+  ↓
+updateAssistantMessage 调用你传入的 updater（applyStreamEventToAssistantMessage）
+  ↓
+得到新的AI消息 → 替换 → 调用 setConversationMessages 刷新页面
+
+// 流式全部结束后，用后端返回的完整结果更新最终消息
+sessionContentList = updateAssistantMessage(
+  params.conversationId,
+  sessionContentList,
+  (assistantMessage) => finalizeAssistantMessage(assistantMessage, result, params.promptCapabilities)
+)
+
+1. 页面点击发送 → handleSend 调用 composable 的 sendMessage
+2. sendMessage 检查：有活跃会话就用，没有就新建
+3. 构造用户消息 + AI占位消息 → 调用 setConversationMessages → 页面立刻显示
+4. 进入 streamAssistantResponse：
+   - 创建 AbortController（控制中断/停止生成）
+   - 调用 requestWorkspaceChatStreamAPI 发起流式请求
+5. requestWorkspaceChatStreamAPI 内部：
+   - 建立流式连接
+   - 循环读取后端数据 → 解析成一个个 event
+   - 每解析一个 event → 立刻执行 onEvent 回调
+6. onEvent 回调内部：
+   - 调用 updateAssistantMessage
+   - 传入 updater: applyStreamEventToAssistantMessage 处理具体事件
+   - updateAssistantMessage 内部自动调用 setConversationMessages → 页面实时刷新
+7. 流式全部结束：
+   - 调用 finalizeAssistantMessage 补全最终信息（引用/token/耗时）
+   - 最后一次更新消息 → 保存到本地
+   - 更新会话列表 → 整个流程结束

@@ -1,32 +1,12 @@
 import type { AssistantResponseFlow, AssistantThinkingStage } from '@/types/chat/flow'
-import type { ChatMessage, ChatMessageStatus, ChatRole } from '@/types/chat/models'
-import type {
-  KnowledgeReasoningStep,
-  KnowledgeSearchHit,
-  WorkspaceRunStage,
-  WorkspacePromptCapabilities
-} from 'share-type'
+import type { ChatMessage } from '@/types/chat/models'
+import type { KnowledgeSearchHit, WorkspaceRunStage } from 'share-type'
 
-// 带推理步骤的聊天消息
-interface ChatMessageWithThinking {
-  id: string
-  conversationId: string
-  role: ChatRole
-  content: string
-  createdAt: string
-  citations: KnowledgeSearchHit[] | null
-  model: string | null
-  latencyMs: number | null
-  totalTokens: number | null
-  reasoningSteps: KnowledgeReasoningStep[]
-  status: ChatMessageStatus
-  responseFlow?: AssistantResponseFlow
-  promptCapabilities?: WorkspacePromptCapabilities | null
+type ChatMessageWithThinking = ChatMessage & {
+  reasoningSteps: NonNullable<ChatMessage['reasoningSteps']>
 }
 
-// 最终回答标题
-const FINAL_ANSWER_TITLE = '\u6700\u7ec8\u56de\u7b54'
-
+const FINAL_ANSWER_TITLE = '最终回答'
 const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
 const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
 const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
@@ -39,49 +19,49 @@ const buildKnowledgeRecallStage = (
     return []
   }
 
-  return [{
-    kind: 'process',
-    id: `${messageId}-${KNOWLEDGE_RECALL_STAGE_ID}`,
-    stageKey: 'knowledge_recall',
-    title: '检索知识库',
-    subtitle: `已命中 ${sources.length} 个 chunk`,
-    status: 'done',
-    content: '',
-    visibleContent: ''
-  }]
+  return [
+    {
+      kind: 'process',
+      id: `${messageId}-${KNOWLEDGE_RECALL_STAGE_ID}`,
+      stageKey: 'knowledge_recall',
+      title: '检索知识库',
+      subtitle: `已命中 ${sources.length} 个 chunk`,
+      status: 'done',
+      content: '',
+      visibleContent: ''
+    }
+  ]
 }
 
-// 判断是否需要渲染思考过程
 const shouldRenderThinking = (message: ChatMessage): message is ChatMessageWithThinking =>
   Boolean(message.promptCapabilities?.think) && Array.isArray(message.reasoningSteps)
 
-//声明历史推理步骤构造逻辑
 const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => {
   if (!shouldRenderThinking(message)) {
     return []
   }
 
-  return message.reasoningSteps
-    .flatMap((step, index) => {
-      const content = step.content.trim()
-      if (!content) {
-        return []
-      }
+  return message.reasoningSteps.flatMap((step, index) => {
+    const content = step.content.trim()
+    if (!content) {
+      return []
+    }
 
-      return [{
-        kind: 'process' as const,
+    return [
+      {
+        kind: 'process',
         id: `${message.id}-${step.stageKey}-${index}`,
         stageKey: step.stageKey,
         title: step.title,
         subtitle: step.subtitle,
-        status: 'done' as const,
+        status: 'done',
         content,
         visibleContent: content
-      }]
-    })
+      }
+    ]
+  })
 }
 
-// 构建已完成的响应流
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
   thinking: [
     ...buildKnowledgeRecallStage(message.id, message.citations ?? []),
@@ -100,7 +80,6 @@ export const buildCompletedResponseFlow = (message: ChatMessage): AssistantRespo
   showActions: true
 })
 
-// 创建空的流式占位响应流
 export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
   thinking: [],
   answer: {
@@ -173,7 +152,6 @@ export const completeStreamingProcessStage = (
   )
 })
 
-// 追加流式思考内容
 export const appendStreamingThinkingStageDelta = (
   flow: AssistantResponseFlow,
   delta: string
@@ -192,7 +170,7 @@ export const appendStreamingThinkingStageDelta = (
         id: VISIBLE_REASONING_STAGE_ID,
         stageKey: 'llm_reasoning',
         title: '分析问题与证据',
-        subtitle: '正在形成可展示推理摘要',
+        subtitle: '正在形成可展示的推理摘要',
         status: 'running'
       }),
       delta
@@ -228,10 +206,10 @@ export const attachStreamingSources = (
         status: 'running'
       })
 
-  const nextFlow = {
+  const nextFlow: AssistantResponseFlow = {
     ...ensuredFlow,
     sources,
-    sourcesStatus: 'done' as const
+    sourcesStatus: 'done'
   }
 
   return completeStreamingProcessStage(
@@ -241,7 +219,6 @@ export const attachStreamingSources = (
   )
 }
 
-// 追加流式回答内容
 export const appendStreamingAnswerDelta = (
   flow: AssistantResponseFlow,
   delta: string
@@ -258,7 +235,6 @@ export const appendStreamingAnswerDelta = (
 
   return {
     ...withAnswerStage,
-    //声明答案开始输出后立即结束其他过程阶段流式状态
     thinking: withAnswerStage.thinking.map((stage) => ({
       ...stage,
       status: stage.id === ANSWER_SYNTHESIS_STAGE_ID ? 'running' : 'done'
@@ -272,7 +248,6 @@ export const appendStreamingAnswerDelta = (
   }
 }
 
-// 完成整个流式响应
 export const finalizeStreamingResponseFlow = (
   flow: AssistantResponseFlow,
   latencyMs?: number | null

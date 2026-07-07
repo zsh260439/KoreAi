@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { Database, FileBarChart, FolderOpen, Layers, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-vue-next'
+import {
+  ArrowUpRight,
+  Database,
+  FileBarChart,
+  FolderOpen,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2
+} from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -32,7 +42,9 @@ const filteredKnowledgeBases = computed(() => {
   const normalized = keyword.value.trim().toLowerCase()
   const list = knowledgeBases.value.filter((item) => {
     if (!normalized) return true
-    return [item.name, item.description].some((value) => value.toLowerCase().includes(normalized))
+    const name = item.name.toLowerCase()
+    const description = (item.description || '').toLowerCase()
+    return name.includes(normalized) || description.includes(normalized)
   })
 
   const total = list.length
@@ -50,31 +62,32 @@ const filteredKnowledgeBases = computed(() => {
 
 const stats = computed(() => {
   const list = knowledgeBases.value
-  return {
-    knowledgeBaseCount: list.length,
-    documentCount: list.reduce((sum, item) => sum + (item.documentCount || 0), 0),
-    nonEmptyCount: list.filter((item) => (item.documentCount || 0) > 0).length,
-    embeddingCount: list.filter((item) => item.embeddingModel).length
-  }
+  const totalDocuments = list.reduce((sum, item) => sum + (item.documentCount ?? 0), 0)
+  const activeKnowledgeBases = list.filter((item) => (item.documentCount ?? 0) > 0).length
+
+  return [
+    {
+      label: '知识库',
+      value: list.length,
+      hint: '当前已接入'
+    },
+    {
+      label: '文档数',
+      value: totalDocuments,
+      hint: '跨知识库累计'
+    },
+    {
+      label: '活跃知识库',
+      value: activeKnowledgeBases,
+      hint: '已有文档内容'
+    }
+  ]
 })
 
+const hasKnowledgeBases = computed(() => knowledgeBases.value.length > 0)
 const canCreateKnowledgeBase = computed(() => createName.value.trim().length > 0)
 
-const renderEmbeddingModel = (model?: string | null) => {
-  if (!model) {
-    return { head: '-', tail: '' }
-  }
-
-  const parts = model.split('-')
-  if (parts.length < 2) {
-    return { head: model, tail: '' }
-  }
-
-  return {
-    head: parts.slice(0, -1).join('-'),
-    tail: parts[parts.length - 1]
-  }
-}
+const getCollectionName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, '_')
 
 const getCollectionBadgeClass = (value?: string) => {
   const text = (value || '').toLowerCase()
@@ -83,8 +96,22 @@ const getCollectionBadgeClass = (value?: string) => {
   return 'collection-badge collection-badge--slate'
 }
 
-const getCollectionName = (name: string) => {
-  return name.trim().toLowerCase().replace(/\s+/g, '_')
+const getDocumentCountLabel = (count?: number) => `${count ?? 0} 篇文档`
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return '-'
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+
+  const year = parsed.getFullYear()
+  const month = String(parsed.getMonth() + 1).padStart(2, '0')
+  const day = String(parsed.getDate()).padStart(2, '0')
+  const hours = String(parsed.getHours()).padStart(2, '0')
+  const minutes = String(parsed.getMinutes()).padStart(2, '0')
+  const seconds = String(parsed.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 const handleSearch = () => {
@@ -97,10 +124,10 @@ const handleRefresh = async () => {
   await loadKnowledgeBases()
 }
 
-const openRename = (id: string, name: string, description: string) => {
+const openRename = (id: string, name: string, description?: string) => {
   renameTargetId.value = id
   renameValue.value = name
-  renameDescription.value = description
+  renameDescription.value = description || ''
   renameDialogOpen.value = true
 }
 
@@ -113,10 +140,12 @@ const closeRename = () => {
 
 const submitRename = async () => {
   if (!renameTargetId.value || !renameValue.value.trim()) return
+
   await updateKnowledgeBase(renameTargetId.value, {
     name: renameValue.value.trim(),
     description: renameDescription.value.trim()
   })
+
   ElMessage.success('知识库已更新')
   closeRename()
 }
@@ -133,6 +162,7 @@ const closeDelete = () => {
 
 const submitDelete = async () => {
   if (!deleteTargetId.value) return
+
   await removeKnowledgeBase(deleteTargetId.value)
   ElMessage.success('知识库已删除')
   closeDelete()
@@ -146,10 +176,12 @@ const closeCreate = () => {
 
 const submitCreate = async () => {
   if (!canCreateKnowledgeBase.value) return
+
   const created = await createKnowledgeBase({
     name: createName.value.trim(),
     description: createDescription.value.trim()
   })
+
   ElMessage.success('知识库已创建')
   closeCreate()
   router.push(`/admin/knowledge/${created.id}`)
@@ -161,10 +193,19 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="knowledge-console space-y-6">
-    <AdminPageHeader title="知识库管理" description="管理所有知识库及其文档。">
+  <section class="knowledge-console">
+    <AdminPageHeader title="知识库管理" description="管理知识库、文档接入与内容状态。">
       <template #actions>
-        <el-input v-model="searchInput" placeholder="搜索知识库名称" clearable class="!w-[248px]" />
+        <label class="knowledge-search">
+          <Search class="h-4 w-4" />
+          <input
+            v-model="searchInput"
+            type="text"
+            placeholder="搜索知识库名称"
+            @keydown.enter="handleSearch"
+          />
+        </label>
+
         <el-button @click="handleSearch">搜索</el-button>
         <el-button @click="handleRefresh">
           <RefreshCw class="h-4 w-4" />
@@ -177,114 +218,112 @@ onMounted(async () => {
       </template>
     </AdminPageHeader>
 
-    <div class="stats-grid">
-      <div class="stats-card">
-        <div class="stats-card__main">
-          <div class="stats-card__icon"><Database class="h-5 w-5" /></div>
-          <div>
-            <div class="stats-card__label">知识库</div>
-            <div class="stats-card__value">{{ stats.knowledgeBaseCount }}</div>
+    <div class="stats-strip">
+      <article v-for="item in stats" :key="item.label" class="stats-item">
+        <div class="stats-item__head">
+          <div class="stats-item__icon">
+            <Database v-if="item.label === '知识库'" class="h-4 w-4" />
+            <FileBarChart v-else-if="item.label === '文档数'" class="h-4 w-4" />
+            <FolderOpen v-else class="h-4 w-4" />
           </div>
+          <span class="stats-item__label">{{ item.label }}</span>
         </div>
-        <span class="stats-card__badge">全部</span>
-      </div>
-
-      <div class="stats-card">
-        <div class="stats-card__main">
-          <div class="stats-card__icon"><FileBarChart class="h-5 w-5" /></div>
-          <div>
-            <div class="stats-card__label">文档数</div>
-            <div class="stats-card__value">{{ stats.documentCount }}</div>
-          </div>
-        </div>
-        <span class="stats-card__badge">全部</span>
-      </div>
-
-      <div class="stats-card">
-        <div class="stats-card__main">
-          <div class="stats-card__icon"><FolderOpen class="h-5 w-5" /></div>
-          <div>
-            <div class="stats-card__label">含文档知识库</div>
-            <div class="stats-card__value">{{ stats.nonEmptyCount }}</div>
-          </div>
-        </div>
-        <span class="stats-card__badge">全部</span>
-      </div>
-
-      <div class="stats-card">
-        <div class="stats-card__main">
-          <div class="stats-card__icon"><Layers class="h-5 w-5" /></div>
-          <div>
-            <div class="stats-card__label">Embedding 已配置</div>
-            <div class="stats-card__value">{{ stats.embeddingCount }}</div>
-          </div>
-        </div>
-        <span class="stats-card__badge">全部</span>
-      </div>
+        <strong class="stats-item__value">{{ item.value }}</strong>
+        <span class="stats-item__hint">{{ item.hint }}</span>
+      </article>
     </div>
 
-    <div class="content-card">
-      <div v-if="isLoading && !knowledgeBases.length" class="empty-block">加载中...</div>
-      <div v-else-if="!filteredKnowledgeBases.records.length" class="empty-block">暂无知识库</div>
-      <div v-else class="overflow-x-auto">
-        <table class="knowledge-table">
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>Embedding 模型</th>
-              <th>Collection</th>
-              <th>文档数</th>
-              <th>创建时间</th>
-              <th>修改时间</th>
-              <th class="text-center">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in filteredKnowledgeBases.records" :key="item.id">
-              <td class="font-medium">
-                <el-button link type="primary" class="!px-0" @click="router.push(`/admin/knowledge/${item.id}`)">
-                  {{ item.name }}
-                </el-button>
-              </td>
-              <td>
-                <div v-if="renderEmbeddingModel(item.embeddingModel).head !== '-'" class="flex flex-col">
-                  <span class="font-medium text-slate-700">{{ renderEmbeddingModel(item.embeddingModel).head }}</span>
-                  <span class="text-xs text-slate-500">{{ renderEmbeddingModel(item.embeddingModel).tail }}</span>
-                </div>
-                <span v-else>-</span>
-              </td>
-              <td>
-                <span :class="getCollectionBadgeClass(getCollectionName(item.name))">
-                  {{ getCollectionName(item.name) }}
-                </span>
-              </td>
-              <td>{{ item.documentCount }}</td>
-              <td>{{ item.createdAt || '-' }}</td>
-              <td>{{ item.updatedAt || '-' }}</td>
-              <td>
-                <div class="flex items-center justify-center gap-2">
-                  <el-button @click="openRename(item.id, item.name, item.description)">
-                    <Pencil class="h-4 w-4" />
-                    编辑
-                  </el-button>
-                  <el-button @click="openDelete(item.id)">
-                    <Trash2 class="h-4 w-4" />
-                    删除
-                  </el-button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="list-shell">
+      <div class="list-shell__header">
+        <div>
+          <h2>知识库列表</h2>
+          <p>
+            {{ keyword ? `正在筛选 “${keyword}” 相关结果` : '按知识库名称、集合标识和活跃情况查看当前列表。' }}
+          </p>
+        </div>
+        <div class="list-shell__summary">
+          <span>{{ filteredKnowledgeBases.total }} 条记录</span>
+          <span v-if="hasKnowledgeBases">共 {{ stats[1]?.value ?? 0 }} 篇文档</span>
+        </div>
       </div>
-    </div>
 
-    <div class="flex items-center justify-between text-sm text-slate-500">
-      <span>共 {{ filteredKnowledgeBases.total }} 条</span>
-      <div class="flex items-center gap-3">
-        <el-button :disabled="filteredKnowledgeBases.current <= 1" @click="pageNo = Math.max(1, pageNo - 1)">上一页</el-button>
-        <span>{{ filteredKnowledgeBases.current }} / {{ filteredKnowledgeBases.pages }}</span>
-        <el-button :disabled="filteredKnowledgeBases.current >= filteredKnowledgeBases.pages" @click="pageNo = Math.min(filteredKnowledgeBases.pages, pageNo + 1)">下一页</el-button>
+      <div v-if="isLoading && !knowledgeBases.length" class="empty-block">
+        正在加载知识库数据...
+      </div>
+
+      <div v-else-if="!filteredKnowledgeBases.records.length" class="empty-block empty-block--soft">
+        <strong>{{ keyword ? '没有匹配结果' : '还没有知识库' }}</strong>
+        <p>
+          {{
+            keyword
+              ? '换一个关键词再试，或者先刷新列表同步最新状态。'
+              : '先创建一个知识库，后续文档接入、分块与检索都会从这里开始。'
+          }}
+        </p>
+      </div>
+
+      <div v-else class="knowledge-list">
+        <article v-for="item in filteredKnowledgeBases.records" :key="item.id" class="knowledge-row">
+          <div class="knowledge-row__main">
+            <button class="knowledge-row__title" type="button" @click="router.push(`/admin/knowledge/${item.id}`)">
+              {{ item.name }}
+              <ArrowUpRight class="h-4 w-4" />
+            </button>
+
+            <div class="knowledge-row__meta">
+              <span :class="getCollectionBadgeClass(getCollectionName(item.name))">
+                {{ getCollectionName(item.name) }}
+              </span>
+              <span class="knowledge-row__count">{{ getDocumentCountLabel(item.documentCount) }}</span>
+            </div>
+
+            <p v-if="item.description" class="knowledge-row__desc">{{ item.description }}</p>
+            <p v-else class="knowledge-row__desc knowledge-row__desc--muted">
+              暂无描述，点击编辑补充这个知识库的用途和适用范围。
+            </p>
+          </div>
+
+          <dl class="knowledge-row__facts">
+            <div>
+              <dt>创建时间</dt>
+              <dd>{{ formatDateTime(item.createdAt) }}</dd>
+            </div>
+            <div>
+              <dt>更新时间</dt>
+              <dd>{{ formatDateTime(item.updatedAt) }}</dd>
+            </div>
+          </dl>
+
+          <div class="knowledge-row__actions">
+            <button
+              class="row-action"
+              type="button"
+              @click="openRename(item.id, item.name, item.description)"
+            >
+              <Pencil class="h-4 w-4" />
+              编辑
+            </button>
+            <button class="row-action row-action--danger" type="button" @click="openDelete(item.id)">
+              <Trash2 class="h-4 w-4" />
+              删除
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <div class="list-footer">
+        <span>第 {{ filteredKnowledgeBases.current }} / {{ filteredKnowledgeBases.pages }} 页</span>
+        <div class="list-footer__actions">
+          <el-button :disabled="filteredKnowledgeBases.current <= 1" @click="pageNo = Math.max(1, pageNo - 1)">
+            上一页
+          </el-button>
+          <el-button
+            :disabled="filteredKnowledgeBases.current >= filteredKnowledgeBases.pages"
+            @click="pageNo = Math.min(filteredKnowledgeBases.pages, pageNo + 1)"
+          >
+            下一页
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -308,7 +347,9 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="deleteDialogOpen" title="删除知识库" width="420px" destroy-on-close>
-      <p class="text-sm leading-6 text-slate-500">删除后将同时移除该知识库下的文档和分块记录，当前操作不可恢复。</p>
+      <p class="text-sm leading-6 text-slate-500">
+        删除后将同时移除该知识库下的文档和分块记录，这个操作不可恢复。
+      </p>
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="closeDelete">取消</el-button>
@@ -325,7 +366,12 @@ onMounted(async () => {
         </div>
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">描述</div>
-          <el-input v-model="createDescription" type="textarea" :rows="6" placeholder="描述知识库用途与适用范围" />
+          <el-input
+            v-model="createDescription"
+            type="textarea"
+            :rows="6"
+            placeholder="描述知识库用途与适用范围"
+          />
         </div>
       </div>
       <template #footer>
@@ -339,102 +385,236 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.stats-grid {
+.knowledge-console {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
-.stats-card {
+.knowledge-search {
   display: flex;
+  min-width: min(100%, 280px);
+  flex: 1 1 280px;
   align-items: center;
-  justify-content: space-between;
-  border: 1px solid var(--border-default);
-  border-radius: 16px;
-  background: #fff;
+  gap: 8px;
+  border: 1px solid #d7dee7;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0 12px;
+  color: #64748b;
+}
+
+.knowledge-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 11px 0;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+}
+
+.stats-strip {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #dbe4ee;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.stats-item {
+  display: grid;
+  gap: 6px;
   padding: 18px 20px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-.stats-card__main {
+.stats-item + .stats-item {
+  border-left: 1px solid #eef2f7;
+}
+
+.stats-item__head {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
 
-.stats-card__icon {
-  display: flex;
-  width: 42px;
-  height: 42px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  background: #dbeafe;
-  color: #2563eb;
+.stats-item__icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: #f3f6f9;
+  color: #5b6b7f;
 }
 
-.stats-card__label {
+.stats-item__label {
   font-size: 13px;
   color: #64748b;
 }
 
-.stats-card__value {
-  margin-top: 4px;
-  font-size: 22px;
+.stats-item__value {
+  font-size: 24px;
   line-height: 1;
   font-weight: 700;
   color: #0f172a;
 }
 
-.stats-card__badge {
-  border: 1px solid #e2e8f0;
-  border-radius: 9999px;
-  background: #fff;
-  padding: 4px 10px;
+.stats-item__hint {
   font-size: 12px;
   color: #94a3b8;
 }
 
-.content-card {
-  border: 1px solid var(--border-default);
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+.list-shell {
   overflow: hidden;
+  border: 1px solid #dbe4ee;
+  border-radius: 14px;
+  background: #ffffff;
 }
 
-.empty-block {
-  padding: 64px 24px;
-  text-align: center;
+.list-shell__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #eef2f7;
+  padding: 20px 24px 16px;
+}
+
+.list-shell__header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.list-shell__header p {
+  margin-top: 6px;
+  font-size: 14px;
   color: #64748b;
 }
 
-.knowledge-table {
-  width: 100%;
-  min-width: 980px;
-  border-collapse: collapse;
-}
-
-.knowledge-table thead {
-  background: #f8fafc;
-}
-
-.knowledge-table th,
-.knowledge-table td {
-  border-bottom: 1px solid #eef2f7;
-  padding: 18px 20px;
-  text-align: left;
-  vertical-align: middle;
-  color: #475569;
-}
-
-.knowledge-table th {
+.list-shell__summary {
+  display: flex;
+  gap: 18px;
   font-size: 13px;
   font-weight: 600;
   color: #64748b;
 }
 
-.knowledge-table tbody tr:hover {
-  background: #f8fbff;
+.knowledge-list {
+  display: grid;
+}
+
+.knowledge-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.8fr) auto;
+  gap: 22px;
+  align-items: center;
+  padding: 20px 24px;
+}
+
+.knowledge-row + .knowledge-row {
+  border-top: 1px solid #eef2f7;
+}
+
+.knowledge-row__main {
+  min-width: 0;
+}
+
+.knowledge-row__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f766e;
+  text-align: left;
+  cursor: pointer;
+}
+
+.knowledge-row__title:hover {
+  color: #115e59;
+}
+
+.knowledge-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.knowledge-row__count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.knowledge-row__desc {
+  margin-top: 12px;
+  max-width: 60ch;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #475569;
+}
+
+.knowledge-row__desc--muted {
+  color: #94a3b8;
+}
+
+.knowledge-row__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+}
+
+.knowledge-row__facts dt {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.knowledge-row__facts dd {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.knowledge-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.row-action {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dbe4ee;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+}
+
+.row-action:hover {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.row-action--danger:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .collection-badge {
@@ -443,7 +623,7 @@ onMounted(async () => {
   border-radius: 9999px;
   padding: 6px 12px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .collection-badge--blue {
@@ -453,9 +633,9 @@ onMounted(async () => {
 }
 
 .collection-badge--sky {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  color: #0369a1;
 }
 
 .collection-badge--slate {
@@ -464,15 +644,88 @@ onMounted(async () => {
   color: #475569;
 }
 
-@media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.empty-block {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 72px 24px;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-block strong {
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.empty-block p {
+  max-width: 44ch;
+  line-height: 1.75;
+}
+
+.empty-block--soft {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #eef2f7;
+  padding: 16px 24px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.list-footer__actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 1240px) {
+  .list-shell__header,
+  .knowledge-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .knowledge-row__actions {
+    justify-content: flex-start;
   }
 }
 
-@media (min-width: 1280px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+@media (max-width: 960px) {
+  .stats-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-item + .stats-item {
+    border-top: 1px solid #eef2f7;
+    border-left: 0;
+  }
+
+  .list-shell__header,
+  .knowledge-row,
+  .list-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .knowledge-search {
+    min-width: 100%;
+  }
+
+  .knowledge-row__facts,
+  .list-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .list-footer {
+    align-items: flex-start;
+    gap: 12px;
   }
 }
 </style>

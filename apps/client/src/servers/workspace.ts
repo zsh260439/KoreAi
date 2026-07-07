@@ -1,4 +1,4 @@
-import { request } from '@/http-utils/http'
+import { buildApiUrl, request } from '@/http-utils/http'
 import type {
   CreateWorkspaceConversationInput,
   WorkspaceChatInput,
@@ -7,8 +7,6 @@ import type {
   WorkspaceConversationSummary,
   WorkspaceMessage
 } from 'share-type'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export const findWorkspaceConversationsAPI = () => {
   return request<WorkspaceConversationSummary[]>('workspace/conversations')
@@ -26,7 +24,6 @@ export const findWorkspaceConversationMessagesAPI = (conversationId: string) => 
   return request<WorkspaceMessage[]>(`workspace/conversations/${conversationId}/messages`)
 }
 
-//声明工作台仅保留流式聊天请求接口
 export const requestWorkspaceChatStreamAPI = async (
   dto: WorkspaceChatInput,
   options: {
@@ -34,7 +31,7 @@ export const requestWorkspaceChatStreamAPI = async (
     onEvent: (event: WorkspaceChatStreamEvent) => void
   }
 ): Promise<WorkspaceChatResult> => {
-  const response = await fetch(buildWorkspaceUrl('workspace/chat/stream'), {
+  const response = await fetch(buildApiUrl('workspace/chat/stream'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -69,7 +66,7 @@ export const requestWorkspaceChatStreamAPI = async (
       if (!event) {
         continue
       }
-      //核心逻辑：每次后端吐出消息，前端就接受更新会话消息
+
       options.onEvent(event)
 
       if (event.type === 'error') {
@@ -85,10 +82,9 @@ export const requestWorkspaceChatStreamAPI = async (
       break
     }
   }
-  
+
   const finalEvent = parseWorkspaceChatStreamEvent(buffer)
   if (finalEvent) {
-    //这里一般是更新ui界面，显示最终回答
     options.onEvent(finalEvent)
 
     if (finalEvent.type === 'error') {
@@ -107,17 +103,6 @@ export const requestWorkspaceChatStreamAPI = async (
   return completedResult
 }
 
-//声明工作台流式请求地址拼装
-function buildWorkspaceUrl(path: string): string {
-  if (!API_BASE_URL) {
-    return path
-  }
-
-  const normalizedBase = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`
-  return new URL(path, normalizedBase).toString()
-}
-
-//声明工作台流式错误消息读取
 async function readErrorMessage(response: Response): Promise<string> {
   const contentType = response.headers.get('content-type') || ''
 

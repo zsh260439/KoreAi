@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { stat } from 'node:fs/promises'
-import { extname } from 'node:path'
 import { DataSource, Repository } from 'typeorm'
 import type {
   KnowledgeBase,
@@ -11,10 +10,17 @@ import type {
   KnowledgeDocument,
   KnowledgeSearchHit,
   KnowledgeSearchInput,
+  StructureAwareChunkConfig,
   UpdateKnowledgeBaseInput,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
 import { EmbeddingService } from './composables/embedding.service'
+import {
+  getKnowledgeDocumentBaseName,
+  inferKnowledgeDocumentFileType,
+  KnowledgeFileService,
+  type UploadedKnowledgeDocumentFile
+} from './composables/knowledge-file.service'
 import {
   KnowledgeQaService,
   type KnowledgeQaStreamEvent
@@ -28,7 +34,7 @@ import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
 import { buildChunksFromBlocks } from './composables/knowledge-chunk-builder'
 import { parseKnowledgeDocument } from './composables/knowledge-document.parser'
 
-//声明知识问答流式输入结构。
+//声明知识问答流式输入结构
 type KnowledgeAskStreamInput = {
   query: string
   knowledgeBaseId?: string
@@ -36,7 +42,7 @@ type KnowledgeAskStreamInput = {
   think?: boolean
 }
 
-//声明知识问答流式返回结构。
+//声明知识问答流式返回结构
 type KnowledgeAskStream = {
   sources: KnowledgeSearchHit[]
   model: string | null
@@ -44,20 +50,17 @@ type KnowledgeAskStream = {
   stream: AsyncGenerator<KnowledgeQaStreamEvent>
 }
 
-//声明结构化分块配置结构。
-type StructureAwareChunkConfig = {
-  targetChars: number
-  maxChars: number
-  minChars: number
-  overlapChars: number
-}
-
-//声明结构化分块默认配置。
+//声明结构化分块默认配置
 const DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG: StructureAwareChunkConfig = {
   targetChars: 1400,
   maxChars: 1800,
   minChars: 600,
   overlapChars: 0
+}
+
+type UploadKnowledgeDocumentInput = {
+  name?: string
+  chunkConfig?: string
 }
 
 @Injectable()
@@ -70,12 +73,13 @@ export class KnowledgeService {
     @InjectRepository(KnowledgeChunkEntity)
     private readonly knowledgeChunkRepo: Repository<KnowledgeChunkEntity>,
     private readonly embeddingService: EmbeddingService,
+    private readonly knowledgeFileService: KnowledgeFileService,
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
     private readonly knowledgeQaService: KnowledgeQaService,
     private readonly dataSource: DataSource
   ) {}
 
-  //声明知识库搜索入口。
+  //声明知识库搜索入口
   async searchKnowledge(dto: KnowledgeSearchInput): Promise<KnowledgeSearchHit[]> {
     const query = dto.query.trim()
     if (!query) {
@@ -86,7 +90,7 @@ export class KnowledgeService {
     return this.retrieveKnowledge(dto.knowledgeBaseId, query, 20)
   }
 
-  //声明流式知识问答入口。
+  //声明流式知识问答入口
   async streamAskKnowledge(
     dto: KnowledgeAskStreamInput,
     options: { signal?: AbortSignal } = {}
@@ -113,17 +117,28 @@ export class KnowledgeService {
     }
   }
 
-  //声明知识库列表查询。
+  //声明知识库列表查询
   async findKnowledgeBases(): Promise<KnowledgeBase[]> {
-    const items = await this.knowledgeBaseRepo.find({
-      order: { updatedAt: 'DESC' },
-      relations: { documents: true }
-    })
+    const [items, documentCounts] = await Promise.all([
+      this.knowledgeBaseRepo.find({
+        order: { updatedAt: 'DESC' }
+      }),
+      this.knowledgeDocumentRepo
+        .createQueryBuilder('document')
+        .select('document.knowledgeBaseId', 'knowledgeBaseId')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('document.knowledgeBaseId')
+        .getRawMany<{ knowledgeBaseId: string; count: string }>()
+    ])
 
-    return items.map(toKnowledgeBase)
+    const documentCountMap = new Map(
+      documentCounts.map((item) => [item.knowledgeBaseId, Number(item.count) || 0])
+    )
+
+    return items.map((item) => toKnowledgeBase(item, documentCountMap.get(item.id) ?? 0))
   }
 
-  //声明知识库创建。
+  //声明知识库创建
   async createKnowledgeBase(dto: CreateKnowledgeBaseDto): Promise<KnowledgeBase> {
     const name = dto.name.trim()
     if (!name) {
@@ -139,7 +154,7 @@ export class KnowledgeService {
     return toKnowledgeBase(created, 0)
   }
 
-  //声明知识库更新。
+  //声明知识库更新
   async updateKnowledgeBase(
     knowledgeBaseId: string,
     dto: UpdateKnowledgeBaseInput
@@ -168,7 +183,7 @@ export class KnowledgeService {
     return toKnowledgeBase(updated)
   }
 
-  //声明知识库文档列表查询。
+  //声明知识库文档列表查询
   async findKnowledgeDocuments(knowledgeBaseId: string): Promise<KnowledgeDocument[]> {
     const items = await this.knowledgeDocumentRepo.find({
       where: { knowledgeBaseId },
@@ -178,7 +193,7 @@ export class KnowledgeService {
     return items.map(toKnowledgeDocument)
   }
 
-  //声明单个文档详情查询。
+  //声明单个文档详情查询
   async findKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.knowledgeDocumentRepo.findOne({
       where: { id: documentId }
@@ -191,7 +206,7 @@ export class KnowledgeService {
     return toKnowledgeDocument(document)
   }
 
-  //声明文档可编辑配置更新。
+  //声明文档可编辑配置更新
   async updateKnowledgeDocument(
     docId: string,
     dto: UpdateKnowledgeDocumentInput
@@ -212,14 +227,6 @@ export class KnowledgeService {
       document.name = name
     }
 
-    if (typeof dto.chunkStrategy === 'string') {
-      const chunkStrategy = dto.chunkStrategy.trim()
-      if (!chunkStrategy) {
-        throw new BadRequestException('chunkStrategy cannot be empty')
-      }
-      document.chunkStrategy = normalizeChunkStrategy(chunkStrategy)
-    }
-
     if (dto.chunkConfig) {
       document.chunkConfig = normalizeStructureAwareChunkConfig(dto.chunkConfig)
     }
@@ -228,7 +235,7 @@ export class KnowledgeService {
     return toKnowledgeDocument(document)
   }
 
-  //声明知识库文档创建。
+  //声明知识库文档创建
   async createKnowledgeDocument(
     knowledgeBaseId: string,
     dto: CreateKnowledgeDocumentDto
@@ -251,10 +258,10 @@ export class KnowledgeService {
       throw new BadRequestException('storagePath cannot be empty')
     }
 
-    //声明当前阶段只允许本地文本类文件入库。
+    //声明当前阶段只允许本地文本类文件入库
 
     const fileStats = await this.readLocalFileStats(storagePath)
-    const fileType = inferFileTypeFromPath(storagePath)
+    const fileType = inferKnowledgeDocumentFileType(storagePath)
     const entity = this.knowledgeDocumentRepo.create({
       knowledgeBaseId,
       name,
@@ -262,9 +269,7 @@ export class KnowledgeService {
       storagePath,
       fileType,
       fileSizeBytes: String(fileStats.size),
-      chunkStrategy: normalizeChunkStrategy(dto.chunkStrategy),
       chunkConfig: normalizeStructureAwareChunkConfig(dto.chunkConfig),
-      enabled: true,
       status: 'pending'
     })
 
@@ -272,19 +277,40 @@ export class KnowledgeService {
     return toKnowledgeDocument(created)
   }
 
-  //声明文档分块列表查询。
-  async findDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
-    const items = await this.knowledgeChunkRepo
-      .createQueryBuilder('chunk')
-      .addSelect('chunk.metadata')
-      .where('chunk.documentId = :documentId', { documentId })
-      .orderBy('chunk.sequence', 'ASC')
-      .getMany()
+  //声明知识库文档上传
+  async uploadKnowledgeDocument(
+    knowledgeBaseId: string,
+    input: UploadKnowledgeDocumentInput,
+    file?: UploadedKnowledgeDocumentFile
+  ): Promise<KnowledgeDocument> {
+    if (!file) {
+      throw new BadRequestException('file is required')
+    }
 
-    return items.map(toKnowledgeChunk)
+    this.knowledgeFileService.validateFile(file)
+
+    const fallbackName = getKnowledgeDocumentBaseName(file.originalname) || '新文档'
+    const storagePath = await this.knowledgeFileService.saveFile(knowledgeBaseId, file)
+    const chunkConfig = parseUploadedChunkConfig(input.chunkConfig)
+
+    try {
+      return await this.createKnowledgeDocument(knowledgeBaseId, {
+        name: input.name?.trim() || fallbackName,
+        storagePath,
+        chunkConfig
+      })
+    } catch (error) {
+      await this.knowledgeFileService.deleteFileSafely(storagePath)
+      throw error
+    }
   }
 
-  //声明文档分块重建。
+  //声明文档分块列表查询
+  async findDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
+    return this.loadDocumentChunks(documentId)
+  }
+
+  //声明文档分块重建
   async rebuildDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
     const document = await this.knowledgeDocumentRepo.findOne({
       where: { id: documentId }
@@ -326,7 +352,6 @@ export class KnowledgeService {
           { id: documentId },
           {
             status: 'indexed',
-            chunkStrategy: 'structure_aware',
             chunkConfig,
             chunkCount: chunkEntities.length,
             contentPreview: parsedDocument.rawContent.slice(0, 500)
@@ -334,14 +359,7 @@ export class KnowledgeService {
         )
       })
 
-      const items = await this.knowledgeChunkRepo
-        .createQueryBuilder('chunk')
-        .addSelect('chunk.metadata')
-        .where('chunk.documentId = :documentId', { documentId })
-        .orderBy('chunk.sequence', 'ASC')
-        .getMany()
-
-      return items.map(toKnowledgeChunk)
+      return this.loadDocumentChunks(documentId)
     } catch (error) {
       await this.knowledgeDocumentRepo.update({ id: documentId }, { status: 'failed' })
       throw error
@@ -362,7 +380,7 @@ export class KnowledgeService {
     return toKnowledgeBase(kb)
   }
 
-  //声明单个文档删除。
+  //声明单个文档删除
   async deleteKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.knowledgeDocumentRepo.findOne({
       where: { id: documentId }
@@ -376,7 +394,7 @@ export class KnowledgeService {
     return toKnowledgeDocument(document)
   }
 
-  //声明统一知识召回入口。
+  //声明统一知识召回入口
   private async retrieveKnowledge(
     knowledgeBaseId: string | undefined,
     query: string,
@@ -387,7 +405,7 @@ export class KnowledgeService {
     return this.mergeHits(keywordHits, vectorHits, topK)
   }
 
-  //声明从 storagePath 读取真实文档正文。
+  //声明从 storagePath 读取真实文档正文
   private async readLocalFileStats(storagePath: string) {
     try {
       return await stat(storagePath)
@@ -396,7 +414,7 @@ export class KnowledgeService {
     }
   }
 
-  //声明关键词召回链路。
+  //声明关键词召回链路
   private async keywordRecall(
     knowledgeBaseId: string | undefined,
     query: string,
@@ -433,7 +451,7 @@ export class KnowledgeService {
       .slice(0, limit)
   }
 
-  //声明向量召回链路。
+  //声明向量召回链路
   private async vectorRecall(
     knowledgeBaseId: string | undefined,
     query: string,
@@ -454,7 +472,7 @@ export class KnowledgeService {
     }))
   }
 
-  //声明知识库存在性校验。
+  //声明知识库存在性校验
   private async ensureKnowledgeBaseExists(knowledgeBaseId?: string): Promise<void> {
     if (!knowledgeBaseId) {
       return
@@ -469,7 +487,19 @@ export class KnowledgeService {
     }
   }
 
-  //声明关键词与向量召回合并逻辑。
+  //声明文档 chunk 装载
+  private async loadDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
+    const items = await this.knowledgeChunkRepo
+      .createQueryBuilder('chunk')
+      .addSelect('chunk.metadata')
+      .where('chunk.documentId = :documentId', { documentId })
+      .orderBy('chunk.sequence', 'ASC')
+      .getMany()
+
+    return items.map(toKnowledgeChunk)
+  }
+
+  //声明关键词与向量召回合并逻辑
   private mergeHits(
     keywordHits: KnowledgeSearchHit[],
     vectorHits: KnowledgeSearchHit[],
@@ -479,7 +509,7 @@ export class KnowledgeService {
     const maxScore = 2 / (rrfK + 1)
     const merged = new Map<string, KnowledgeSearchHit & { rrfScore: number }>()
 
-    //声明把每一路召回结果都按名次换算成 rrf 分数。
+    //声明把每一路召回结果都按名次换算成 rrf 分数
     const addRankScores = (items: KnowledgeSearchHit[]) => {
       items.forEach((item, index) => {
         const rank = index + 1
@@ -510,22 +540,22 @@ export class KnowledgeService {
       }))
   }
 }
+//声明上传分块配置解析
+function parseUploadedChunkConfig(value?: string): StructureAwareChunkConfig | undefined {
+  if (!value?.trim()) {
+    return undefined
+  }
 
-
-//声明文件类型推断逻辑。
-function inferFileTypeFromPath(value: string): string {
-  const extension = extname(value).toLowerCase()
-  return extension ? extension.slice(1) : 'txt'
+  try {
+    return JSON.parse(value) as StructureAwareChunkConfig
+  } catch {
+    throw new BadRequestException('chunkConfig must be valid JSON')
+  }
 }
 
-//声明分块策略统一固定为结构化模式。
-function normalizeChunkStrategy(_value?: string | null): string {
-  return 'structure_aware'
-}
-
-//声明结构化分块配置归一化。
+//声明结构化分块配置归一化
 function normalizeStructureAwareChunkConfig(
-  value?: Record<string, unknown> | null
+  value?: Partial<StructureAwareChunkConfig> | Record<string, unknown> | null
 ): StructureAwareChunkConfig {
   const maxChars = normalizePositiveInteger(value?.maxChars, DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars)
   const targetChars = Math.min(
@@ -558,7 +588,7 @@ function normalizePositiveInteger(value: unknown, fallback: number): number {
   return Math.floor(normalizedValue)
 }
 
-//声明非负整数配置归一化。
+//声明非负整数配置归一化
 function normalizeNonNegativeInteger(value: unknown, fallback: number): number {
   const normalizedValue = Number(value)
   if (!Number.isFinite(normalizedValue) || normalizedValue < 0) {
@@ -568,12 +598,12 @@ function normalizeNonNegativeInteger(value: unknown, fallback: number): number {
   return Math.floor(normalizedValue)
 }
 
-//声明近似 token 估算逻辑。
+//声明近似 token 估算逻辑
 function estimateTokenCount(content: string): number {
   return Math.max(1, Math.ceil(content.length / 4))
 }
 
-//声明搜索关键词拆分逻辑。
+//声明搜索关键词拆分逻辑
 function buildSearchKeywords(query: string): string[] {
   const normalizedQuery = query.trim()
   if (!normalizedQuery) {
@@ -594,7 +624,7 @@ function buildSearchKeywords(query: string): string[] {
   return Array.from(new Set(candidates))
 }
 
-//声明关键词命中次数统计。
+//声明关键词命中次数统计
 function countKeywordMatches(content: string, keyword: string): number {
   const normalizedContent = content.toLowerCase()
   const normalizedKeyword = keyword.toLowerCase()
@@ -609,7 +639,7 @@ function countKeywordMatches(content: string, keyword: string): number {
   return matchCount > 0 ? matchCount : compactMatchCount
 }
 
-//声明最小可解释关键词分数。
+//声明最小可解释关键词分数
 function calcSimpleScore(content: string, keywords: string[]): number {
   if (!keywords.length) {
     return 0
@@ -640,12 +670,12 @@ function calcSimpleScore(content: string, keywords: string[]): number {
   return Number(Math.min(100, coverageScore + countScore + densityScore).toFixed(2))
 }
 
-//声明搜索空白压缩逻辑。
+//声明搜索空白压缩逻辑
 function removeSearchWhitespace(value: string): string {
   return value.replace(/\s+/g, '')
 }
 
-//声明分块元数据构建逻辑。
+//声明分块元数据构建逻辑
 function buildChunkMetadata(
   document: KnowledgeDocumentEntity,
   parsedDocument: { fileType: string; sourceKind: string },
@@ -701,13 +731,12 @@ function toKnowledgeBase(
     description: entity.description ?? '',
     status: normalizedStatus,
     documentCount,
-    embeddingModel: entity.embeddingModel ?? null,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString()
   }
 }
 
-//声明 topK 规范化逻辑。
+//声明 topK 规范化逻辑
 function normalizeTopK(value?: number): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return 5
@@ -716,30 +745,26 @@ function normalizeTopK(value?: number): number {
   return Math.min(Math.max(Math.floor(value), 1), 8)
 }
 
-//声明文档实体映射逻辑。
+//声明文档实体映射逻辑
 function toKnowledgeDocument(entity: KnowledgeDocumentEntity): KnowledgeDocument {
   return {
     id: entity.id,
     knowledgeBaseId: entity.knowledgeBaseId,
     name: entity.name,
     sourceType: entity.sourceType,
-    sourceLocation: entity.sourceLocation ?? null,
     storagePath: entity.storagePath ?? null,
     fileType: entity.fileType ?? null,
     fileSizeBytes: entity.fileSizeBytes ? Number(entity.fileSizeBytes) : null,
     status: entity.status,
-    enabled: entity.enabled,
-    chunkStrategy: entity.chunkStrategy ?? null,
-    chunkConfig: entity.chunkConfig ?? null,
+    chunkConfig: normalizeStructureAwareChunkConfig(entity.chunkConfig),
     chunkCount: entity.chunkCount,
-    summary: entity.summary ?? null,
     contentPreview: entity.contentPreview ?? null,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString()
   }
 }
 
-//声明分块实体映射逻辑。
+//声明分块实体映射逻辑
 function toKnowledgeChunk(entity: KnowledgeChunkEntity): KnowledgeChunk {
   return {
     id: entity.id,
@@ -753,3 +778,4 @@ function toKnowledgeChunk(entity: KnowledgeChunkEntity): KnowledgeChunk {
     updatedAt: entity.updatedAt.toISOString()
   }
 }
+

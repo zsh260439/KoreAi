@@ -4,33 +4,29 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm'
 import type {
+  StructureAwareChunkConfig,
   KnowledgeDocumentSourceType,
   KnowledgeDocumentStatus
 } from 'share-type'
 import { KnowledgeBaseEntity } from './knowledge-base.entity'
-import { KnowledgeChunkEntity } from './knowledge-chunk.entity'
 
 @Entity('knowledge_document')
 export class KnowledgeDocumentEntity {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string
 
   @Column({ type: 'uuid' })
   knowledgeBaseId!: string
 
-  @Column({type:'varchar',length:255})
+  @Column({ type: 'varchar', length: 255 })
   name!: string
 
   @Column({ type: 'varchar', length: 20 })
   sourceType!: KnowledgeDocumentSourceType
-
-  @Column({ type: 'text', nullable: true })
-  sourceLocation!: string | null
 
   @Column({ type: 'text', nullable: true })
   storagePath!: string | null
@@ -44,17 +40,8 @@ export class KnowledgeDocumentEntity {
   @Column({ type: 'varchar', length: 20, default: 'pending' })
   status!: KnowledgeDocumentStatus
 
-  @Column({ type: 'boolean', default: true })
-  enabled!: boolean
-  //分块策略
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  chunkStrategy!: string | null
-
   @Column({ type: 'jsonb', nullable: true })
-  chunkConfig!: Record<string, unknown> | null
-
-  @Column({ type: 'text', nullable: true })
-  summary!: string | null
+  chunkConfig!: StructureAwareChunkConfig | null
 
   @Column({ type: 'text', nullable: true })
   contentPreview!: string | null
@@ -68,11 +55,7 @@ export class KnowledgeDocumentEntity {
   @UpdateDateColumn()
   updatedAt!: Date
 
-
   @ManyToOne(() => KnowledgeBaseEntity, (knowledgeBase) => knowledgeBase.documents, { onDelete: 'CASCADE' })
   @JoinColumn()
   knowledgeBase!: KnowledgeBaseEntity
-
-  @OneToMany(() => KnowledgeChunkEntity, (chunk) => chunk.document)
-  chunks!: KnowledgeChunkEntity[]
 }

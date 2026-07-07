@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { KnowledgeFileService } from './composables/knowledge-file.service'
 import { KnowledgeController } from './knowledge.controller'
 import { KnowledgeService } from './knowledge.service'
 import { EmbeddingService } from './composables/embedding.service'
@@ -9,15 +10,21 @@ import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
 import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
 import { KnowledgeQaService } from './composables/knowledge-qa.service'
 @Module({
-  imports:[
+  imports: [
     TypeOrmModule.forFeature([
       KnowledgeBaseEntity,
       KnowledgeDocumentEntity,
-      KnowledgeChunkEntity,
+      KnowledgeChunkEntity
     ])
   ],
   controllers: [KnowledgeController],
-  providers: [KnowledgeService, EmbeddingService, KnowledgeVectorStoreService, KnowledgeQaService],
+  providers: [
+    KnowledgeService,
+    KnowledgeFileService,
+    EmbeddingService,
+    KnowledgeVectorStoreService,
+    KnowledgeQaService
+  ],
   exports: [KnowledgeService, EmbeddingService, KnowledgeVectorStoreService, KnowledgeQaService]
 })
 export class KnowledgeModule {}

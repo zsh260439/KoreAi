@@ -4,9 +4,21 @@ import {
   deleteKnowledgeDocumentAPI,
   findKnowledgeDocumentAPI,
   findKnowledgeDocumentsAPI,
+  uploadKnowledgeDocumentAPI,
   updateKnowledgeDocumentAPI
 } from '@/servers/knowledge'
-import type { CreateKnowledgeDocumentInput, KnowledgeDocument, UpdateKnowledgeDocumentInput } from 'share-type'
+import type {
+  CreateKnowledgeDocumentInput,
+  KnowledgeDocument,
+  StructureAwareChunkConfig,
+  UpdateKnowledgeDocumentInput
+} from 'share-type'
+
+type UploadKnowledgeDocumentInput = {
+  file: File
+  name: string
+  chunkConfig?: StructureAwareChunkConfig
+}
 
 const documents = ref<KnowledgeDocument[]>([])
 const currentDocument = ref<KnowledgeDocument | null>(null)
@@ -20,7 +32,7 @@ export function useKnowledgeDocuments() {
 
     try {
       const response = await findKnowledgeDocumentsAPI(kbId)
-      documents.value = response.data ?? []
+      documents.value = response.data
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载文档失败'
     } finally {
@@ -34,7 +46,7 @@ export function useKnowledgeDocuments() {
 
     try {
       const response = await findKnowledgeDocumentAPI(docId)
-      currentDocument.value = response.data ?? null
+      currentDocument.value = response.data
       return currentDocument.value
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载文档详情失败'
@@ -49,13 +61,20 @@ export function useKnowledgeDocuments() {
     const response = await createKnowledgeDocumentAPI(kbId, {
       name: payload.name.trim(),
       storagePath: payload.storagePath.trim(),
-      chunkStrategy: payload.chunkStrategy?.trim() || undefined,
       chunkConfig: payload.chunkConfig
     })
 
-    if (!response.data) {
-      throw new Error('创建文档失败')
-    }
+    const created = response.data
+    documents.value = [created, ...documents.value]
+    return created
+  }
+
+  const uploadKnowledgeDocument = async (kbId: string, payload: UploadKnowledgeDocumentInput) => {
+    const response = await uploadKnowledgeDocumentAPI(kbId, {
+      file: payload.file,
+      name: payload.name.trim(),
+      chunkConfig: payload.chunkConfig
+    })
 
     const created = response.data
     documents.value = [created, ...documents.value]
@@ -65,13 +84,8 @@ export function useKnowledgeDocuments() {
   const updateKnowledgeDocument = async (docId: string, payload: UpdateKnowledgeDocumentInput) => {
     const response = await updateKnowledgeDocumentAPI(docId, {
       name: payload.name?.trim(),
-      chunkStrategy: payload.chunkStrategy?.trim(),
       chunkConfig: payload.chunkConfig
     })
-
-    if (!response.data) {
-      throw new Error('更新文档失败')
-    }
 
     const updated = response.data
     currentDocument.value = updated
@@ -81,10 +95,6 @@ export function useKnowledgeDocuments() {
 
   const removeKnowledgeDocument = async (docId: string) => {
     const response = await deleteKnowledgeDocumentAPI(docId)
-
-    if (!response.data) {
-      throw new Error('删除文档失败')
-    }
 
     if (currentDocument.value?.id === docId) {
       currentDocument.value = null
@@ -102,6 +112,7 @@ export function useKnowledgeDocuments() {
     loadKnowledgeDocuments,
     loadKnowledgeDocument,
     createKnowledgeDocument,
+    uploadKnowledgeDocument,
     updateKnowledgeDocument,
     removeKnowledgeDocument
   }

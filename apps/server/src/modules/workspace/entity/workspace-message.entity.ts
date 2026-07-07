@@ -48,9 +48,7 @@ export class WorkspaceMessageEntity {
   @CreateDateColumn()
   createdAt!: Date
 
-  @ManyToOne(() => WorkspaceConversationEntity, (conversation) => conversation.messages, {
-    onDelete: 'CASCADE'
-  })
+  @ManyToOne(() => WorkspaceConversationEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'conversationId' })
   conversation!: WorkspaceConversationEntity
 }

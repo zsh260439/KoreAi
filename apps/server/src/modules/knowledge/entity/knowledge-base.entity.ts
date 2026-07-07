@@ -16,13 +16,6 @@ export class KnowledgeBaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status!: KnowledgeBaseStatus
 
-  @Column({
-    type: 'varchar',
-    length: 100,
-    nullable: true
-  })
-  embeddingModel!: string | null
-
   @CreateDateColumn()
   createdAt!: Date
 

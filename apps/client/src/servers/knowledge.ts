@@ -7,6 +7,7 @@ import type {
   KnowledgeDocument,
   KnowledgeSearchHit,
   KnowledgeSearchInput,
+  StructureAwareChunkConfig,
   UpdateKnowledgeBaseInput,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
@@ -44,6 +45,21 @@ export const findKnowledgeDocumentAPI = (docId: string) => {
 // 在指定知识库下创建文档
 export const createKnowledgeDocumentAPI = (kbId: string, dto: CreateKnowledgeDocumentInput) => {
   return request<KnowledgeDocument>(`knowledge/bases/${kbId}/documents`, 'POST', dto)
+}
+
+export const uploadKnowledgeDocumentAPI = (
+  kbId: string,
+  payload: { file: File; name: string; chunkConfig?: StructureAwareChunkConfig }
+) => {
+  const formData = new FormData()
+  formData.append('file', payload.file)
+  formData.append('name', payload.name)
+
+  if (payload.chunkConfig) {
+    formData.append('chunkConfig', JSON.stringify(payload.chunkConfig))
+  }
+
+  return request<KnowledgeDocument>(`knowledge/bases/${kbId}/documents/upload`, 'POST', formData)
 }
 
 // 根据文档 ID 获取分块列表

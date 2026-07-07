@@ -25,8 +25,7 @@ const props = withDefaults(
   }>(),
   {
     capabilities: () => ({
-      think: false,
-      search: false
+      think: false
     }),
     disabled: false,
     knowledgeBases: () => [],
@@ -48,8 +47,7 @@ const thinkEnabled = ref(false)
 
 //声明输入框能力开关
 const promptCapabilities = computed<WorkspacePromptCapabilities>(() => ({
-  think: thinkEnabled.value,
-  search: false
+  think: thinkEnabled.value
 }))
 
 const hasContent = computed(() => props.modelValue.trim().length > 0)

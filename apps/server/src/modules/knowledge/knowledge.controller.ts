@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import type {
   KnowledgeBase,
   KnowledgeChunk,
@@ -6,6 +7,7 @@ import type {
   KnowledgeSearchHit
 } from 'share-type'
 import { ApiResponse } from '../../common/api-response'
+import type { UploadedKnowledgeDocumentFile } from './composables/knowledge-file.service'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto'
@@ -13,11 +15,16 @@ import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto'
 import { UpdateKnowledgeDocumentDto } from './dto/update-knowledge-document.dto'
 import { KnowledgeService } from './knowledge.service'
 
+type UploadKnowledgeDocumentBody = {
+  name?: string
+  chunkConfig?: string
+}
+
 @Controller('knowledge')
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) {}
 
-  //声明知识库最小搜索接口
+  //声明知识库搜索接口
   @Post('search')
   async searchKnowledge(@Body() dto: SearchKnowledgeDto): Promise<ApiResponse<KnowledgeSearchHit[]>> {
     const data = await this.knowledgeService.searchKnowledge(dto)
@@ -33,9 +40,7 @@ export class KnowledgeController {
 
   //声明知识库创建接口
   @Post('bases')
-  async createKnowledgeBase(
-    @Body() dto: CreateKnowledgeBaseDto
-  ): Promise<ApiResponse<KnowledgeBase>> {
+  async createKnowledgeBase(@Body() dto: CreateKnowledgeBaseDto): Promise<ApiResponse<KnowledgeBase>> {
     const data = await this.knowledgeService.createKnowledgeBase(dto)
     return ApiResponse.success(0, '创建成功', data)
   }
@@ -52,9 +57,7 @@ export class KnowledgeController {
 
   //声明知识库文档列表查询接口
   @Get('bases/:kbId/documents')
-  async findKnowledgeDocuments(
-    @Param('kbId') kbId: string
-  ): Promise<ApiResponse<KnowledgeDocument[]>> {
+  async findKnowledgeDocuments(@Param('kbId') kbId: string): Promise<ApiResponse<KnowledgeDocument[]>> {
     const data = await this.knowledgeService.findKnowledgeDocuments(kbId)
     return ApiResponse.success(0, '查询成功', data)
   }
@@ -76,6 +79,24 @@ export class KnowledgeController {
     return ApiResponse.success(0, '创建成功', data)
   }
 
+  //声明知识库文档上传接口
+  @Post('bases/:kbId/documents/upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 20 * 1024 * 1024
+      }
+    })
+  )
+  async uploadKnowledgeDocument(
+    @Param('kbId') kbId: string,
+    @Body() body: UploadKnowledgeDocumentBody,
+    @UploadedFile() file?: UploadedKnowledgeDocumentFile
+  ): Promise<ApiResponse<KnowledgeDocument>> {
+    const data = await this.knowledgeService.uploadKnowledgeDocument(kbId, body, file)
+    return ApiResponse.success(0, '上传成功', data)
+  }
+
   //声明文档 chunk 列表查询接口
   @Get('documents/:docId/chunks')
   async findDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
@@ -85,18 +106,14 @@ export class KnowledgeController {
 
   //声明文档 chunk 重建接口
   @Post('documents/:docId/chunks/rebuild')
-  async rebuildDocumentChunks(
-    @Param('docId') docId: string
-  ): Promise<ApiResponse<KnowledgeChunk[]>> {
+  async rebuildDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
     const data = await this.knowledgeService.rebuildDocumentChunks(docId)
     return ApiResponse.success(0, '重新切分成功', data)
   }
 
   //声明单文档删除接口
   @Delete('documents/:docId')
-  async deleteKnowledgeDocument(
-    @Param('docId') docId: string
-  ): Promise<ApiResponse<KnowledgeDocument>> {
+  async deleteKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.knowledgeService.deleteKnowledgeDocument(docId)
     return ApiResponse.success(0, '删除成功', data)
   }

@@ -111,7 +111,7 @@ export const flowScenarios: FlowScenario[] = [
     title: '知识库后台功能链路',
     area: 'knowledge-admin',
     summary:
-      '覆盖文档创建、storagePath 持久化、chunk 重建、embedding 生成、混合召回，以及命中预览跳转。',
+      '覆盖浏览器拖拽上传落盘、文档创建、chunk 重建、embedding 生成、混合召回，以及命中预览跳转。',
     functionIds: [
       'documents-submit-upload',
       'knowledge-documents-create',
@@ -1174,41 +1174,39 @@ export const functionDocs: FunctionDoc[] = [
     area: 'knowledge-admin',
     layer: 'view',
     summary:
-      '这是知识库后台“新建文档”对话框真正提交的地方，它把 storagePath、chunkStrategy 和 chunkConfig 打包后交给文档 composable。',
+      '这是知识库后台“上传文档”对话框真正提交的地方，它把浏览器里的文件对象和 chunkConfig 一起交给文档 composable，并在建档后自动触发切块。',
     code: [
       'const submitUpload = async () => {',
       '  const payload: KnowledgeDocumentUploadForm = {',
-      "    name: uploadName.value.trim() || '新文档',",
-      '    storagePath: uploadStoragePath.value.trim(),',
-      '    chunkStrategy: uploadChunkStrategy.value,',
-      '    chunkConfig: buildChunkConfigText(uploadChunkStrategy.value)',
+      "    name: uploadName.value.trim() || resolveUploadFileName(selectedUploadFile.value.name) || '新文档',",
+      '    file: selectedUploadFile.value,',
+      '    chunkConfig: buildChunkConfigText()',
       '  }',
       '',
-      '  await createKnowledgeDocument(kbId.value, {',
+      '  const created = await uploadKnowledgeDocument(kbId.value, {',
       '    name: payload.name,',
-      '    storagePath: payload.storagePath,',
-      '    chunkStrategy: payload.chunkStrategy,',
+      '    file: payload.file,',
       '    chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined',
       '  })',
       '',
-      '  await loadKnowledgeBases()',
+      '  await rebuildKnowledgeChunks(created.id)',
       '  resetUploadDialog()',
       '}'
     ],
     comments: [
       {
-        title: '这里真正把 storagePath 送给后端',
+        title: '这里真正把浏览器文件送给后端',
         start: 2,
         end: 6,
         detail:
-          '文档页不会把文件正文直接传给后端，而是把本地 storagePath 与 chunk 配置作为文档元信息提交。真正读取正文发生在后端重建 chunk 时。'
+          '文档页现在会把拖拽选择的原始文件通过 multipart/form-data 上传给后端。后端先落盘，再把生成的 storagePath 写入文档记录。'
       },
       {
         title: 'chunkConfig 先序列化再反序列化',
         start: 8,
         end: 13,
         detail:
-          '页面内部把不同分块策略统一先转成文本，再在提交前解析为对象，这样同一套表单能承载 fixed_size 和 structure_aware 两种配置。'
+          '页面内部先把分块配置序列化成文本，再在提交前解析为对象，避免表单层直接处理对象引用带来的同步复杂度。'
       }
     ],
     callers: [],
@@ -1216,27 +1214,22 @@ export const functionDocs: FunctionDoc[] = [
   },
   {
     id: 'knowledge-documents-create',
-    title: '文档 composable 创建函数',
-    symbol: 'createKnowledgeDocument',
+    title: '文档 composable 上传函数',
+    symbol: 'uploadKnowledgeDocument',
     owner: 'useKnowledgeDocuments.ts',
     file: 'apps/client/src/composables/useKnowledgeDocuments.ts',
-    lookupHint: '搜索 `const createKnowledgeDocument = async (`',
+    lookupHint: '搜索 `const uploadKnowledgeDocument = async (`',
     area: 'knowledge-admin',
     layer: 'composable',
     summary:
-      '这里负责把页面层 payload 交给前端请求层，并在成功后同步更新 documents 列表。',
+      '这里负责把页面层的文件对象封装成 FormData 交给请求层，并在成功后同步更新 documents 列表。',
     code: [
-      'const createKnowledgeDocument = async (kbId: string, payload: CreateKnowledgeDocumentInput) => {',
-      '  const response = await createKnowledgeDocumentAPI(kbId, {',
+      'const uploadKnowledgeDocument = async (kbId: string, payload: UploadKnowledgeDocumentInput) => {',
+      '  const response = await uploadKnowledgeDocumentAPI(kbId, {',
+      '    file: payload.file,',
       '    name: payload.name.trim(),',
-      '    storagePath: payload.storagePath.trim(),',
-      "    chunkStrategy: payload.chunkStrategy?.trim() || undefined,",
       '    chunkConfig: payload.chunkConfig',
       '  })',
-      '',
-      '  if (!response.data) {',
-      "    throw new Error('create document failed')",
-      '  }',
       '',
       '  const created = response.data',
       '  documents.value = [created, ...documents.value]',
@@ -1260,64 +1253,52 @@ export const functionDocs: FunctionDoc[] = [
       }
     ],
     callers: [{ id: 'documents-submit-upload', label: '来自文档页 submitUpload' }],
-    callees: [{ id: 'knowledge-service-create-document', label: '最终落到后端 createKnowledgeDocument' }]
+    callees: [{ id: 'knowledge-service-create-document', label: '最终落到后端 uploadKnowledgeDocument' }]
   },
   {
     id: 'knowledge-service-create-document',
-    title: '后端创建文档记录',
-    symbol: 'createKnowledgeDocument',
+    title: '后端上传并建档',
+    symbol: 'uploadKnowledgeDocument',
     owner: 'knowledge.service.ts',
     file: 'apps/server/src/modules/knowledge/knowledge.service.ts',
-    lookupHint: '搜索 `async createKnowledgeDocument(`',
+    lookupHint: '搜索 `async uploadKnowledgeDocument(`',
     area: 'knowledge-admin',
     layer: 'service',
     summary:
-      '这个函数负责为文档建立数据库记录，包括 storagePath、文件类型、chunkStrategy 和初始 chunkConfig，但它此时并不会立刻生成 chunk。',
+      '这个函数先把浏览器上传的文件落到服务端目录，再复用 createKnowledgeDocument 为文档建立数据库记录。',
     code: [
-      'async createKnowledgeDocument(',
+      'async uploadKnowledgeDocument(',
       '  knowledgeBaseId: string,',
-      '  dto: CreateKnowledgeDocumentDto',
+      '  input: UploadKnowledgeDocumentInput,',
+      '  file?: UploadedKnowledgeDocumentFile',
       '): Promise<KnowledgeDocument> {',
-      '  const name = dto.name.trim()',
-      '  const storagePath = dto.storagePath.trim()',
+      '  this.validateUploadedKnowledgeDocument(file)',
+      '  const storagePath = await this.persistUploadedKnowledgeDocument(knowledgeBaseId, file)',
       '',
-      '  ensureSupportedLocalTextFile(storagePath)',
-      '  const fileStats = await this.readLocalFileStats(storagePath)',
-      '  const fileType = inferFileTypeFromPath(storagePath)',
-      '',
-      '  const entity = this.knowledgeDocumentRepo.create({',
-      '    knowledgeBaseId,',
-      '    name,',
-      "    sourceType: 'file',",
+      '  return await this.createKnowledgeDocument(knowledgeBaseId, {',
+      "    name: input.name?.trim() || removeFileExtension(file.originalname) || '新文档',",
       '    storagePath,',
-      '    fileType,',
-      '    fileSizeBytes: String(fileStats.size),',
-      "    chunkStrategy: dto.chunkStrategy?.trim() || 'fixed_size',",
-      '    chunkConfig: dto.chunkConfig ?? { chunkSize: 500, overlap: 100 },',
-      "    status: 'pending'",
+      '    chunkConfig: parseUploadedChunkConfig(input.chunkConfig)',
       '  })',
-      '',
-      '  const created = await this.knowledgeDocumentRepo.save(entity)',
-      '  return toKnowledgeDocument(created)',
       '}'
     ],
     comments: [
       {
-        title: '这里只创建文档记录，不做切块',
-        start: 8,
-        end: 10,
+        title: '上传和建档是两步串联',
+        start: 5,
+        end: 9,
         detail:
-          'storagePath 会先被校验并写进文档记录，但真正读取正文、切块和生成 embedding 要等到 rebuildDocumentChunks 执行时才发生。'
+          '上传接口不会直接把文件内容塞进数据库，而是先落到服务端目录，再把生成的 storagePath 交给原有建档逻辑。这样旧链路和新链路能共存。'
       },
       {
-        title: 'chunk 配置在文档记录阶段就定稿',
-        start: 12,
-        end: 20,
+        title: '真正切块仍由 rebuild 负责',
+        start: 11,
+        end: 15,
         detail:
-          '文档记录里已经包含 chunkStrategy 和 chunkConfig，这样后续任何一次 rebuild 都可以复用当前保存的分块策略。'
+          '上传成功后拿到的依然是 pending 文档记录；文档页会紧接着触发 rebuildDocumentChunks，把文本解析、切块和 embedding 生成串起来。'
       }
     ],
-    callers: [{ id: 'knowledge-documents-create', label: '由前端 createKnowledgeDocumentAPI 触发' }],
+    callers: [{ id: 'knowledge-documents-create', label: '由前端 uploadKnowledgeDocumentAPI 触发' }],
     callees: [{ id: 'knowledge-service-rebuild-chunks', label: '后续通常会在文档页触发分块重建' }]
   },
   {

@@ -1,12 +1,6 @@
-import type { StructuredBlock } from './knowledge-document.parser'
+import type { StructureAwareChunkConfig } from 'share-type'
 
-//声明 chunk 构建配置
-export type ChunkBuilderConfig = {
-  targetChars: number
-  maxChars: number
-  minChars: number
-  overlapChars: number
-}
+import type { StructuredBlock } from './knowledge-document.parser'
 
 //声明 chunk 构建结果
 export type ChunkDraft = {
@@ -16,7 +10,10 @@ export type ChunkDraft = {
 }
 
 //声明结构化 chunk 构建入口
-export function buildChunksFromBlocks(blocks: StructuredBlock[], config: ChunkBuilderConfig): ChunkDraft[] {
+export function buildChunksFromBlocks(
+  blocks: StructuredBlock[],
+  config: StructureAwareChunkConfig
+): ChunkDraft[] {
   const drafts: ChunkDraft[] = []
   let currentBlocks: StructuredBlock[] = []
   let currentLength = 0
@@ -55,7 +52,7 @@ function buildBlockText(block: StructuredBlock): string {
 function shouldFlushCurrentChunk(
   currentLength: number,
   nextBlockLength: number,
-  config: ChunkBuilderConfig
+  config: StructureAwareChunkConfig
 ): boolean {
   if (currentLength >= config.targetChars) {
     return true

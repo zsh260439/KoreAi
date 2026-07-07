@@ -44,14 +44,10 @@ const activeChunkHasBlocks = computed(() => activeChunkBlocks.value.length > 0)
 //声明当前弹窗审阅提示文案
 const activeChunkReviewHint = computed(() => {
   if (activeChunkHasBlocks.value) {
-    return '当前 chunk 包含结构化 block，适合直接检查切分边界、路径归属和附加元数据。'
+    return '当前 chunk 包含结构化 block，适合直接检查切分边界、章节路径和附加元数据。'
   }
 
-  if (currentDocument.value?.chunkStrategy === 'fixed-size') {
-    return '当前文档使用 fixed_size 切分，所以这里不会展示结构化 block。这个弹窗主要用于 review 原文和基础统计。'
-  }
-
-  return '当前 chunk 没有可展示的结构化 block，说明这一段只保留了基础 chunk 数据。'
+  return '当前 chunk 没有结构化 block 数据，页面只展示基础 chunk 信息。'
 })
 
 //声明当前弹窗概览信息
@@ -87,10 +83,6 @@ const documentFacts = computed(() => [
     value: getDocumentStatusLabel(currentDocument.value?.status)
   },
   {
-    label: '切分策略',
-    value: getChunkStrategyLabel(currentDocument.value?.chunkStrategy)
-  },
-  {
     label: '文件类型',
     value: formatDocumentFileType(currentDocument.value?.fileType)
   },
@@ -103,16 +95,17 @@ const documentFacts = computed(() => [
 //声明表格说明文案
 const tableCaption = computed(() => {
   if (highlightedChunkId.value) {
-    return '当前列表已自动定位到搜索命中的 chunk，方便直接检查召回质量和结构切分结果。'
+    return '当前列表已自动定位到搜索命中的 chunk，便于直接检查召回质量和结构切分结果。'
   }
 
-  return '列表按 chunk 顺序展示，重点保留结构路径、偏移范围、页码和块类型，方便逐条 review。'
+  return '列表按 chunk 顺序展示，重点保留结构路径、偏移范围、页码和 block 类型，方便逐条 review。'
 })
 
 //声明重新分块处理
 const rebuildChunks = async () => {
   await rebuildKnowledgeChunks(docId.value)
   await loadKnowledgeDocument(docId.value)
+  await loadKnowledgeChunks(docId.value)
   ElMessage.success('文档已重新分块')
   await scrollToHighlightedChunk()
 }
@@ -187,19 +180,6 @@ function getDocumentStatusLabel(status?: string | null): string {
   return '-'
 }
 
-//声明切分策略文案映射
-function getChunkStrategyLabel(strategy?: string | null): string {
-  if (strategy === 'structure') {
-    return '结构化切分'
-  }
-
-  if (strategy === 'fixed-size') {
-    return '固定长度切分'
-  }
-
-  return strategy || '-'
-}
-
 //声明文档类型文案格式化
 function formatDocumentFileType(fileType?: string | null): string {
   if (!fileType) {
@@ -233,7 +213,7 @@ function getChunkPrimaryPath(chunk: KnowledgeChunk | null | undefined): string {
   }
 
   const metadata = getChunkMetadata(chunk)
-  const metadataPath = metadata?.sectionPaths?.find((item) => Array.isArray(item) && item.length > 0) ?? []
+  const metadataPath = metadata?.sectionPaths?.find((item) => item.length > 0) ?? []
   return formatSectionPath(metadataPath)
 }
 
@@ -248,10 +228,6 @@ function getChunkStructureStatus(chunk: KnowledgeChunk | null | undefined): stri
   const count = getChunkBlockCount(chunk)
   if (count > 0) {
     return `${count} 个结构块`
-  }
-
-  if (currentDocument.value?.chunkStrategy === 'fixed-size') {
-    return '固定切分，无结构块'
   }
 
   return '无结构块元数据'
@@ -383,7 +359,7 @@ onMounted(async () => {
       <div class="chunk-stage__copy">
         <h1 class="chunk-stage__title">{{ currentDocument?.name || '结构查看' }}</h1>
         <p class="chunk-stage__subtitle">
-          这个页面只做 review，不做花哨展示。重点是快速看清 chunk 的结构来源、切分范围和真实内容，方便判断当前解析链路是否稳定。
+          这个页面只做 review，不做花哨展示。重点是快速查看每个 chunk 的结构来源、切分范围和真实内容，方便判断当前解析链路是否稳定。
         </p>
       </div>
 
@@ -569,7 +545,7 @@ onMounted(async () => {
           <div class="chunk-dialog__section-title">结构状态</div>
           <p class="chunk-dialog__empty-text">当前 chunk 没有结构化 block 数据。</p>
           <p class="chunk-dialog__empty-subtitle">
-            如果你要 review 结构化切分效果，建议先切换到 `structure` 策略后再查看这个弹窗。
+            如果你要 review 结构化切分效果，这说明当前 chunk 只保留了基础文本，没有附带 block 级元数据。
           </p>
         </section>
 

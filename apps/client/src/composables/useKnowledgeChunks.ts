@@ -13,7 +13,7 @@ export function useKnowledgeChunks() {
 
     try {
       const response = await findDocumentChunksAPI(docId)
-      chunks.value = response.data ?? []
+      chunks.value = response.data
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载分块失败'
     } finally {
@@ -27,7 +27,7 @@ export function useKnowledgeChunks() {
 
     try {
       const response = await rebuildDocumentChunksAPI(docId)
-      chunks.value = response.data ?? []
+      chunks.value = response.data
       return chunks.value
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '重新分块失败'

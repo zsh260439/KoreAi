@@ -18,7 +18,7 @@ export function useKnowledgeBases() {
 
     try {
       const response = await findKnowledgeBasesAPI()
-      knowledgeBases.value = response.data ?? []
+      knowledgeBases.value = response.data
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载知识库失败'
     } finally {
@@ -31,10 +31,6 @@ export function useKnowledgeBases() {
       name: payload.name.trim(),
       description: payload.description?.trim() || undefined
     })
-
-    if (!response.data) {
-      throw new Error('创建知识库失败')
-    }
 
     const created = response.data
     knowledgeBases.value = [created, ...knowledgeBases.value]
@@ -50,10 +46,6 @@ export function useKnowledgeBases() {
       description: payload.description?.trim()
     })
 
-    if (!response.data) {
-      throw new Error('更新知识库失败')
-    }
-
     const updated = response.data
     knowledgeBases.value = knowledgeBases.value.map((item) => (item.id === kbId ? updated : item))
     return updated
@@ -61,11 +53,6 @@ export function useKnowledgeBases() {
 
   const removeKnowledgeBase = async (kbId: string) => {
     const response = await deleteKnowledgeBaseAPI(kbId)
-
-    if (!response.data) {
-      throw new Error('删除知识库失败')
-    }
-
     knowledgeBases.value = knowledgeBases.value.filter((item) => item.id !== kbId)
     return response.data
   }

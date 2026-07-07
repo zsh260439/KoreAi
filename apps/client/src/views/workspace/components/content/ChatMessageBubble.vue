@@ -57,7 +57,7 @@ const liveNowMs = ref(Date.now())
 
 const responseFlow = computed(() => props.message.responseFlow)
 const promptCapabilities = computed(
-  () => props.message.promptCapabilities ?? { think: false, search: false }
+  () => props.message.promptCapabilities ?? { think: false }
 )
 const processStages = computed(() => responseFlow.value?.thinking ?? [])
 

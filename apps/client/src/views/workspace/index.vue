@@ -27,11 +27,10 @@ const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
 const composerValue = ref('')
 const selectedKnowledgeBaseId = ref('')
 const currentPromptCapabilities = ref<WorkspacePromptCapabilities>({
-  think: false,
-  search: false
+  think: false
 })
 const promptBoxRef = ref<InstanceType<typeof WorkspacePromptBox> | null>(null)
-const chatAutoScroll = useAutoScroll(32)
+const chatAutoScroll = useAutoScroll()
 
 const activeConversation = conversationList.activeConversation
 const activeContentList = workspaceChat.activeContentList

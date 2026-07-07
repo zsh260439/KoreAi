@@ -6,7 +6,6 @@ import {
 } from '@/servers/workspace'
 import type { WorkspaceConversationSummary } from 'share-type'
 
-//声明会话列表状态
 const conversations = ref<WorkspaceConversationSummary[]>([])
 const activeConversationId = ref('')
 const isLoading = ref(false)
@@ -23,7 +22,7 @@ export function useConversationList() {
 
     try {
       const response = await findWorkspaceConversationsAPI()
-      conversations.value = response.data ?? []
+      conversations.value = response.data
 
       if (
         activeConversationId.value &&
@@ -48,14 +47,10 @@ export function useConversationList() {
 
   const createConversation = async (title = '新对话') => {
     const response = await createWorkspaceConversationAPI({ title })
-
-    if (!response.data) {
-      throw new Error('创建会话失败')
-    }
-
-    upsertConversation(response.data)
-    activeConversationId.value = response.data.id
-    return response.data
+    const conversation = response.data
+    upsertConversation(conversation)
+    activeConversationId.value = conversation.id
+    return conversation
   }
 
   const upsertConversation = (conversation: WorkspaceConversationSummary) => {

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+﻿import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import type {
@@ -19,6 +19,7 @@ import { WorkspaceMessageEntity } from './entity/workspace-message.entity'
 const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
 const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
 const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
+const KNOWLEDGE_TOP_K = 4
 
 type PreparedChatContext = {
   conversation: WorkspaceConversationEntity
@@ -47,7 +48,7 @@ export class WorkspaceService {
     private readonly workspaceMessageRepo: Repository<WorkspaceMessageEntity>,
     private readonly knowledgeService: KnowledgeService
   ) {}
-  //返回所有对话记录
+
   async findConversations(): Promise<WorkspaceConversationSummary[]> {
     const items = await this.workspaceConversationRepo.find({
       order: { updatedAt: 'DESC' }
@@ -55,13 +56,12 @@ export class WorkspaceService {
 
     return items.map(toWorkspaceConversationSummary)
   }
-  //创建对话记录
+
   async createConversation(
     dto: CreateWorkspaceConversationInput
   ): Promise<WorkspaceConversationSummary> {
-    const title = normalizeConversationTitle(dto.title)
     const entity = this.workspaceConversationRepo.create({
-      title,
+      title: normalizeConversationTitle(dto.title),
       model: null
     })
 
@@ -69,7 +69,6 @@ export class WorkspaceService {
     return toWorkspaceConversationSummary(created)
   }
 
-  //声明删除指定对话记录
   async deleteConversation(conversationId: string): Promise<WorkspaceConversationSummary> {
     const conversation = await this.findConversationEntity(conversationId)
     const summary = toWorkspaceConversationSummary(conversation)
@@ -77,7 +76,6 @@ export class WorkspaceService {
     return summary
   }
 
-  //返回指定对话记录的所有消息
   async findConversationMessages(conversationId: string): Promise<WorkspaceMessage[]> {
     await this.findConversationEntity(conversationId)
 
@@ -111,7 +109,7 @@ export class WorkspaceService {
       {
         query: context.query,
         knowledgeBaseId: dto.knowledgeBaseId,
-        topK: 4,
+        topK: KNOWLEDGE_TOP_K,
         think: dto.think
       },
       { signal: options.signal }
@@ -155,7 +153,7 @@ export class WorkspaceService {
                 id: VISIBLE_REASONING_STAGE_ID,
                 stageKey: 'llm_reasoning',
                 title: '分析问题与证据',
-                subtitle: '正在把命中片段整理成可展示的推理摘要',
+                subtitle: '正在整理可展示的推理摘要',
                 status: 'running'
               }
             }
@@ -183,7 +181,7 @@ export class WorkspaceService {
                 id: ANSWER_SYNTHESIS_STAGE_ID,
                 stageKey: 'answer_synthesis',
                 title: '组织最终回答',
-                subtitle: '正在输出面向用户的完整回复',
+                subtitle: '正在输出面向用户的完整回答',
                 status: 'running'
               }
             }
@@ -204,13 +202,8 @@ export class WorkspaceService {
       }
     }
 
-    if (options.signal?.aborted) {
-      return
-    }
-
     const latencyMs = Date.now() - startedAt
     const totalTokens = await streamResult.totalTokens
-    //声明流式结束后统一校验最终答案不能为空，避免落库空 assistant 消息
     const finalAnswer = answer.trim()
     if (!finalAnswer) {
       throw new BadRequestException(
@@ -254,11 +247,11 @@ export class WorkspaceService {
         )
 
     const promptCapabilities = buildPromptCapabilities(dto.think)
-    const query = dto.regenerate
-      ? await this.prepareConversationRegenerate(conversation.id)
-      : incomingQuery
+    let query = incomingQuery
 
-    if (!dto.regenerate) {
+    if (dto.regenerate) {
+      query = await this.prepareConversationRegenerate(conversation.id)
+    } else {
       await this.workspaceMessageRepo.save(
         this.workspaceMessageRepo.create({
           conversationId: conversation.id,
@@ -272,12 +265,13 @@ export class WorkspaceService {
           promptCapabilities
         })
       )
-      //声明用户消息保存完成后立即刷新会话消息数与首轮标题
-      await this.refreshConversation(conversation.id, {
+
+      await this.refreshConversation(conversation, {
         title: conversation.messageCount === 0 ? buildConversationTitle(query) : conversation.title,
         model: conversation.model
       })
     }
+
     return {
       conversation,
       promptCapabilities,
@@ -302,7 +296,7 @@ export class WorkspaceService {
       })
     )
 
-    const updatedConversation = await this.refreshConversation(input.conversation.id, {
+    const updatedConversation = await this.refreshConversation(input.conversation, {
       title:
         input.conversation.messageCount === 0
           ? buildConversationTitle(input.query)
@@ -334,24 +328,22 @@ export class WorkspaceService {
     }
 
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === 'assistant') {
+    if (lastMessage.role === 'assistant') {
       await this.workspaceMessageRepo.delete({ id: lastMessage.id })
     }
 
     return lastUserMessage.content
   }
 
-  //刷新会话基础信息
   private async refreshConversation(
-    conversationId: string,
+    conversation: WorkspaceConversationEntity,
     patch: {
       title: string
       model: string | null
     }
   ): Promise<WorkspaceConversationEntity> {
-    const conversation = await this.findConversationEntity(conversationId)
     const messageCount = await this.workspaceMessageRepo.count({
-      where: { conversationId }
+      where: { conversationId: conversation.id }
     })
 
     conversation.title = patch.title
@@ -376,13 +368,13 @@ export class WorkspaceService {
 
 function normalizeConversationTitle(value?: string): string {
   const title = value?.trim()
-  return title || '\u65b0\u5bf9\u8bdd'
+  return title || '新对话'
 }
 
 function buildConversationTitle(query: string): string {
   const normalized = query.replace(/\s+/g, ' ').trim()
   if (!normalized) {
-    return '\u65b0\u5bf9\u8bdd'
+    return '新对话'
   }
 
   return normalized.length > 18 ? `${normalized.slice(0, 18)}...` : normalized
@@ -390,8 +382,7 @@ function buildConversationTitle(query: string): string {
 
 function buildPromptCapabilities(think?: boolean): WorkspacePromptCapabilities {
   return {
-    think: Boolean(think),
-    search: false
+    think: Boolean(think)
   }
 }
 
@@ -408,12 +399,7 @@ function normalizePersistedReasoningSteps(
   return items.length ? items : null
 }
 
-//声明思考增量聚合逻辑
 function appendReasoningDelta(reasoningSteps: KnowledgeReasoningStep[], delta: string): void {
-  if (!delta) {
-    return
-  }
-
   if (!reasoningSteps[0]) {
     reasoningSteps[0] = {
       stageKey: 'llm_reasoning',

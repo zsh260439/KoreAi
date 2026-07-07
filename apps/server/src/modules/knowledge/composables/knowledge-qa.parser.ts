@@ -1,21 +1,12 @@
 import type { ChatModelStreamEvent } from '@langchain/core/language_models/event'
-
-export type KnowledgeQaStreamDeltaEvent =
-  | {
-      type: 'thinking_delta'
-      delta: string
-    }
-  | {
-      type: 'answer_delta'
-      delta: string
-    }
+import type { KnowledgeQaDeltaEvent } from 'share-type'
 
 type KnowledgeQaSectionStreamPhase = 'seeking_thinking' | 'thinking' | 'answer'
 
 export type KnowledgeQaSectionStreamState = {
   phase: KnowledgeQaSectionStreamPhase
   buffer: string
-  pendingEvents: KnowledgeQaStreamDeltaEvent[]
+  pendingEvents: KnowledgeQaDeltaEvent[]
 }
 
 const THINKING_HEADER = '## Thinking'
@@ -42,7 +33,7 @@ export function extractStreamingTextDelta(event: ChatModelStreamEvent): string {
 export function parseKnowledgeQaSectionedDelta(
   state: KnowledgeQaSectionStreamState,
   delta: string
-): KnowledgeQaStreamDeltaEvent[] {
+): KnowledgeQaDeltaEvent[] {
   if (!delta) {
     return []
   }
@@ -54,7 +45,7 @@ export function parseKnowledgeQaSectionedDelta(
 
 export function flushKnowledgeQaSectionedDelta(
   state: KnowledgeQaSectionStreamState
-): KnowledgeQaStreamDeltaEvent[] {
+): KnowledgeQaDeltaEvent[] {
   consumeKnowledgeQaSectionStream(state, true)
   return takeKnowledgeQaStreamDeltaEvents(state)
 }
@@ -125,7 +116,7 @@ function findAnswerHeader(
 
 function pushKnowledgeQaStreamDeltaEvent(
   state: KnowledgeQaSectionStreamState,
-  type: KnowledgeQaStreamDeltaEvent['type'],
+  type: KnowledgeQaDeltaEvent['type'],
   delta: string
 ): void {
   if (!delta) {
@@ -140,7 +131,7 @@ function pushKnowledgeQaStreamDeltaEvent(
 
 function takeKnowledgeQaStreamDeltaEvents(
   state: KnowledgeQaSectionStreamState
-): KnowledgeQaStreamDeltaEvent[] {
+): KnowledgeQaDeltaEvent[] {
   const events = state.pendingEvents.slice()
   state.pendingEvents.length = 0
   return events

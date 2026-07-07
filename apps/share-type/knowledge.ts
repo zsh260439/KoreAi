@@ -4,6 +4,23 @@ export type KnowledgeDocumentStatus = 'pending' | 'processing' | 'indexed' | 'fa
 
 export type KnowledgeDocumentSourceType = 'file' | 'url'
 
+export interface StructureAwareChunkConfig {
+  targetChars: number
+  maxChars: number
+  minChars: number
+  overlapChars: number
+}
+
+export type KnowledgeQaDeltaEvent =
+  | {
+      type: 'thinking_delta'
+      delta: string
+    }
+  | {
+      type: 'answer_delta'
+      delta: string
+    }
+
 export interface CreateKnowledgeBaseInput {
   name: string
   description?: string
@@ -17,8 +34,7 @@ export interface UpdateKnowledgeBaseInput {
 export interface CreateKnowledgeDocumentInput {
   name: string
   storagePath: string
-  chunkStrategy?: string
-  chunkConfig?: Record<string, unknown>
+  chunkConfig?: StructureAwareChunkConfig
 }
 
 export interface KnowledgeBase {
@@ -27,7 +43,6 @@ export interface KnowledgeBase {
   description: string
   status: KnowledgeBaseStatus
   documentCount: number
-  embeddingModel: string | null
   createdAt: string
   updatedAt: string
 }
@@ -37,22 +52,18 @@ export interface KnowledgeDocument {
   knowledgeBaseId: string
   name: string
   sourceType: KnowledgeDocumentSourceType
-  sourceLocation: string | null
   storagePath: string | null
   fileType: string | null
   fileSizeBytes: number | null
   status: KnowledgeDocumentStatus
-  enabled: boolean
-  chunkStrategy: string | null
-  chunkConfig: Record<string, unknown> | null
+  chunkConfig: StructureAwareChunkConfig | null
   chunkCount: number
-  summary: string | null
   contentPreview: string | null
   createdAt: string
   updatedAt: string
 }
 
-//声明知识分块内单个结构块结构。
+//声明知识分块结构块类型
 export interface KnowledgeChunkBlock {
   blockType: string
   content: string
@@ -65,7 +76,7 @@ export interface KnowledgeChunkBlock {
   metadata?: Record<string, unknown> | null
 }
 
-//声明知识分块结构化元数据结构。
+//声明知识分块元数据结构
 export interface KnowledgeChunkMetadata {
   knowledgeBaseId: string
   documentId: string
@@ -97,8 +108,7 @@ export interface KnowledgeChunk {
 
 export interface UpdateKnowledgeDocumentInput {
   name?: string
-  chunkStrategy?: string
-  chunkConfig?: Record<string, unknown>
+  chunkConfig?: StructureAwareChunkConfig
 }
 
 export interface KnowledgeSearchInput {
@@ -121,7 +131,7 @@ export type KnowledgeReasoningStepKey =
   | 'deepsearch'
   | 'web_search'
 
-//声明共享推理步骤完整结构
+//声明知识推理步骤结构
 export interface KnowledgeReasoningStep {
   stageKey: KnowledgeReasoningStepKey
   title: string

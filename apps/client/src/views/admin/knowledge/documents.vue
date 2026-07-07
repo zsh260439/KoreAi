@@ -8,18 +8,16 @@ import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
 import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
 import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
 import { useKnowledgeSearch } from '@/composables/useKnowledgeSearch'
-import type { KnowledgeDocument } from 'share-type'
+import type { KnowledgeDocument, StructureAwareChunkConfig } from 'share-type'
 
 type KnowledgeDocumentUploadForm = {
   name: string
-  storagePath: string
-  chunkStrategy: string
+  file: File
   chunkConfig?: string
 }
 
 type KnowledgeDocumentEditForm = {
   name: string
-  chunkStrategy: string
   chunkConfig?: string
 }
 
@@ -27,7 +25,14 @@ const route = useRoute()
 const router = useRouter()
 
 const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
-const { documents, loadKnowledgeDocuments, createKnowledgeDocument, updateKnowledgeDocument, removeKnowledgeDocument } =
+const {
+  documents,
+  loadKnowledgeDocument,
+  loadKnowledgeDocuments,
+  uploadKnowledgeDocument,
+  updateKnowledgeDocument,
+  removeKnowledgeDocument
+} =
   useKnowledgeDocuments()
 const { rebuildKnowledgeChunks } = useKnowledgeChunks()
 const { searchResults, isSearching, error: searchError, searchKnowledge, clearSearchResults } = useKnowledgeSearch()
@@ -47,18 +52,21 @@ const contentSearchInput = ref('')
 const hasSearchedContent = ref(false)
 
 const uploadDialogOpen = ref(false)
+const uploadDropRef = ref<{ clearFiles: () => void } | null>(null)
+const selectedUploadFile = ref<File | null>(null)
+const isSubmittingUpload = ref(false)
 const uploadName = ref('')
-const uploadStoragePath = ref('')
-const uploadChunkStrategy = ref<'structure_aware'>('structure_aware')
 const uploadTargetChars = ref('1400')
 const uploadMaxChars = ref('1800') 
 const uploadMinChars = ref('600')
 const uploadOverlapChars = ref('0')
 
+const uploadAccept = '.txt,.md,.docx,.pdf'
+const maxUploadFileSizeMb = 20
+
 const editDialogOpen = ref(false)
 const activeDocumentId = ref('')
 const editName = ref('')
-const editChunkStrategy = ref<'structure_aware'>('structure_aware')
 const editTargetChars = ref('1400')
 const editMaxChars = ref('1800')
 const editMinChars = ref('600')
@@ -88,8 +96,7 @@ const activeDocumentName = computed(() => activeDocument.value?.name || '-')
 const filteredDocuments = computed(() => {
   const normalized = keyword.value.trim().toLowerCase()
   const list = documents.value.filter((item) => {
-    const matchesKeyword =
-      !normalized || [item.name, item.summary || ''].some((value) => value.toLowerCase().includes(normalized))
+    const matchesKeyword = !normalized || item.name.toLowerCase().includes(normalized)
     const matchesStatus = statusFilter.value === 'all' || item.status === statusFilter.value
     return matchesKeyword && matchesStatus
   })
@@ -116,7 +123,9 @@ const previewResults = computed(() => {
 })
 
 // 解析分块配置
-const parseChunkConfig = (value?: string | Record<string, unknown> | null) => {
+const parseChunkConfig = (
+  value?: string | StructureAwareChunkConfig | Record<string, unknown> | null
+) => {
   if (!value) return {}
 
   if (typeof value === 'string') {
@@ -162,6 +171,68 @@ const formatSize = (value?: number | null) => {
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
   return `${(value / 1024 / 1024).toFixed(1)} MB`
+}
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return '-'
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+
+  const year = parsed.getFullYear()
+  const month = String(parsed.getMonth() + 1).padStart(2, '0')
+  const day = String(parsed.getDate()).padStart(2, '0')
+  const hours = String(parsed.getHours()).padStart(2, '0')
+  const minutes = String(parsed.getMinutes()).padStart(2, '0')
+  const seconds = String(parsed.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const resolveUploadFileName = (value: string) => {
+  const dotIndex = value.lastIndexOf('.')
+  return dotIndex > 0 ? value.slice(0, dotIndex) : value
+}
+
+const validateUploadFile = (file: File) => {
+  const extension = file.name.split('.').pop()?.toLowerCase() || ''
+  const isSupportedType = ['txt', 'md', 'docx', 'pdf'].includes(extension)
+  if (!isSupportedType) {
+    ElMessage.warning('仅支持 txt、md、docx、pdf 文件')
+    return false
+  }
+
+  if (file.size > maxUploadFileSizeMb * 1024 * 1024) {
+    ElMessage.warning(`单个文件大小不能超过 ${maxUploadFileSizeMb} MB`)
+    return false
+  }
+
+  return true
+}
+
+const clearSelectedUploadFile = () => {
+  selectedUploadFile.value = null
+  uploadDropRef.value?.clearFiles()
+}
+
+const handleUploadFileChange = (file: { name: string; raw?: File }) => {
+  if (!file.raw) {
+    return
+  }
+
+  if (!validateUploadFile(file.raw)) {
+    clearSelectedUploadFile()
+    return
+  }
+
+  selectedUploadFile.value = file.raw
+  if (!uploadName.value.trim()) {
+    uploadName.value = resolveUploadFileName(file.name)
+  }
+}
+
+const handleUploadExceed = () => {
+  ElMessage.warning('一次只能选择一个文件，请先移除当前文件')
 }
 
 // 处理文档名称搜索
@@ -213,41 +284,66 @@ const handleRefresh = async () => {
 // 重置上传对话框
 const resetUploadDialog = () => {
   uploadDialogOpen.value = false
+  selectedUploadFile.value = null
+  isSubmittingUpload.value = false
   uploadName.value = ''
-  uploadStoragePath.value = ''
-  uploadChunkStrategy.value = 'structure_aware'
   uploadTargetChars.value = '1400'
   uploadMaxChars.value = '1800'
   uploadMinChars.value = '600'
   uploadOverlapChars.value = '0'
+  uploadDropRef.value?.clearFiles()
 }
 
 // 提交上传文档
 const submitUpload = async () => {
+  if (!selectedUploadFile.value) {
+    ElMessage.warning('请先拖拽或选择一个文档文件')
+    return
+  }
+
+  if (!kbId.value) {
+    ElMessage.warning('当前知识库未加载完成')
+    return
+  }
+
   const payload: KnowledgeDocumentUploadForm = {
-    name: uploadName.value.trim() || '新文档',
-    storagePath: uploadStoragePath.value.trim(),
-    chunkStrategy: uploadChunkStrategy.value,
+    name: uploadName.value.trim() || resolveUploadFileName(selectedUploadFile.value.name) || '新文档',
+    file: selectedUploadFile.value,
     chunkConfig: buildChunkConfigText()
   }
 
-  await createKnowledgeDocument(kbId.value, {
-    name: payload.name,
-    storagePath: payload.storagePath,
-    chunkStrategy: payload.chunkStrategy,
-    chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
-  })
+  isSubmittingUpload.value = true
 
-  await loadKnowledgeBases()
-  ElMessage.success('文档已创建')
-  resetUploadDialog()
+  try {
+    const created = await uploadKnowledgeDocument(kbId.value, {
+      name: payload.name,
+      file: payload.file,
+      chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
+    })
+
+    await rebuildKnowledgeChunks(created.id)
+    const refreshedDocument = await loadKnowledgeDocument(created.id)
+    await loadKnowledgeDocuments(kbId.value)
+    await loadKnowledgeBases()
+
+    if (refreshedDocument?.status === 'failed') {
+      ElMessage.warning('文档已上传，但自动切块失败，请检查文件内容后重试')
+    } else {
+      ElMessage.success('文档已上传，并已开始纳入知识库处理流程')
+    }
+
+    resetUploadDialog()
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '文档上传失败，请稍后重试')
+  } finally {
+    isSubmittingUpload.value = false
+  }
 }
 
 // 打开编辑对话框
 const openEdit = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   editName.value = document.name
-  editChunkStrategy.value = 'structure_aware'
 
   const config = parseChunkConfig(document.chunkConfig)
   editTargetChars.value = String(config.targetChars ?? 1400)
@@ -263,13 +359,11 @@ const submitEdit = async () => {
 
   const payload: KnowledgeDocumentEditForm = {
     name: editName.value.trim(),
-    chunkStrategy: editChunkStrategy.value,
     chunkConfig: buildEditChunkConfigText()
   }
 
   await updateKnowledgeDocument(activeDocument.value.id, {
     name: payload.name,
-    chunkStrategy: payload.chunkStrategy,
     chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
   })
 
@@ -371,7 +465,7 @@ onMounted(async () => {
           </el-button>
           <el-button type="primary" @click="uploadDialogOpen = true">
             <FileUp class="h-4 w-4" />
-            新建文档
+            上传文档
           </el-button>
         </div>
       </div>
@@ -498,7 +592,7 @@ onMounted(async () => {
           <div>
             <h2 class="doc-panel__title">文档列表</h2>
             <p class="doc-panel__desc">
-              当前支持本地 txt / md / docx / pdf 文档，后端会根据 storagePath 读取真实文件并按结构化规则切块。这里的搜索只按文档名称筛选，不会搜索正文内容。
+              当前支持拖拽上传 txt / md / docx / pdf 文档，文件会先上传到服务端，再按结构化规则切块并进入知识库。这里的搜索只按文档名称筛选，不会搜索正文内容。
             </p>
           </div>
 
@@ -550,7 +644,7 @@ onMounted(async () => {
             </el-table-column>
 
             <el-table-column label="更新时间" width="180">
-              <template #default="{ row }">{{ row.updatedAt }}</template>
+              <template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
             </el-table-column>
 
             <el-table-column label="操作" width="230" align="right">
@@ -592,26 +686,41 @@ onMounted(async () => {
       </div>
     </div>
 
-    <el-dialog v-model="uploadDialogOpen" title="新建文档" width="640px" destroy-on-close>
+    <el-dialog v-model="uploadDialogOpen" title="上传文档" width="640px" destroy-on-close>
       <div class="space-y-4">
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">文档名称</div>
-          <el-input v-model="uploadName" placeholder="例如：demo-doc.md / demo-doc.docx / demo-doc.pdf" />
+          <el-input v-model="uploadName" placeholder="默认取上传文件名，可手动调整" />
         </div>
 
         <div>
-          <div class="mb-2 text-sm font-medium text-slate-900">本地文件路径</div>
-          <el-input
-            v-model="uploadStoragePath"
-            placeholder="例如：C:\\Users\\123\\Desktop\\Mustfollow-prompt\\demo-doc.pdf"
-          />
-        </div>
+          <div class="mb-2 text-sm font-medium text-slate-900">上传文件</div>
+          <el-upload
+            ref="uploadDropRef"
+            class="upload-dropzone"
+            drag
+            action="#"
+            :auto-upload="false"
+            :show-file-list="false"
+            :limit="1"
+            :accept="uploadAccept"
+            :on-change="handleUploadFileChange"
+            :on-exceed="handleUploadExceed"
+          >
+            <div class="upload-dropzone__inner">
+              <FileUp class="upload-dropzone__icon" />
+              <p class="upload-dropzone__title">拖拽文件到这里，或点击选择文件</p>
+              <p class="upload-dropzone__hint">支持 txt / md / docx / pdf，单文件不超过 {{ maxUploadFileSizeMb }} MB</p>
+            </div>
+          </el-upload>
 
-        <div>
-          <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
-          <el-select v-model="uploadChunkStrategy" class="w-full">
-            <el-option value="structure_aware" label="structure_aware" />
-          </el-select>
+          <div v-if="selectedUploadFile" class="upload-selected-file">
+            <div>
+              <div class="upload-selected-file__name">{{ selectedUploadFile.name }}</div>
+              <div class="upload-selected-file__meta">{{ formatSize(selectedUploadFile.size) }}</div>
+            </div>
+            <el-button text @click="clearSelectedUploadFile">移除</el-button>
+          </div>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
@@ -637,25 +746,20 @@ onMounted(async () => {
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="resetUploadDialog">取消</el-button>
-          <el-button type="primary" :disabled="!uploadStoragePath.trim()" @click="submitUpload">保存</el-button>
+          <el-button type="primary" :loading="isSubmittingUpload" :disabled="!selectedUploadFile" @click="submitUpload">
+            开始上传
+          </el-button>
         </div>
       </template>
     </el-dialog>
 
     <el-dialog v-model="editDialogOpen" title="编辑文档" width="700px" destroy-on-close>
       <div v-if="activeDocument" class="space-y-4">
-        <p class="text-sm text-slate-500">当前只更新稳定字段：文档名称、分块策略、分块配置。</p>
+        <p class="text-sm text-slate-500">当前只更新稳定字段：文档名称和分块配置。</p>
 
         <div>
           <div class="mb-2 text-sm font-medium text-slate-900">文档名称</div>
           <el-input v-model="editName" />
-        </div>
-
-        <div>
-          <div class="mb-2 text-sm font-medium text-slate-900">分块策略</div>
-          <el-select v-model="editChunkStrategy" class="w-full">
-            <el-option value="structure_aware" label="structure_aware" />
-          </el-select>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
@@ -1160,6 +1264,67 @@ onMounted(async () => {
   padding: 18px 12px 0;
   color: #64748b;
   font-size: 14px;
+}
+
+.upload-dropzone :deep(.el-upload) {
+  width: 100%;
+}
+
+.upload-dropzone :deep(.el-upload-dragger) {
+  width: 100%;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 0;
+}
+
+.upload-dropzone__inner {
+  display: grid;
+  gap: 8px;
+  place-items: center;
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.upload-dropzone__icon {
+  width: 24px;
+  height: 24px;
+  color: #0f766e;
+}
+
+.upload-dropzone__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.upload-dropzone__hint {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.upload-selected-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px 14px;
+}
+
+.upload-selected-file__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.upload-selected-file__meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .status-dot {

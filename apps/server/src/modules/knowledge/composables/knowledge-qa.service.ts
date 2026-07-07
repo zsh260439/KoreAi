@@ -1,6 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
-import type { KnowledgeSearchHit } from 'share-type'
+import type { KnowledgeQaDeltaEvent, KnowledgeSearchHit } from 'share-type'
 import {
   buildKnowledgeQaStreamingSystemPrompt,
   buildKnowledgeQaStreamingUserPrompt
@@ -12,34 +12,21 @@ import {
   parseKnowledgeQaSectionedDelta
 } from './knowledge-qa.parser'
 
-//声明知识问答流式事件结构
-export type KnowledgeQaStreamEvent =
-  | {
-      type: 'thinking_delta'
-      delta: string
-    }
-  | {
-      type: 'answer_delta'
-      delta: string
-    }
+export type KnowledgeQaStreamEvent = KnowledgeQaDeltaEvent
 
-//声明知识问答流式返回结构
 type KnowledgeQaStreamResult = {
   stream: AsyncGenerator<KnowledgeQaStreamEvent>
   totalTokens: Promise<number | null>
 }
 
-//声明模型 usage 元数据结构
 type UsageMetadata = {
   total_tokens?: number
 }
 
 @Injectable()
 export class KnowledgeQaService {
-  //声明延迟复用的大模型客户端实例
   private client: ChatOpenAI | null = null
 
-  //声明执行流式知识问答
   async streamAnswerQuestion(
     query: string,
     hits: KnowledgeSearchHit[],
@@ -64,7 +51,6 @@ export class KnowledgeQaService {
       .then((message) => normalizeTotalTokens(message.usage_metadata))
       .catch(() => null)
 
-    //声明把底层模型流包装成上游可消费的标准事件流
     async function *run(): AsyncGenerator<KnowledgeQaStreamEvent> {
       const sectionStreamState = includeReasoning ? createKnowledgeQaSectionStreamState() : null
 
@@ -96,16 +82,14 @@ export class KnowledgeQaService {
 
     return {
       stream: run(),
-      totalTokens//此时还是pending状态的promise
+      totalTokens
     }
   }
 
-  //声明返回当前配置中的模型名
   getModelName(): string | null {
     return process.env.LLM_MODEL ?? null
   }
 
-  //声明按需初始化并复用大模型客户端
   private getClient(): ChatOpenAI {
     if (this.client) {
       return this.client
@@ -113,8 +97,6 @@ export class KnowledgeQaService {
 
     const apiKey = process.env.LLM_API_KEY
     const model = process.env.LLM_MODEL
-
-    //声明关键环境变量缺失时直接阻止链路继续执行
     if (!apiKey || !model) {
       throw new InternalServerErrorException('LLM API key or model not set')
     }
@@ -132,7 +114,6 @@ export class KnowledgeQaService {
   }
 }
 
-//声明大模型基础地址规范化逻辑
 function normalizeLlmBaseUrl(value?: string): string | undefined {
   if (!value) {
     return undefined
@@ -141,7 +122,6 @@ function normalizeLlmBaseUrl(value?: string): string | undefined {
   return value.replace(/\/chat\/completions\/?$/, '')
 }
 
-//声明 usage 总 token 规范化逻辑
 function normalizeTotalTokens(usage?: UsageMetadata): number | null {
   const value = usage?.total_tokens
   return typeof value === 'number' && Number.isFinite(value) ? value : null

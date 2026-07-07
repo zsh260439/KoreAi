@@ -1,5 +1,4 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
-import { WorkspaceMessageEntity } from './workspace-message.entity'
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 
 @Entity('workspace_conversation')
 export class WorkspaceConversationEntity {
@@ -20,7 +19,4 @@ export class WorkspaceConversationEntity {
 
   @UpdateDateColumn()
   updatedAt!: Date
-
-  @OneToMany(() => WorkspaceMessageEntity, (message) => message.conversation)
-  messages!: WorkspaceMessageEntity[]
 }

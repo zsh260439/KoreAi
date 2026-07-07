@@ -19,23 +19,20 @@ export class EmbeddingService {
     return this.client
   }
 
-  async embedQuery(text: string): Promise<number[]> {
-    const value = text.trim()
-    if (!value) return []
-
-    return this.client.embedQuery(value)
-  }
-
   async embedChunks(texts: string[]): Promise<number[][]> {
     const values = texts.map((item) => item.trim()).filter(Boolean)
-    if (!values.length) return []
+    if (!values.length) {
+      return []
+    }
 
     return this.client.embedDocuments(values)
   }
 }
 
 function normalizeEmbeddingBaseUrl(value?: string): string | undefined {
-  if (!value) return undefined
+  if (!value) {
+    return undefined
+  }
 
   return value.replace(/\/embeddings\/?$/, '')
 }

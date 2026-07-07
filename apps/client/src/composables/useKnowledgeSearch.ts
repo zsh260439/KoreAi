@@ -17,7 +17,7 @@ export function useKnowledgeSearch() {
         query: query.trim()
       })
 
-      searchResults.value = response.data ?? []
+      searchResults.value = response.data
       return searchResults.value
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '搜索知识库失败'
