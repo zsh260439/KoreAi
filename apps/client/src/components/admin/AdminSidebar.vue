@@ -31,7 +31,9 @@ const handleSelect = (path: string) => {
   <aside class="admin-sidebar">
     <div class="admin-sidebar__brand">
       <div class="flex items-center gap-3">
-        <div class="admin-sidebar__logo">R</div>
+        <div class="admin-sidebar__logo-shell">
+          <img class="admin-sidebar__logo" src="/brand-logo.png" alt="Ragent AI" />
+        </div>
         <div class="min-w-0">
           <h1 class="admin-sidebar__title">Ragent AI 管理后台</h1>
           <p class="admin-sidebar__subtitle">Knowledge Console</p>
@@ -72,17 +74,23 @@ const handleSelect = (path: string) => {
   padding: 24px 20px 16px;
 }
 
-.admin-layout .admin-sidebar__logo {
+.admin-layout .admin-sidebar__logo-shell {
   display: flex;
   height: 40px;
   width: 40px;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.admin-layout .admin-sidebar__logo {
+  display: block;
+  height: 28px;
+  width: 28px;
+  object-fit: contain;
 }
 
 .admin-layout .admin-sidebar__title {

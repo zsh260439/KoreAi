@@ -1,12 +1,16 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
+const FORCE_STICK_SETTLE_MS = 900
+
 export const useAutoScroll = (threshold = 32) => {
   const messagesRef = ref<HTMLDivElement>()
   const stickToBottom = ref(true)
+  const forceStickToBottom = ref(false)
+
   let observer: MutationObserver | null = null
   let resizeObserver: ResizeObserver | null = null
+  let settleTimer: number | null = null
 
-  //声明销毁滚动区域变更监听
   const stopObserveContainer = () => {
     observer?.disconnect()
     observer = null
@@ -14,7 +18,14 @@ export const useAutoScroll = (threshold = 32) => {
     resizeObserver = null
   }
 
-  //声明直接同步到底部滚动位置
+  const stopSettleTimer = () => {
+    if (settleTimer !== null) {
+      window.clearTimeout(settleTimer)
+      settleTimer = null
+    }
+  }
+
+  // 聊天首屏和流式跟底都应该瞬时贴底，不做平滑滚动。
   const syncMessagesToBottom = () => {
     const container = messagesRef.value
     if (!container) {
@@ -24,25 +35,39 @@ export const useAutoScroll = (threshold = 32) => {
     container.scrollTop = container.scrollHeight
   }
 
-  //声明监听滚动容器内部异步高度变化
+  const scheduleForceStickRelease = () => {
+    if (!forceStickToBottom.value) {
+      return
+    }
+
+    stopSettleTimer()
+    settleTimer = window.setTimeout(() => {
+      forceStickToBottom.value = false
+      settleTimer = null
+      updateStickToBottom()
+    }, FORCE_STICK_SETTLE_MS)
+  }
+
+  const syncFollowPosition = () => {
+    if (!stickToBottom.value && !forceStickToBottom.value) {
+      return
+    }
+
+    requestAnimationFrame(() => {
+      if (!stickToBottom.value && !forceStickToBottom.value) {
+        return
+      }
+
+      syncMessagesToBottom()
+      scheduleForceStickRelease()
+    })
+  }
+
   const observeContainer = (container?: HTMLDivElement) => {
     stopObserveContainer()
 
     if (!container) {
       return
-    }
-
-    //声明统一处理异步渲染后的跟底动作
-    const syncFollowPosition = () => {
-      if (!stickToBottom.value) {
-        return
-      }
-
-      requestAnimationFrame(() => {
-        if (stickToBottom.value) {
-          syncMessagesToBottom()
-        }
-      })
     }
 
     observer = new MutationObserver(() => {
@@ -55,17 +80,18 @@ export const useAutoScroll = (threshold = 32) => {
       characterData: true
     })
 
-    //声明监听消息内容真实高度变化
+    resizeObserver = new ResizeObserver(() => {
+      syncFollowPosition()
+    })
+
+    resizeObserver.observe(container)
+
     const contentElement = container.firstElementChild
     if (contentElement) {
-      resizeObserver = new ResizeObserver(() => {
-        syncFollowPosition()
-      })
       resizeObserver.observe(contentElement)
     }
   }
 
-  //声明更新是否保持底部吸附
   const updateStickToBottom = () => {
     const container = messagesRef.value
     if (!container) {
@@ -74,10 +100,16 @@ export const useAutoScroll = (threshold = 32) => {
     }
 
     const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight
-    stickToBottom.value = distanceToBottom <= threshold
+    const nextStickToBottom = distanceToBottom <= threshold
+
+    stickToBottom.value = nextStickToBottom
+
+    if (!nextStickToBottom && forceStickToBottom.value) {
+      forceStickToBottom.value = false
+      stopSettleTimer()
+    }
   }
 
-  //声明滚动消息区域到底部
   const scrollMessagesToBottom = async (force = false) => {
     await nextTick()
 
@@ -85,13 +117,24 @@ export const useAutoScroll = (threshold = 32) => {
     if (!container) {
       return
     }
-    // 如果当前滚动位置在底部，且不强制滚动，直接返回
-    if (!force && !stickToBottom.value) {
+
+    if (!force && !stickToBottom.value && !forceStickToBottom.value) {
       return
     }
-    //声明滚动到最底部
+
     syncMessagesToBottom()
     stickToBottom.value = true
+  }
+
+  const startForceStickToBottom = () => {
+    forceStickToBottom.value = true
+    stickToBottom.value = true
+    scheduleForceStickRelease()
+  }
+
+  const stopForceStickToBottom = () => {
+    forceStickToBottom.value = false
+    stopSettleTimer()
   }
 
   watch(messagesRef, (container) => {
@@ -100,11 +143,15 @@ export const useAutoScroll = (threshold = 32) => {
 
   onBeforeUnmount(() => {
     stopObserveContainer()
+    stopSettleTimer()
   })
 
   return {
     messagesRef,
     stickToBottom,
+    forceStickToBottom,
+    startForceStickToBottom,
+    stopForceStickToBottom,
     updateStickToBottom,
     scrollMessagesToBottom
   }

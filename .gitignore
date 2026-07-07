@@ -41,5 +41,6 @@ scripts/ragas_eval/corpus_manifest.json
 scripts/ragas_eval/eval_dataset.json
 scripts/ragas_eval/ragas_progress.json
 scripts/ragas_eval/ragas_report.json
-AGENTS.md*
-MEMORY.md*
+AGENTS.md
+MEMORY.md
+PRODUCT.md

@@ -21,6 +21,7 @@
 ## Known Decisions
 - Knowledge-base document upload has been upgraded to real browser file upload instead of fake `storagePath` input.
 - Knowledge-base list `documentCount` should be counted from the document table, not inferred from ORM relation length.
+- Workspace chat first-screen history loading uses composable-level force-stick-to-bottom with DOM growth observers, instead of child-component rendered event plumbing.
 
 ## Validation Habits
 - For backend changes, prefer at least `pnpm --filter server build`.

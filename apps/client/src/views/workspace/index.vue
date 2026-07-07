@@ -30,18 +30,28 @@ const currentPromptCapabilities = ref<WorkspacePromptCapabilities>({
   think: false
 })
 const promptBoxRef = ref<InstanceType<typeof WorkspacePromptBox> | null>(null)
-const chatAutoScroll = useAutoScroll()
+const autoScroll = useAutoScroll()
+const {
+  stickToBottom,
+  forceStickToBottom,
+  startForceStickToBottom,
+  stopForceStickToBottom,
+  updateStickToBottom,
+  scrollMessagesToBottom
+} = autoScroll
 
 const activeConversation = conversationList.activeConversation
 const activeContentList = workspaceChat.activeContentList
 const hasContent = computed(() => activeContentList.value.length > 0)
+const showConversationHydrating = computed(
+  () => hasContent.value && forceStickToBottom.value && !messagesLoading.value
+)
 const activeConversationId = conversationList.activeConversationId
 const conversationListLoading = conversationList.isLoading
 const conversationListError = conversationList.error
 const messagesLoading = workspaceChat.isLoadingMessages
 const isStreaming = workspaceChat.isStreaming
 const regenerating = workspaceChat.regenerating
-
 const formatConversationTime = (value: string) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
@@ -89,17 +99,18 @@ const isConversationStreaming = (conversationId: string) =>
 watch(
   activeContentList,
   async () => {
-    await chatAutoScroll.scrollMessagesToBottom()
+    await scrollMessagesToBottom()
   },
   { deep: true }
 )
 
 const handleConversationSelect = async (conversationId: string) => {
   conversationList.selectConversation(conversationId)
+  startForceStickToBottom()
   await workspaceChat.loadConversationMessages(conversationId)
   composerValue.value = ''
   await router.push(`/workspace/${conversationId}`)
-  await chatAutoScroll.scrollMessagesToBottom(true)
+  await scrollMessagesToBottom(true)
 }
 
 const handleConversationDelete = async (conversationId: string) => {
@@ -117,10 +128,11 @@ const handleConversationDelete = async (conversationId: string) => {
 }
 
 const handleCreateConversation = async () => {
+  stopForceStickToBottom()
   const conversation = await conversationList.createConversation()
   composerValue.value = ''
   await router.push(`/workspace/${conversation.id}`)
-  await chatAutoScroll.scrollMessagesToBottom(true)
+  await scrollMessagesToBottom(true)
 }
 
 const handleSend = async (payload: {
@@ -149,7 +161,7 @@ const openAdmin = () => {
 }
 
 const handleScrollToBottom = () => {
-  void chatAutoScroll.scrollMessagesToBottom(true)
+  void scrollMessagesToBottom(true)
 }
 
 watch(
@@ -157,8 +169,9 @@ watch(
   async (conversationId) => {
     if (typeof conversationId === 'string' && conversationId) {
       conversationList.selectConversation(conversationId)
+      startForceStickToBottom()
       await workspaceChat.loadConversationMessages(conversationId)
-      await chatAutoScroll.scrollMessagesToBottom(true)
+      await scrollMessagesToBottom(true)
     }
   }
 )
@@ -186,10 +199,11 @@ onMounted(async () => {
 
   if (conversationId) {
     conversationList.selectConversation(conversationId)
+    startForceStickToBottom()
     await workspaceChat.loadConversationMessages(conversationId)
   }
 
-  await chatAutoScroll.scrollMessagesToBottom(true)
+  await scrollMessagesToBottom(true)
 })
 </script>
 
@@ -255,19 +269,20 @@ onMounted(async () => {
 
         <div class="relative min-h-0 flex-1 bg-white">
           <div
-            :ref="chatAutoScroll.messagesRef"
+            :ref="autoScroll.messagesRef"
             class="h-full overflow-y-auto bg-white"
-            @scroll="chatAutoScroll.updateStickToBottom"
+            @scroll="updateStickToBottom"
           >
             <div class="mx-auto w-full max-w-[920px] px-6 py-8">
               <template v-if="conversationListLoading || messagesLoading">
                 <div class="space-y-8">
-                  <div v-for="item in 4" :key="item" class="space-y-3">
+                  <div v-for="item in 6" :key="item" class="space-y-4">
                     <div class="h-5 w-5 rounded-full bg-[#f3f4f6]" />
                     <div class="space-y-2">
                       <div class="h-4 w-full rounded bg-[#f3f4f6]" />
-                      <div class="h-4 w-[88%] rounded bg-[#f3f4f6]" />
-                      <div class="h-4 w-[62%] rounded bg-[#f3f4f6]" />
+                      <div class="h-4 w-[92%] rounded bg-[#f3f4f6]" />
+                      <div class="h-4 w-[74%] rounded bg-[#f3f4f6]" />
+                      <div class="h-4 w-[58%] rounded bg-[#f8fafc]" />
                     </div>
                   </div>
                 </div>
@@ -288,12 +303,33 @@ onMounted(async () => {
               </template>
 
               <template v-else-if="hasContent">
-                <ContentList
-                  :content-list="activeContentList"
-                  :regenerating="regenerating"
-                  @edit="handleEditMessage"
-                  @regenerate="handleRegenerate"
-                />
+                <div class="relative">
+                  <div :class="showConversationHydrating ? 'invisible' : ''">
+                    <ContentList
+                      :content-list="activeContentList"
+                      :regenerating="regenerating"
+                      @edit="handleEditMessage"
+                      @regenerate="handleRegenerate"
+                    />
+                  </div>
+
+                  <div
+                    class="absolute inset-0 bg-white transition-opacity duration-200"
+                    :class="showConversationHydrating ? 'opacity-100' : 'pointer-events-none opacity-0'"
+                  >
+                    <div class="space-y-8">
+                      <div v-for="item in 6" :key="item" class="space-y-4">
+                        <div class="h-5 w-5 rounded-full bg-[#f3f4f6]" />
+                        <div class="space-y-2">
+                          <div class="h-4 w-full rounded bg-[#f3f4f6]" />
+                          <div class="h-4 w-[92%] rounded bg-[#f3f4f6]" />
+                          <div class="h-4 w-[74%] rounded bg-[#f3f4f6]" />
+                          <div class="h-4 w-[58%] rounded bg-[#f8fafc]" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </template>
 
               <template v-else>
@@ -302,31 +338,30 @@ onMounted(async () => {
             </div>
           </div>
 
+        </div>
+
+        <footer class="relative border-t border-t-[#f3f4f6] bg-white">
           <Transition
             enter-active-class="transition duration-180 ease-out"
-            enter-from-class="translate-y-2 opacity-0"
-            enter-to-class="translate-y-0 opacity-100"
             leave-active-class="transition duration-150 ease-in"
-            leave-from-class="translate-y-0 opacity-100"
+            leave-from-class="-translate-y-1/2 opacity-100"
             leave-to-class="translate-y-2 opacity-0"
           >
             <div
-              v-if="hasContent && !chatAutoScroll.stickToBottom"
-              class="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center"
+              v-if="hasContent && !stickToBottom"
+              class="pointer-events-none absolute left-1/2 top-[-2rem] z-30 flex -translate-x-1/2 -translate-y-1/2 justify-center"
             >
               <button
                 type="button"
                 aria-label="跳转到底部"
-                class="pointer-events-auto flex size-12 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111827] shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition hover:bg-[#fafafa]"
+                class="pointer-events-auto flex size-12 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111827] shadow-[0_12px_28px_rgba(15,23,42,0.16)] transition hover:bg-[#fafafa]"
                 @click="handleScrollToBottom"
               >
                 <ArrowDown class="size-5" />
               </button>
             </div>
           </Transition>
-        </div>
 
-        <footer class="border-t border-t-[#f3f4f6] bg-white">
           <div class="mx-auto max-w-[920px] px-6 py-4">
             <WorkspacePromptBox
               ref="promptBoxRef"
