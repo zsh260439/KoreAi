@@ -9,6 +9,8 @@ import { KnowledgeBaseEntity } from './entity/knowledge-base.entity'
 import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
 import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
 import { KnowledgeQaService } from './composables/knowledge-qa.service'
+import { KnowledgeBm25Service } from './composables/knowledge-bm25.service'
+import { KnowledgeRetrievalService } from './composables/knowledge-retrieval.service'
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -19,12 +21,14 @@ import { KnowledgeQaService } from './composables/knowledge-qa.service'
   ],
   controllers: [KnowledgeController],
   providers: [
-    KnowledgeService,
-    KnowledgeFileService,
-    EmbeddingService,
-    KnowledgeVectorStoreService,
-    KnowledgeQaService
-  ],
+  KnowledgeService,
+  KnowledgeFileService,
+  KnowledgeBm25Service,
+  KnowledgeRetrievalService,
+  EmbeddingService,
+  KnowledgeVectorStoreService,
+  KnowledgeQaService
+],
   exports: [KnowledgeService, EmbeddingService, KnowledgeVectorStoreService, KnowledgeQaService]
 })
 export class KnowledgeModule {}

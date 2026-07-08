@@ -1,7 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { stat } from 'node:fs/promises'
-import { DataSource, Repository } from 'typeorm'
+﻿import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { stat } from "node:fs/promises";
+import { DataSource, Repository } from "typeorm";
 import type {
   KnowledgeBase,
   KnowledgeBaseStatus,
@@ -12,56 +16,57 @@ import type {
   KnowledgeSearchInput,
   StructureAwareChunkConfig,
   UpdateKnowledgeBaseInput,
-  UpdateKnowledgeDocumentInput
-} from 'share-type'
-import { EmbeddingService } from './composables/embedding.service'
+  UpdateKnowledgeDocumentInput,
+} from "share-type";
+import { EmbeddingService } from "./composables/embedding.service";
 import {
   getKnowledgeDocumentBaseName,
   inferKnowledgeDocumentFileType,
   KnowledgeFileService,
-  type UploadedKnowledgeDocumentFile
-} from './composables/knowledge-file.service'
+  type UploadedKnowledgeDocumentFile,
+} from "./composables/knowledge-file.service";
 import {
   KnowledgeQaService,
-  type KnowledgeQaStreamEvent
-} from './composables/knowledge-qa.service'
-import { KnowledgeVectorStoreService } from './composables/knowledge-vector-store.service'
-import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
-import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
-import { KnowledgeBaseEntity } from './entity/knowledge-base.entity'
-import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
-import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
-import { buildChunksFromBlocks } from './composables/knowledge-chunk-builder'
-import { parseKnowledgeDocument } from './composables/knowledge-document.parser'
-
+  type KnowledgeQaStreamEvent,
+} from "./composables/knowledge-qa.service";
+import { KnowledgeVectorStoreService } from "./composables/knowledge-vector-store.service";
+import { CreateKnowledgeBaseDto } from "./dto/create-knowledge-base.dto";
+import { CreateKnowledgeDocumentDto } from "./dto/create-knowledge-document.dto";
+import { KnowledgeBaseEntity } from "./entity/knowledge-base.entity";
+import { KnowledgeChunkEntity } from "./entity/knowledge-chunk.entity";
+import { KnowledgeDocumentEntity } from "./entity/knowledge-document.entity";
+import { buildChunksFromBlocks } from "./composables/knowledge-chunk-builder";
+import { parseKnowledgeDocument } from "./composables/knowledge-document.parser";
+import { KnowledgeRetrievalService } from "./composables/knowledge-retrieval.service";
+import { buildKnowledgeChunkSearchableFields } from "./composables/knowledge-searchable-fields";
 //声明知识问答流式输入结构
 type KnowledgeAskStreamInput = {
-  query: string
-  knowledgeBaseId?: string
-  topK?: number
-  think?: boolean
-}
+  query: string;
+  knowledgeBaseId?: string;
+  topK?: number;
+  think?: boolean;
+};
 
 //声明知识问答流式返回结构
 type KnowledgeAskStream = {
-  sources: KnowledgeSearchHit[]
-  model: string | null
-  totalTokens: Promise<number | null>
-  stream: AsyncGenerator<KnowledgeQaStreamEvent>
-}
+  sources: KnowledgeSearchHit[];
+  model: string | null;
+  totalTokens: Promise<number | null>;
+  stream: AsyncGenerator<KnowledgeQaStreamEvent>;
+};
 
 //声明结构化分块默认配置
 const DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG: StructureAwareChunkConfig = {
-  targetChars: 1400,
-  maxChars: 1800,
-  minChars: 600,
-  overlapChars: 0
-}
+  targetChars: 400,
+  maxChars: 600,
+  minChars: 200,
+  overlapChars: 60,
+};
 
 type UploadKnowledgeDocumentInput = {
-  name?: string
-  chunkConfig?: string
-}
+  name?: string;
+  chunkConfig?: string;
+};
 
 @Injectable()
 export class KnowledgeService {
@@ -76,260 +81,302 @@ export class KnowledgeService {
     private readonly knowledgeFileService: KnowledgeFileService,
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
     private readonly knowledgeQaService: KnowledgeQaService,
-    private readonly dataSource: DataSource
+    private readonly knowledgeRetrievalService: KnowledgeRetrievalService,
+    private readonly dataSource: DataSource,
   ) {}
 
   //声明知识库搜索入口
-  async searchKnowledge(dto: KnowledgeSearchInput): Promise<KnowledgeSearchHit[]> {
-    const query = dto.query.trim()
+  async searchKnowledge(
+    dto: KnowledgeSearchInput,
+  ): Promise<KnowledgeSearchHit[]> {
+    const query = dto.query.trim();
     if (!query) {
-      throw new BadRequestException('query cannot be empty')
+      throw new BadRequestException("query cannot be empty");
     }
 
-    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId)
-    return this.retrieveKnowledge(dto.knowledgeBaseId, query, 20)
+    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId);
+    return this.knowledgeRetrievalService.retrieveKnowledge(
+      dto.knowledgeBaseId,
+      query,
+      20,
+    );
   }
 
   //声明流式知识问答入口
   async streamAskKnowledge(
     dto: KnowledgeAskStreamInput,
-    options: { signal?: AbortSignal } = {}
+    options: { signal?: AbortSignal } = {},
   ): Promise<KnowledgeAskStream> {
-    const query = dto.query.trim()
+    const query = dto.query.trim();
     if (!query) {
-      throw new BadRequestException('query cannot be empty')
+      throw new BadRequestException("query cannot be empty");
     }
 
-    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId)
+    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId);
 
-    const topK = normalizeTopK(dto.topK)
-    const sources = await this.retrieveKnowledge(dto.knowledgeBaseId, query, topK)
-    const qaStream = await this.knowledgeQaService.streamAnswerQuestion(query, sources, {
-      includeReasoning: dto.think,
-      signal: options.signal
-    })
+    const topK = normalizeTopK(dto.topK);
+    const sources = await this.knowledgeRetrievalService.retrieveKnowledge(
+      dto.knowledgeBaseId,
+      query,
+      topK,
+    );
+    const qaStream = await this.knowledgeQaService.streamAnswerQuestion(
+      query,
+      sources,
+      {
+        includeReasoning: dto.think,
+        signal: options.signal,
+      },
+    );
 
     return {
       sources,
       model: this.knowledgeQaService.getModelName(),
       totalTokens: qaStream.totalTokens,
-      stream: qaStream.stream
-    }
+      stream: qaStream.stream,
+    };
   }
 
   //声明知识库列表查询
   async findKnowledgeBases(): Promise<KnowledgeBase[]> {
     const [items, documentCounts] = await Promise.all([
       this.knowledgeBaseRepo.find({
-        order: { updatedAt: 'DESC' }
+        order: { updatedAt: "DESC" },
       }),
       this.knowledgeDocumentRepo
-        .createQueryBuilder('document')
-        .select('document.knowledgeBaseId', 'knowledgeBaseId')
-        .addSelect('COUNT(*)', 'count')
-        .groupBy('document.knowledgeBaseId')
-        .getRawMany<{ knowledgeBaseId: string; count: string }>()
-    ])
+        .createQueryBuilder("document")
+        .select("document.knowledgeBaseId", "knowledgeBaseId")
+        .addSelect("COUNT(*)", "count")
+        .groupBy("document.knowledgeBaseId")
+        .getRawMany<{ knowledgeBaseId: string; count: string }>(),
+    ]);
 
     const documentCountMap = new Map(
-      documentCounts.map((item) => [item.knowledgeBaseId, Number(item.count) || 0])
-    )
+      documentCounts.map((item) => [
+        item.knowledgeBaseId,
+        Number(item.count) || 0,
+      ]),
+    );
 
-    return items.map((item) => toKnowledgeBase(item, documentCountMap.get(item.id) ?? 0))
+    return items.map((item) =>
+      toKnowledgeBase(item, documentCountMap.get(item.id) ?? 0),
+    );
   }
 
   //声明知识库创建
-  async createKnowledgeBase(dto: CreateKnowledgeBaseDto): Promise<KnowledgeBase> {
-    const name = dto.name.trim()
+  async createKnowledgeBase(
+    dto: CreateKnowledgeBaseDto,
+  ): Promise<KnowledgeBase> {
+    const name = dto.name.trim();
     if (!name) {
-      throw new BadRequestException('Knowledge base name cannot be empty')
+      throw new BadRequestException("Knowledge base name cannot be empty");
     }
 
     const entity = this.knowledgeBaseRepo.create({
       name,
-      description: dto.description?.trim() || null
-    })
+      description: dto.description?.trim() || null,
+    });
 
-    const created = await this.knowledgeBaseRepo.save(entity)
-    return toKnowledgeBase(created, 0)
+    const created = await this.knowledgeBaseRepo.save(entity);
+    return toKnowledgeBase(created, 0);
   }
 
   //声明知识库更新
   async updateKnowledgeBase(
     knowledgeBaseId: string,
-    dto: UpdateKnowledgeBaseInput
+    dto: UpdateKnowledgeBaseInput,
   ): Promise<KnowledgeBase> {
     const kb = await this.knowledgeBaseRepo.findOne({
-      where: { id: knowledgeBaseId }
-    })
+      where: { id: knowledgeBaseId },
+    });
 
     if (!kb) {
-      throw new NotFoundException('Knowledge base not found')
+      throw new NotFoundException("Knowledge base not found");
     }
 
-    if (typeof dto.name === 'string') {
-      const name = dto.name.trim()
+    if (typeof dto.name === "string") {
+      const name = dto.name.trim();
       if (!name) {
-        throw new BadRequestException('Knowledge base name cannot be empty')
+        throw new BadRequestException("Knowledge base name cannot be empty");
       }
-      kb.name = name
+      kb.name = name;
     }
 
-    if (typeof dto.description === 'string') {
-      kb.description = dto.description.trim() || null
+    if (typeof dto.description === "string") {
+      kb.description = dto.description.trim() || null;
     }
 
-    const updated = await this.knowledgeBaseRepo.save(kb)
-    return toKnowledgeBase(updated)
+    const updated = await this.knowledgeBaseRepo.save(kb);
+    return toKnowledgeBase(updated);
   }
 
   //声明知识库文档列表查询
-  async findKnowledgeDocuments(knowledgeBaseId: string): Promise<KnowledgeDocument[]> {
+  async findKnowledgeDocuments(
+    knowledgeBaseId: string,
+  ): Promise<KnowledgeDocument[]> {
     const items = await this.knowledgeDocumentRepo.find({
       where: { knowledgeBaseId },
-      order: { updatedAt: 'DESC' }
-    })
+      order: { updatedAt: "DESC" },
+    });
 
-    return items.map(toKnowledgeDocument)
+    return items.map(toKnowledgeDocument);
   }
 
   //声明单个文档详情查询
   async findKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.knowledgeDocumentRepo.findOne({
-      where: { id: documentId }
-    })
+      where: { id: documentId },
+    });
 
     if (!document) {
-      throw new NotFoundException('Document not found')
+      throw new NotFoundException("Document not found");
     }
 
-    return toKnowledgeDocument(document)
+    return toKnowledgeDocument(document);
   }
 
   //声明文档可编辑配置更新
   async updateKnowledgeDocument(
     docId: string,
-    dto: UpdateKnowledgeDocumentInput
+    dto: UpdateKnowledgeDocumentInput,
   ): Promise<KnowledgeDocument> {
     const document = await this.knowledgeDocumentRepo.findOne({
-      where: { id: docId }
-    })
+      where: { id: docId },
+    });
 
     if (!document) {
-      throw new NotFoundException('Document not found')
+      throw new NotFoundException("Document not found");
     }
 
-    if (typeof dto.name === 'string') {
-      const name = dto.name.trim()
+    if (typeof dto.name === "string") {
+      const name = dto.name.trim();
       if (!name) {
-        throw new BadRequestException('Document name cannot be empty')
+        throw new BadRequestException("Document name cannot be empty");
       }
-      document.name = name
+      document.name = name;
     }
 
     if (dto.chunkConfig) {
-      document.chunkConfig = normalizeStructureAwareChunkConfig(dto.chunkConfig)
+      document.chunkConfig = normalizeStructureAwareChunkConfig(
+        dto.chunkConfig,
+      );
     }
 
-    await this.knowledgeDocumentRepo.save(document)
-    return toKnowledgeDocument(document)
+    await this.knowledgeDocumentRepo.save(document);
+    return toKnowledgeDocument(document);
   }
 
   //声明知识库文档创建
   async createKnowledgeDocument(
     knowledgeBaseId: string,
-    dto: CreateKnowledgeDocumentDto
+    dto: CreateKnowledgeDocumentDto,
   ): Promise<KnowledgeDocument> {
     const kb = await this.knowledgeBaseRepo.findOne({
-      where: { id: knowledgeBaseId }
-    })
+      where: { id: knowledgeBaseId },
+    });
 
     if (!kb) {
-      throw new NotFoundException('Knowledge base not found')
+      throw new NotFoundException("Knowledge base not found");
     }
 
-    const name = dto.name.trim()
+    const name = dto.name.trim();
     if (!name) {
-      throw new BadRequestException('Document name cannot be empty')
+      throw new BadRequestException("Document name cannot be empty");
     }
 
-    const storagePath = dto.storagePath.trim()
+    const storagePath = dto.storagePath.trim();
     if (!storagePath) {
-      throw new BadRequestException('storagePath cannot be empty')
+      throw new BadRequestException("storagePath cannot be empty");
     }
 
     //声明当前阶段只允许本地文本类文件入库
 
-    const fileStats = await this.readLocalFileStats(storagePath)
-    const fileType = inferKnowledgeDocumentFileType(storagePath)
+    const fileStats = await this.readLocalFileStats(storagePath);
+    const fileType = inferKnowledgeDocumentFileType(storagePath);
     const entity = this.knowledgeDocumentRepo.create({
       knowledgeBaseId,
       name,
-      sourceType: 'file',
+      sourceType: "file",
       storagePath,
       fileType,
       fileSizeBytes: String(fileStats.size),
       chunkConfig: normalizeStructureAwareChunkConfig(dto.chunkConfig),
-      status: 'pending'
-    })
+      status: "pending",
+    });
 
-    const created = await this.knowledgeDocumentRepo.save(entity)
-    return toKnowledgeDocument(created)
+    const created = await this.knowledgeDocumentRepo.save(entity);
+    return toKnowledgeDocument(created);
   }
 
   //声明知识库文档上传
   async uploadKnowledgeDocument(
     knowledgeBaseId: string,
     input: UploadKnowledgeDocumentInput,
-    file?: UploadedKnowledgeDocumentFile
+    file?: UploadedKnowledgeDocumentFile,
   ): Promise<KnowledgeDocument> {
     if (!file) {
-      throw new BadRequestException('file is required')
+      throw new BadRequestException("file is required");
     }
 
-    this.knowledgeFileService.validateFile(file)
+    this.knowledgeFileService.validateFile(file);
 
-    const fallbackName = getKnowledgeDocumentBaseName(file.originalname) || '新文档'
-    const storagePath = await this.knowledgeFileService.saveFile(knowledgeBaseId, file)
-    const chunkConfig = parseUploadedChunkConfig(input.chunkConfig)
+    const fallbackName =
+      getKnowledgeDocumentBaseName(file.originalname) || "新文档";
+    const storagePath = await this.knowledgeFileService.saveFile(
+      knowledgeBaseId,
+      file,
+    );
+    const chunkConfig = parseUploadedChunkConfig(input.chunkConfig);
 
     try {
       return await this.createKnowledgeDocument(knowledgeBaseId, {
         name: input.name?.trim() || fallbackName,
         storagePath,
-        chunkConfig
-      })
+        chunkConfig,
+      });
     } catch (error) {
-      await this.knowledgeFileService.deleteFileSafely(storagePath)
-      throw error
+      await this.knowledgeFileService.deleteFileSafely(storagePath);
+      throw error;
     }
   }
 
   //声明文档分块列表查询
   async findDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
-    return this.loadDocumentChunks(documentId)
+    return this.loadDocumentChunks(documentId);
   }
 
   //声明文档分块重建
   async rebuildDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
     const document = await this.knowledgeDocumentRepo.findOne({
-      where: { id: documentId }
-    })
+      where: { id: documentId },
+    });
 
     if (!document) {
-      throw new NotFoundException('Document not found')
+      throw new NotFoundException("Document not found");
     }
 
-    await this.knowledgeDocumentRepo.update({ id: documentId }, { status: 'processing' })
+    await this.knowledgeDocumentRepo.update(
+      { id: documentId },
+      { status: "processing" },
+    );
 
     try {
-      const chunkConfig = normalizeStructureAwareChunkConfig(document.chunkConfig)
-      const parsedDocument = await parseKnowledgeDocument(document.storagePath ?? '')
-      const chunkDrafts = buildChunksFromBlocks(parsedDocument.blocks, chunkConfig)
-      const embeddings = await this.embeddingService.embedChunks(chunkDrafts.map((item) => item.content))
+      const chunkConfig = normalizeStructureAwareChunkConfig(
+        document.chunkConfig,
+      );
+      const parsedDocument = await parseKnowledgeDocument(
+        document.storagePath ?? "",
+      );
+      const chunkDrafts = buildChunksFromBlocks(
+        parsedDocument.blocks,
+        chunkConfig,
+      );
+      const embeddings = await this.embeddingService.embedChunks(
+        chunkDrafts.map((item) => item.content),
+      );
 
       await this.dataSource.transaction(async (manager) => {
-        await manager.delete(KnowledgeChunkEntity, { documentId })
+        await manager.delete(KnowledgeChunkEntity, { documentId });
 
         const chunkEntities = chunkDrafts.map((chunk, index) =>
           manager.create(KnowledgeChunkEntity, {
@@ -338,341 +385,193 @@ export class KnowledgeService {
             sequence: index,
             charCount: chunk.content.length,
             tokenCount: estimateTokenCount(chunk.content),
-            metadata: buildChunkMetadata(document, parsedDocument, chunk.blocks),
-            embedding: embeddings[index]?.length ? embeddings[index] : null
-          })
-        )
+            metadata: buildChunkMetadata(
+              document,
+              parsedDocument,
+              chunk.blocks,
+            ),
+            embedding: embeddings[index]?.length ? embeddings[index] : null,
+            ...buildKnowledgeChunkSearchableFields(
+              document,
+              parsedDocument,
+              chunk.blocks,
+            ),
+          }),
+        );
 
         if (chunkEntities.length > 0) {
-          await manager.save(chunkEntities)
+          await manager.save(chunkEntities);
         }
 
         await manager.update(
           KnowledgeDocumentEntity,
           { id: documentId },
           {
-            status: 'indexed',
+            status: "indexed",
             chunkConfig,
             chunkCount: chunkEntities.length,
-            contentPreview: parsedDocument.rawContent.slice(0, 500)
-          }
-        )
-      })
+            contentPreview: parsedDocument.rawContent.slice(0, 500),
+          },
+        );
+      });
 
-      return this.loadDocumentChunks(documentId)
+      return this.loadDocumentChunks(documentId);
     } catch (error) {
-      await this.knowledgeDocumentRepo.update({ id: documentId }, { status: 'failed' })
-      throw error
+      await this.knowledgeDocumentRepo.update(
+        { id: documentId },
+        { status: "failed" },
+      );
+      throw error;
     }
   }
 
   async deleteKnowledgeBase(knowledgeBaseId: string): Promise<KnowledgeBase> {
     const kb = await this.knowledgeBaseRepo.findOne({
       where: { id: knowledgeBaseId },
-      relations: { documents: true }
-    })
+      relations: { documents: true },
+    });
 
     if (!kb) {
-      throw new NotFoundException('Knowledge base not found')
+      throw new NotFoundException("Knowledge base not found");
     }
 
-    await this.knowledgeBaseRepo.delete({ id: knowledgeBaseId })
-    return toKnowledgeBase(kb)
+    await this.knowledgeBaseRepo.delete({ id: knowledgeBaseId });
+    return toKnowledgeBase(kb);
   }
 
   //声明单个文档删除
-  async deleteKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
+  async deleteKnowledgeDocument(
+    documentId: string,
+  ): Promise<KnowledgeDocument> {
     const document = await this.knowledgeDocumentRepo.findOne({
-      where: { id: documentId }
-    })
+      where: { id: documentId },
+    });
 
     if (!document) {
-      throw new NotFoundException('Document not found')
+      throw new NotFoundException("Document not found");
     }
 
-    await this.knowledgeDocumentRepo.delete({ id: documentId })
-    return toKnowledgeDocument(document)
+    await this.knowledgeDocumentRepo.delete({ id: documentId });
+    return toKnowledgeDocument(document);
   }
 
-  //声明统一知识召回入口
-  private async retrieveKnowledge(
-    knowledgeBaseId: string | undefined,
-    query: string,
-    topK = 20
-  ): Promise<KnowledgeSearchHit[]> {
-    const keywordHits = await this.keywordRecall(knowledgeBaseId, query, topK)
-    const vectorHits = await this.vectorRecall(knowledgeBaseId, query, topK)
-    return this.mergeHits(keywordHits, vectorHits, topK)
-  }
+
 
   //声明从 storagePath 读取真实文档正文
   private async readLocalFileStats(storagePath: string) {
     try {
-      return await stat(storagePath)
+      return await stat(storagePath);
     } catch {
-      throw new NotFoundException(`File not found: ${storagePath}`)
+      throw new NotFoundException(`File not found: ${storagePath}`);
     }
-  }
-
-  //声明关键词召回链路
-  private async keywordRecall(
-    knowledgeBaseId: string | undefined,
-    query: string,
-    limit = 20
-  ): Promise<KnowledgeSearchHit[]> {
-    const keywords = buildSearchKeywords(query)
-    const items = await this.knowledgeChunkRepo.find({
-      where: knowledgeBaseId
-        ? {
-            document: {
-              knowledgeBaseId
-            }
-          }
-        : {},
-      relations: {
-        document: true
-      },
-      order: {
-        updatedAt: 'DESC'
-      },
-      take: 100
-    })
-
-    return items
-      .map((item) => ({
-        chunkId: item.id,
-        documentId: item.documentId,
-        documentName: item.document?.name ?? '',
-        content: item.content,
-        score: calcSimpleScore(item.content, keywords)
-      }))
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-  }
-
-  //声明向量召回链路
-  private async vectorRecall(
-    knowledgeBaseId: string | undefined,
-    query: string,
-    limit = 20
-  ): Promise<KnowledgeSearchHit[]> {
-    const results = await this.knowledgeVectorStoreService.similaritySearchWithScore(
-      query,
-      limit,
-      knowledgeBaseId
-    )
-
-    return results.map(([doc, score]) => ({
-      chunkId: doc.id ?? '',
-      documentId: String(doc.metadata.documentId ?? ''),
-      documentName: String(doc.metadata.documentName ?? ''),
-      content: doc.pageContent,
-      score: Number((score * 100).toFixed(2))
-    }))
   }
 
   //声明知识库存在性校验
-  private async ensureKnowledgeBaseExists(knowledgeBaseId?: string): Promise<void> {
+  private async ensureKnowledgeBaseExists(
+    knowledgeBaseId?: string,
+  ): Promise<void> {
     if (!knowledgeBaseId) {
-      return
+      return;
     }
 
     const kb = await this.knowledgeBaseRepo.findOne({
-      where: { id: knowledgeBaseId }
-    })
+      where: { id: knowledgeBaseId },
+    });
 
     if (!kb) {
-      throw new NotFoundException('Knowledge base not found')
+      throw new NotFoundException("Knowledge base not found");
     }
   }
 
   //声明文档 chunk 装载
-  private async loadDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
+  private async loadDocumentChunks(
+    documentId: string,
+  ): Promise<KnowledgeChunk[]> {
     const items = await this.knowledgeChunkRepo
-      .createQueryBuilder('chunk')
-      .addSelect('chunk.metadata')
-      .where('chunk.documentId = :documentId', { documentId })
-      .orderBy('chunk.sequence', 'ASC')
-      .getMany()
+      .createQueryBuilder("chunk")
+      .addSelect("chunk.metadata")
+      .where("chunk.documentId = :documentId", { documentId })
+      .orderBy("chunk.sequence", "ASC")
+      .getMany();
 
-    return items.map(toKnowledgeChunk)
-  }
-
-  //声明关键词与向量召回合并逻辑
-  private mergeHits(
-    keywordHits: KnowledgeSearchHit[],
-    vectorHits: KnowledgeSearchHit[],
-    limit = 20
-  ): KnowledgeSearchHit[] {
-    const rrfK = 60
-    const maxScore = 2 / (rrfK + 1)
-    const merged = new Map<string, KnowledgeSearchHit & { rrfScore: number }>()
-
-    //声明把每一路召回结果都按名次换算成 rrf 分数
-    const addRankScores = (items: KnowledgeSearchHit[]) => {
-      items.forEach((item, index) => {
-        const rank = index + 1
-        const rankScore = 1 / (rrfK + rank)
-        const current = merged.get(item.chunkId)
-
-        if (!current) {
-          merged.set(item.chunkId, {
-            ...item,
-            rrfScore: rankScore
-          })
-          return
-        }
-
-        current.rrfScore += rankScore
-      })
-    }
-
-    addRankScores(keywordHits)
-    addRankScores(vectorHits)
-
-    return Array.from(merged.values())
-      .sort((a, b) => b.rrfScore - a.rrfScore)
-      .slice(0, limit)
-      .map(({ rrfScore, ...item }) => ({
-        ...item,
-        score: Number(((rrfScore / maxScore) * 100).toFixed(2))
-      }))
+    return items.map(toKnowledgeChunk);
   }
 }
 //声明上传分块配置解析
-function parseUploadedChunkConfig(value?: string): StructureAwareChunkConfig | undefined {
+function parseUploadedChunkConfig(
+  value?: string,
+): StructureAwareChunkConfig | undefined {
   if (!value?.trim()) {
-    return undefined
+    return undefined;
   }
 
   try {
-    return JSON.parse(value) as StructureAwareChunkConfig
+    return JSON.parse(value) as StructureAwareChunkConfig;
   } catch {
-    throw new BadRequestException('chunkConfig must be valid JSON')
+    throw new BadRequestException("chunkConfig must be valid JSON");
   }
 }
 
 //声明结构化分块配置归一化
 function normalizeStructureAwareChunkConfig(
-  value?: Partial<StructureAwareChunkConfig> | Record<string, unknown> | null
+  value?: Partial<StructureAwareChunkConfig> | Record<string, unknown> | null,
 ): StructureAwareChunkConfig {
-  const maxChars = normalizePositiveInteger(value?.maxChars, DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars)
+  const maxChars = normalizePositiveInteger(
+    value?.maxChars,
+    DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars,
+  );
   const targetChars = Math.min(
-    normalizePositiveInteger(value?.targetChars, DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars),
-    maxChars
-  )
+    normalizePositiveInteger(
+      value?.targetChars,
+      DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars,
+    ),
+    maxChars,
+  );
   const minChars = Math.min(
-    normalizePositiveInteger(value?.minChars, DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.minChars),
-    targetChars
-  )
+    normalizePositiveInteger(
+      value?.minChars,
+      DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.minChars,
+    ),
+    targetChars,
+  );
   const overlapChars = Math.min(
-    normalizeNonNegativeInteger(value?.overlapChars, DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.overlapChars),
-    Math.floor(minChars / 2)
-  )
+    normalizeNonNegativeInteger(
+      value?.overlapChars,
+      DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.overlapChars,
+    ),
+    Math.floor(minChars / 2),
+  );
 
   return {
     targetChars,
     maxChars,
     minChars,
-    overlapChars
-  }
+    overlapChars,
+  };
 }
 
 function normalizePositiveInteger(value: unknown, fallback: number): number {
-  const normalizedValue = Number(value)
+  const normalizedValue = Number(value);
   if (!Number.isFinite(normalizedValue) || normalizedValue <= 0) {
-    return fallback
+    return fallback;
   }
 
-  return Math.floor(normalizedValue)
+  return Math.floor(normalizedValue);
 }
 
 //声明非负整数配置归一化
 function normalizeNonNegativeInteger(value: unknown, fallback: number): number {
-  const normalizedValue = Number(value)
+  const normalizedValue = Number(value);
   if (!Number.isFinite(normalizedValue) || normalizedValue < 0) {
-    return fallback
+    return fallback;
   }
 
-  return Math.floor(normalizedValue)
+  return Math.floor(normalizedValue);
 }
 
 //声明近似 token 估算逻辑
 function estimateTokenCount(content: string): number {
-  return Math.max(1, Math.ceil(content.length / 4))
-}
-
-//声明搜索关键词拆分逻辑
-function buildSearchKeywords(query: string): string[] {
-  const normalizedQuery = query.trim()
-  if (!normalizedQuery) {
-    return []
-  }
-
-  const keywords = normalizedQuery
-    .split(/[\s,，。；;、]+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-  const compact = removeSearchWhitespace(normalizedQuery)
-  const candidates = [normalizedQuery, ...keywords]
-
-  if (compact && compact !== normalizedQuery) {
-    candidates.push(compact)
-  }
-
-  return Array.from(new Set(candidates))
-}
-
-//声明关键词命中次数统计
-function countKeywordMatches(content: string, keyword: string): number {
-  const normalizedContent = content.toLowerCase()
-  const normalizedKeyword = keyword.toLowerCase()
-  if (!normalizedKeyword) {
-    return 0
-  }
-
-  const compactContent = removeSearchWhitespace(normalizedContent)
-  const compactKeyword = removeSearchWhitespace(normalizedKeyword)
-  const matchCount = normalizedContent.split(normalizedKeyword).length - 1
-  const compactMatchCount = compactContent.split(compactKeyword).length - 1
-  return matchCount > 0 ? matchCount : compactMatchCount
-}
-
-//声明最小可解释关键词分数
-function calcSimpleScore(content: string, keywords: string[]): number {
-  if (!keywords.length) {
-    return 0
-  }
-
-  let matchedKeywordCount = 0
-  let totalMatchCount = 0
-  let matchedKeywordLength = 0
-
-  for (const keyword of keywords) {
-    const matchCount = countKeywordMatches(content, keyword)
-    if (matchCount <= 0) {
-      continue
-    }
-
-    matchedKeywordCount += 1
-    totalMatchCount += matchCount
-    matchedKeywordLength += keyword.length
-  }
-
-  if (matchedKeywordCount <= 0) {
-    return 0
-  }
-
-  const coverageScore = (matchedKeywordCount / keywords.length) * 60
-  const countScore = Math.min(25, totalMatchCount * 8)
-  const densityScore = Math.min(15, (matchedKeywordLength / Math.max(1, content.length)) * 100)
-  return Number(Math.min(100, coverageScore + countScore + densityScore).toFixed(2))
-}
-
-//声明搜索空白压缩逻辑
-function removeSearchWhitespace(value: string): string {
-  return value.replace(/\s+/g, '')
+  return Math.max(1, Math.ceil(content.length / 4));
 }
 
 //声明分块元数据构建逻辑
@@ -680,16 +579,16 @@ function buildChunkMetadata(
   document: KnowledgeDocumentEntity,
   parsedDocument: { fileType: string; sourceKind: string },
   blocks: {
-    blockType: string
-    content: string
-    pageNumber?: number
-    sectionPath?: string[]
-    level?: number
-    title?: string
-    startOffset?: number
-    endOffset?: number
-    metadata?: Record<string, unknown>
-  }[]
+    blockType: string;
+    content: string;
+    pageNumber?: number;
+    sectionPath?: string[];
+    level?: number;
+    title?: string;
+    startOffset?: number;
+    endOffset?: number;
+    metadata?: Record<string, unknown>;
+  }[],
 ): Record<string, unknown> {
   return {
     knowledgeBaseId: document.knowledgeBaseId,
@@ -698,12 +597,24 @@ function buildChunkMetadata(
     fileType: parsedDocument.fileType,
     sourceKind: parsedDocument.sourceKind,
     blockTypes: blocks.map((item) => item.blockType),
-    pageNumbers: Array.from(new Set(blocks.map((item) => item.pageNumber).filter((value) => value !== undefined))),
+    pageNumbers: Array.from(
+      new Set(
+        blocks
+          .map((item) => item.pageNumber)
+          .filter((value) => value !== undefined),
+      ),
+    ),
     sectionPaths: blocks.map((item) => item.sectionPath).filter(Boolean),
     titles: blocks.map((item) => item.title).filter(Boolean),
-    levels: blocks.map((item) => item.level).filter((value) => value !== undefined),
-    startOffsets: blocks.map((item) => item.startOffset).filter((value) => value !== undefined),
-    endOffsets: blocks.map((item) => item.endOffset).filter((value) => value !== undefined),
+    levels: blocks
+      .map((item) => item.level)
+      .filter((value) => value !== undefined),
+    startOffsets: blocks
+      .map((item) => item.startOffset)
+      .filter((value) => value !== undefined),
+    endOffsets: blocks
+      .map((item) => item.endOffset)
+      .filter((value) => value !== undefined),
     blockMetadatas: blocks.map((item) => item.metadata).filter(Boolean),
     blocks: blocks.map((item) => ({
       blockType: item.blockType,
@@ -714,39 +625,42 @@ function buildChunkMetadata(
       sectionPath: item.sectionPath,
       startOffset: item.startOffset,
       endOffset: item.endOffset,
-      metadata: item.metadata ?? null
-    }))
-  }
+      metadata: item.metadata ?? null,
+    })),
+  };
 }
 
 function toKnowledgeBase(
   entity: KnowledgeBaseEntity,
-  documentCount = entity.documents?.length ?? 0
+  documentCount = entity.documents?.length ?? 0,
 ): KnowledgeBase {
-  const normalizedStatus: KnowledgeBaseStatus = entity.status === 'active' ? 'active' : 'draft'
+  const normalizedStatus: KnowledgeBaseStatus =
+    entity.status === "active" ? "active" : "draft";
 
   return {
     id: entity.id,
     name: entity.name,
-    description: entity.description ?? '',
+    description: entity.description ?? "",
     status: normalizedStatus,
     documentCount,
     createdAt: entity.createdAt.toISOString(),
-    updatedAt: entity.updatedAt.toISOString()
-  }
+    updatedAt: entity.updatedAt.toISOString(),
+  };
 }
 
 //声明 topK 规范化逻辑
 function normalizeTopK(value?: number): number {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return 5
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return 5;
   }
 
-  return Math.min(Math.max(Math.floor(value), 1), 8)
+  return Math.min(Math.max(Math.floor(value), 1), 8);
 }
 
 //声明文档实体映射逻辑
-function toKnowledgeDocument(entity: KnowledgeDocumentEntity): KnowledgeDocument {
+function toKnowledgeDocument(
+  entity: KnowledgeDocumentEntity,
+): KnowledgeDocument {
   return {
     id: entity.id,
     knowledgeBaseId: entity.knowledgeBaseId,
@@ -760,8 +674,8 @@ function toKnowledgeDocument(entity: KnowledgeDocumentEntity): KnowledgeDocument
     chunkCount: entity.chunkCount,
     contentPreview: entity.contentPreview ?? null,
     createdAt: entity.createdAt.toISOString(),
-    updatedAt: entity.updatedAt.toISOString()
-  }
+    updatedAt: entity.updatedAt.toISOString(),
+  };
 }
 
 //声明分块实体映射逻辑
@@ -775,7 +689,6 @@ function toKnowledgeChunk(entity: KnowledgeChunkEntity): KnowledgeChunk {
     tokenCount: entity.tokenCount,
     metadata: (entity.metadata as KnowledgeChunkMetadata | null) ?? null,
     createdAt: entity.createdAt.toISOString(),
-    updatedAt: entity.updatedAt.toISOString()
-  }
+    updatedAt: entity.updatedAt.toISOString(),
+  };
 }
-

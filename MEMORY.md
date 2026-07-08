@@ -1,7 +1,7 @@
 # MEMORY
 
 ## Project
-- Name: `mustfollow-prompt`
+- Name: `KoreAi`
 - Updated: 2026-07-07
 - Package manager: `pnpm@10.17.0`
 - Main directories: `apps/client`, `apps/server`, `apps/share-type`, `docs`, `scripts`
@@ -21,7 +21,14 @@
 ## Known Decisions
 - Knowledge-base document upload has been upgraded to real browser file upload instead of fake `storagePath` input.
 - Knowledge-base list `documentCount` should be counted from the document table, not inferred from ORM relation length.
-- Workspace chat first-screen history loading uses composable-level force-stick-to-bottom with DOM growth observers, instead of child-component rendered event plumbing.
+- Workspace chat auto-scroll keeps one `stickToBottom` user-intent state, updates it from the scroll container, and uses `ResizeObserver` on message content for follow-to-bottom; avoid `MutationObserver`, deep message watchers, and timer-based force-stick behavior for this flow.
+- Local PostgreSQL runs as `postgresql-x64-18` on port `5433`.
+- `pg_search` is a PostgreSQL extension rather than a NestJS package. On this Windows machine it can be compiled only after local `pgrx` Windows shim patching, and final installation into `D:\postgresql\share\extension` still requires administrator write permission.
+- Server-side BM25 database infrastructure now follows TypeORM migrations via `apps/server/src/database/data-source.ts`; run migrations before starting the server, and do not rely on `synchronize` for BM25 schema/index setup.
+- On this Windows setup, `pg_search` BM25 index creation currently crashes PostgreSQL with `stuck spinlock detected at SpinLockAcquire__pgrx_cshim`; schema/backfill migrations can be managed, but the final BM25 index is blocked by the extension runtime itself.
+- Docker-based database bootstrap now uses `pnpm infra:up` / `pnpm db:bootstrap`: empty databases first create base tables from entities, existing complete databases skip schema sync, and partial databases fail fast instead of guessing.
+- The old `apps/server/sql/knowledge-bm25/*.sql` scripts are retired; BM25 database changes now live only in TypeORM migrations and bootstrap flow.
+- Legacy local PostgreSQL data has been migrated from `knowledge_app` into the Docker `KoreAi` database; Docker is now the active runtime database for this project.
 
 ## Validation Habits
 - For backend changes, prefer at least `pnpm --filter server build`.

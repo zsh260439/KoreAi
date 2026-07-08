@@ -1,6 +1,6 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
-const FORCE_STICK_SETTLE_MS = 900
+const FORCE_STICK_SETTLE_MS = 100
 
 export const useAutoScroll = (threshold = 32) => {
   const messagesRef = ref<HTMLDivElement>()

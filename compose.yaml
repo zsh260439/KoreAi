@@ -1,0 +1,16 @@
+services:
+  paradedb:
+    image: paradedb/paradedb:0.24.1
+    container_name: KoreAi-paradedb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: KoreAi
+    ports:
+      - "5433:5432"
+    volumes:
+      - paradedb_data:/var/lib/postgresql
+
+volumes:
+  paradedb_data:

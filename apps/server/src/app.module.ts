@@ -17,7 +17,7 @@ import { WorkspaceModule } from './modules/workspace/workspace.module'
       type: 'postgres',
       url: process.env.DATABASE_URL,
       uuidExtension: 'pgcrypto',
-      synchronize: true,
+      synchronize: false,
       autoLoadEntities: true
     }),
     WorkspaceModule,

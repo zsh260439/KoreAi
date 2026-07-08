@@ -7,7 +7,12 @@
     "dev:client": "pnpm --filter client dev",
     "dev:server": "pnpm --filter server start:dev",
     "build:client": "pnpm --filter client build",
-    "build:server": "pnpm --filter server build"
+    "build:server": "pnpm --filter server build",
+    "infra:up": "docker compose up -d && pnpm db:bootstrap",
+    "db:bootstrap": "pnpm --filter server db:bootstrap",
+    "db:migration:show": "pnpm --filter server migration:show",
+    "db:migrate": "pnpm --filter server migration:run",
+    "db:migration:revert": "pnpm --filter server migration:revert"
   },
   "dependencies": {
     "puppeteer": "^25.1.0"

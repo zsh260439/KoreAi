@@ -116,14 +116,23 @@ export interface KnowledgeSearchInput {
   knowledgeBaseId?: string
 }
 
+export type KnowledgeRetrievalSource = 'bm25' | 'vector'
+
+export interface KnowledgeSearchScoreDetail {
+  matchedBy: KnowledgeRetrievalSource[]
+  bm25Score: number | null
+  vectorScore: number | null
+  fusedScore: number
+}
+
 export interface KnowledgeSearchHit {
   chunkId: string
   documentId: string
   documentName: string
   content: string
   score: number
+  scoreDetail?: KnowledgeSearchScoreDetail
 }
-
 export type KnowledgeReasoningStepKey =
   | 'knowledge_recall'
   | 'llm_reasoning'

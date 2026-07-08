@@ -7,7 +7,11 @@
     "start:dev": "nest start --watch",
     "build": "nest build",
     "start:prod": "node dist/main",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "db:bootstrap": "pnpm build && node dist/database/bootstrap.js",
+    "migration:show": "pnpm build && typeorm migration:show -d dist/database/data-source.js",
+    "migration:run": "pnpm build && typeorm migration:run -t each -d dist/database/data-source.js",
+    "migration:revert": "pnpm build && typeorm migration:revert -d dist/database/data-source.js"
   },
   "dependencies": {
     "@langchain/core": "^1.1.48",

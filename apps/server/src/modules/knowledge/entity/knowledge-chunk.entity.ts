@@ -8,7 +8,6 @@ import {
   UpdateDateColumn
 } from 'typeorm'
 import { KnowledgeDocumentEntity } from './knowledge-document.entity'
-
 @Entity('knowledge_chunks')
 export class KnowledgeChunkEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -16,6 +15,27 @@ export class KnowledgeChunkEntity {
 
   @Column({ type: 'uuid' })
   documentId!: string
+
+  @Column({ type: 'uuid', nullable: true })
+  knowledgeBaseId!: string | null
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  documentName!: string | null
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  fileType!: string | null
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  sourceKind!: string | null
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  primaryTitle!: string | null
+
+  @Column({ type: 'text', nullable: true })
+  sectionPath!: string | null
+
+  @Column({ type: 'text', nullable: true })
+  blockTypes!: string | null
 
   @Column({ type: 'int' })
   sequence!: number
