@@ -57,10 +57,10 @@ type KnowledgeAskStream = {
 
 //声明结构化分块默认配置
 const DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG: StructureAwareChunkConfig = {
-  targetChars: 400,
-  maxChars: 600,
-  minChars: 200,
-  overlapChars: 60,
+  targetChars: 700,
+  maxChars: 900,
+  minChars: 300,
+  overlapChars: 80,
 };
 
 type UploadKnowledgeDocumentInput = {

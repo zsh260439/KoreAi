@@ -2,15 +2,27 @@ import type { StructureAwareChunkConfig } from 'share-type'
 
 import type { StructuredBlock } from './knowledge-document.parser'
 
-//声明 chunk 构建结果
 export type ChunkDraft = {
   content: string
   blocks: StructuredBlock[]
   sectionPath: string[]
 }
 
-//声明结构化 chunk 构建入口
+type ChunkSection = {
+  blocks: StructuredBlock[]
+}
+
+// 按结构优先、长度兜底的规则生成 chunk 草稿。
 export function buildChunksFromBlocks(
+  blocks: StructuredBlock[],
+  config: StructureAwareChunkConfig
+): ChunkDraft[] {
+  return splitBlocksBySection(blocks).flatMap((section) =>
+    buildChunksWithinSection(section.blocks, config)
+  )
+}
+
+function buildChunksWithinSection(
   blocks: StructuredBlock[],
   config: StructureAwareChunkConfig
 ): ChunkDraft[] {
@@ -42,13 +54,85 @@ export function buildChunksFromBlocks(
   return mergeSmallTrailingChunk(drafts, config.minChars)
 }
 
-//声明单块文本构建
-function buildBlockText(block: StructuredBlock): string {
-  const sectionPrefix = block.sectionPath.length > 0 ? `${block.sectionPath.join(' > ')}\n` : ''
-  return `${sectionPrefix}${block.content}`.trim()
+// 先按主 section 切开，避免同级章节被粗暴拼成一个召回单元。
+function splitBlocksBySection(blocks: StructuredBlock[]): ChunkSection[] {
+  if (blocks.length === 0) {
+    return []
+  }
+
+  const sectionHeadingLevel = resolveSectionHeadingLevel(blocks)
+  if (!sectionHeadingLevel) {
+    return [{ blocks }]
+  }
+
+  const sections: ChunkSection[] = []
+  let currentBlocks: StructuredBlock[] = []
+
+  for (const block of blocks) {
+    if (isSectionBoundaryHeading(block, sectionHeadingLevel) && shouldStartNewSection(currentBlocks, sectionHeadingLevel)) {
+      sections.push({ blocks: currentBlocks })
+      currentBlocks = []
+    }
+
+    currentBlocks.push(block)
+  }
+
+  if (currentBlocks.length > 0) {
+    sections.push({ blocks: currentBlocks })
+  }
+
+  return sections
 }
 
-//声明 chunk 刷新判断
+function resolveSectionHeadingLevel(blocks: StructuredBlock[]): number | null {
+  const headingLevels = blocks
+    .filter(isHeadingBlock)
+    .map((block) => resolveHeadingLevel(block))
+    .filter((level): level is number => level !== null)
+
+  if (headingLevels.length === 0) {
+    return null
+  }
+
+  const nonRootHeadingLevels = headingLevels.filter((level) => level > 1)
+  if (nonRootHeadingLevels.length > 0) {
+    return Math.min(...nonRootHeadingLevels)
+  }
+
+  return Math.min(...headingLevels)
+}
+
+function shouldStartNewSection(blocks: StructuredBlock[], sectionHeadingLevel: number): boolean {
+  return blocks.some((block) => {
+    if (!isHeadingBlock(block)) {
+      return true
+    }
+
+    return resolveHeadingLevel(block) === sectionHeadingLevel
+  })
+}
+
+function isSectionBoundaryHeading(block: StructuredBlock, sectionHeadingLevel: number): boolean {
+  return isHeadingBlock(block) && resolveHeadingLevel(block) === sectionHeadingLevel
+}
+
+function isHeadingBlock(block: StructuredBlock): boolean {
+  return block.blockType === 'heading'
+}
+
+function resolveHeadingLevel(block: StructuredBlock): number | null {
+  if (!isHeadingBlock(block)) {
+    return null
+  }
+
+  if (typeof block.level === 'number' && Number.isFinite(block.level)) {
+    return block.level
+  }
+
+  return block.sectionPath.length > 0 ? block.sectionPath.length : 1
+}
+
+// 长度判断只负责同 section 内部的兜底拆分。
 function shouldFlushCurrentChunk(
   currentLength: number,
   nextBlockLength: number,
@@ -61,29 +145,100 @@ function shouldFlushCurrentChunk(
   return currentLength + nextBlockLength > config.maxChars
 }
 
-//声明 chunk 草稿创建
 function createChunkDraft(blocks: StructuredBlock[]): ChunkDraft {
   const sectionPath = resolveSharedSectionPath(blocks)
-  const prefix = sectionPath.length > 0 ? `${sectionPath.join(' > ')}\n\n` : ''
-  const body = blocks.map((block) => buildBlockBody(block, sectionPath)).join('\n\n').trim()
+  const header = buildChunkHeader(blocks, sectionPath)
+  const body = blocks
+    .map((block) => buildBlockBody(block, sectionPath, header))
+    .filter(Boolean)
+    .join('\n\n')
+    .trim()
 
   return {
-    content: `${prefix}${body}`.trim(),
+    content: [header, body].filter(Boolean).join('\n\n').trim(),
     blocks,
     sectionPath
   }
 }
 
-//声明 chunk 正文构建
-function buildBlockBody(block: StructuredBlock, sharedSectionPath: string[]): string {
-  const ownPath = block.sectionPath.join(' > ')
-  const sharedPath = sharedSectionPath.join(' > ')
-  const needsOwnPath = ownPath && ownPath !== sharedPath
-  const ownPrefix = needsOwnPath ? `${ownPath}\n` : ''
-  return `${ownPrefix}${block.content}`.trim()
+// 路径信息只在 chunk 头里保留一次，并优先选择当前 chunk 真正对应的 section 标题。
+function buildChunkHeader(blocks: StructuredBlock[], sectionPath: string[]): string {
+  const titledHeading = resolveChunkHeadingTitle(blocks)
+  if (titledHeading) {
+    return titledHeading
+  }
+
+  const normalizedPath = sectionPath.map((item) => item.trim()).filter(Boolean)
+  if (normalizedPath.length === 0) {
+    return ''
+  }
+
+  return normalizedPath[normalizedPath.length - 1]
 }
 
-//声明共享路径提取
+function resolveChunkHeadingTitle(blocks: StructuredBlock[]): string | null {
+  const headingCandidates = blocks
+    .filter(isHeadingBlock)
+    .map((block) => ({
+      title: (block.title || block.content).trim(),
+      level: resolveHeadingLevel(block) ?? 1
+    }))
+    .filter((item) => item.title)
+
+  if (headingCandidates.length === 0) {
+    return null
+  }
+
+  const nonRootHeading = headingCandidates.find((item) => item.level > 1)
+  if (nonRootHeading) {
+    return nonRootHeading.title
+  }
+
+  return headingCandidates[0].title
+}
+
+function buildBlockBody(block: StructuredBlock, sharedSectionPath: string[], headerTitle: string): string {
+  const text = block.content.trim()
+  if (!text) {
+    return ''
+  }
+
+  if (shouldOmitHeadingFromBody(block, sharedSectionPath, headerTitle)) {
+    return ''
+  }
+
+  return text
+}
+
+// 如果标题已经在 chunk 头里表达过，就不要再把同一标题正文重复写一遍。
+function shouldOmitHeadingFromBody(
+  block: StructuredBlock,
+  sharedSectionPath: string[],
+  headerTitle: string
+): boolean {
+  if (!isHeadingBlock(block) || sharedSectionPath.length === 0) {
+    return false
+  }
+
+  const headingText = (block.title || block.content).trim()
+  if (!headingText) {
+    return false
+  }
+
+  if (headingText === headerTitle) {
+    return true
+  }
+
+  if (block.sectionPath.length > sharedSectionPath.length) {
+    return false
+  }
+
+  return (
+    headingText === sharedSectionPath[block.sectionPath.length - 1] &&
+    isPathPrefix(block.sectionPath, sharedSectionPath)
+  )
+}
+
 function resolveSharedSectionPath(blocks: StructuredBlock[]): string[] {
   if (blocks.length === 0) {
     return []
@@ -93,12 +248,7 @@ function resolveSharedSectionPath(blocks: StructuredBlock[]): string[] {
   const shared = [...firstBlock.sectionPath]
 
   for (const block of restBlocks) {
-    while (shared.length > 0) {
-      const current = shared.join('\u0000')
-      const candidate = block.sectionPath.slice(0, shared.length).join('\u0000')
-      if (current === candidate) {
-        break
-      }
+    while (shared.length > 0 && !isPathPrefix(shared, block.sectionPath)) {
       shared.pop()
     }
   }
@@ -106,7 +256,15 @@ function resolveSharedSectionPath(blocks: StructuredBlock[]): string[] {
   return shared
 }
 
-//声明重叠种子生成
+function isPathPrefix(prefix: string[], fullPath: string[]): boolean {
+  if (prefix.length > fullPath.length) {
+    return false
+  }
+
+  return prefix.every((item, index) => item === fullPath[index])
+}
+
+// overlap 只回带正文块，不把标题噪音再次塞进新 chunk 开头。
 function createOverlapSeed(blocks: StructuredBlock[], overlapChars: number): StructuredBlock[] {
   if (overlapChars <= 0 || blocks.length === 0) {
     return []
@@ -117,6 +275,10 @@ function createOverlapSeed(blocks: StructuredBlock[], overlapChars: number): Str
 
   for (let index = blocks.length - 1; index >= 0; index -= 1) {
     const block = blocks[index]
+    if (isHeadingBlock(block)) {
+      continue
+    }
+
     const blockLength = buildBlockText(block).length
     seed.unshift(block)
     length += blockLength
@@ -128,12 +290,15 @@ function createOverlapSeed(blocks: StructuredBlock[], overlapChars: number): Str
   return seed
 }
 
-//声明块长度统计
+function buildBlockText(block: StructuredBlock): string {
+  return block.content.trim()
+}
+
 function calculateBlocksLength(blocks: StructuredBlock[]): number {
   return blocks.reduce((total, block) => total + buildBlockText(block).length, 0)
 }
 
-//声明小尾块合并
+// 小尾块只会在同一个 section 内合并，不再跨章节回并。
 function mergeSmallTrailingChunk(drafts: ChunkDraft[], minChars: number): ChunkDraft[] {
   if (drafts.length < 2) {
     return drafts

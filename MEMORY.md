@@ -22,6 +22,9 @@
 - Knowledge-base document upload has been upgraded to real browser file upload instead of fake `storagePath` input.
 - Knowledge-base list `documentCount` should be counted from the document table, not inferred from ORM relation length.
 - Workspace chat auto-scroll keeps one `stickToBottom` user-intent state, updates it from the scroll container, and uses `ResizeObserver` on message content for follow-to-bottom; avoid `MutationObserver`, deep message watchers, and timer-based force-stick behavior for this flow.
+- Structure-aware chunking now follows `section-first, length-fallback, deduped serialization`: sibling sections should not be merged into one chunk, overlap should only carry body blocks, and repeated path/title text should not be injected into every block body.
+- The current default structure-aware chunk config baseline is `targetChars=700`, `maxChars=900`, `minChars=300`, `overlapChars=80`; existing documents keep their stored `chunkConfig` until rebuilt or updated.
+- Chunk `content` now prefers `section title + body` only; document root titles remain in searchable fields such as `documentName`, `primaryTitle`, and `sectionPath`, instead of being duplicated into embedding text.
 - Local PostgreSQL runs as `postgresql-x64-18` on port `5433`.
 - `pg_search` is a PostgreSQL extension rather than a NestJS package. On this Windows machine it can be compiled only after local `pgrx` Windows shim patching, and final installation into `D:\postgresql\share\extension` still requires administrator write permission.
 - Server-side BM25 database infrastructure now follows TypeORM migrations via `apps/server/src/database/data-source.ts`; run migrations before starting the server, and do not rely on `synchronize` for BM25 schema/index setup.
