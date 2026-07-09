@@ -5,8 +5,8 @@ import type {
   KnowledgeBase,
   KnowledgeChunk,
   KnowledgeDocument,
-  KnowledgeSearchHit,
   KnowledgeSearchInput,
+  KnowledgeSearchResponse,
   StructureAwareChunkConfig,
   UpdateKnowledgeBaseInput,
   UpdateKnowledgeDocumentInput
@@ -29,7 +29,7 @@ export const updateKnowledgeBaseAPI = (kbId: string, dto: UpdateKnowledgeBaseInp
 
 // 在指定知识库下搜索命中的 chunks
 export const searchKnowledgeAPI = (dto: KnowledgeSearchInput) => {
-  return request<KnowledgeSearchHit[]>('knowledge/search', 'POST', dto)
+  return request<KnowledgeSearchResponse>('knowledge/search', 'POST', dto)
 }
 
 // 根据知识库 ID 获取文档列表

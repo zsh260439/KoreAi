@@ -12,8 +12,10 @@ import type {
   KnowledgeChunk,
   KnowledgeChunkMetadata,
   KnowledgeDocument,
+  KnowledgeSearchDebugInfo,
   KnowledgeSearchHit,
   KnowledgeSearchInput,
+  KnowledgeSearchResponse,
   StructureAwareChunkConfig,
   UpdateKnowledgeBaseInput,
   UpdateKnowledgeDocumentInput,
@@ -51,6 +53,7 @@ type KnowledgeAskStreamInput = {
 //声明知识问答流式返回结构
 type KnowledgeAskStream = {
   sources: KnowledgeSearchHit[];
+  retrievalDebug: KnowledgeSearchDebugInfo | null;
   model: string | null;
   totalTokens: Promise<number | null>;
   stream: AsyncGenerator<KnowledgeQaStreamEvent>;
@@ -89,13 +92,15 @@ export class KnowledgeService {
   //声明知识库搜索入口
   async searchKnowledge(
     dto: KnowledgeSearchInput,
-  ): Promise<KnowledgeSearchHit[]> {
+  ): Promise<KnowledgeSearchResponse> {
+    // 这里保持最基础的空查询校验，避免调试面板被无效请求污染
     const query = dto.query.trim();
     if (!query) {
       throw new BadRequestException("query cannot be empty");
     }
 
     await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId);
+    // 搜索接口要把命中结果和 debug 一起返回给 admin preview 面板
     return this.knowledgeRetrievalService.retrieveKnowledge(
       dto.knowledgeBaseId,
       query,
@@ -119,7 +124,8 @@ export class KnowledgeService {
     await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId);
 
     const topK = normalizeTopK(dto.topK);
-    const sources = await this.knowledgeRetrievalService.retrieveKnowledge(
+    // 问答链路复用同一套检索逻辑，并把 debug 单独返回给 workspace 展示层使用。
+    const retrievalResult = await this.knowledgeRetrievalService.retrieveKnowledge(
       dto.knowledgeBaseId,
       query,
       topK,
@@ -127,6 +133,7 @@ export class KnowledgeService {
         enableRewrite: dto.rewrite !== false,
       },
     );
+    const sources = retrievalResult.hits
     const qaStream = await this.knowledgeQaService.streamAnswerQuestion(
       query,
       sources,
@@ -138,6 +145,7 @@ export class KnowledgeService {
 
     return {
       sources,
+      retrievalDebug: retrievalResult.debug,
       model: this.knowledgeQaService.getModelName(),
       totalTokens: qaStream.totalTokens,
       stream: qaStream.stream,

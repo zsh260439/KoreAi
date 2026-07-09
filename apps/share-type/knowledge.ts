@@ -119,6 +119,21 @@ export interface KnowledgeSearchInput {
 
 export type KnowledgeRetrievalSource = 'bm25' | 'vector'
 
+// 声明一次检索请求的调试快照，前端直接用它判断 rewrite 是否改写了 query，以及两路是否都生效
+export interface KnowledgeSearchDebugInfo {
+  originalQuery: string
+  normalizedQuery: string
+  bm25Query: string
+  vectorQuery: string
+  rewriteApplied: boolean
+  retrievalMode: string
+  bm25Weight: number
+  vectorWeight: number
+  bm25HitCount: number
+  vectorHitCount: number
+}
+
+// 声明单条命中结果的分数细节，避免 UI 只能看到一个最终展示分
 export interface KnowledgeSearchScoreDetail {
   matchedBy: KnowledgeRetrievalSource[]
   bm25Score: number | null
@@ -133,6 +148,12 @@ export interface KnowledgeSearchHit {
   content: string
   score: number
   scoreDetail?: KnowledgeSearchScoreDetail
+}
+
+// 声明搜索接口返回结构：命中列表和本次检索的调试信息分离，避免把同一份 debug 重复塞进每条 hit
+export interface KnowledgeSearchResponse {
+  hits: KnowledgeSearchHit[]
+  debug: KnowledgeSearchDebugInfo | null
 }
 export type KnowledgeReasoningStepKey =
   | 'knowledge_recall'

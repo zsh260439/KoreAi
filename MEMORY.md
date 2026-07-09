@@ -25,6 +25,7 @@
 - Structure-aware chunking now follows `section-first, length-fallback, deduped serialization`: sibling sections should not be merged into one chunk, overlap should only carry body blocks, and repeated path/title text should not be injected into every block body.
 - The current default structure-aware chunk config baseline is `targetChars=700`, `maxChars=900`, `minChars=300`, `overlapChars=80`; existing documents keep their stored `chunkConfig` until rebuilt or updated.
 - Chunk `content` now prefers `section title + body` only; document root titles remain in searchable fields such as `documentName`, `primaryTitle`, and `sectionPath`, instead of being duplicated into embedding text.
+- Workspace assistant messages now persist a separate `retrievalDebug` snapshot alongside `citations`, so chat-side recall UI and history replay can show the same BM25/vector debug data without duplicating it into each hit.
 - Local PostgreSQL runs as `postgresql-x64-18` on port `5433`.
 - `pg_search` is a PostgreSQL extension rather than a NestJS package. On this Windows machine it can be compiled only after local `pgrx` Windows shim patching, and final installation into `D:\postgresql\share\extension` still requires administrator write permission.
 - Server-side BM25 database infrastructure now follows TypeORM migrations via `apps/server/src/database/data-source.ts`; run migrations before starting the server, and do not rely on `synchronize` for BM25 schema/index setup.

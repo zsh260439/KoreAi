@@ -86,6 +86,7 @@ const toUserChatMessage = (
   content,
   createdAt: new Date().toISOString(),
   citations: null,
+  retrievalDebug: null,
   model: null,
   latencyMs: null,
   totalTokens: null,
@@ -106,6 +107,7 @@ const toAssistantPlaceholderMessage = (
   content: '',
   createdAt: new Date().toISOString(),
   citations: null,
+  retrievalDebug: null,
   model,
   latencyMs: null,
   totalTokens: null,
@@ -174,14 +176,17 @@ function applyStreamEventToAssistantMessage(
   }
 
   if (event.type === 'sources') {
+    // sources 事件除了命中片段外，还会同步一份检索 debug，供聊天页抽屉直接展示。
     const responseFlow = attachStreamingSources(
       assistantMessage.responseFlow ?? createThinkingPlaceholderFlow(),
-      event.data.sources
+      event.data.sources,
+      event.data.retrievalDebug
     )
 
     return {
       ...assistantMessage,
       citations: event.data.sources,
+      retrievalDebug: event.data.retrievalDebug,
       responseFlow
     }
   }
@@ -487,6 +492,7 @@ function finalizeAssistantMessage(
     content: result.answer,
     createdAt: assistantMessage.createdAt,
     citations: result.sources,
+    retrievalDebug: result.retrievalDebug,
     model: result.model,
     latencyMs: result.latencyMs,
     totalTokens: result.totalTokens,
@@ -499,6 +505,7 @@ function finalizeAssistantMessage(
       {
         ...assistantMessage.responseFlow,
         sources: result.sources,
+        retrievalDebug: result.retrievalDebug,
         sourcesStatus: result.sources.length ? 'done' : assistantMessage.responseFlow.sourcesStatus,
         answer: {
           ...assistantMessage.responseFlow.answer,

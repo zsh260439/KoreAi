@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import type {
   CreateWorkspaceConversationInput,
+  KnowledgeSearchDebugInfo,
   KnowledgeReasoningStep,
   KnowledgeSearchHit,
   WorkspaceChatInput,
@@ -19,6 +20,7 @@ import { WorkspaceMessageEntity } from './entity/workspace-message.entity'
 const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
 const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
 const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
+// 当前工作台聊天刻意固定只展示前 4 个命中 chunk，避免证据面板过长、回答上下文失控。
 const KNOWLEDGE_TOP_K = 4
 
 type PreparedChatContext = {
@@ -33,6 +35,7 @@ type PersistAssistantResponseInput = {
   promptCapabilities: WorkspacePromptCapabilities
   answer: string
   sources: KnowledgeSearchHit[]
+  retrievalDebug: KnowledgeSearchDebugInfo | null
   model: string | null
   reasoningSteps: KnowledgeReasoningStep[] | null
   latencyMs: number
@@ -122,7 +125,8 @@ export class WorkspaceService {
     yield {
       type: 'sources',
       data: {
-        sources: streamResult.sources
+        sources: streamResult.sources,
+        retrievalDebug: streamResult.retrievalDebug
       }
     }
 
@@ -220,6 +224,7 @@ export class WorkspaceService {
       promptCapabilities: context.promptCapabilities,
       answer: finalAnswer,
       sources: streamResult.sources,
+      retrievalDebug: streamResult.retrievalDebug,
       model: streamResult.model,
       reasoningSteps: normalizePersistedReasoningSteps(reasoningSteps),
       latencyMs,
@@ -259,6 +264,7 @@ export class WorkspaceService {
           role: 'user',
           content: query,
           citations: null,
+          retrievalDebug: null,
           model: null,
           latencyMs: null,
           totalTokens: null,
@@ -289,6 +295,7 @@ export class WorkspaceService {
         role: 'assistant',
         content: input.answer,
         citations: input.sources,
+        retrievalDebug: input.retrievalDebug,
         model: input.model,
         latencyMs: input.latencyMs,
         totalTokens: input.totalTokens,
@@ -308,6 +315,7 @@ export class WorkspaceService {
     return {
       answer: input.answer,
       sources: input.sources,
+      retrievalDebug: input.retrievalDebug,
       model: input.model,
       reasoningSteps: input.reasoningSteps,
       conversationId: input.conversation.id,
@@ -436,6 +444,7 @@ function toWorkspaceMessage(entity: WorkspaceMessageEntity): WorkspaceMessage {
     content: entity.content,
     createdAt: entity.createdAt.toISOString(),
     citations: entity.citations,
+    retrievalDebug: entity.retrievalDebug,
     model: entity.model,
     latencyMs: entity.latencyMs,
     totalTokens: entity.totalTokens,

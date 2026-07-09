@@ -18,11 +18,18 @@ import type {
   AssistantThinkingStage
 } from '@/types/chat/flow'
 import type { ChatMessage } from '@/types/chat/models'
-import type { KnowledgeSearchHit } from 'share-type'
+import type { KnowledgeSearchDebugInfo, KnowledgeSearchHit } from 'share-type'
 import ChatMarkdownContent from './ChatMarkdownContent.vue'
 import WorkspaceMark from './WorkspaceMark.vue'
 
 type ThoughtEntryKind = 'retrieval' | 'reasoning' | 'generic'
+
+// 统一描述召回调试字段，避免模板里重复拼 label 和取值逻辑。
+type RetrievalDebugField = {
+  label: string
+  value: string
+  multiline?: boolean
+}
 
 type ThoughtTimelineEntry = {
   id: string
@@ -47,7 +54,7 @@ const emit = defineEmits<{
 }>()
 
 const createdAtFallbackMs = Date.now()
-const thinkingHeaderText = 'KoreAi is Thinking'
+const thinkingHeaderText = 'KoreAI 正在思考'
 
 const processExpanded = ref(false)
 const evidenceDrawerOpen = ref(false)
@@ -194,6 +201,11 @@ const showReplyTokenCount = computed(
   () => !showProcessSection.value && !isStreamingMessage.value && hasFinalTokenCount.value
 )
 
+// 普通模式没有思考时间线，因此单独补一个召回入口，避免 chunk 只能在 think 模式下查看。
+const showStandaloneRecallEntry = computed(
+  () => !showProcessSection.value && hasSources.value
+)
+
 const showAnswerSection = computed(() => {
   if (showProcessSection.value) {
     return true
@@ -219,6 +231,10 @@ const showAnswerActions = computed(
 )
 
 const evidencePanelVisible = computed(() => evidenceDrawerOpen.value && hasSources.value)
+// 优先读取 responseFlow 里的流式态 debug，刷新历史消息时再退回持久化消息字段。
+const retrievalDebug = computed<KnowledgeSearchDebugInfo | null>(
+  () => responseFlow.value?.retrievalDebug ?? props.message.retrievalDebug ?? null
+)
 
 const recallScore = computed(() => {
   if (!visibleSources.value.length) {
@@ -230,8 +246,66 @@ const recallScore = computed(() => {
 })
 
 const retrievalQueryText = computed(() => {
-  const query = props.retrievalQuery?.trim()
+  const query = retrievalDebug.value?.originalQuery?.trim() || props.retrievalQuery?.trim()
   return query || '正在根据当前用户问题生成检索式。'
+})
+
+// 摘要指标单独成组，方便聊天页和 admin preview 保持一致口径。
+const retrievalMetricItems = computed<RetrievalDebugField[]>(() => {
+  if (!retrievalDebug.value) {
+    return []
+  }
+
+  return [
+    {
+      label: '重写状态',
+      value: retrievalDebug.value.rewriteApplied ? '已生效' : '未生效'
+    },
+    {
+      label: '融合权重',
+      value: `${formatDebugScore(retrievalDebug.value.bm25Weight)} : ${formatDebugScore(retrievalDebug.value.vectorWeight)}`
+    },
+    {
+      label: 'BM25 命中数',
+      value: String(retrievalDebug.value.bm25HitCount)
+    },
+    {
+      label: '向量命中数',
+      value: String(retrievalDebug.value.vectorHitCount)
+    },
+    {
+      label: '检索模式',
+      value: formatRetrievalMode(retrievalDebug.value.retrievalMode)
+    }
+  ]
+})
+
+// 长文本查询单独成组展示，避免把检索词塞进一行导致可读性下降。
+const retrievalQueryItems = computed<RetrievalDebugField[]>(() => {
+  if (!retrievalDebug.value) {
+    return []
+  }
+
+  return [
+    {
+      label: '原始问题',
+      value: retrievalDebug.value.originalQuery
+    },
+    {
+      label: '归一化问题',
+      value: retrievalDebug.value.normalizedQuery
+    },
+    {
+      label: 'BM25 检索词',
+      value: retrievalDebug.value.bm25Query,
+      multiline: true
+    },
+    {
+      label: '向量检索词',
+      value: retrievalDebug.value.vectorQuery,
+      multiline: true
+    }
+  ]
 })
 
 let liveTimer: number | null = null
@@ -420,6 +494,23 @@ function formatChunkScore(score: number) {
   return Number.isFinite(score) ? score.toFixed(1) : '-'
 }
 
+function formatDebugScore(score: number | null | undefined) {
+  return typeof score === 'number' && Number.isFinite(score) ? score.toFixed(1) : '-'
+}
+
+function formatRetrievalMode(mode: string | null | undefined) {
+  switch (mode) {
+    case 'keyword_first':
+      return '关键词优先'
+    case 'semantic_first':
+      return '语义优先'
+    case 'balanced':
+      return '均衡'
+    default:
+      return mode?.trim() || '-'
+  }
+}
+
 function formatChunkPreview(content: string) {
   const normalized = content.replace(/\s+/g, ' ').trim()
   return normalized.length > 112 ? `${normalized.slice(0, 112)}...` : normalized
@@ -428,6 +519,27 @@ function formatChunkPreview(content: string) {
 function formatChunkToken(source: KnowledgeSearchHit, index: number) {
   const compactId = source.chunkId ? source.chunkId.slice(0, 6) : String(index + 1)
   return `chunk ${compactId}`
+}
+
+function formatMatchedBy(source: KnowledgeSearchHit) {
+  const matchedBy = source.scoreDetail?.matchedBy ?? []
+  if (!matchedBy.length) {
+    return '未知'
+  }
+
+  return matchedBy
+    .map((item) => {
+      if (item === 'bm25') {
+        return 'BM25'
+      }
+
+      if (item === 'vector') {
+        return '向量'
+      }
+
+      return item
+    })
+    .join(' + ')
 }
 
 function getStageNote(stage: AssistantThinkingStage, sourceCount: number) {
@@ -738,6 +850,20 @@ function renderThoughtBody(body: string) {
         </div>
       </section>
 
+      <section v-if="showStandaloneRecallEntry" class="recall-entry-shell">
+        <button
+          type="button"
+          class="recall-entry-button"
+          aria-label="打开召回命中详情"
+          @click="openEvidenceDrawer"
+        >
+          <span class="recall-entry-button__label">召回命中</span>
+          <strong class="recall-entry-button__count">已命中 {{ visibleSources.length }} 个 chunk</strong>
+          <span class="recall-entry-button__meta">点击查看检索词、原始分与命中文档</span>
+          <span class="recall-entry-button__arrow">&gt;</span>
+        </button>
+      </section>
+
       <section
         v-if="showAnswerSection"
         class="answer-shell"
@@ -801,7 +927,7 @@ function renderThoughtBody(body: string) {
           <aside class="evidence-drawer" @click.stop>
             <header class="evidence-drawer__header">
               <div>
-                <strong>命中 chunk</strong>
+                <strong>召回命中详情</strong>
                 <span>已命中 {{ visibleSources.length }} 个 chunk</span>
               </div>
               <button
@@ -820,11 +946,42 @@ function renderThoughtBody(body: string) {
                 <p>{{ retrievalQueryText }}</p>
               </div>
               <div class="evidence-summary evidence-summary--score">
-                <span class="evidence-label">召回置信度</span>
+                <span class="evidence-label">最高展示分</span>
                 <strong>{{ recallScore }}</strong>
-                <p>RRF 融合分</p>
+                <p>当前命中结果中的最高融合展示分</p>
               </div>
             </div>
+
+            <section v-if="retrievalDebug" class="retrieval-debug-panel">
+              <header class="retrieval-debug-panel__header">
+                <strong>召回调试信息</strong>
+                <span>{{ retrievalDebug.rewriteApplied ? '已生效' : '未生效' }}</span>
+              </header>
+
+              <div class="retrieval-debug-metrics">
+                <article
+                  v-for="item in retrievalMetricItems"
+                  :key="item.label"
+                  class="retrieval-debug-card"
+                >
+                  <span class="evidence-label">{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </article>
+              </div>
+
+              <div class="retrieval-debug-queries">
+                <article
+                  v-for="item in retrievalQueryItems"
+                  :key="item.label"
+                  class="retrieval-query-card"
+                >
+                  <span class="evidence-label">{{ item.label }}</span>
+                  <p :class="{ 'retrieval-query-card__content--multiline': item.multiline }">
+                    {{ item.value || '-' }}
+                  </p>
+                </article>
+              </div>
+            </section>
 
             <div class="chunk-hit-list">
               <article
@@ -840,6 +997,12 @@ function renderThoughtBody(body: string) {
                     <strong>{{ formatChunkScore(source.score) }}</strong>
                   </div>
                   <p>{{ formatChunkPreview(source.content) }}</p>
+                  <div class="chunk-hit-card__scores">
+                    <span>命中方式：{{ formatMatchedBy(source) }}</span>
+                    <span>BM25 原始分：{{ formatDebugScore(source.scoreDetail?.bm25Score) }}</span>
+                    <span>向量原始分：{{ formatDebugScore(source.scoreDetail?.vectorScore) }}</span>
+                    <span>RRF 原始分：{{ formatDebugScore(source.scoreDetail?.fusedScore) }}</span>
+                  </div>
                   <div class="chunk-hit-card__tags">
                     <span>文档：{{ source.documentName || source.documentId }}</span>
                     <span>{{ formatChunkToken(source, index) }}</span>
@@ -1108,6 +1271,77 @@ function renderThoughtBody(body: string) {
   padding-top: 8px;
 }
 
+.recall-entry-shell {
+  padding-top: 14px;
+}
+
+.recall-entry-button {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px 12px;
+  border: 1px solid #dbe8e4;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(246, 251, 251, 0.82) 0%, rgba(255, 255, 255, 0.9) 100%);
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.recall-entry-button:hover {
+  border-color: #bfd2cb;
+  background: linear-gradient(180deg, rgba(243, 250, 249, 0.94) 0%, rgba(255, 255, 255, 0.98) 100%);
+  box-shadow: 0 6px 18px rgba(108, 140, 132, 0.08);
+}
+
+.recall-entry-button__label {
+  align-self: start;
+  border-radius: 999px;
+  background: #ebf8f5;
+  padding: 5px 10px;
+  color: #0f776f;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.recall-entry-button__count {
+  display: block;
+  color: #17324b;
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.recall-entry-button__meta {
+  grid-column: 2 / 3;
+  color: #6b7f92;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.recall-entry-button__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d2ddd9;
+  border-radius: 999px;
+  color: #5f7790;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.recall-entry-button:hover .recall-entry-button__arrow {
+  transform: translateX(2px);
+  border-color: #bfd2cb;
+  color: #17324b;
+}
+
 .answer-shell--divided {
   padding-top: 20px;
 }
@@ -1274,6 +1508,72 @@ function renderThoughtBody(body: string) {
   font-weight: 700;
 }
 
+.retrieval-debug-panel {
+  margin-bottom: 16px;
+}
+
+.retrieval-debug-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.retrieval-debug-panel__header strong {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.retrieval-debug-panel__header span {
+  color: #5f7790;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.retrieval-debug-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.retrieval-debug-card,
+.retrieval-query-card {
+  border: 1px solid #dbe8e4;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(103, 128, 148, 0.03);
+}
+
+.retrieval-debug-card strong {
+  display: block;
+  margin-top: 10px;
+  color: #17324b;
+  font-family: "Geist Mono", "JetBrains Mono", Consolas, monospace;
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.retrieval-debug-queries {
+  display: grid;
+  gap: 12px;
+}
+
+.retrieval-query-card p {
+  margin: 10px 0 0;
+  color: #17324b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.retrieval-query-card__content--multiline {
+  white-space: pre-line;
+}
+
 .chunk-hit-list {
   display: grid;
   gap: 16px;
@@ -1334,6 +1634,22 @@ function renderThoughtBody(body: string) {
   color: #17324b;
   font-size: 14px;
   line-height: 1.8;
+}
+
+.chunk-hit-card__scores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chunk-hit-card__scores span {
+  border-radius: 12px;
+  background: #f6fafc;
+  padding: 8px 10px;
+  color: #486178;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .chunk-hit-card__tags {
@@ -1405,6 +1721,24 @@ function renderThoughtBody(body: string) {
   }
 }
 
+@media (max-width: 640px) {
+  .recall-entry-button {
+    grid-template-columns: 1fr auto;
+  }
+
+  .recall-entry-button__label,
+  .recall-entry-button__count,
+  .recall-entry-button__meta {
+    grid-column: 1 / 2;
+  }
+
+  .recall-entry-button__arrow {
+    grid-column: 2 / 3;
+    grid-row: 1 / span 3;
+    align-self: center;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chunk-hit-card {
     animation: none !important;
@@ -1413,6 +1747,8 @@ function renderThoughtBody(body: string) {
   .thinking-footer__completion,
   .thinking-footer__divider,
   .thought-entry__source-arrow,
+  .recall-entry-button,
+  .recall-entry-button__arrow,
   .answer-action,
   .evidence-drawer__close {
     transition-duration: 0.01ms !important;

@@ -1,6 +1,6 @@
 import type { AssistantResponseFlow, AssistantThinkingStage } from '@/types/chat/flow'
 import type { ChatMessage } from '@/types/chat/models'
-import type { KnowledgeSearchHit, WorkspaceRunStage } from 'share-type'
+import type { KnowledgeSearchDebugInfo, KnowledgeSearchHit, WorkspaceRunStage } from 'share-type'
 
 type ChatMessageWithThinking = ChatMessage & {
   reasoningSteps: NonNullable<ChatMessage['reasoningSteps']>
@@ -75,6 +75,7 @@ export const buildCompletedResponseFlow = (message: ChatMessage): AssistantRespo
     visibleContent: message.content
   },
   sources: message.citations ?? [],
+  retrievalDebug: message.retrievalDebug ?? null,
   sourcesStatus: message.citations?.length ? 'done' : 'pending',
   totalDurationMs: message.latencyMs ?? undefined,
   showActions: true
@@ -90,6 +91,7 @@ export const createThinkingPlaceholderFlow = (): AssistantResponseFlow => ({
     visibleContent: ''
   },
   sources: [],
+  retrievalDebug: null,
   sourcesStatus: 'pending',
   showActions: false
 })
@@ -170,7 +172,7 @@ export const appendStreamingThinkingStageDelta = (
         id: VISIBLE_REASONING_STAGE_ID,
         stageKey: 'llm_reasoning',
         title: '分析问题与证据',
-        subtitle: '正在形成可展示的推理摘要',
+        subtitle: '正在整理可展示的推理摘要',
         status: 'running'
       }),
       delta
@@ -194,7 +196,8 @@ export const appendStreamingThinkingStageDelta = (
 
 export const attachStreamingSources = (
   flow: AssistantResponseFlow,
-  sources: KnowledgeSearchHit[]
+  sources: KnowledgeSearchHit[],
+  retrievalDebug: KnowledgeSearchDebugInfo | null
 ): AssistantResponseFlow => {
   const ensuredFlow = flow.thinking.some((stage) => stage.id === KNOWLEDGE_RECALL_STAGE_ID)
     ? flow
@@ -209,6 +212,7 @@ export const attachStreamingSources = (
   const nextFlow: AssistantResponseFlow = {
     ...ensuredFlow,
     sources,
+    retrievalDebug,
     sourcesStatus: 'done'
   }
 
@@ -229,7 +233,7 @@ export const appendStreamingAnswerDelta = (
         id: ANSWER_SYNTHESIS_STAGE_ID,
         stageKey: 'answer_synthesis',
         title: '组织最终回答',
-        subtitle: '正在输出面向用户的完整回复',
+        subtitle: '正在输出面向用户的完整回答',
         status: 'running'
       })
 
@@ -263,6 +267,7 @@ export const finalizeStreamingResponseFlow = (
     visibleContent: flow.answer.content
   },
   sources: flow.sources,
+  retrievalDebug: flow.retrievalDebug,
   sourcesStatus: flow.sourcesStatus,
   totalDurationMs: latencyMs ?? undefined,
   showActions: true

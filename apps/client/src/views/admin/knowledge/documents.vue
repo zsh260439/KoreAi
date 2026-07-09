@@ -37,7 +37,14 @@ const {
 } =
   useKnowledgeDocuments()
 const { rebuildKnowledgeChunks } = useKnowledgeChunks()
-const { searchResults, isSearching, error: searchError, searchKnowledge, clearSearchResults } = useKnowledgeSearch()
+const {
+  searchResults,
+  searchDebug,
+  isSearching,
+  error: searchError,
+  searchKnowledge,
+  clearSearchResults
+} = useKnowledgeSearch()
 const { rewriteEnabled, setRewriteEnabled } = useRetrievalRewritePreference()
 
 const kbId = computed(() => String(route.params.kbId || ''))
@@ -117,12 +124,29 @@ const filteredDocuments = computed(() => {
   }
 })
 
-// 搜索结果补充展示字段，直接显示后端返回的融合排序分
+// 搜索结果补充展示字段，把支路命中和原始分数整理成更容易 review 的展示文本
 const previewResults = computed(() => {
   return searchResults.value.map((item) => ({
     ...item,
-    scoreLabel: item.score.toFixed(2)
+    scoreLabel: item.score.toFixed(2),
+    matchLabel: formatMatchedBy(item.scoreDetail?.matchedBy),
+    bm25ScoreLabel: formatNullableScore(item.scoreDetail?.bm25Score),
+    vectorScoreLabel: formatNullableScore(item.scoreDetail?.vectorScore),
+    fusedScoreLabel: formatNullableScore(item.scoreDetail?.fusedScore)
   }))
+})
+
+// 调试面板直接消费这份结构，避免模板里到处写判空和格式转换
+const previewDebugSummary = computed(() => {
+  if (!searchDebug.value) {
+    return null
+  }
+
+  return {
+    ...searchDebug.value,
+    rewriteAppliedLabel: searchDebug.value.rewriteApplied ? '已生效' : '未生效',
+    branchWeightLabel: `${searchDebug.value.bm25Weight.toFixed(1)} : ${searchDebug.value.vectorWeight.toFixed(1)}`
+  }
 })
 
 // 解析分块配置
@@ -261,7 +285,8 @@ const handleContentSearch = async () => {
   hasSearchedContent.value = true
 
   await searchKnowledge(kbId.value, query, rewriteEnabled.value)
-   router.replace({
+  // 检索完成后只同步 URL 文本，方便从文档详情返回时恢复输入框内容
+  router.replace({
     path: route.path,
     query: {
       ...route.query,
@@ -276,6 +301,14 @@ const handleClearContentSearch = () => {
   contentSearchInput.value = ''
   hasSearchedContent.value = false
   clearSearchResults()
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      tab: activeTab.value === 'preview' ? 'preview' : undefined,
+      text: undefined
+    }
+  })
 }
 
 // 刷新文档列表
@@ -427,6 +460,23 @@ const getPreviewScoreTone = (score: number) => {
   if (score >= 60) return 'warning'
   return 'info'
 }
+
+// 命中支路直接做成人类可读标签，减少看 matchedBy 数组的心智负担
+const formatMatchedBy = (matchedBy?: string[]) => {
+  if (!matchedBy?.length) return '未标记'
+  return matchedBy
+    .map((item) => {
+      if (item === 'bm25') return 'BM25'
+      if (item === 'vector') return '向量'
+      return item
+    })
+    .join(' + ')
+}
+
+// 原始分数可能为空；这里统一转成短横线，避免 UI 上出现一堆 null
+const formatNullableScore = (value?: number | null) => {
+  return typeof value === 'number' ? value.toFixed(4) : '-'
+}
 watch(activeTab,(val)=>{
     if(val === 'documents'){
        router.replace({
@@ -439,9 +489,9 @@ onMounted(async () => {
     await loadKnowledgeBases()
   }
   await loadKnowledgeDocuments(kbId.value)
+  // 刷新进入页面时只恢复输入框文本，不自动发起检索，避免无意识触发一次搜索
   if (route.query.text) {
     contentSearchInput.value = route.query.text as string
-    handleContentSearch()
   }
 })
 </script>
@@ -543,6 +593,52 @@ onMounted(async () => {
                 清空
               </button>
             </div>
+
+            <div v-if="previewDebugSummary" class="preview-debug">
+              <div class="preview-debug__header">
+                <span>检索调试信息</span>
+                <span>{{ previewDebugSummary.rewriteAppliedLabel }}</span>
+              </div>
+
+              <div class="preview-debug__stats">
+                <div class="preview-debug__stat">
+                  <small>融合权重</small>
+                  <strong>{{ previewDebugSummary.branchWeightLabel }}</strong>
+                </div>
+                <div class="preview-debug__stat">
+                  <small>BM25 命中数</small>
+                  <strong>{{ previewDebugSummary.bm25HitCount }}</strong>
+                </div>
+                <div class="preview-debug__stat">
+                  <small>向量命中数</small>
+                  <strong>{{ previewDebugSummary.vectorHitCount }}</strong>
+                </div>
+                <div class="preview-debug__stat">
+                  <small>检索模式</small>
+                  <strong>{{ previewDebugSummary.retrievalMode }}</strong>
+                </div>
+              </div>
+
+              <div class="preview-debug__block">
+                <label>原始问题</label>
+                <div class="preview-debug__value">{{ previewDebugSummary.originalQuery }}</div>
+              </div>
+
+              <div class="preview-debug__block">
+                <label>归一化问题</label>
+                <div class="preview-debug__value">{{ previewDebugSummary.normalizedQuery }}</div>
+              </div>
+
+              <div class="preview-debug__block">
+                <label>BM25 检索词</label>
+                <div class="preview-debug__value">{{ previewDebugSummary.bm25Query }}</div>
+              </div>
+
+              <div class="preview-debug__block">
+                <label>向量检索词</label>
+                <div class="preview-debug__value">{{ previewDebugSummary.vectorQuery }}</div>
+              </div>
+            </div>
           </div>
 
           <div class="preview-results">
@@ -581,6 +677,13 @@ onMounted(async () => {
 
                     <div class="preview-result__meta">
                       <span>{{ item.chunkId }}</span>
+                      <span>{{ item.matchLabel }}</span>
+                    </div>
+
+                    <div class="preview-result__scores">
+                      <span>BM25 原始分 {{ item.bm25ScoreLabel }}</span>
+                      <span>向量原始分 {{ item.vectorScoreLabel }}</span>
+                      <span>RRF 原始分 {{ item.fusedScoreLabel }}</span>
                     </div>
                   </div>
                 </article>
@@ -1089,6 +1192,67 @@ onMounted(async () => {
   cursor: pointer;
 }
 
+.preview-debug {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #dbe4ee;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.preview-debug__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f766e;
+}
+
+.preview-debug__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.preview-debug__stat {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.preview-debug__stat small,
+.preview-debug__block label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.preview-debug__stat strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.preview-debug__block {
+  display: grid;
+  gap: 6px;
+}
+
+.preview-debug__value {
+  border-left: 2px solid #99f6e4;
+  background: #f8fafc;
+  padding: 9px 10px 9px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1f2937;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .preview-panel__error {
   margin: 16px 0 0;
   border-left: 3px solid #dc2626;
@@ -1219,9 +1383,20 @@ onMounted(async () => {
 
 .preview-result__meta {
   margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.preview-result__scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #475569;
 }
 
 
@@ -1400,6 +1575,10 @@ onMounted(async () => {
   .preview-query,
   .preview-results {
     padding: 18px;
+  }
+
+  .preview-debug__stats {
+    grid-template-columns: 1fr;
   }
 
   .preview-result {

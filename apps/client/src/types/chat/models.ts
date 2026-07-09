@@ -5,5 +5,6 @@ export type ChatMessageStatus = 'done' | 'streaming' | 'error'
 
 export interface ChatMessage extends WorkspaceMessage {
   status: ChatMessageStatus
+  // responseFlow 只服务于前端渲染，不回写数据库。
   responseFlow?: AssistantResponseFlow
 }
