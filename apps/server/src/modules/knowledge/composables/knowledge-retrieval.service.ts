@@ -4,7 +4,7 @@ import { KnowledgeVectorStoreService } from './knowledge-vector-store.service'
 import { KnowledgeBm25Service } from './knowledge-bm25.service'
 import { mergeKnowledgeRetrievalCandidates } from './knowledge-hybrid-ranker'
 import type { KnowledgeRetrievalCandidate } from './knowledge-retrieval.types'
-
+import { KnowledgeQueryEngineService } from './knowledge-query-engine.service'
 const MIN_CANDIDATE_LIMIT = 20
 const MAX_CANDIDATE_LIMIT = 80
 const CANDIDATE_MULTIPLIER = 4 
@@ -13,20 +13,29 @@ export class KnowledgeRetrievalService {
   constructor(
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
     private readonly knowledgeBm25Service: KnowledgeBm25Service,
+    private readonly knowledgeQueryEngineService: KnowledgeQueryEngineService,
   ) {}
   
   async retrieveKnowledge(
     knowledgeBaseId: string | undefined,
     query: string,
-    topK:number
+    topK:number,
+    options: { enableRewrite?: boolean } = {}
   ) :Promise<KnowledgeSearchHit[]>{
     const candidateLimit = resolveCandidateLimit(topK)
-
+    const plan = await this.knowledgeQueryEngineService.buildPlan(query, {
+      enableAnalysis: options.enableRewrite !== false
+    })
     const [bm25Candidates,vectorCandidates] = await Promise.all([
-        this.knowledgeBm25Service.search(query,knowledgeBaseId,candidateLimit),
-        this.vectorRecall(query,knowledgeBaseId,candidateLimit)
+        this.knowledgeBm25Service.search(plan.bm25Query,knowledgeBaseId,candidateLimit),
+        this.vectorRecall(plan.vectorQuery,knowledgeBaseId,candidateLimit)
     ])
-    return mergeKnowledgeRetrievalCandidates(bm25Candidates,vectorCandidates,topK)
+    return mergeKnowledgeRetrievalCandidates(bm25Candidates,vectorCandidates,topK,
+      {
+        bm25Weight: plan.retrieval.bm25Weight,
+        vectorWeight: plan.retrieval.vectorWeight,
+      }
+    )
   }
   
   private async vectorRecall(

@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAutoScroll } from '@/composables/useAutoScroll'
 import { useConversationList } from '@/composables/useConversationList'
 import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
+import { useRetrievalRewritePreference } from '@/composables/useRetrievalRewritePreference'
 import { useWorkspaceChat } from '@/composables/useWorkspaceChat'
 import type { ChatMessage } from '@/types/chat/models'
 import type { WorkspacePromptCapabilities } from 'share-type'
@@ -23,11 +24,13 @@ const router = useRouter()
 const conversationList = useConversationList()
 const workspaceChat = useWorkspaceChat()
 const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
+const { rewriteEnabled, setRewriteEnabled } = useRetrievalRewritePreference()
 
 const composerValue = ref('')
 const selectedKnowledgeBaseId = ref('')
 const currentPromptCapabilities = ref<WorkspacePromptCapabilities>({
-  think: false
+  think: false,
+  rewrite: rewriteEnabled.value
 })
 const promptBoxRef = ref<InstanceType<typeof WorkspacePromptBox> | null>(null)
 const autoScroll = useAutoScroll()
@@ -102,6 +105,33 @@ watch(
     await scrollMessagesToBottom()
   },
   { deep: true }
+)
+
+watch(
+  rewriteEnabled,
+  (value) => {
+    if (currentPromptCapabilities.value.rewrite === value) {
+      return
+    }
+
+    currentPromptCapabilities.value = {
+      ...currentPromptCapabilities.value,
+      rewrite: value
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => currentPromptCapabilities.value.rewrite,
+  (value) => {
+    const normalizedValue = value !== false
+    if (rewriteEnabled.value === normalizedValue) {
+      return
+    }
+
+    setRewriteEnabled(normalizedValue)
+  }
 )
 
 const handleConversationSelect = async (conversationId: string) => {

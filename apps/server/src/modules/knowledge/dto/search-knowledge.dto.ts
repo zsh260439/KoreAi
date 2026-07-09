@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
 import type { KnowledgeSearchInput } from 'share-type'
 
 export class SearchKnowledgeDto implements KnowledgeSearchInput {
@@ -9,4 +9,8 @@ export class SearchKnowledgeDto implements KnowledgeSearchInput {
   @IsOptional()
   @IsString()
   knowledgeBaseId?: string
+
+  @IsOptional()
+  @IsBoolean()
+  rewrite?: boolean
 }

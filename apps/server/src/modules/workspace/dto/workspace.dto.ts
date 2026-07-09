@@ -26,5 +26,9 @@ export class WorkspaceChatDto implements WorkspaceChatInput {
 
   @IsOptional()
   @IsBoolean()
+  rewrite?: boolean
+
+  @IsOptional()
+  @IsBoolean()
   regenerate?: boolean
 }

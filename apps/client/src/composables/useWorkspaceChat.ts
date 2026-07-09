@@ -24,7 +24,8 @@ import { useConversationList } from './useConversationList'
 
 //声明默认输入能力
 const DEFAULT_PROMPT_CAPABILITIES: WorkspacePromptCapabilities = {
-  think: false
+  think: false,
+  rewrite: true
 }
 
 //声明激活中的聊天请求结构
@@ -57,7 +58,10 @@ const regenerating = ref(false)
 //声明输入能力标准化逻辑
 const normalizePromptCapabilities = (
   promptCapabilities?: WorkspacePromptCapabilities | null
-): WorkspacePromptCapabilities => promptCapabilities ?? DEFAULT_PROMPT_CAPABILITIES
+): WorkspacePromptCapabilities => ({
+  think: Boolean(promptCapabilities?.think),
+  rewrite: promptCapabilities?.rewrite !== false
+})
 
 //声明查找最后一条用户消息下标
 const findLastUserContentIndex = (contentList: ChatMessage[]) => {
@@ -307,6 +311,7 @@ export function useWorkspaceChat() {
           query: params.query,
           knowledgeBaseId: params.knowledgeBaseId,
           think: params.promptCapabilities.think,
+          rewrite: params.promptCapabilities.rewrite,
           regenerate: params.regenerate
         },
         {

@@ -114,6 +114,7 @@ export interface UpdateKnowledgeDocumentInput {
 export interface KnowledgeSearchInput {
   query: string
   knowledgeBaseId?: string
+  rewrite?: boolean
 }
 
 export type KnowledgeRetrievalSource = 'bm25' | 'vector'

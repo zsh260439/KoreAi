@@ -7,14 +7,19 @@ const isSearching = ref(false)
 const error = ref<string | null>(null)
 
 export function useKnowledgeSearch() {
-  const searchKnowledge = async (knowledgeBaseId: string, query: string) => {
+  const searchKnowledge = async (
+    knowledgeBaseId: string,
+    query: string,
+    rewrite = true
+  ) => {
     isSearching.value = true
     error.value = null
 
     try {
       const response = await searchKnowledgeAPI({
         knowledgeBaseId,
-        query: query.trim()
+        query: query.trim(),
+        rewrite
       })
 
       searchResults.value = response.data

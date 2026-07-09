@@ -110,7 +110,8 @@ export class WorkspaceService {
         query: context.query,
         knowledgeBaseId: dto.knowledgeBaseId,
         topK: KNOWLEDGE_TOP_K,
-        think: dto.think
+        think: dto.think,
+        rewrite: context.promptCapabilities.rewrite
       },
       { signal: options.signal }
     )
@@ -246,7 +247,7 @@ export class WorkspaceService {
           })
         )
 
-    const promptCapabilities = buildPromptCapabilities(dto.think)
+    const promptCapabilities = buildPromptCapabilities(dto.think, dto.rewrite)
     let query = incomingQuery
 
     if (dto.regenerate) {
@@ -380,9 +381,13 @@ function buildConversationTitle(query: string): string {
   return normalized.length > 18 ? `${normalized.slice(0, 18)}...` : normalized
 }
 
-function buildPromptCapabilities(think?: boolean): WorkspacePromptCapabilities {
+function buildPromptCapabilities(
+  think?: boolean,
+  rewrite?: boolean
+): WorkspacePromptCapabilities {
   return {
-    think: Boolean(think)
+    think: Boolean(think),
+    rewrite: rewrite !== false
   }
 }
 

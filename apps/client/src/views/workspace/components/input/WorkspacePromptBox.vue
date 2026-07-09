@@ -2,9 +2,10 @@
 import { ArrowUp, Brain, Square } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
+import RetrievalRewriteToggle from '@/components/ui/RetrievalRewriteToggle.vue'
 import type { WorkspacePromptCapabilities } from 'share-type'
 
-//声明输入框提交载荷
+// 声明输入框提交载荷
 type PromptSubmitPayload = {
   message: string
   capabilities: WorkspacePromptCapabilities
@@ -25,7 +26,8 @@ const props = withDefaults(
   }>(),
   {
     capabilities: () => ({
-      think: false
+      think: false,
+      rewrite: true
     }),
     disabled: false,
     knowledgeBases: () => [],
@@ -44,17 +46,19 @@ const emit = defineEmits<{
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const thinkEnabled = ref(false)
+const rewriteEnabled = ref(true)
 
-//声明输入框能力开关
+// 统一从本地状态导出能力开关，避免父子状态分叉
 const promptCapabilities = computed<WorkspacePromptCapabilities>(() => ({
-  think: thinkEnabled.value
+  think: thinkEnabled.value,
+  rewrite: rewriteEnabled.value
 }))
 
 const hasContent = computed(() => props.modelValue.trim().length > 0)
 
 const currentPlaceholder = computed(() => {
   if (thinkEnabled.value) {
-    return '请输入你需要深度思考的内容'
+    return '请输入需要深度思考的问题'
   }
 
   return '输入问题，直接开始对话'
@@ -77,12 +81,16 @@ const updateSelectedKnowledgeBase = (event: Event) => {
 }
 
 const updateValue = (event: Event) => {
-const target = event.target as HTMLTextAreaElement
+  const target = event.target as HTMLTextAreaElement
   emit('update:modelValue', target.value)
 }
 
 const toggleThinkMode = () => {
   thinkEnabled.value = !thinkEnabled.value
+}
+
+const updateRewriteEnabled = (value: boolean) => {
+  rewriteEnabled.value = value
 }
 
 const focusComposer = async () => {
@@ -106,7 +114,7 @@ const submit = () => {
   if (props.disabled || !hasContent.value) {
     return
   }
- 
+
   emit('submit', {
     message: props.modelValue.trim(),
     capabilities: promptCapabilities.value,
@@ -127,6 +135,7 @@ watch(
   () => props.capabilities,
   (value) => {
     thinkEnabled.value = Boolean(value?.think)
+    rewriteEnabled.value = value?.rewrite !== false
   },
   { immediate: true, deep: true }
 )
@@ -222,6 +231,15 @@ defineExpose({
         <Brain class="size-4 shrink-0" />
         <span>深度思考</span>
       </button>
+
+      <RetrievalRewriteToggle
+        :model-value="rewriteEnabled"
+        :disabled="disabled || streaming"
+        compact
+        label="LLM Rewrite"
+        hint="Rewrite retrieval query"
+        @update:model-value="updateRewriteEnabled"
+      />
     </div>
   </div>
 </template>

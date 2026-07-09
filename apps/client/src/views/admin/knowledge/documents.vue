@@ -8,6 +8,8 @@ import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
 import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
 import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
 import { useKnowledgeSearch } from '@/composables/useKnowledgeSearch'
+import { useRetrievalRewritePreference } from '@/composables/useRetrievalRewritePreference'
+import RetrievalRewriteToggle from '@/components/ui/RetrievalRewriteToggle.vue'
 import type { KnowledgeDocument, StructureAwareChunkConfig } from 'share-type'
 
 type KnowledgeDocumentUploadForm = {
@@ -36,6 +38,7 @@ const {
   useKnowledgeDocuments()
 const { rebuildKnowledgeChunks } = useKnowledgeChunks()
 const { searchResults, isSearching, error: searchError, searchKnowledge, clearSearchResults } = useKnowledgeSearch()
+const { rewriteEnabled, setRewriteEnabled } = useRetrievalRewritePreference()
 
 const kbId = computed(() => String(route.params.kbId || ''))
 const knowledgeBase = computed(() => knowledgeBases.value.find((item) => item.id === kbId.value))
@@ -257,7 +260,7 @@ const handleContentSearch = async () => {
 
   hasSearchedContent.value = true
 
-  await searchKnowledge(kbId.value, query)
+  await searchKnowledge(kbId.value, query, rewriteEnabled.value)
    router.replace({
     path: route.path,
     query: {
@@ -509,6 +512,12 @@ onMounted(async () => {
         <div class="preview-workbench">
           <div class="preview-query">
             <div class="preview-query__label">QUERY</div>
+            <RetrievalRewriteToggle
+              :model-value="rewriteEnabled"
+              label="LLM Rewrite"
+              hint="对检索问句先做语义改写，再进入 BM25 / 向量召回"
+              @update:model-value="setRewriteEnabled"
+            />
             <textarea
               v-model="contentSearchInput"
               class="preview-query__input"

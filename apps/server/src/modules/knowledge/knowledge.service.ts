@@ -45,6 +45,7 @@ type KnowledgeAskStreamInput = {
   knowledgeBaseId?: string;
   topK?: number;
   think?: boolean;
+  rewrite?: boolean;
 };
 
 //声明知识问答流式返回结构
@@ -99,6 +100,9 @@ export class KnowledgeService {
       dto.knowledgeBaseId,
       query,
       20,
+      {
+        enableRewrite: dto.rewrite !== false,
+      },
     );
   }
 
@@ -119,6 +123,9 @@ export class KnowledgeService {
       dto.knowledgeBaseId,
       query,
       topK,
+      {
+        enableRewrite: dto.rewrite !== false,
+      },
     );
     const qaStream = await this.knowledgeQaService.streamAnswerQuestion(
       query,

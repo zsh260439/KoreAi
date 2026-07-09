@@ -7,6 +7,7 @@ import type {
 
 export interface WorkspacePromptCapabilities {
   think: boolean
+  rewrite?: boolean
 }
 
 export interface WorkspaceConversationSummary {
@@ -40,6 +41,7 @@ export interface WorkspaceChatInput {
   query: string
   knowledgeBaseId?: string
   think?: boolean
+  rewrite?: boolean
   regenerate?: boolean
 }
 
