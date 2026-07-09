@@ -1,3 +1,3 @@
-export * from './common.js'
-export * from './knowledge.js'
-export * from './workspace.js'
+export * from './common.ts'
+export * from './knowledge.ts'
+export * from './workspace.ts'

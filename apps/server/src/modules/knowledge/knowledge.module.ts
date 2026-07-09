@@ -12,6 +12,7 @@ import { KnowledgeController } from './knowledge.controller'
 import { KnowledgeBaseEntity } from './entity/knowledge-base.entity'
 import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
 import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
+import { KnowledgeRuntimeSettingsEntity } from './entity/knowledge-runtime-settings.entity'
 import { KnowledgeService } from './knowledge.service'
 
 @Module({
@@ -19,7 +20,8 @@ import { KnowledgeService } from './knowledge.service'
     TypeOrmModule.forFeature([
       KnowledgeBaseEntity,
       KnowledgeDocumentEntity,
-      KnowledgeChunkEntity
+      KnowledgeChunkEntity,
+      KnowledgeRuntimeSettingsEntity
     ])
   ],
   controllers: [KnowledgeController],

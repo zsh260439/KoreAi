@@ -1,4 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
+import type { KnowledgeBaseRuntimeConfig } from 'share-type'
+
 import { KnowledgeQueryAnalysisService } from './knowledge-query-analysis.service'
 import type {
   KnowledgeQueryAnalysis,
@@ -6,25 +8,20 @@ import type {
   KnowledgeQueryRetrievalHints
 } from './knowledge-query-plan.types'
 
-const DEFAULT_RETRIEVAL_HINTS: KnowledgeQueryRetrievalHints = {
-  mode: 'balanced',
-  bm25Weight: 1,
-  vectorWeight: 1
-}
-
 @Injectable()
 export class KnowledgeQueryEngineService {
-  constructor(
-    private readonly knowledgeQueryAnalysisService: KnowledgeQueryAnalysisService
-  ) {}
+  constructor(private readonly knowledgeQueryAnalysisService: KnowledgeQueryAnalysisService) {}
 
   async buildPlan(
     query: string,
-    options: { enableAnalysis?: boolean } = {}
+    options: {
+      enableAnalysis?: boolean
+      runtimeConfig: KnowledgeBaseRuntimeConfig
+    }
   ): Promise<KnowledgeQueryPlan> {
-    // 保留原始 query，后面调试面板会直接展示“用户到底输入了什么”
+    // 保留原始 query，后续调试面板需要直接展示用户到底输入了什么。
     const originalQuery = typeof query === 'string' ? query : ''
-    // 归一化只做文本清洗，不做语义改写
+    // 归一化只做文本清洗，不做语义改写。
     const normalizedQuery = normalizeQuery(originalQuery)
 
     if (!normalizedQuery) {
@@ -34,28 +31,41 @@ export class KnowledgeQueryEngineService {
     const analysis =
       options.enableAnalysis === false
         ? null
-        : await this.knowledgeQueryAnalysisService.analyze({
-            originalQuery,
-            normalizedQuery
-          })
+        : await this.knowledgeQueryAnalysisService.analyze(
+            {
+              originalQuery,
+              normalizedQuery
+            },
+            {
+              temperature: options.runtimeConfig.retrieval.queryAnalysisTemperature
+            }
+          )
 
     return {
-      // 原始输入用于调试和对照 rewrite 前后变化
+      // 原始输入用于调试和对照 rewrite 前后变化。
       originalQuery,
-      // 清洗后的 query 作为所有后续处理的基线
+      // 清洗后的 query 作为所有后续处理的基线。
       normalizedQuery,
-      // BM25 仍然吃 rewrite 产出的关键词拼接结果，但不再让 LLM 改权重
+      // BM25 仍然吃 rewrite 产出的关键词拼接结果，但不再允许 LLM 改融合权重。
       bm25Query: buildBm25Query(normalizedQuery, analysis),
-      // 向量检索仍然可以吃 rewrite 的语义扩写文本
+      // 向量检索仍然可以吃 rewrite 的语义扩写文本。
       vectorQuery: buildVectorQuery(normalizedQuery, analysis),
-      // 这个标记让前端知道本次是否真的拿到了 analysis 结果，而不是单纯开关处于 ON
+      // 这个标记让前端知道本次是否真的拿到了 analysis 结果。
       rewriteApplied: analysis !== null,
       analysis,
       entities: analysis?.entities ?? [],
       constraints: analysis?.constraints ?? [],
-      // 这里强制固定为 1:1，彻底切断 LLM 动态改融合权重的入口
-      retrieval: DEFAULT_RETRIEVAL_HINTS
+      // 权重只由 admin 显式配置，不再允许 LLM 在 analysis 结果里改策略。
+      retrieval: buildRetrievalHints(options.runtimeConfig)
     }
+  }
+}
+
+function buildRetrievalHints(runtimeConfig: KnowledgeBaseRuntimeConfig): KnowledgeQueryRetrievalHints {
+  return {
+    mode: 'balanced',
+    bm25Weight: runtimeConfig.retrieval.bm25Weight,
+    vectorWeight: runtimeConfig.retrieval.vectorWeight
   }
 }
 
@@ -71,10 +81,7 @@ function normalizeQuery(value: string): string {
     .trim()
 }
 
-function buildBm25Query(
-  normalizedQuery: string,
-  analysis: KnowledgeQueryAnalysis | null
-): string {
+function buildBm25Query(normalizedQuery: string, analysis: KnowledgeQueryAnalysis | null): string {
   if (!analysis) {
     return normalizedQuery
   }
@@ -87,18 +94,12 @@ function buildBm25Query(
   ]).join(' ')
 }
 
-function buildVectorQuery(
-  normalizedQuery: string,
-  analysis: KnowledgeQueryAnalysis | null
-): string {
+function buildVectorQuery(normalizedQuery: string, analysis: KnowledgeQueryAnalysis | null): string {
   if (!analysis) {
     return normalizedQuery
   }
 
-  return uniqueStrings([
-    normalizedQuery,
-    ...analysis.semanticQueries.slice(0, 4)
-  ]).join('\n')
+  return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 4)]).join('\n')
 }
 
 function uniqueStrings(values: string[]): string[] {

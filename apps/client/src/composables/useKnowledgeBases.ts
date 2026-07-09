@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+
 import {
   createKnowledgeBaseAPI,
   deleteKnowledgeBaseAPI,
@@ -37,13 +38,11 @@ export function useKnowledgeBases() {
     return created
   }
 
-  const updateKnowledgeBase = async (
-    kbId: string,
-    payload: UpdateKnowledgeBaseInput
-  ) => {
+  const updateKnowledgeBase = async (kbId: string, payload: UpdateKnowledgeBaseInput) => {
     const response = await updateKnowledgeBaseAPI(kbId, {
       name: payload.name?.trim(),
-      description: payload.description?.trim()
+      description: payload.description?.trim(),
+      runtimeConfig: payload.runtimeConfig
     })
 
     const updated = response.data

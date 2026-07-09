@@ -5,10 +5,12 @@ import type {
   KnowledgeBase,
   KnowledgeChunk,
   KnowledgeDocument,
+  KnowledgeGlobalRuntimeSettings,
   KnowledgeSearchInput,
   KnowledgeSearchResponse,
   StructureAwareChunkConfig,
   UpdateKnowledgeBaseInput,
+  UpdateKnowledgeRuntimeConfigInput,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
 
@@ -22,9 +24,19 @@ export const findKnowledgeBasesAPI = () => {
   return request<KnowledgeBase[]>('knowledge/bases')
 }
 
+// 获取全局召回运行配置
+export const findGlobalRuntimeSettingsAPI = () => {
+  return request<KnowledgeGlobalRuntimeSettings>('knowledge/runtime-config/global')
+}
+
 // 更新知识库
 export const updateKnowledgeBaseAPI = (kbId: string, dto: UpdateKnowledgeBaseInput) => {
   return request<KnowledgeBase>(`knowledge/bases/${kbId}`, 'PATCH', dto)
+}
+
+// 更新全局召回运行配置
+export const updateGlobalRuntimeSettingsAPI = (dto: UpdateKnowledgeRuntimeConfigInput) => {
+  return request<KnowledgeGlobalRuntimeSettings>('knowledge/runtime-config/global', 'PATCH', dto)
 }
 
 // 在指定知识库下搜索命中的 chunks

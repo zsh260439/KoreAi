@@ -18,6 +18,7 @@ type BreadcrumbItem = {
 const breadcrumbPathMap: Record<string, string> = {
   首页: '/admin/knowledge',
   知识库管理: '/admin/knowledge',
+  检索参数: '/admin/knowledge-settings',
   代码地图: '/admin/architecture'
 }
 

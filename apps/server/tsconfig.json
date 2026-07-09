@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    // 你原有其他配置不动
     "resolvePackageJsonExports": true,
     "ignoreDeprecations": "6.0",
     "esModuleInterop": true,

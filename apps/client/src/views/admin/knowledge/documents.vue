@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { ChevronLeft, FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Trash2 } from 'lucide-vue-next'
+import { ChevronLeft, FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Settings2, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -455,6 +455,17 @@ const openSearchHitDocument = (documentId: string, chunkId: string) => {
   })
 }
 
+// 从文档页跳到参数页时带上 kbId，避免用户还要重新选择知识库。
+const openKnowledgeSettings = () => {
+  router.push({
+    path: '/admin/knowledge-settings',
+    query: {
+      scope: 'knowledge_base',
+      kbId: kbId.value || undefined
+    }
+  })
+}
+
 const getPreviewScoreTone = (score: number) => {
   if (score >= 80) return 'success'
   if (score >= 60) return 'warning'
@@ -512,6 +523,10 @@ onMounted(async () => {
         </div>
 
         <div class="doc-stage__actions">
+          <el-button @click="openKnowledgeSettings">
+            <Settings2 class="h-4 w-4" />
+            检索参数
+          </el-button>
           <el-button @click="handleRefresh">
             <RefreshCw class="h-4 w-4" />
             刷新

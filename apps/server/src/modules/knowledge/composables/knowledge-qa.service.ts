@@ -25,15 +25,17 @@ type UsageMetadata = {
 
 @Injectable()
 export class KnowledgeQaService {
-  private client: ChatOpenAI | null = null
-
   async streamAnswerQuestion(
     query: string,
     hits: KnowledgeSearchHit[],
-    options: { includeReasoning?: boolean; signal?: AbortSignal } = {}
+    options: {
+      includeReasoning?: boolean
+      signal?: AbortSignal
+      temperature?: number
+    } = {}
   ): Promise<KnowledgeQaStreamResult> {
     const includeReasoning = Boolean(options.includeReasoning)
-    const stream = this.getClient().streamV2(
+    const stream = this.createClient(options.temperature).streamV2(
       [
         {
           role: 'system',
@@ -90,27 +92,22 @@ export class KnowledgeQaService {
     return process.env.LLM_MODEL ?? null
   }
 
-  private getClient(): ChatOpenAI {
-    if (this.client) {
-      return this.client
-    }
-
+  // QA temperature 允许按知识库显式覆盖，因此这里按请求创建 client，避免缓存脏参数。
+  private createClient(temperature?: number): ChatOpenAI {
     const apiKey = process.env.LLM_API_KEY
     const model = process.env.LLM_MODEL
     if (!apiKey || !model) {
       throw new InternalServerErrorException('LLM API key or model not set')
     }
 
-    this.client = new ChatOpenAI({
+    return new ChatOpenAI({
       apiKey,
       model,
-      temperature: 0.2,
+      temperature: resolveQaTemperature(temperature),
       configuration: {
         baseURL: normalizeLlmBaseUrl(process.env.LLM_BASE_URL)
       }
     })
-
-    return this.client
   }
 }
 
@@ -125,4 +122,12 @@ function normalizeLlmBaseUrl(value?: string): string | undefined {
 function normalizeTotalTokens(usage?: UsageMetadata): number | null {
   const value = usage?.total_tokens
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function resolveQaTemperature(override?: number): number {
+  if (typeof override === 'number' && Number.isFinite(override)) {
+    return override
+  }
+
+  return 0.2
 }

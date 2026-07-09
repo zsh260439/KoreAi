@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import type {
   CreateWorkspaceConversationInput,
+  KnowledgeBaseRuntimeConfig,
   KnowledgeSearchDebugInfo,
   KnowledgeReasoningStep,
   KnowledgeSearchHit,
@@ -14,19 +15,19 @@ import type {
   WorkspacePromptCapabilities
 } from 'share-type'
 import { KnowledgeService } from '../knowledge/knowledge.service'
+import { DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG } from '../knowledge/composables/knowledge-runtime-config'
 import { WorkspaceConversationEntity } from './entity/workspace-conversation.entity'
 import { WorkspaceMessageEntity } from './entity/workspace-message.entity'
 
 const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
 const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
 const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
-// 当前工作台聊天刻意固定只展示前 4 个命中 chunk，避免证据面板过长、回答上下文失控。
-const KNOWLEDGE_TOP_K = 4
 
 type PreparedChatContext = {
   conversation: WorkspaceConversationEntity
   promptCapabilities: WorkspacePromptCapabilities
   query: string
+  runtimeConfig: KnowledgeBaseRuntimeConfig
 }
 
 type PersistAssistantResponseInput = {
@@ -112,7 +113,7 @@ export class WorkspaceService {
       {
         query: context.query,
         knowledgeBaseId: dto.knowledgeBaseId,
-        topK: KNOWLEDGE_TOP_K,
+        topK: context.runtimeConfig.retrieval.workspaceTopK,
         think: dto.think,
         rewrite: context.promptCapabilities.rewrite
       },
@@ -282,7 +283,11 @@ export class WorkspaceService {
     return {
       conversation,
       promptCapabilities,
-      query
+      query,
+      runtimeConfig:
+        dto.knowledgeBaseId
+          ? (await this.knowledgeService.findKnowledgeBaseRuntimeConfig(dto.knowledgeBaseId))
+          : DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
     }
   }
 

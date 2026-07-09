@@ -39,7 +39,7 @@ export type KnowledgeQueryConstraint = {
   value: string
 }
 
-// 声明检索提示结构；当前保留 mode 作为调试信息，权重在服务层固定为 1:1
+// 声明检索提示结构；当前保留 mode 作为调试信息，融合权重只允许来自 admin 显式配置。
 export type KnowledgeQueryRetrievalHints = {
   mode: KnowledgeRetrievalMode
   bm25Weight: number

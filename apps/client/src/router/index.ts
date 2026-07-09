@@ -66,6 +66,19 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
+        path: 'knowledge-settings',
+        name: 'admin-knowledge-settings',
+        component: () => import('@/views/admin/knowledge/settings.vue'),
+        meta: {
+          appShell: 'admin',
+          title: '检索参数',
+          requiresAuth: false,
+          navGroup: '导航',
+          navKey: 'knowledge-settings',
+          breadcrumb: ['首页', '检索参数']
+        }
+      },
+      {
         path: 'knowledge/:kbId',
         name: 'admin-knowledge-documents',
         component: () => import('@/views/admin/knowledge/documents.vue'),

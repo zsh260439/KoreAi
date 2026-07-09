@@ -27,17 +27,17 @@ const DEFAULT_RETRIEVAL_HINTS: KnowledgeQueryRetrievalHints = {
 @Injectable()
 export class KnowledgeQueryAnalysisService {
   private readonly logger = new Logger(KnowledgeQueryAnalysisService.name)
-  private client: ChatOpenAI | null = null
   private warnedMissingConfig = false
 
   async analyze(
-    input: KnowledgeQueryAnalysisInput
+    input: KnowledgeQueryAnalysisInput,
+    options: { temperature?: number } = {}
   ): Promise<KnowledgeQueryAnalysis | null> {
     if (!isQueryAnalysisEnabled()) {
       return null
     }
 
-    const client = this.getClient()
+    const client = this.createClient(options.temperature)
     if (!client) {
       return null
     }
@@ -66,11 +66,8 @@ export class KnowledgeQueryAnalysisService {
     }
   }
 
-  private getClient(): ChatOpenAI | null {
-    if (this.client) {
-      return this.client
-    }
-
+  // query analysis temperature 现在允许按知识库覆盖，因此这里不再缓存单一 client。
+  private createClient(temperature?: number): ChatOpenAI | null {
     const apiKey = process.env.LLM_API_KEY
     const model =
       process.env.RETRIEVAL_QUERY_ANALYSIS_MODEL ??
@@ -87,16 +84,14 @@ export class KnowledgeQueryAnalysisService {
       return null
     }
 
-    this.client = new ChatOpenAI({
+    return new ChatOpenAI({
       apiKey,
       model,
-      temperature: resolveTemperature(),
+      temperature: resolveTemperature(temperature),
       configuration: {
         baseURL: normalizeLlmBaseUrl(process.env.LLM_BASE_URL)
       }
     })
-
-    return this.client
   }
 }
 
@@ -109,7 +104,11 @@ function isQueryAnalysisEnabled(): boolean {
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
 }
 
-function resolveTemperature(): number {
+function resolveTemperature(override?: number): number {
+  if (typeof override === 'number' && Number.isFinite(override)) {
+    return override
+  }
+
   const raw = process.env.RETRIEVAL_QUERY_ANALYSIS_TEMPERATURE
   if (!raw) {
     return 0.1

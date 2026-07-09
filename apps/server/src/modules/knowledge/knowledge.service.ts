@@ -8,6 +8,9 @@ import { stat } from "node:fs/promises";
 import { DataSource, Repository } from "typeorm";
 import type {
   KnowledgeBase,
+  KnowledgeBaseRuntimeConfig,
+  KnowledgeBaseRuntimeConfigPatch,
+  KnowledgeGlobalRuntimeSettings,
   KnowledgeBaseStatus,
   KnowledgeChunk,
   KnowledgeChunkMetadata,
@@ -37,10 +40,16 @@ import { CreateKnowledgeDocumentDto } from "./dto/create-knowledge-document.dto"
 import { KnowledgeBaseEntity } from "./entity/knowledge-base.entity";
 import { KnowledgeChunkEntity } from "./entity/knowledge-chunk.entity";
 import { KnowledgeDocumentEntity } from "./entity/knowledge-document.entity";
+import { KnowledgeRuntimeSettingsEntity } from "./entity/knowledge-runtime-settings.entity";
 import { buildChunksFromBlocks } from "./composables/knowledge-chunk-builder";
 import { parseKnowledgeDocument } from "./composables/knowledge-document.parser";
 import { KnowledgeRetrievalService } from "./composables/knowledge-retrieval.service";
 import { buildKnowledgeChunkSearchableFields } from "./composables/knowledge-searchable-fields";
+import {
+  DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
+  mergeKnowledgeBaseRuntimeConfig,
+  normalizeKnowledgeBaseRuntimeConfig,
+} from "./composables/knowledge-runtime-config";
 //声明知识问答流式输入结构
 type KnowledgeAskStreamInput = {
   query: string;
@@ -72,6 +81,8 @@ type UploadKnowledgeDocumentInput = {
   chunkConfig?: string;
 };
 
+const GLOBAL_RUNTIME_SCOPE = "global";
+
 @Injectable()
 export class KnowledgeService {
   constructor(
@@ -81,6 +92,8 @@ export class KnowledgeService {
     private readonly knowledgeDocumentRepo: Repository<KnowledgeDocumentEntity>,
     @InjectRepository(KnowledgeChunkEntity)
     private readonly knowledgeChunkRepo: Repository<KnowledgeChunkEntity>,
+    @InjectRepository(KnowledgeRuntimeSettingsEntity)
+    private readonly knowledgeRuntimeSettingsRepo: Repository<KnowledgeRuntimeSettingsEntity>,
     private readonly embeddingService: EmbeddingService,
     private readonly knowledgeFileService: KnowledgeFileService,
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
@@ -99,14 +112,15 @@ export class KnowledgeService {
       throw new BadRequestException("query cannot be empty");
     }
 
-    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId);
+    const runtimeConfig = await this.getRuntimeConfig(dto.knowledgeBaseId);
     // 搜索接口要把命中结果和 debug 一起返回给 admin preview 面板
     return this.knowledgeRetrievalService.retrieveKnowledge(
       dto.knowledgeBaseId,
       query,
-      20,
+      runtimeConfig.retrieval.previewTopK,
       {
         enableRewrite: dto.rewrite !== false,
+        runtimeConfig,
       },
     );
   }
@@ -121,9 +135,11 @@ export class KnowledgeService {
       throw new BadRequestException("query cannot be empty");
     }
 
-    await this.ensureKnowledgeBaseExists(dto.knowledgeBaseId);
-
-    const topK = normalizeTopK(dto.topK);
+    const runtimeConfig = await this.getRuntimeConfig(dto.knowledgeBaseId);
+    const topK = normalizeTopK(
+      dto.topK,
+      runtimeConfig.retrieval.workspaceTopK,
+    );
     // 问答链路复用同一套检索逻辑，并把 debug 单独返回给 workspace 展示层使用。
     const retrievalResult = await this.knowledgeRetrievalService.retrieveKnowledge(
       dto.knowledgeBaseId,
@@ -131,6 +147,7 @@ export class KnowledgeService {
       topK,
       {
         enableRewrite: dto.rewrite !== false,
+        runtimeConfig,
       },
     );
     const sources = retrievalResult.hits
@@ -140,6 +157,7 @@ export class KnowledgeService {
       {
         includeReasoning: dto.think,
         signal: options.signal,
+        temperature: runtimeConfig.answer.temperature,
       },
     );
 
@@ -178,6 +196,33 @@ export class KnowledgeService {
     );
   }
 
+  //声明知识库运行配置查询入口，供 workspace 和后续 admin 参数页复用。
+  async findKnowledgeBaseRuntimeConfig(
+    knowledgeBaseId: string,
+  ): Promise<KnowledgeBaseRuntimeConfig> {
+    return this.getRuntimeConfig(knowledgeBaseId)
+  }
+
+  //声明全局召回运行配置查询入口，供“全部知识库”召回和 admin 参数页复用。
+  async findGlobalRuntimeSettings(): Promise<KnowledgeGlobalRuntimeSettings> {
+    const entity = await this.getOrCreateGlobalRuntimeSettingsEntity();
+    return toKnowledgeGlobalRuntimeSettings(entity);
+  }
+
+  //声明全局召回运行配置更新入口，只影响未指定 knowledgeBaseId 的全库召回路径。
+  async updateGlobalRuntimeSettings(
+    runtimeConfig: KnowledgeBaseRuntimeConfigPatch,
+  ): Promise<KnowledgeGlobalRuntimeSettings> {
+    const entity = await this.getOrCreateGlobalRuntimeSettingsEntity();
+    entity.runtimeConfig = mergeKnowledgeBaseRuntimeConfig(
+      entity.runtimeConfig,
+      runtimeConfig,
+    );
+
+    const updated = await this.knowledgeRuntimeSettingsRepo.save(entity);
+    return toKnowledgeGlobalRuntimeSettings(updated);
+  }
+
   //声明知识库创建
   async createKnowledgeBase(
     dto: CreateKnowledgeBaseDto,
@@ -190,6 +235,7 @@ export class KnowledgeService {
     const entity = this.knowledgeBaseRepo.create({
       name,
       description: dto.description?.trim() || null,
+      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
     });
 
     const created = await this.knowledgeBaseRepo.save(entity);
@@ -219,6 +265,13 @@ export class KnowledgeService {
 
     if (typeof dto.description === "string") {
       kb.description = dto.description.trim() || null;
+    }
+
+    if (dto.runtimeConfig) {
+      kb.runtimeConfig = mergeKnowledgeBaseRuntimeConfig(
+        kb.runtimeConfig,
+        dto.runtimeConfig,
+      );
     }
 
     const updated = await this.knowledgeBaseRepo.save(kb);
@@ -482,11 +535,12 @@ export class KnowledgeService {
   }
 
   //声明知识库存在性校验
-  private async ensureKnowledgeBaseExists(
+  private async getRuntimeConfig(
     knowledgeBaseId?: string,
-  ): Promise<void> {
+  ): Promise<KnowledgeBaseRuntimeConfig> {
     if (!knowledgeBaseId) {
-      return;
+      const globalSettings = await this.getGlobalRuntimeConfig();
+      return globalSettings;
     }
 
     const kb = await this.knowledgeBaseRepo.findOne({
@@ -496,8 +550,40 @@ export class KnowledgeService {
     if (!kb) {
       throw new NotFoundException("Knowledge base not found");
     }
+
+    return normalizeKnowledgeBaseRuntimeConfig(kb.runtimeConfig);
   }
 
+  //声明全局配置读取逻辑；如果数据库里还没有记录，就先回退默认值。
+  private async getGlobalRuntimeConfig(): Promise<KnowledgeBaseRuntimeConfig> {
+    const entity = await this.knowledgeRuntimeSettingsRepo.findOne({
+      where: { scope: GLOBAL_RUNTIME_SCOPE },
+    });
+
+    if (!entity) {
+      return DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG;
+    }
+
+    return normalizeKnowledgeBaseRuntimeConfig(entity.runtimeConfig);
+  }
+
+  //声明全局配置实体装载逻辑；admin 页面首次保存前若还没有记录，这里负责创建单行默认记录。
+  private async getOrCreateGlobalRuntimeSettingsEntity(): Promise<KnowledgeRuntimeSettingsEntity> {
+    const existing = await this.knowledgeRuntimeSettingsRepo.findOne({
+      where: { scope: GLOBAL_RUNTIME_SCOPE },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const created = this.knowledgeRuntimeSettingsRepo.create({
+      scope: GLOBAL_RUNTIME_SCOPE,
+      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
+    });
+
+    return this.knowledgeRuntimeSettingsRepo.save(created);
+  }
   //声明文档 chunk 装载
   private async loadDocumentChunks(
     documentId: string,
@@ -658,18 +744,31 @@ function toKnowledgeBase(
     description: entity.description ?? "",
     status: normalizedStatus,
     documentCount,
+    runtimeConfig: normalizeKnowledgeBaseRuntimeConfig(entity.runtimeConfig),
+    createdAt: entity.createdAt.toISOString(),
+    updatedAt: entity.updatedAt.toISOString(),
+  };
+}
+
+//声明全局召回配置实体映射逻辑
+function toKnowledgeGlobalRuntimeSettings(
+  entity: KnowledgeRuntimeSettingsEntity,
+): KnowledgeGlobalRuntimeSettings {
+  return {
+    scope: "global",
+    runtimeConfig: normalizeKnowledgeBaseRuntimeConfig(entity.runtimeConfig),
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString(),
   };
 }
 
 //声明 topK 规范化逻辑
-function normalizeTopK(value?: number): number {
+function normalizeTopK(value: number | undefined, fallback: number): number {
   if (typeof value !== "number" || Number.isNaN(value)) {
-    return 5;
+    return fallback;
   }
 
-  return Math.min(Math.max(Math.floor(value), 1), 8);
+  return Math.min(Math.max(Math.floor(value), 1), 50);
 }
 
 //声明文档实体映射逻辑

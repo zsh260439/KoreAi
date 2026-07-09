@@ -111,6 +111,98 @@
   - vector threshold
   - candidate limit
 
+## 本轮实现补充：知识库运行配置
+
+### 目标
+- 把目前散落在 service 和环境变量里的运行参数收敛到 `knowledge base runtimeConfig`。
+- admin 通过独立页面显式查看和修改这份配置。
+- retrieval preview 与 workspace chat 共用同一份配置，避免两边行为漂移。
+
+### 数据模型
+- 在 `knowledge_bases` 表新增 `runtimeConfig jsonb` 字段。
+- `KnowledgeBase` 共享契约增加 `runtimeConfig`。
+- 运行配置初步拆成两组：
+  - `retrieval`
+    - `previewTopK`
+    - `workspaceTopK`
+    - `candidateMultiplier`
+    - `minCandidateLimit`
+    - `maxCandidateLimit`
+    - `bm25Weight`
+    - `vectorWeight`
+    - `queryAnalysisEnabled`
+    - `queryAnalysisTemperature`
+  - `answer`
+    - `temperature`
+
+### 运行时接入点
+- `KnowledgeService.searchKnowledge`
+  - 使用当前知识库 `runtimeConfig.retrieval.previewTopK`
+- `WorkspaceService.chatStream`
+  - 使用当前知识库 `runtimeConfig.retrieval.workspaceTopK`
+- `KnowledgeRetrievalService`
+  - 使用当前知识库的候选集倍率和上下限
+  - 使用当前知识库的手动 BM25 / 向量权重
+- `KnowledgeQueryAnalysisService`
+  - 使用当前知识库的 `queryAnalysisEnabled`
+  - 使用当前知识库的 `queryAnalysisTemperature`
+- `KnowledgeQaService`
+  - 使用当前知识库的 `answer.temperature`
+
+### Admin 页面
+- 新增独立路由和侧边导航入口，例如“检索参数”。
+- 页面支持：
+  - 切换作用域：全局 / 单知识库
+  - 在“全局”作用域下编辑全局召回运行参数
+  - 选择知识库
+  - 按分组编辑 retrieval / answer 参数
+  - 保存到 `PATCH /knowledge/bases/:kbId`
+  - 恢复默认值
+
+### 取舍
+- 这次先做知识库级配置，不做全局系统设置表。
+- 这样 workspace 传入 `knowledgeBaseId` 后可以天然命中对应配置，职责最清晰。
+- 仍然保留环境变量里的模型和 API Key；本轮只显式化“行为参数”，不把敏感配置搬到后台。
+
+## 本轮补充：全局召回运行配置
+
+### 背景
+- 当前系统已经存在 `knowledgeBaseId` 为空时的“全库召回”路径。
+- 如果后台只能配置单知识库参数，那么这条全局召回路径只能吃硬编码默认值，行为不可控。
+
+### 方案结论
+- 新增一张全局运行配置表，例如 `knowledge_runtime_settings`。
+- 该表当前只维护单行记录：`scope = global`。
+- 运行时优先级：
+  - `knowledgeBaseId` 为空：使用全局运行配置
+  - `knowledgeBaseId` 存在：使用该知识库 `runtimeConfig`
+
+### 数据模型
+- 新增 `KnowledgeRuntimeSettingsEntity`
+  - `id`
+  - `scope`
+  - `runtimeConfig jsonb`
+  - `createdAt`
+  - `updatedAt`
+- 共享契约新增：
+  - `KnowledgeRuntimeConfigScope`
+  - `KnowledgeGlobalRuntimeSettings`
+
+### API
+- 新增：
+  - `GET /knowledge/runtime-config/global`
+  - `PATCH /knowledge/runtime-config/global`
+- 返回结构包含当前全局 `runtimeConfig`，供 admin 参数页直接加载和保存。
+
+### 前端表现
+- admin “检索参数”页增加作用域切换：
+  - `全局召回`
+  - `单知识库`
+- 当选择“全局召回”时：
+  - 不再要求选择知识库
+  - 表单保存到全局配置接口
+- workspace 输入框保留现有“全库搜索（默认）”选项；该选项现在有明确的后台配置来源。
+
 ## 设计取舍
 - 不新增数据库表保存同义词词典，先用代码内集中常量，保证部署路径最短、读取最稳。
 - 不在本次接入 LLM 扩展链路，但把 query plan 结构留好，后续可以无痛接入。
