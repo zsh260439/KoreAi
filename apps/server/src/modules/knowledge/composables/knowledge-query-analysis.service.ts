@@ -256,8 +256,13 @@ function normalizeConstraints(value: unknown): KnowledgeQueryConstraint[] {
       continue
     }
 
+    const operator = normalizeConstraintOperator(item.operator)
+    if (!operator) {
+      continue
+    }
+
     result.push({
-      operator: normalizeConstraintOperator(item.operator),
+      operator,
       value: constraintValue
     })
   }
@@ -265,15 +270,14 @@ function normalizeConstraints(value: unknown): KnowledgeQueryConstraint[] {
   return dedupeConstraints(result).slice(0, 8)
 }
 
-function normalizeConstraintOperator(value: unknown): KnowledgeQueryConstraintOperator {
+function normalizeConstraintOperator(value: unknown): KnowledgeQueryConstraintOperator | null {
   switch (value) {
     case 'must_equal':
     case 'must_contain':
     case 'should_contain':
-    case 'must_exclude':
       return value
     default:
-      return 'should_contain'
+      return null
   }
 }
 

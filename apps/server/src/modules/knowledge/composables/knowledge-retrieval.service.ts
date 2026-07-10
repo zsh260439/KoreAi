@@ -85,6 +85,7 @@ export class KnowledgeRetrievalService {
       fallbackReason,
       exactEntityMiss,
       protectedTerms: plan.protectedTerms,
+      excludedTerms: plan.excludedTerms,
       llmIntent: plan.analysis?.intent ?? null
     }
 
@@ -240,11 +241,15 @@ function applyDeterministicRerank(
   }
 
   return [...hits].sort((left, right) => {
-    const leftSignal = computeHitSignal(left, plan.protectedTerms)
-    const rightSignal = computeHitSignal(right, plan.protectedTerms)
+    const leftSignal = computeHitSignal(left, plan.protectedTerms, plan.excludedTerms)
+    const rightSignal = computeHitSignal(right, plan.protectedTerms, plan.excludedTerms)
 
     if (rightSignal.fullCoverage !== leftSignal.fullCoverage) {
       return rightSignal.fullCoverage - leftSignal.fullCoverage
+    }
+
+    if (leftSignal.excludedMatches !== rightSignal.excludedMatches) {
+      return leftSignal.excludedMatches - rightSignal.excludedMatches
     }
 
     if (rightSignal.documentNameMatches !== leftSignal.documentNameMatches) {
@@ -273,22 +278,39 @@ function applyDeterministicRerank(
 
 function computeHitSignal(
   hit: KnowledgeSearchHit,
-  protectedTerms: string[]
+  protectedTerms: string[],
+  excludedTerms: string[]
 ): {
   fullCoverage: number
   termMatches: number
   documentNameMatches: number
+  excludedMatches: number
 } {
+  const normalizedDocumentName = normalizeForExactMatch(hit.documentName)
+  const normalizedContent = normalizeForExactMatch(hit.content)
+  const normalizedText = `${normalizedDocumentName} ${normalizedContent}`
+
+  let excludedMatches = 0
+
+  for (const term of excludedTerms) {
+    const normalizedTerm = normalizeForExactMatch(term)
+    if (!normalizedTerm) {
+      continue
+    }
+
+    if (containsExactTerm(normalizedText, normalizedTerm)) {
+      excludedMatches += 1
+    }
+  }
+
   if (protectedTerms.length === 0) {
     return {
       fullCoverage: 0,
       termMatches: 0,
-      documentNameMatches: 0
+      documentNameMatches: 0,
+      excludedMatches
     }
   }
-
-  const normalizedDocumentName = normalizeForExactMatch(hit.documentName)
-  const normalizedContent = normalizeForExactMatch(hit.content)
 
   let termMatches = 0
   let documentNameMatches = 0
@@ -313,7 +335,8 @@ function computeHitSignal(
   return {
     fullCoverage: termMatches === protectedTerms.length ? 1 : 0,
     termMatches,
-    documentNameMatches
+    documentNameMatches,
+    excludedMatches
   }
 }
 
@@ -321,7 +344,7 @@ function isStrongProtectedTermMatch(
   hit: KnowledgeSearchHit,
   protectedTerms: string[]
 ): boolean {
-  return computeHitSignal(hit, protectedTerms).fullCoverage === 1
+  return computeHitSignal(hit, protectedTerms, []).fullCoverage === 1
 }
 
 function computeTopCoverageScore(
@@ -335,7 +358,7 @@ function computeTopCoverageScore(
   return hits
     .slice(0, Math.min(3, hits.length))
     .reduce((maxScore, hit) => {
-      const signal = computeHitSignal(hit, protectedTerms)
+      const signal = computeHitSignal(hit, protectedTerms, [])
       const coverageScore =
         signal.fullCoverage * 100 +
         signal.documentNameMatches * 10 +

@@ -330,6 +330,8 @@ export interface KnowledgeSearchDebugInfo {
   exactEntityMiss?: boolean
   /** 本次检索保护的精确词。 */
   protectedTerms?: string[]
+  /** 本次检索排序阶段使用的排除降权词。 */
+  excludedTerms?: string[]
   /** LLM 判断的 query 意图。 */
   llmIntent?: string | null
 }

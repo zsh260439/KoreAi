@@ -27,8 +27,6 @@ export type KnowledgeQueryConstraintOperator =
   | 'must_contain'
   /** 结果最好包含该值，但不能因为缺失就直接排除。 */
   | 'should_contain'
-  /** 结果应避免包含该值，召回后只做降权，不做硬过滤。 */
-  | 'must_exclude'
 
 export type KnowledgeRetrievalMode =
   /** 精确查找模式，优先保护编号、代码、引号词等字面匹配。 */
@@ -154,7 +152,7 @@ export type KnowledgeQueryAnalysis = {
   excludedTerms: string[]
   /** LLM 抽取出的实体列表，用于补充 protectedTerms 和 debug。 */
   entities: KnowledgeQueryEntity[]
-  /** LLM 抽取出的结构化约束，后续映射为保护词、扩展词或降权词。 */
+  /** LLM 抽取出的正向结构化约束，后续映射为保护词或扩展词。 */
   constraints: KnowledgeQueryConstraint[]
 }
 
@@ -181,6 +179,8 @@ export type KnowledgeQueryPlan = {
   constraints: KnowledgeQueryConstraint[]
   /** 需要优先保护的精确词，用于 fallback 判断和确定性重排。 */
   protectedTerms: string[]
+  /** 需要在排序阶段降权的排除词。 */
+  excludedTerms: string[]
   /** 主检索执行策略。 */
   retrieval: KnowledgeQueryRetrievalHints
   /** 备用均衡检索策略；主策略为 balanced 时为空。 */

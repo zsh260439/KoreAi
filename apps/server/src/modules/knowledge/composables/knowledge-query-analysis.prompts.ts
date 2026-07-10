@@ -33,7 +33,7 @@ export function buildKnowledgeQueryAnalysisSystemPrompt(): string {
     '  ],',
     '  "constraints": [',
     '    {',
-    '      "operator": "must_equal | must_contain | should_contain | must_exclude",',
+    '      "operator": "must_equal | must_contain | should_contain",',
     '      "value": "constraint value"',
     '    }',
     '  ]',
@@ -54,7 +54,8 @@ export function buildKnowledgeQueryAnalysisSystemPrompt(): string {
     '- exploratory: conceptual or open semantic lookup',
     '- hybrid: mixed exact + semantic intent',
     '- needsExactMatch: true when the query likely depends on exact identifier / exact term preservation',
-    '- needsProcedure: true when the user is asking for steps, workflow, troubleshooting, or how-to guidance'
+    '- needsProcedure: true when the user is asking for steps, workflow, troubleshooting, or how-to guidance',
+    '- Put all negative / avoid terms only into excludedTerms. Do not encode negative terms as constraints.'
   ].join('\n')
 }
 

@@ -52,7 +52,9 @@ export class KnowledgeQueryEngineService {
           )
 
     const routeDecision = resolveRouteDecision(ruleSignal, analysis)
-    const protectedTerms = buildProtectedTerms(ruleSignal, analysis)
+    const constraintTerms = buildConstraintTerms(analysis)
+    const excludedTerms = buildExcludedTerms(analysis)
+    const protectedTerms = buildProtectedTerms(ruleSignal, analysis, constraintTerms)
     const retrieval = buildRetrievalHints(
       routeDecision,
       options.runtimeConfig
@@ -65,7 +67,13 @@ export class KnowledgeQueryEngineService {
     return {
       originalQuery,
       normalizedQuery,
-      bm25Query: buildBm25Query(normalizedQuery, analysis, routeDecision.mode, protectedTerms),
+      bm25Query: buildBm25Query(
+        normalizedQuery,
+        analysis,
+        routeDecision.mode,
+        protectedTerms,
+        constraintTerms.optional
+      ),
       vectorQuery: buildVectorQuery(normalizedQuery, analysis, routeDecision.mode),
       rewriteApplied: analysis !== null,
       analysis,
@@ -74,6 +82,7 @@ export class KnowledgeQueryEngineService {
       entities: analysis?.entities ?? [],
       constraints: analysis?.constraints ?? [],
       protectedTerms,
+      excludedTerms,
       retrieval,
       fallbackRetrieval
     }
@@ -264,7 +273,11 @@ function buildFallbackRetrievalHints(
 
 function buildProtectedTerms(
   ruleSignal: KnowledgeQueryPlan['ruleSignal'],
-  analysis: KnowledgeQueryAnalysis | null
+  analysis: KnowledgeQueryAnalysis | null,
+  constraintTerms: {
+    required: string[]
+    optional: string[]
+  }
 ): string[] {
   const entityTerms =
     analysis?.entities
@@ -276,15 +289,59 @@ function buildProtectedTerms(
   return uniqueStrings([
     ...ruleSignal.exactTerms,
     ...entityTerms,
-    ...requiredTerms
+    ...requiredTerms,
+    ...constraintTerms.required
   ]).slice(0, 8)
+}
+
+function buildConstraintTerms(
+  analysis: KnowledgeQueryAnalysis | null
+): {
+  required: string[]
+  optional: string[]
+} {
+  if (!analysis) {
+    return {
+      required: [],
+      optional: []
+    }
+  }
+
+  const required: string[] = []
+  const optional: string[] = []
+
+  for (const constraint of analysis.constraints) {
+    switch (constraint.operator) {
+      case 'must_equal':
+      case 'must_contain':
+        required.push(constraint.value)
+        break
+      case 'should_contain':
+        optional.push(constraint.value)
+        break
+    }
+  }
+
+  return {
+    required: uniqueStrings(required).slice(0, 8),
+    optional: uniqueStrings(optional).slice(0, 8)
+  }
+}
+
+function buildExcludedTerms(analysis: KnowledgeQueryAnalysis | null): string[] {
+  if (!analysis) {
+    return []
+  }
+
+  return uniqueStrings(analysis.excludedTerms).slice(0, 6)
 }
 
 function buildBm25Query(
   normalizedQuery: string,
   analysis: KnowledgeQueryAnalysis | null,
   mode: KnowledgeRetrievalMode,
-  protectedTerms: string[]
+  protectedTerms: string[],
+  optionalConstraintTerms: string[]
 ): string {
   if (!analysis) {
     return uniqueStrings([normalizedQuery, ...protectedTerms]).join(' ')
@@ -296,7 +353,8 @@ function buildBm25Query(
         normalizedQuery,
         ...protectedTerms,
         ...analysis.requiredTerms,
-        ...analysis.searchPhrases.slice(0, 2)
+        ...analysis.searchPhrases.slice(0, 2),
+        ...optionalConstraintTerms.slice(0, 2)
       ]).join(' ')
     case 'keyword_heavy':
     case 'procedure_heavy':
@@ -305,7 +363,8 @@ function buildBm25Query(
         ...protectedTerms,
         ...analysis.requiredTerms,
         ...analysis.searchPhrases,
-        ...analysis.optionalTerms.slice(0, 3)
+        ...analysis.optionalTerms.slice(0, 3),
+        ...optionalConstraintTerms
       ]).join(' ')
     case 'semantic_heavy':
     case 'balanced':
@@ -314,7 +373,8 @@ function buildBm25Query(
         normalizedQuery,
         ...analysis.requiredTerms,
         ...analysis.searchPhrases,
-        ...analysis.optionalTerms.slice(0, 4)
+        ...analysis.optionalTerms.slice(0, 4),
+        ...optionalConstraintTerms
       ]).join(' ')
   }
 }
