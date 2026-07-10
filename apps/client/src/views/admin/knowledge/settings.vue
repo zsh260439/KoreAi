@@ -15,6 +15,8 @@ type RuntimeScopeSummary = {
   description: string
 }
 
+const ALL_KNOWLEDGE_BASES_VALUE = '__all__'
+
 const route = useRoute()
 const { knowledgeBases, loadKnowledgeBases, updateKnowledgeBase } = useKnowledgeBases()
 
@@ -28,6 +30,12 @@ const form = reactive(createRuntimeConfigState())
 const preferredKnowledgeBaseId = computed(() =>
   typeof route.query.kbId === 'string' ? route.query.kbId : ''
 )
+const selectedKnowledgeBaseSelectValue = computed({
+  get: () => selectedKnowledgeBaseId.value || ALL_KNOWLEDGE_BASES_VALUE,
+  set: (value: string) => {
+    selectedKnowledgeBaseId.value = value === ALL_KNOWLEDGE_BASES_VALUE ? '' : value
+  }
+})
 const isGlobalScope = computed(() => !selectedKnowledgeBaseId.value)
 const selectedKnowledgeBase = computed(
   () => knowledgeBases.value.find((item) => item.id === selectedKnowledgeBaseId.value) ?? null
@@ -223,14 +231,22 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
             </div>
           </div>
 
-          <div class="settings-field">
+          <div class="settings-field settings-field--scope">
             <label for="knowledge-base-select">选择知识库</label>
-            <select id="knowledge-base-select" v-model="selectedKnowledgeBaseId" class="settings-select">
-              <option value="">全部知识库（全库搜索）</option>
-              <option v-for="item in knowledgeBases" :key="item.id" :value="item.id">
-                {{ item.name }}
-              </option>
-            </select>
+            <el-select
+              id="knowledge-base-select"
+              v-model="selectedKnowledgeBaseSelectValue"
+              class="settings-select settings-select--compact"
+              popper-class="knowledge-scope-select-popper"
+            >
+              <el-option label="全部知识库（全库搜索）" :value="ALL_KNOWLEDGE_BASES_VALUE" />
+              <el-option
+                v-for="item in knowledgeBases"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              />
+            </el-select>
           </div>
 
           <div v-if="selectedSummary" class="settings-kb-summary">
@@ -455,14 +471,17 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   margin-top: 18px;
 }
 
+.settings-field--scope {
+  max-width: 300px;
+}
+
 .settings-field label {
   font-size: 13px;
   font-weight: 700;
   color: #475569;
 }
 
-.settings-field input,
-.settings-select {
+.settings-field input {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -472,10 +491,57 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   outline: none;
 }
 
-.settings-field input:focus,
-.settings-select:focus {
+.settings-field input:focus {
   border-color: #0f766e;
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.settings-select--compact {
+  width: 100%;
+  min-width: 0;
+}
+
+.settings-select--compact :deep(.el-select__wrapper) {
+  min-height: 34px;
+  border-radius: 999px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #dbe4ee inset;
+}
+
+.settings-select--compact :deep(.el-select__wrapper.is-hovering),
+.settings-select--compact :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px #0f766e inset, 0 0 0 3px rgba(15, 118, 110, 0.1);
+}
+
+.settings-select--compact :deep(.el-select__selected-item) {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+:global(.knowledge-scope-select-popper) {
+  border-radius: 10px;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__wrap) {
+  max-height: 248px;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__item) {
+  height: 34px;
+  padding: 0 12px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 34px;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__item.is-hovering) {
+  background: #f1f5f9;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__item.is-selected) {
+  background: #ecfdf5;
+  color: #0f766e;
+  font-weight: 700;
 }
 
 .settings-field--switch {

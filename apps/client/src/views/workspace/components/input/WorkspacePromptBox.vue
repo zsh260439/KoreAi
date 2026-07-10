@@ -5,6 +5,8 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import RetrievalRewriteToggle from '@/components/ui/RetrievalRewriteToggle.vue'
 import type { WorkspacePromptCapabilities } from 'share-type'
 
+const ALL_KNOWLEDGE_BASES_VALUE = '__all__'
+
 // 声明输入框提交载荷
 type PromptSubmitPayload = {
   message: string
@@ -53,6 +55,12 @@ const promptCapabilities = computed<WorkspacePromptCapabilities>(() => ({
   think: thinkEnabled.value,
   rewrite: rewriteEnabled.value
 }))
+const selectedKnowledgeBaseSelectValue = computed({
+  get: () => props.selectedKnowledgeBaseId || ALL_KNOWLEDGE_BASES_VALUE,
+  set: (value: string) => {
+    emit('update:selectedKnowledgeBaseId', value === ALL_KNOWLEDGE_BASES_VALUE ? '' : value)
+  }
+})
 
 const hasContent = computed(() => props.modelValue.trim().length > 0)
 
@@ -73,11 +81,6 @@ const resizeTextarea = async () => {
 
   textareaRef.value.style.height = '0px'
   textareaRef.value.style.height = `${Math.min(Math.max(textareaRef.value.scrollHeight, 40), 128)}px`
-}
-
-const updateSelectedKnowledgeBase = (event: Event) => {
-  const target = event.target as HTMLSelectElement
-  emit('update:selectedKnowledgeBaseId', target.value)
 }
 
 const updateValue = (event: Event) => {
@@ -200,21 +203,20 @@ defineExpose({
 
     <div class="mt-3 flex flex-wrap items-center gap-2 px-1">
       <div class="relative">
-        <select
-          :value="selectedKnowledgeBaseId"
+        <el-select
+          v-model="selectedKnowledgeBaseSelectValue"
           :disabled="disabled || streaming"
-          class="min-w-[180px] rounded-full border border-[#e6ebf2] bg-white px-4 py-2 text-[14px] text-[#475467] transition hover:border-[#d9e2ef] focus:border-[#dbe6ff] focus:outline-none disabled:cursor-not-allowed disabled:opacity-45"
-          @change="updateSelectedKnowledgeBase"
+          class="workspace-kb-select"
+          popper-class="knowledge-scope-select-popper"
         >
-          <option value="">全库搜索（默认）</option>
-          <option
+          <el-option label="全库搜索（默认）" :value="ALL_KNOWLEDGE_BASES_VALUE" />
+          <el-option
             v-for="base in knowledgeBases"
             :key="base.id"
+            :label="base.name"
             :value="base.id"
-          >
-            {{ base.name }}
-          </option>
-        </select>
+          />
+        </el-select>
       </div>
 
       <button
@@ -243,3 +245,51 @@ defineExpose({
     </div>
   </div>
 </template>
+
+<style scoped>
+.workspace-kb-select {
+  width: 180px;
+}
+
+.workspace-kb-select :deep(.el-select__wrapper) {
+  min-height: 34px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px #e6ebf2 inset;
+}
+
+.workspace-kb-select :deep(.el-select__wrapper.is-hovering),
+.workspace-kb-select :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px #d9e2ef inset;
+}
+
+.workspace-kb-select :deep(.el-select__selected-item) {
+  color: #475467;
+  font-size: 14px;
+}
+
+:global(.knowledge-scope-select-popper) {
+  border-radius: 10px;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__wrap) {
+  max-height: 248px;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__item) {
+  height: 34px;
+  padding: 0 12px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 34px;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__item.is-hovering) {
+  background: #f1f5f9;
+}
+
+:global(.knowledge-scope-select-popper .el-select-dropdown__item.is-selected) {
+  background: #ecfdf5;
+  color: #0f766e;
+  font-weight: 700;
+}
+</style>
