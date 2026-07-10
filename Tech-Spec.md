@@ -136,6 +136,10 @@
     - `temperature`
 
 ### 运行时接入点
+- `knowledgeBaseId` 为空时：
+  - `KnowledgeService.searchKnowledge` 与 `WorkspaceService.chatStream` 读取 `knowledge_runtime_settings` 中的全局默认配置
+- `knowledgeBaseId` 指向具体知识库时：
+  - 继续优先读取该知识库自己的 `runtimeConfig`
 - `KnowledgeService.searchKnowledge`
   - 使用当前知识库 `runtimeConfig.retrieval.previewTopK`
 - `WorkspaceService.chatStream`
@@ -150,6 +154,9 @@
   - 使用当前知识库的 `answer.temperature`
 
 ### Admin 页面
+- “全部知识库”模式现在对应一条真实可保存的全局默认配置，而不再只是代码常量展示。
+- 全库模式保存到 `PATCH /knowledge/runtime-config/global`。
+- 单库模式仍然保存到 `PATCH /knowledge/bases/:kbId`。
 - 新增独立路由和侧边导航入口，例如“检索参数”。
 - 页面支持：
   - 切换作用域：全局 / 单知识库

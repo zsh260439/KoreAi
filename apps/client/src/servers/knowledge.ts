@@ -3,8 +3,10 @@ import type {
   CreateKnowledgeBaseInput,
   CreateKnowledgeDocumentInput,
   KnowledgeBase,
+  KnowledgeBaseRuntimeConfigPatch,
   KnowledgeChunk,
   KnowledgeDocument,
+  KnowledgeGlobalRuntimeSettings,
   KnowledgeSearchInput,
   KnowledgeSearchResponse,
   StructureAwareChunkConfig,
@@ -20,6 +22,14 @@ export const createKnowledgeBaseAPI = (dto: CreateKnowledgeBaseInput) => {
 // 获取全部知识库。
 export const findKnowledgeBasesAPI = () => {
   return request<KnowledgeBase[]>('knowledge/bases')
+}
+
+export const findGlobalRuntimeConfigAPI = () => {
+  return request<KnowledgeGlobalRuntimeSettings>('knowledge/runtime-config/global')
+}
+
+export const updateGlobalRuntimeConfigAPI = (dto: KnowledgeBaseRuntimeConfigPatch) => {
+  return request<KnowledgeGlobalRuntimeSettings>('knowledge/runtime-config/global', 'PATCH', dto)
 }
 
 // 更新知识库。

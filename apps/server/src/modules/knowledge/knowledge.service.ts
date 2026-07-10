@@ -8,11 +8,13 @@ import { stat } from "node:fs/promises";
 import { DataSource, Repository } from "typeorm";
 import type {
   KnowledgeBase,
+  KnowledgeBaseRuntimeConfigPatch,
   KnowledgeBaseRuntimeConfig,
   KnowledgeBaseStatus,
   KnowledgeChunk,
   KnowledgeChunkMetadata,
   KnowledgeDocument,
+  KnowledgeGlobalRuntimeSettings,
   KnowledgeSearchDebugInfo,
   KnowledgeSearchHit,
   KnowledgeSearchInput,
@@ -38,6 +40,7 @@ import { CreateKnowledgeDocumentDto } from "./dto/create-knowledge-document.dto"
 import { KnowledgeBaseEntity } from "./entity/knowledge-base.entity";
 import { KnowledgeChunkEntity } from "./entity/knowledge-chunk.entity";
 import { KnowledgeDocumentEntity } from "./entity/knowledge-document.entity";
+import { KnowledgeRuntimeSettingsEntity } from "./entity/knowledge-runtime-settings.entity";
 import { buildChunksFromBlocks } from "./composables/knowledge-chunk-builder";
 import { parseKnowledgeDocument } from "./composables/knowledge-document.parser";
 import { KnowledgeRetrievalService } from "./composables/knowledge-retrieval.service";
@@ -72,6 +75,7 @@ const DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG: StructureAwareChunkConfig = {
   minChars: 300,
   overlapChars: 80,
 };
+const GLOBAL_RUNTIME_SCOPE = "global";
 
 type UploadKnowledgeDocumentInput = {
   name?: string;
@@ -87,6 +91,8 @@ export class KnowledgeService {
     private readonly knowledgeDocumentRepo: Repository<KnowledgeDocumentEntity>,
     @InjectRepository(KnowledgeChunkEntity)
     private readonly knowledgeChunkRepo: Repository<KnowledgeChunkEntity>,
+    @InjectRepository(KnowledgeRuntimeSettingsEntity)
+    private readonly knowledgeRuntimeSettingsRepo: Repository<KnowledgeRuntimeSettingsEntity>,
     private readonly embeddingService: EmbeddingService,
     private readonly knowledgeFileService: KnowledgeFileService,
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
@@ -191,9 +197,36 @@ export class KnowledgeService {
 
   //声明知识库运行配置查询入口，供 workspace 和后续 admin 参数页复用。
   async findKnowledgeBaseRuntimeConfig(
-    knowledgeBaseId: string,
+    knowledgeBaseId?: string,
   ): Promise<KnowledgeBaseRuntimeConfig> {
     return this.getRuntimeConfig(knowledgeBaseId)
+  }
+
+  //声明全库搜索默认运行配置查询入口
+  async findGlobalRuntimeConfig(): Promise<KnowledgeGlobalRuntimeSettings> {
+    const settings = await this.findGlobalRuntimeSettingsEntity();
+    return toKnowledgeGlobalRuntimeSettings(settings);
+  }
+
+  //声明全库搜索默认运行配置更新入口
+  async updateGlobalRuntimeConfig(
+    patch: KnowledgeBaseRuntimeConfigPatch,
+  ): Promise<KnowledgeGlobalRuntimeSettings> {
+    const currentSettings = await this.findGlobalRuntimeSettingsEntity();
+    const mergedRuntimeConfig = mergeKnowledgeBaseRuntimeConfig(
+      currentSettings?.runtimeConfig,
+      patch,
+    );
+
+    const entity = currentSettings
+      ? Object.assign(currentSettings, { runtimeConfig: mergedRuntimeConfig })
+      : this.knowledgeRuntimeSettingsRepo.create({
+          scope: GLOBAL_RUNTIME_SCOPE,
+          runtimeConfig: mergedRuntimeConfig,
+        });
+
+    const saved = await this.knowledgeRuntimeSettingsRepo.save(entity);
+    return toKnowledgeGlobalRuntimeSettings(saved);
   }
 
   //声明知识库创建
@@ -512,7 +545,8 @@ export class KnowledgeService {
     knowledgeBaseId?: string,
   ): Promise<KnowledgeBaseRuntimeConfig> {
     if (!knowledgeBaseId) {
-      return DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG;
+      const globalRuntimeSettings = await this.findGlobalRuntimeSettingsEntity();
+      return normalizeKnowledgeBaseRuntimeConfig(globalRuntimeSettings?.runtimeConfig);
     }
 
     const kb = await this.knowledgeBaseRepo.findOne({
@@ -524,6 +558,13 @@ export class KnowledgeService {
     }
 
     return normalizeKnowledgeBaseRuntimeConfig(kb.runtimeConfig);
+  }
+
+  //声明全库搜索默认配置实体查询
+  private async findGlobalRuntimeSettingsEntity(): Promise<KnowledgeRuntimeSettingsEntity | null> {
+    return this.knowledgeRuntimeSettingsRepo.findOne({
+      where: { scope: GLOBAL_RUNTIME_SCOPE },
+    });
   }
   //声明文档 chunk 装载
   private async loadDocumentChunks(
@@ -688,6 +729,16 @@ function toKnowledgeBase(
     runtimeConfig: normalizeKnowledgeBaseRuntimeConfig(entity.runtimeConfig),
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString(),
+  };
+}
+
+function toKnowledgeGlobalRuntimeSettings(
+  entity: KnowledgeRuntimeSettingsEntity | null,
+): KnowledgeGlobalRuntimeSettings {
+  return {
+    runtimeConfig: normalizeKnowledgeBaseRuntimeConfig(entity?.runtimeConfig),
+    createdAt: entity?.createdAt.toISOString() ?? null,
+    updatedAt: entity?.updatedAt.toISOString() ?? null,
   };
 }
 

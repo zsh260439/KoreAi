@@ -5,7 +5,12 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
-import { DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG, type KnowledgeBaseRuntimeConfig } from 'share-type'
+import { findGlobalRuntimeConfigAPI, updateGlobalRuntimeConfigAPI } from '@/servers/knowledge'
+import {
+  DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
+  type KnowledgeBaseRuntimeConfig,
+  type KnowledgeGlobalRuntimeSettings
+} from 'share-type'
 
 type RuntimeScopeSummary = {
   scopeLabel: string
@@ -15,16 +20,47 @@ type RuntimeScopeSummary = {
   description: string
 }
 
+type RuntimeFieldRule = {
+  min: number
+  max: number
+  step?: number
+  hint: string
+}
+
 const ALL_KNOWLEDGE_BASES_VALUE = '__all__'
+
+// 这里直接对齐后端 normalize 的真实范围，避免前后端各说各话。
+const runtimeFieldRules = {
+  previewTopK: { min: 1, max: 50, hint: '范围 1 - 50，控制管理台检索预览返回数量' },
+  workspaceTopK: { min: 1, max: 12, hint: '范围 1 - 12，控制问答默认参与回答与展示的 chunk 数' },
+  candidateMultiplier: { min: 1, max: 12, hint: '范围 1 - 12，按 TopK 放大候选集' },
+  minCandidateLimit: { min: 1, max: 200, hint: '范围 1 - 200，候选集最小保底数量' },
+  maxCandidateLimit: { min: 1, max: 400, hint: '范围 1 - 400，候选集最大上限数量' },
+  bm25Weight: { min: 0.2, max: 3, step: 0.1, hint: '范围 0.2 - 3.0，控制 BM25 融合权重' },
+  vectorWeight: { min: 0.2, max: 3, step: 0.1, hint: '范围 0.2 - 3.0，控制向量召回融合权重' },
+  queryAnalysisTemperature: {
+    min: 0,
+    max: 2,
+    step: 0.1,
+    hint: '范围 0.0 - 2.0，控制 Query Analysis 温度'
+  },
+  answerTemperature: {
+    min: 0,
+    max: 2,
+    step: 0.1,
+    hint: '范围 0.0 - 2.0，控制回答生成温度'
+  }
+} satisfies Record<string, RuntimeFieldRule>
 
 const route = useRoute()
 const { knowledgeBases, loadKnowledgeBases, updateKnowledgeBase } = useKnowledgeBases()
+const globalRuntimeSettings = ref<KnowledgeGlobalRuntimeSettings | null>(null)
 
-// 空字符串代表“全部知识库”，对应运行时不传 knowledgeBaseId。
+// 空字符串代表全库搜索，对应运行时不传 knowledgeBaseId。
 const selectedKnowledgeBaseId = ref('')
 const saving = ref(false)
 
-// 表单只维护当前编辑态，避免直接修改知识库列表对象。
+// 表单只维护当前编辑态，避免直接改动列表里的响应式对象。
 const form = reactive(createRuntimeConfigState())
 
 const preferredKnowledgeBaseId = computed(() =>
@@ -40,15 +76,16 @@ const isGlobalScope = computed(() => !selectedKnowledgeBaseId.value)
 const selectedKnowledgeBase = computed(
   () => knowledgeBases.value.find((item) => item.id === selectedKnowledgeBaseId.value) ?? null
 )
-const canSave = computed(() => Boolean(selectedKnowledgeBase.value))
+const canSave = computed(() => isGlobalScope.value || Boolean(selectedKnowledgeBase.value))
 const selectedSummary = computed<RuntimeScopeSummary | null>(() => {
   if (isGlobalScope.value) {
     return {
       scopeLabel: '全库搜索',
       targetLabel: '全部知识库',
       documentCount: knowledgeBases.value.reduce((total, item) => total + item.documentCount, 0),
-      updatedAt: '-',
-      description: '这里展示的是系统默认参数。全库搜索不再单独保存一套后台配置。'
+      updatedAt: formatDateTime(globalRuntimeSettings.value?.updatedAt),
+      description:
+        '这里维护全库搜索的默认运行参数。只有在聊天或检索中明确切到单库搜索时，才会改用单库自己的覆盖配置。'
     }
   }
 
@@ -65,35 +102,89 @@ const selectedSummary = computed<RuntimeScopeSummary | null>(() => {
   }
 })
 
-// 根据当前选择同步表单；选“全部知识库”时只展示默认值。
+// 根据当前选择同步表单，避免切换作用域后继续编辑旧值。
 const syncFormFromSelection = () => {
   if (isGlobalScope.value) {
-    applyRuntimeConfigToForm(DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG)
+    applyRuntimeConfigToForm(globalRuntimeSettings.value?.runtimeConfig)
     return
   }
 
   applyRuntimeConfigToForm(selectedKnowledgeBase.value?.runtimeConfig)
 }
 
-// 恢复默认值时统一回到共享默认配置。
+// 恢复默认值时统一回到共享默认配置，避免前后端维护两套常量。
 const handleReset = () => {
   applyRuntimeConfigToForm(DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG)
 }
 
-// 只有选中具体知识库时才允许保存，避免制造伪全局配置。
-const handleSave = async () => {
-  if (!selectedKnowledgeBase.value) {
-    ElMessage.warning('全部知识库只展示默认参数，不支持单独保存')
-    return
-  }
+// 保存前先把输入值收敛到合法区间，避免 UI 输入越界后还要靠后端兜底。
+const normalizeFormValues = () => {
+  form.retrieval.previewTopK = normalizeInteger(
+    form.retrieval.previewTopK,
+    runtimeFieldRules.previewTopK
+  )
+  form.retrieval.workspaceTopK = normalizeInteger(
+    form.retrieval.workspaceTopK,
+    runtimeFieldRules.workspaceTopK
+  )
+  form.retrieval.candidateMultiplier = normalizeInteger(
+    form.retrieval.candidateMultiplier,
+    runtimeFieldRules.candidateMultiplier
+  )
+  form.retrieval.minCandidateLimit = normalizeInteger(
+    form.retrieval.minCandidateLimit,
+    runtimeFieldRules.minCandidateLimit
+  )
+  form.retrieval.maxCandidateLimit = normalizeInteger(
+    form.retrieval.maxCandidateLimit,
+    runtimeFieldRules.maxCandidateLimit
+  )
+  form.retrieval.bm25Weight = normalizeFloat(
+    form.retrieval.bm25Weight,
+    runtimeFieldRules.bm25Weight
+  )
+  form.retrieval.vectorWeight = normalizeFloat(
+    form.retrieval.vectorWeight,
+    runtimeFieldRules.vectorWeight
+  )
+  form.retrieval.queryAnalysisTemperature = normalizeFloat(
+    form.retrieval.queryAnalysisTemperature,
+    runtimeFieldRules.queryAnalysisTemperature
+  )
+  form.answer.temperature = normalizeFloat(
+    form.answer.temperature,
+    runtimeFieldRules.answerTemperature
+  )
 
+  // 候选集上下限必须保持有效关系，否则会出现最小值大于最大值的无效配置。
+  form.retrieval.minCandidateLimit = Math.min(
+    form.retrieval.minCandidateLimit,
+    form.retrieval.maxCandidateLimit
+  )
+  form.retrieval.maxCandidateLimit = Math.max(
+    form.retrieval.maxCandidateLimit,
+    form.retrieval.minCandidateLimit
+  )
+}
+
+// 作用域切换只更新表单，不自动保存，避免刷新进入页面就隐式提交。
+const handleSave = async () => {
   saving.value = true
+  normalizeFormValues()
 
   try {
-    await updateKnowledgeBase(selectedKnowledgeBaseId.value, {
-      runtimeConfig: buildRuntimeConfigPayload()
-    })
-    ElMessage.success('知识库参数已保存')
+    if (isGlobalScope.value) {
+      globalRuntimeSettings.value = (
+        await updateGlobalRuntimeConfigAPI(buildRuntimeConfigPayload())
+      ).data
+      ElMessage.success('全库默认参数已保存')
+    } else if (selectedKnowledgeBase.value) {
+      await updateKnowledgeBase(selectedKnowledgeBaseId.value, {
+        runtimeConfig: buildRuntimeConfigPayload()
+      })
+      ElMessage.success('知识库参数已保存')
+    }
+
     syncFormFromSelection()
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '保存参数失败')
@@ -107,8 +198,21 @@ watch(selectedKnowledgeBaseId, () => {
 })
 
 onMounted(async () => {
-  if (!knowledgeBases.value.length) {
-    await loadKnowledgeBases()
+  try {
+    const [knowledgeBaseResponse, globalRuntimeSettingsResponse] = await Promise.all([
+      knowledgeBases.value.length ? Promise.resolve() : loadKnowledgeBases(),
+      findGlobalRuntimeConfigAPI()
+    ])
+
+    void knowledgeBaseResponse
+    globalRuntimeSettings.value = globalRuntimeSettingsResponse.data
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '加载参数失败')
+    globalRuntimeSettings.value = {
+      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
+      createdAt: null,
+      updatedAt: null
+    }
   }
 
   if (
@@ -162,7 +266,7 @@ function createRuntimeConfigState(): KnowledgeBaseRuntimeConfig {
   }
 }
 
-// 显式逐字段写回表单，避免 structuredClone 和响应式代理混用。
+// 显式逐字段写回表单，避免 structuredClone 和响应式代理混用导致异常。
 function applyRuntimeConfigToForm(source?: KnowledgeBaseRuntimeConfig | null): void {
   const resolved = source ?? DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
 
@@ -196,6 +300,14 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
     }
   }
 }
+
+function normalizeInteger(value: number, rule: RuntimeFieldRule): number {
+  return Math.min(Math.max(Math.round(value), rule.min), rule.max)
+}
+
+function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
+  return Math.min(Math.max(value, rule.min), rule.max)
+}
 </script>
 
 <template>
@@ -206,7 +318,7 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
           <p class="settings-stage__eyebrow">KNOWLEDGE RUNTIME</p>
           <h1 class="settings-stage__title">检索与问答参数</h1>
           <p class="settings-stage__subtitle">
-            这里配置的是知识检索与问答链路的运行参数。选择“全部知识库”时，只表示全库搜索不传特定知识库。
+            这里配置知识检索与问答链路的运行参数。全库搜索使用全局默认配置；只有明确切到单库搜索时，才会使用该知识库自己的覆盖配置。
           </p>
         </div>
 
@@ -215,7 +327,12 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
             <RefreshCw class="h-4 w-4" />
             恢复默认值
           </button>
-          <button type="button" class="settings-button settings-button--primary" :disabled="saving || !canSave" @click="handleSave">
+          <button
+            type="button"
+            class="settings-button settings-button--primary"
+            :disabled="saving || !canSave"
+            @click="handleSave"
+          >
             <Save class="h-4 w-4" />
             {{ saving ? '保存中' : '保存参数' }}
           </button>
@@ -226,8 +343,8 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
         <section class="settings-card">
           <div class="settings-card__header">
             <div>
-              <h2>作用域</h2>
-              <p>这组参数只作用于当前 select 选中的目标。</p>
+              <h2>作用范围</h2>
+              <p>这组参数只作用于当前下拉框选中的目标。</p>
             </div>
           </div>
 
@@ -239,7 +356,7 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
               class="settings-select settings-select--compact"
               popper-class="knowledge-scope-select-popper"
             >
-              <el-option label="全部知识库（全库搜索）" :value="ALL_KNOWLEDGE_BASES_VALUE" />
+              <el-option label="全库搜索（全部知识库）" :value="ALL_KNOWLEDGE_BASES_VALUE" />
               <el-option
                 v-for="item in knowledgeBases"
                 :key="item.id"
@@ -277,15 +394,15 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
           <div class="settings-card__header">
             <div>
               <h2>生效说明</h2>
-              <p>这组参数会直接影响检索候选集、融合排序、Query Analysis 和回答生成温度。</p>
+              <p>这组参数会直接影响候选集规模、融合排序、Query Analysis 和回答生成行为。</p>
             </div>
           </div>
 
           <div class="settings-notice-list">
-            <p>1. BM25 与向量融合权重由这里显式控制，不再由 LLM rewrite 动态改权重。</p>
-            <p>2. 即使 Query Analysis 参数已配置，运行时仍会尊重前端是否关闭 rewrite 开关。</p>
+            <p>1. BM25 与向量权重在这里显式配置，不再由 LLM rewrite 动态改写融合权重。</p>
+            <p>2. Query Analysis 是否执行，仍然会尊重前端当前是否开启 rewrite 开关。</p>
             <p>3. `workspaceTopK` 会影响聊天页面默认参与回答和展示的 chunk 数量。</p>
-            <p>4. 选中“全部知识库”时，这里只展示默认值，不会生成额外的全局后台配置。</p>
+            <p>4. 全库搜索现在有独立的后台配置；单库配置只有在明确选择单库时才会覆盖它。</p>
           </div>
         </section>
 
@@ -299,40 +416,118 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
 
           <div class="settings-grid">
             <div class="settings-field">
-              <label>Preview TopK</label>
-              <input v-model.number="form.retrieval.previewTopK" type="number" min="1" max="50" />
+              <div class="settings-field__heading">
+                <label>Preview TopK</label>
+                <span>{{ runtimeFieldRules.previewTopK.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.previewTopK"
+                type="number"
+                :min="runtimeFieldRules.previewTopK.min"
+                :max="runtimeFieldRules.previewTopK.max"
+                @blur="form.retrieval.previewTopK = normalizeInteger(form.retrieval.previewTopK, runtimeFieldRules.previewTopK)"
+              />
             </div>
             <div class="settings-field">
-              <label>Workspace TopK</label>
-              <input v-model.number="form.retrieval.workspaceTopK" type="number" min="1" max="12" />
+              <div class="settings-field__heading">
+                <label>Workspace TopK</label>
+                <span>{{ runtimeFieldRules.workspaceTopK.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.workspaceTopK"
+                type="number"
+                :min="runtimeFieldRules.workspaceTopK.min"
+                :max="runtimeFieldRules.workspaceTopK.max"
+                @blur="form.retrieval.workspaceTopK = normalizeInteger(form.retrieval.workspaceTopK, runtimeFieldRules.workspaceTopK)"
+              />
             </div>
             <div class="settings-field">
-              <label>Candidate Multiplier</label>
-              <input v-model.number="form.retrieval.candidateMultiplier" type="number" min="1" max="12" />
+              <div class="settings-field__heading">
+                <label>Candidate Multiplier</label>
+                <span>{{ runtimeFieldRules.candidateMultiplier.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.candidateMultiplier"
+                type="number"
+                :min="runtimeFieldRules.candidateMultiplier.min"
+                :max="runtimeFieldRules.candidateMultiplier.max"
+                @blur="form.retrieval.candidateMultiplier = normalizeInteger(form.retrieval.candidateMultiplier, runtimeFieldRules.candidateMultiplier)"
+              />
             </div>
             <div class="settings-field">
-              <label>Min Candidate Limit</label>
-              <input v-model.number="form.retrieval.minCandidateLimit" type="number" min="1" max="200" />
+              <div class="settings-field__heading">
+                <label>Min Candidate Limit</label>
+                <span>{{ runtimeFieldRules.minCandidateLimit.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.minCandidateLimit"
+                type="number"
+                :min="runtimeFieldRules.minCandidateLimit.min"
+                :max="runtimeFieldRules.minCandidateLimit.max"
+                @blur="form.retrieval.minCandidateLimit = normalizeInteger(form.retrieval.minCandidateLimit, runtimeFieldRules.minCandidateLimit)"
+              />
             </div>
             <div class="settings-field">
-              <label>Max Candidate Limit</label>
-              <input v-model.number="form.retrieval.maxCandidateLimit" type="number" min="1" max="400" />
+              <div class="settings-field__heading">
+                <label>Max Candidate Limit</label>
+                <span>{{ runtimeFieldRules.maxCandidateLimit.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.maxCandidateLimit"
+                type="number"
+                :min="runtimeFieldRules.maxCandidateLimit.min"
+                :max="runtimeFieldRules.maxCandidateLimit.max"
+                @blur="form.retrieval.maxCandidateLimit = normalizeInteger(form.retrieval.maxCandidateLimit, runtimeFieldRules.maxCandidateLimit)"
+              />
             </div>
             <div class="settings-field settings-field--switch">
-              <label>启用 Query Analysis</label>
+              <div class="settings-field__heading">
+                <label>启用 Query Analysis</label>
+                <span>决定是否让 LLM 先做检索问句分析与改写</span>
+              </div>
               <el-switch v-model="form.retrieval.queryAnalysisEnabled" />
             </div>
             <div class="settings-field">
-              <label>BM25 Weight</label>
-              <input v-model.number="form.retrieval.bm25Weight" type="number" min="0.2" max="3" step="0.1" />
+              <div class="settings-field__heading">
+                <label>BM25 Weight</label>
+                <span>{{ runtimeFieldRules.bm25Weight.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.bm25Weight"
+                type="number"
+                :min="runtimeFieldRules.bm25Weight.min"
+                :max="runtimeFieldRules.bm25Weight.max"
+                :step="runtimeFieldRules.bm25Weight.step"
+                @blur="form.retrieval.bm25Weight = normalizeFloat(form.retrieval.bm25Weight, runtimeFieldRules.bm25Weight)"
+              />
             </div>
             <div class="settings-field">
-              <label>Vector Weight</label>
-              <input v-model.number="form.retrieval.vectorWeight" type="number" min="0.2" max="3" step="0.1" />
+              <div class="settings-field__heading">
+                <label>Vector Weight</label>
+                <span>{{ runtimeFieldRules.vectorWeight.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.vectorWeight"
+                type="number"
+                :min="runtimeFieldRules.vectorWeight.min"
+                :max="runtimeFieldRules.vectorWeight.max"
+                :step="runtimeFieldRules.vectorWeight.step"
+                @blur="form.retrieval.vectorWeight = normalizeFloat(form.retrieval.vectorWeight, runtimeFieldRules.vectorWeight)"
+              />
             </div>
             <div class="settings-field">
-              <label>Query Analysis Temperature</label>
-              <input v-model.number="form.retrieval.queryAnalysisTemperature" type="number" min="0" max="2" step="0.1" />
+              <div class="settings-field__heading">
+                <label>Query Analysis Temperature</label>
+                <span>{{ runtimeFieldRules.queryAnalysisTemperature.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.retrieval.queryAnalysisTemperature"
+                type="number"
+                :min="runtimeFieldRules.queryAnalysisTemperature.min"
+                :max="runtimeFieldRules.queryAnalysisTemperature.max"
+                :step="runtimeFieldRules.queryAnalysisTemperature.step"
+                @blur="form.retrieval.queryAnalysisTemperature = normalizeFloat(form.retrieval.queryAnalysisTemperature, runtimeFieldRules.queryAnalysisTemperature)"
+              />
             </div>
           </div>
         </section>
@@ -347,8 +542,18 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
 
           <div class="settings-grid settings-grid--compact">
             <div class="settings-field">
-              <label>Answer Temperature</label>
-              <input v-model.number="form.answer.temperature" type="number" min="0" max="2" step="0.1" />
+              <div class="settings-field__heading">
+                <label>Answer Temperature</label>
+                <span>{{ runtimeFieldRules.answerTemperature.hint }}</span>
+              </div>
+              <input
+                v-model.number="form.answer.temperature"
+                type="number"
+                :min="runtimeFieldRules.answerTemperature.min"
+                :max="runtimeFieldRules.answerTemperature.max"
+                :step="runtimeFieldRules.answerTemperature.step"
+                @blur="form.answer.temperature = normalizeFloat(form.answer.temperature, runtimeFieldRules.answerTemperature)"
+              />
             </div>
           </div>
         </section>
@@ -475,10 +680,21 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   max-width: 300px;
 }
 
+.settings-field__heading {
+  display: grid;
+  gap: 4px;
+}
+
 .settings-field label {
   font-size: 13px;
   font-weight: 700;
   color: #475569;
+}
+
+.settings-field__heading span {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
 }
 
 .settings-field input {

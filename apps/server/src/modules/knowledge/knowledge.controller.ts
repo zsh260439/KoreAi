@@ -1,6 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import type { KnowledgeBase, KnowledgeChunk, KnowledgeDocument, KnowledgeSearchResponse } from 'share-type'
+import type {
+  KnowledgeBase,
+  KnowledgeChunk,
+  KnowledgeDocument,
+  KnowledgeGlobalRuntimeSettings,
+  KnowledgeSearchResponse
+} from 'share-type'
 
 import { ApiResponse } from '../../common/api-response'
 import type { UploadedKnowledgeDocumentFile } from './composables/knowledge-file.service'
@@ -9,6 +15,7 @@ import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto'
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto'
 import { UpdateKnowledgeDocumentDto } from './dto/update-knowledge-document.dto'
+import { UpdateKnowledgeGlobalRuntimeConfigDto } from './dto/update-knowledge-global-runtime-config.dto'
 import { KnowledgeService } from './knowledge.service'
 
 type UploadKnowledgeDocumentBody = {
@@ -32,6 +39,20 @@ export class KnowledgeController {
   async findKnowledgeBases(): Promise<ApiResponse<KnowledgeBase[]>> {
     const data = await this.knowledgeService.findKnowledgeBases()
     return ApiResponse.success(0, '查询成功', data)
+  }
+
+  @Get('runtime-config/global')
+  async findGlobalRuntimeConfig(): Promise<ApiResponse<KnowledgeGlobalRuntimeSettings>> {
+    const data = await this.knowledgeService.findGlobalRuntimeConfig()
+    return ApiResponse.success(0, '查询成功', data)
+  }
+
+  @Patch('runtime-config/global')
+  async updateGlobalRuntimeConfig(
+    @Body() dto: UpdateKnowledgeGlobalRuntimeConfigDto
+  ): Promise<ApiResponse<KnowledgeGlobalRuntimeSettings>> {
+    const data = await this.knowledgeService.updateGlobalRuntimeConfig(dto)
+    return ApiResponse.success(0, '更新成功', data)
   }
 
   // 声明知识库创建接口。

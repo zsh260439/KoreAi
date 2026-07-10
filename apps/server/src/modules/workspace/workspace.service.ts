@@ -15,7 +15,6 @@ import type {
   WorkspacePromptCapabilities
 } from 'share-type'
 import { KnowledgeService } from '../knowledge/knowledge.service'
-import { DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG } from '../knowledge/composables/knowledge-runtime-config'
 import { WorkspaceConversationEntity } from './entity/workspace-conversation.entity'
 import { WorkspaceMessageEntity } from './entity/workspace-message.entity'
 
@@ -284,10 +283,7 @@ export class WorkspaceService {
       conversation,
       promptCapabilities,
       query,
-      runtimeConfig:
-        dto.knowledgeBaseId
-          ? (await this.knowledgeService.findKnowledgeBaseRuntimeConfig(dto.knowledgeBaseId))
-          : DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
+      runtimeConfig: await this.knowledgeService.findKnowledgeBaseRuntimeConfig(dto.knowledgeBaseId)
     }
   }
 

@@ -58,6 +58,12 @@ export interface KnowledgeBaseRuntimeConfigPatch {
   answer?: KnowledgeBaseAnswerRuntimeConfigPatch
 }
 
+export interface KnowledgeGlobalRuntimeSettings {
+  runtimeConfig: KnowledgeBaseRuntimeConfig
+  createdAt: string | null
+  updatedAt: string | null
+}
+
 // 声明共享默认配置，前后端恢复默认值都复用它，避免各自维护常量。
 export const DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG: KnowledgeBaseRuntimeConfig = {
   retrieval: {
