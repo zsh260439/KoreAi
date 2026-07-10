@@ -2,12 +2,17 @@ import { Injectable } from '@nestjs/common'
 import type {
   KnowledgeBaseRuntimeConfig,
   KnowledgeSearchDebugInfo,
+  KnowledgeSearchHit,
   KnowledgeSearchResponse
 } from 'share-type'
 
 import { KnowledgeBm25Service } from './knowledge-bm25.service'
 import { mergeKnowledgeRetrievalCandidates } from './knowledge-hybrid-ranker'
 import { KnowledgeQueryEngineService } from './knowledge-query-engine.service'
+import type {
+  KnowledgeQueryPlan,
+  KnowledgeQueryRetrievalHints
+} from './knowledge-query-plan.types'
 import type { KnowledgeRetrievalCandidate } from './knowledge-retrieval.types'
 import { KnowledgeVectorStoreService } from './knowledge-vector-store.service'
 
@@ -28,43 +33,96 @@ export class KnowledgeRetrievalService {
       runtimeConfig: KnowledgeBaseRuntimeConfig
     }
   ): Promise<KnowledgeSearchResponse> {
-    const candidateLimit = resolveCandidateLimit(topK, options.runtimeConfig)
-    // 先把 query 变成统一的检索计划，后面两路都只依赖这份计划。
     const plan = await this.knowledgeQueryEngineService.buildPlan(query, {
       enableAnalysis:
         options.enableRewrite !== false && options.runtimeConfig.retrieval.queryAnalysisEnabled,
       runtimeConfig: options.runtimeConfig
     })
 
-    // BM25 和向量召回并行执行，避免打开 rewrite 后明显拉长总耗时。
-    const [bm25Candidates, vectorCandidates] = await Promise.all([
-      this.knowledgeBm25Service.search(plan.bm25Query, knowledgeBaseId, candidateLimit),
-      this.vectorRecall(plan.vectorQuery, knowledgeBaseId, candidateLimit)
-    ])
+    const primaryResult = await this.retrieveWithHints(
+      knowledgeBaseId,
+      topK,
+      plan,
+      plan.retrieval
+    )
 
-    // 命中列表只吃 admin 显式配置的权重，避免 LLM rewrite 偷改融合策略。
-    const hits = mergeKnowledgeRetrievalCandidates(bm25Candidates, vectorCandidates, topK, {
-      bm25Weight: plan.retrieval.bm25Weight,
-      vectorWeight: plan.retrieval.vectorWeight
-    })
+    let finalResult = primaryResult
+    let fallbackApplied = false
+    let fallbackReason: string | null = null
+    let exactEntityMiss = false
 
-    // debug 只描述这次检索发生了什么，不参与排序本身。
+    const fallbackDecision = shouldFallback(plan, primaryResult.hits, topK)
+    if (fallbackDecision.shouldFallback && plan.fallbackRetrieval) {
+      fallbackApplied = true
+      fallbackReason = fallbackDecision.reason
+      exactEntityMiss = fallbackDecision.exactEntityMiss
+
+      const fallbackResult = await this.retrieveWithHints(
+        knowledgeBaseId,
+        topK,
+        plan,
+        plan.fallbackRetrieval
+      )
+
+      finalResult = selectBetterResult(plan, primaryResult, fallbackResult)
+    }
+
     const debug: KnowledgeSearchDebugInfo = {
       originalQuery: plan.originalQuery,
       normalizedQuery: plan.normalizedQuery,
       bm25Query: plan.bm25Query,
       vectorQuery: plan.vectorQuery,
       rewriteApplied: plan.rewriteApplied,
-      retrievalMode: plan.retrieval.mode,
-      bm25Weight: plan.retrieval.bm25Weight,
-      vectorWeight: plan.retrieval.vectorWeight,
-      bm25HitCount: bm25Candidates.length,
-      vectorHitCount: vectorCandidates.length
+      retrievalMode: finalResult.hints.mode,
+      bm25Weight: finalResult.hints.bm25Weight,
+      vectorWeight: finalResult.hints.vectorWeight,
+      bm25HitCount: finalResult.bm25Candidates.length,
+      vectorHitCount: finalResult.vectorCandidates.length,
+      routeType: finalResult.hints.mode,
+      routeSource: finalResult.hints.source,
+      routeConfidence: finalResult.hints.confidence,
+      fallbackApplied,
+      fallbackReason,
+      exactEntityMiss,
+      protectedTerms: plan.protectedTerms,
+      llmIntent: plan.analysis?.intent ?? null
     }
 
     return {
-      hits,
+      hits: finalResult.hits,
       debug
+    }
+  }
+
+  private async retrieveWithHints(
+    knowledgeBaseId: string | undefined,
+    topK: number,
+    plan: KnowledgeQueryPlan,
+    hints: KnowledgeQueryRetrievalHints
+  ): Promise<RetrievalExecutionResult> {
+    const candidateLimit = resolveCandidateLimit(topK, hints)
+
+    // 两路召回并行执行，避免 query analysis 打开后额外串行放大耗时。
+    const [bm25Candidates, vectorCandidates] = await Promise.all([
+      this.knowledgeBm25Service.search(plan.bm25Query, knowledgeBaseId, candidateLimit),
+      this.vectorRecall(plan.vectorQuery, knowledgeBaseId, candidateLimit)
+    ])
+
+    const mergedHits = mergeKnowledgeRetrievalCandidates(
+      bm25Candidates,
+      vectorCandidates,
+      topK,
+      {
+        bm25Weight: hints.bm25Weight,
+        vectorWeight: hints.vectorWeight
+      }
+    )
+
+    return {
+      hints,
+      bm25Candidates,
+      vectorCandidates,
+      hits: applyDeterministicRerank(mergedHits, plan)
     }
   }
 
@@ -79,7 +137,6 @@ export class KnowledgeRetrievalService {
       knowledgeBaseId
     )
 
-    // 保留向量原始相似度和 rank，前端才能看出是否只有 vector 生效。
     return result.map(([doc, score], index) => ({
       chunkId: doc.id ?? '',
       documentId: String(doc.metadata.documentId ?? ''),
@@ -94,12 +151,244 @@ export class KnowledgeRetrievalService {
   }
 }
 
-function resolveCandidateLimit(topK: number, runtimeConfig: KnowledgeBaseRuntimeConfig): number {
-  // topK 是返回给用户看的条数，候选集需要更宽一些，否则融合没有空间。
-  const scaled = Math.max(1, Math.floor(topK)) * runtimeConfig.retrieval.candidateMultiplier
+function shouldFallback(
+  plan: KnowledgeQueryPlan,
+  hits: KnowledgeSearchHit[],
+  topK: number
+): {
+  shouldFallback: boolean
+  reason: string | null
+  exactEntityMiss: boolean
+} {
+  if (!plan.fallbackRetrieval) {
+    return {
+      shouldFallback: false,
+      reason: null,
+      exactEntityMiss: false
+    }
+  }
+
+  if (hits.length === 0) {
+    return {
+      shouldFallback: true,
+      reason: 'no_hits',
+      exactEntityMiss: false
+    }
+  }
+
+  if (plan.protectedTerms.length > 0) {
+    const topWindow = hits.slice(0, Math.min(3, hits.length))
+    const hasExactEntityCoverage = topWindow.some((hit) =>
+      isStrongProtectedTermMatch(hit, plan.protectedTerms)
+    )
+
+    if (!hasExactEntityCoverage) {
+      return {
+        shouldFallback: true,
+        reason: 'protected_terms_not_covered',
+        exactEntityMiss: true
+      }
+    }
+  }
+
+  if (hits.length < Math.min(2, topK) && plan.retrieval.mode !== 'balanced') {
+    return {
+      shouldFallback: true,
+      reason: 'too_few_hits_for_non_balanced_route',
+      exactEntityMiss: false
+    }
+  }
+
+  return {
+    shouldFallback: false,
+    reason: null,
+    exactEntityMiss: false
+  }
+}
+
+function selectBetterResult(
+  plan: KnowledgeQueryPlan,
+  primary: RetrievalExecutionResult,
+  fallback: RetrievalExecutionResult
+): RetrievalExecutionResult {
+  const primaryCoverage = computeTopCoverageScore(primary.hits, plan.protectedTerms)
+  const fallbackCoverage = computeTopCoverageScore(fallback.hits, plan.protectedTerms)
+
+  if (fallbackCoverage > primaryCoverage) {
+    return fallback
+  }
+
+  if (fallbackCoverage === primaryCoverage) {
+    const primaryTopScore = primary.hits[0]?.score ?? 0
+    const fallbackTopScore = fallback.hits[0]?.score ?? 0
+
+    if (fallback.hits.length > primary.hits.length && fallbackTopScore >= primaryTopScore * 0.7) {
+      return fallback
+    }
+  }
+
+  return primary
+}
+
+// 这层只做“确定性的精确匹配重排”，不改分数定义，只改顺序。
+function applyDeterministicRerank(
+  hits: KnowledgeSearchHit[],
+  plan: KnowledgeQueryPlan
+): KnowledgeSearchHit[] {
+  if (hits.length <= 1) {
+    return hits
+  }
+
+  return [...hits].sort((left, right) => {
+    const leftSignal = computeHitSignal(left, plan.protectedTerms)
+    const rightSignal = computeHitSignal(right, plan.protectedTerms)
+
+    if (rightSignal.fullCoverage !== leftSignal.fullCoverage) {
+      return rightSignal.fullCoverage - leftSignal.fullCoverage
+    }
+
+    if (rightSignal.documentNameMatches !== leftSignal.documentNameMatches) {
+      return rightSignal.documentNameMatches - leftSignal.documentNameMatches
+    }
+
+    if (rightSignal.termMatches !== leftSignal.termMatches) {
+      return rightSignal.termMatches - leftSignal.termMatches
+    }
+
+    const rightFusedScore = right.scoreDetail?.fusedScore ?? 0
+    const leftFusedScore = left.scoreDetail?.fusedScore ?? 0
+    if (rightFusedScore !== leftFusedScore) {
+      return rightFusedScore - leftFusedScore
+    }
+
+    const rightBm25Score = right.scoreDetail?.bm25Score ?? -1
+    const leftBm25Score = left.scoreDetail?.bm25Score ?? -1
+    if (rightBm25Score !== leftBm25Score) {
+      return rightBm25Score - leftBm25Score
+    }
+
+    return right.score - left.score
+  })
+}
+
+function computeHitSignal(
+  hit: KnowledgeSearchHit,
+  protectedTerms: string[]
+): {
+  fullCoverage: number
+  termMatches: number
+  documentNameMatches: number
+} {
+  if (protectedTerms.length === 0) {
+    return {
+      fullCoverage: 0,
+      termMatches: 0,
+      documentNameMatches: 0
+    }
+  }
+
+  const normalizedDocumentName = normalizeForExactMatch(hit.documentName)
+  const normalizedContent = normalizeForExactMatch(hit.content)
+
+  let termMatches = 0
+  let documentNameMatches = 0
+
+  for (const term of protectedTerms) {
+    const normalizedTerm = normalizeForExactMatch(term)
+    if (!normalizedTerm) {
+      continue
+    }
+
+    if (containsExactTerm(normalizedDocumentName, normalizedTerm)) {
+      documentNameMatches += 1
+      termMatches += 1
+      continue
+    }
+
+    if (containsExactTerm(normalizedContent, normalizedTerm)) {
+      termMatches += 1
+    }
+  }
+
+  return {
+    fullCoverage: termMatches === protectedTerms.length ? 1 : 0,
+    termMatches,
+    documentNameMatches
+  }
+}
+
+function isStrongProtectedTermMatch(
+  hit: KnowledgeSearchHit,
+  protectedTerms: string[]
+): boolean {
+  return computeHitSignal(hit, protectedTerms).fullCoverage === 1
+}
+
+function computeTopCoverageScore(
+  hits: KnowledgeSearchHit[],
+  protectedTerms: string[]
+): number {
+  if (protectedTerms.length === 0 || hits.length === 0) {
+    return 0
+  }
+
+  return hits
+    .slice(0, Math.min(3, hits.length))
+    .reduce((maxScore, hit) => {
+      const signal = computeHitSignal(hit, protectedTerms)
+      const coverageScore =
+        signal.fullCoverage * 100 +
+        signal.documentNameMatches * 10 +
+        signal.termMatches
+
+      return Math.max(maxScore, coverageScore)
+    }, 0)
+}
+
+function resolveCandidateLimit(topK: number, hints: KnowledgeQueryRetrievalHints): number {
+  const scaled = Math.max(1, Math.floor(topK)) * hints.candidateMultiplier
 
   return Math.min(
-    Math.max(scaled, runtimeConfig.retrieval.minCandidateLimit),
-    runtimeConfig.retrieval.maxCandidateLimit
+    Math.max(scaled, hints.minCandidateLimit),
+    hints.maxCandidateLimit
   )
+}
+
+function normalizeForExactMatch(value: string): string {
+  return value
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[，、；：]/g, ' ')
+    .replace(/[。！？]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// 这里既支持整词匹配，也兼容带连接符的结构化 token。
+function containsExactTerm(haystack: string, needle: string): boolean {
+  if (!haystack || !needle) {
+    return false
+  }
+
+  if (haystack.includes(needle)) {
+    return true
+  }
+
+  const escapedNeedle = escapeRegex(needle)
+  const pattern = new RegExp(`(^|[^a-z0-9])${escapedNeedle}([^a-z0-9]|$)`, 'i')
+  return pattern.test(haystack)
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+type RetrievalExecutionResult = {
+  hints: KnowledgeQueryRetrievalHints
+  bm25Candidates: KnowledgeRetrievalCandidate[]
+  vectorCandidates: KnowledgeRetrievalCandidate[]
+  hits: KnowledgeSearchHit[]
 }

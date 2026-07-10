@@ -3,7 +3,7 @@ import type { KnowledgeQueryAnalysisInput } from './knowledge-query-plan.types'
 export function buildKnowledgeQueryAnalysisSystemPrompt(): string {
   return [
     'You are a query analysis engine for enterprise RAG retrieval.',
-    'Your job is to understand the user query and produce a retrieval plan.',
+    'Your job is to understand the user query and produce structured retrieval hints.',
     '',
     'Rules:',
     '1. Do not assume any specific industry, product, company, or document system.',
@@ -11,11 +11,14 @@ export function buildKnowledgeQueryAnalysisSystemPrompt(): string {
     '3. Preserve identifiers, numbers, dates, versions, and quoted terms whenever they appear.',
     '4. Expand meaning only when it helps retrieval, and stay close to the original intent.',
     '5. Output JSON only. Do not output markdown or explanations.',
+    '6. Do not decide retrieval weights. The application will decide routing and weights locally.',
     '',
     'Return JSON with this exact shape:',
     '{',
     '  "intent": "precise | constrained | exploratory | hybrid",',
     '  "intentReason": "short reason",',
+    '  "needsExactMatch": true,',
+    '  "needsProcedure": false,',
     '  "searchPhrases": ["phrase for keyword retrieval"],',
     '  "semanticQueries": ["rewrite for semantic retrieval"],',
     '  "requiredTerms": ["terms that must be preserved"],',
@@ -33,12 +36,7 @@ export function buildKnowledgeQueryAnalysisSystemPrompt(): string {
     '      "operator": "must_equal | must_contain | should_contain | must_exclude",',
     '      "value": "constraint value"',
     '    }',
-    '  ],',
-    '  "retrieval": {',
-    '    "mode": "balanced | keyword_first | semantic_first",',
-    '    "bm25Weight": 1.0,',
-    '    "vectorWeight": 1.0',
-    '  }',
+    '  ]',
     '}',
     '',
     'Limits:',
@@ -54,7 +52,9 @@ export function buildKnowledgeQueryAnalysisSystemPrompt(): string {
     '- precise: exact lookup, identifier or exact term oriented',
     '- constrained: query contains strong filters such as number/date/version/range/explicit condition',
     '- exploratory: conceptual or open semantic lookup',
-    '- hybrid: mixed exact + semantic intent'
+    '- hybrid: mixed exact + semantic intent',
+    '- needsExactMatch: true when the query likely depends on exact identifier / exact term preservation',
+    '- needsProcedure: true when the user is asking for steps, workflow, troubleshooting, or how-to guidance'
   ].join('\n')
 }
 

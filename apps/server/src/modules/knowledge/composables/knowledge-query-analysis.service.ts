@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { Injectable, Logger } from '@nestjs/common'
+
 import {
   buildKnowledgeQueryAnalysisSystemPrompt,
   buildKnowledgeQueryAnalysisUserPrompt
@@ -11,18 +12,10 @@ import type {
   KnowledgeQueryConstraintOperator,
   KnowledgeQueryEntity,
   KnowledgeQueryEntityKind,
-  KnowledgeQueryIntent,
-  KnowledgeQueryRetrievalHints,
-  KnowledgeRetrievalMode
+  KnowledgeQueryIntent
 } from './knowledge-query-plan.types'
 
 type JsonRecord = Record<string, unknown>
-
-const DEFAULT_RETRIEVAL_HINTS: KnowledgeQueryRetrievalHints = {
-  mode: 'balanced',
-  bm25Weight: 1,
-  vectorWeight: 1
-}
 
 @Injectable()
 export class KnowledgeQueryAnalysisService {
@@ -66,7 +59,7 @@ export class KnowledgeQueryAnalysisService {
     }
   }
 
-  // query analysis temperature 现在允许按知识库覆盖，因此这里不再缓存单一 client。
+  // query analysis temperature 允许按运行时配置覆盖，因此这里不缓存单一 client。
   private createClient(temperature?: number): ChatOpenAI | null {
     const apiKey = process.env.LLM_API_KEY
     const model =
@@ -166,14 +159,15 @@ function parseAnalysisResult(content: string): KnowledgeQueryAnalysis | null {
   const analysis: KnowledgeQueryAnalysis = {
     intent: normalizeIntent(parsed.intent),
     intentReason: normalizeSingleLine(parsed.intentReason),
+    needsExactMatch: normalizeBoolean(parsed.needsExactMatch, false),
+    needsProcedure: normalizeBoolean(parsed.needsProcedure, false),
     searchPhrases: normalizeStringArray(parsed.searchPhrases, 6),
     semanticQueries: normalizeStringArray(parsed.semanticQueries, 4),
     requiredTerms: normalizeStringArray(parsed.requiredTerms, 8),
     optionalTerms: normalizeStringArray(parsed.optionalTerms, 8),
     excludedTerms: normalizeStringArray(parsed.excludedTerms, 6),
     entities: normalizeEntities(parsed.entities),
-    constraints: normalizeConstraints(parsed.constraints),
-    retrieval: normalizeRetrievalHints(parsed.retrieval)
+    constraints: normalizeConstraints(parsed.constraints)
   }
 
   if (
@@ -201,33 +195,6 @@ function normalizeIntent(value: unknown): KnowledgeQueryIntent {
       return value
     default:
       return 'hybrid'
-  }
-}
-
-function normalizeRetrievalHints(value: unknown): KnowledgeQueryRetrievalHints {
-  if (!isJsonRecord(value)) {
-    return DEFAULT_RETRIEVAL_HINTS
-  }
-
-  const mode = normalizeRetrievalMode(value.mode)
-  const bm25Weight = normalizeWeight(value.bm25Weight, DEFAULT_RETRIEVAL_HINTS.bm25Weight)
-  const vectorWeight = normalizeWeight(value.vectorWeight, DEFAULT_RETRIEVAL_HINTS.vectorWeight)
-
-  return {
-    mode,
-    bm25Weight,
-    vectorWeight
-  }
-}
-
-function normalizeRetrievalMode(value: unknown): KnowledgeRetrievalMode {
-  switch (value) {
-    case 'keyword_first':
-    case 'semantic_first':
-    case 'balanced':
-      return value
-    default:
-      return 'balanced'
   }
 }
 
@@ -310,13 +277,22 @@ function normalizeConstraintOperator(value: unknown): KnowledgeQueryConstraintOp
   }
 }
 
-function normalizeWeight(value: unknown, fallback: number): number {
-  const numeric = typeof value === 'number' ? value : Number(value)
-  if (!Number.isFinite(numeric)) {
-    return fallback
+function normalizeBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') {
+    return value
   }
 
-  return Math.min(Math.max(numeric, 0.2), 3)
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (['true', '1', 'yes', 'on'].includes(normalized)) {
+      return true
+    }
+    if (['false', '0', 'no', 'off'].includes(normalized)) {
+      return false
+    }
+  }
+
+  return fallback
 }
 
 function normalizeStringArray(value: unknown, limit: number): string[] {
