@@ -9,8 +9,6 @@ import { DataSource, Repository } from "typeorm";
 import type {
   KnowledgeBase,
   KnowledgeBaseRuntimeConfig,
-  KnowledgeBaseRuntimeConfigPatch,
-  KnowledgeGlobalRuntimeSettings,
   KnowledgeBaseStatus,
   KnowledgeChunk,
   KnowledgeChunkMetadata,
@@ -40,7 +38,6 @@ import { CreateKnowledgeDocumentDto } from "./dto/create-knowledge-document.dto"
 import { KnowledgeBaseEntity } from "./entity/knowledge-base.entity";
 import { KnowledgeChunkEntity } from "./entity/knowledge-chunk.entity";
 import { KnowledgeDocumentEntity } from "./entity/knowledge-document.entity";
-import { KnowledgeRuntimeSettingsEntity } from "./entity/knowledge-runtime-settings.entity";
 import { buildChunksFromBlocks } from "./composables/knowledge-chunk-builder";
 import { parseKnowledgeDocument } from "./composables/knowledge-document.parser";
 import { KnowledgeRetrievalService } from "./composables/knowledge-retrieval.service";
@@ -81,8 +78,6 @@ type UploadKnowledgeDocumentInput = {
   chunkConfig?: string;
 };
 
-const GLOBAL_RUNTIME_SCOPE = "global";
-
 @Injectable()
 export class KnowledgeService {
   constructor(
@@ -92,8 +87,6 @@ export class KnowledgeService {
     private readonly knowledgeDocumentRepo: Repository<KnowledgeDocumentEntity>,
     @InjectRepository(KnowledgeChunkEntity)
     private readonly knowledgeChunkRepo: Repository<KnowledgeChunkEntity>,
-    @InjectRepository(KnowledgeRuntimeSettingsEntity)
-    private readonly knowledgeRuntimeSettingsRepo: Repository<KnowledgeRuntimeSettingsEntity>,
     private readonly embeddingService: EmbeddingService,
     private readonly knowledgeFileService: KnowledgeFileService,
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
@@ -201,26 +194,6 @@ export class KnowledgeService {
     knowledgeBaseId: string,
   ): Promise<KnowledgeBaseRuntimeConfig> {
     return this.getRuntimeConfig(knowledgeBaseId)
-  }
-
-  //声明全局召回运行配置查询入口，供“全部知识库”召回和 admin 参数页复用。
-  async findGlobalRuntimeSettings(): Promise<KnowledgeGlobalRuntimeSettings> {
-    const entity = await this.getOrCreateGlobalRuntimeSettingsEntity();
-    return toKnowledgeGlobalRuntimeSettings(entity);
-  }
-
-  //声明全局召回运行配置更新入口，只影响未指定 knowledgeBaseId 的全库召回路径。
-  async updateGlobalRuntimeSettings(
-    runtimeConfig: KnowledgeBaseRuntimeConfigPatch,
-  ): Promise<KnowledgeGlobalRuntimeSettings> {
-    const entity = await this.getOrCreateGlobalRuntimeSettingsEntity();
-    entity.runtimeConfig = mergeKnowledgeBaseRuntimeConfig(
-      entity.runtimeConfig,
-      runtimeConfig,
-    );
-
-    const updated = await this.knowledgeRuntimeSettingsRepo.save(entity);
-    return toKnowledgeGlobalRuntimeSettings(updated);
   }
 
   //声明知识库创建
@@ -539,8 +512,7 @@ export class KnowledgeService {
     knowledgeBaseId?: string,
   ): Promise<KnowledgeBaseRuntimeConfig> {
     if (!knowledgeBaseId) {
-      const globalSettings = await this.getGlobalRuntimeConfig();
-      return globalSettings;
+      return DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG;
     }
 
     const kb = await this.knowledgeBaseRepo.findOne({
@@ -552,37 +524,6 @@ export class KnowledgeService {
     }
 
     return normalizeKnowledgeBaseRuntimeConfig(kb.runtimeConfig);
-  }
-
-  //声明全局配置读取逻辑；如果数据库里还没有记录，就先回退默认值。
-  private async getGlobalRuntimeConfig(): Promise<KnowledgeBaseRuntimeConfig> {
-    const entity = await this.knowledgeRuntimeSettingsRepo.findOne({
-      where: { scope: GLOBAL_RUNTIME_SCOPE },
-    });
-
-    if (!entity) {
-      return DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG;
-    }
-
-    return normalizeKnowledgeBaseRuntimeConfig(entity.runtimeConfig);
-  }
-
-  //声明全局配置实体装载逻辑；admin 页面首次保存前若还没有记录，这里负责创建单行默认记录。
-  private async getOrCreateGlobalRuntimeSettingsEntity(): Promise<KnowledgeRuntimeSettingsEntity> {
-    const existing = await this.knowledgeRuntimeSettingsRepo.findOne({
-      where: { scope: GLOBAL_RUNTIME_SCOPE },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    const created = this.knowledgeRuntimeSettingsRepo.create({
-      scope: GLOBAL_RUNTIME_SCOPE,
-      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
-    });
-
-    return this.knowledgeRuntimeSettingsRepo.save(created);
   }
   //声明文档 chunk 装载
   private async loadDocumentChunks(
@@ -744,18 +685,6 @@ function toKnowledgeBase(
     description: entity.description ?? "",
     status: normalizedStatus,
     documentCount,
-    runtimeConfig: normalizeKnowledgeBaseRuntimeConfig(entity.runtimeConfig),
-    createdAt: entity.createdAt.toISOString(),
-    updatedAt: entity.updatedAt.toISOString(),
-  };
-}
-
-//声明全局召回配置实体映射逻辑
-function toKnowledgeGlobalRuntimeSettings(
-  entity: KnowledgeRuntimeSettingsEntity,
-): KnowledgeGlobalRuntimeSettings {
-  return {
-    scope: "global",
     runtimeConfig: normalizeKnowledgeBaseRuntimeConfig(entity.runtimeConfig),
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString(),

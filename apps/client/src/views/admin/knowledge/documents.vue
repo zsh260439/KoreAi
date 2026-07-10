@@ -460,7 +460,6 @@ const openKnowledgeSettings = () => {
   router.push({
     path: '/admin/knowledge-settings',
     query: {
-      scope: 'knowledge_base',
       kbId: kbId.value || undefined
     }
   })

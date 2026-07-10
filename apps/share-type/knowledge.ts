@@ -1,5 +1,4 @@
 export type KnowledgeBaseStatus = 'active' | 'draft'
-export type KnowledgeRuntimeConfigScope = 'global' | 'knowledge_base'
 
 export type KnowledgeDocumentStatus = 'pending' | 'processing' | 'indexed' | 'failed'
 export type KnowledgeDocumentSourceType = 'file' | 'url'
@@ -88,11 +87,6 @@ export interface UpdateKnowledgeBaseInput {
   runtimeConfig?: KnowledgeBaseRuntimeConfigPatch
 }
 
-// 声明全局运行配置更新输入，避免接口混入知识库名称等无关字段。
-export interface UpdateKnowledgeRuntimeConfigInput {
-  runtimeConfig: KnowledgeBaseRuntimeConfigPatch
-}
-
 export interface CreateKnowledgeDocumentInput {
   name: string
   storagePath: string
@@ -105,14 +99,6 @@ export interface KnowledgeBase {
   description: string
   status: KnowledgeBaseStatus
   documentCount: number
-  runtimeConfig: KnowledgeBaseRuntimeConfig
-  createdAt: string
-  updatedAt: string
-}
-
-// 声明全局召回配置结构，用于未指定知识库的全库召回路径。
-export interface KnowledgeGlobalRuntimeSettings {
-  scope: 'global'
   runtimeConfig: KnowledgeBaseRuntimeConfig
   createdAt: string
   updatedAt: string

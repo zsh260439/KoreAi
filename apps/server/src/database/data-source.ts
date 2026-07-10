@@ -6,7 +6,6 @@ import { DataSource } from 'typeorm'
 import { KnowledgeBaseEntity } from '../modules/knowledge/entity/knowledge-base.entity'
 import { KnowledgeDocumentEntity } from '../modules/knowledge/entity/knowledge-document.entity'
 import { KnowledgeChunkEntity } from '../modules/knowledge/entity/knowledge-chunk.entity'
-import { KnowledgeRuntimeSettingsEntity } from '../modules/knowledge/entity/knowledge-runtime-settings.entity'
 import { WorkspaceConversationEntity } from '../modules/workspace/entity/workspace-conversation.entity'
 import { WorkspaceMessageEntity } from '../modules/workspace/entity/workspace-message.entity'
 
@@ -32,7 +31,6 @@ const appDataSource = new DataSource({
     KnowledgeBaseEntity,
     KnowledgeDocumentEntity,
     KnowledgeChunkEntity,
-    KnowledgeRuntimeSettingsEntity,
     WorkspaceConversationEntity,
     WorkspaceMessageEntity
   ],

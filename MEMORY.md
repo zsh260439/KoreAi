@@ -27,8 +27,6 @@
 - Chunk `content` now prefers `section title + body` only; document root titles remain in searchable fields such as `documentName`, `primaryTitle`, and `sectionPath`, instead of being duplicated into embedding text.
 - Workspace assistant messages now persist a separate `retrievalDebug` snapshot alongside `citations`, so chat-side recall UI and history replay can show the same BM25/vector debug data without duplicating it into each hit.
 - Knowledge retrieval and answer runtime parameters are now persisted per knowledge base via `runtimeConfig`, with an admin-level dedicated settings page at `/admin/knowledge-settings`; this page is the explicit source of truth for preview topK, workspace topK, candidate limits, BM25/vector weights, query-analysis temperature, and QA temperature.
-- Knowledge runtime configuration now has two scopes: global settings live in `knowledge_runtime_settings`, and single-knowledge-base settings live in `knowledge_bases.runtimeConfig`.
-- Runtime resolution rule is fixed: when `knowledgeBaseId` is empty, retrieval and QA use the global runtime config; when `knowledgeBaseId` is present, they use that knowledge base's runtime config.
 - Local PostgreSQL runs as `postgresql-x64-18` on port `5433`.
 - `pg_search` is a PostgreSQL extension rather than a NestJS package. On this Windows machine it can be compiled only after local `pgrx` Windows shim patching, and final installation into `D:\postgresql\share\extension` still requires administrator write permission.
 - Server-side BM25 database infrastructure now follows TypeORM migrations via `apps/server/src/database/data-source.ts`; run migrations before starting the server, and do not rely on `synchronize` for BM25 schema/index setup.
