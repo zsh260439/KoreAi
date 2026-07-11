@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { DataSource } from 'typeorm'
 import type {
   KnowledgeBaseRuntimeConfig,
   KnowledgeSearchDebugInfo,
@@ -7,6 +8,11 @@ import type {
 } from 'share-type'
 
 import { KnowledgeBm25Service } from './knowledge-bm25.service'
+import {
+  computeKnowledgeEvidenceCoverage,
+  computeKnowledgeEvidenceScore,
+  resolveEvidenceGateStatus
+} from './knowledge-evidence-planner'
 import { mergeKnowledgeRetrievalCandidates } from './knowledge-hybrid-ranker'
 import { KnowledgeQueryEngineService } from './knowledge-query-engine.service'
 import type {
@@ -21,7 +27,8 @@ export class KnowledgeRetrievalService {
   constructor(
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
     private readonly knowledgeBm25Service: KnowledgeBm25Service,
-    private readonly knowledgeQueryEngineService: KnowledgeQueryEngineService
+    private readonly knowledgeQueryEngineService: KnowledgeQueryEngineService,
+    private readonly dataSource: DataSource
   ) {}
 
   async retrieveKnowledge(
@@ -36,12 +43,12 @@ export class KnowledgeRetrievalService {
     const plan = await this.knowledgeQueryEngineService.buildPlan(query, {
       enableAnalysis:
         options.enableRewrite !== false && options.runtimeConfig.retrieval.queryAnalysisEnabled,
-      runtimeConfig: options.runtimeConfig
+      runtimeConfig: options.runtimeConfig,
+      requestedTopK: topK
     })
 
     const primaryResult = await this.retrieveWithHints(
       knowledgeBaseId,
-      topK,
       plan,
       plan.retrieval
     )
@@ -59,7 +66,6 @@ export class KnowledgeRetrievalService {
 
       const fallbackResult = await this.retrieveWithHints(
         knowledgeBaseId,
-        topK,
         plan,
         plan.fallbackRetrieval
       )
@@ -86,7 +92,14 @@ export class KnowledgeRetrievalService {
       exactEntityMiss,
       protectedTerms: plan.protectedTerms,
       excludedTerms: plan.excludedTerms,
-      llmIntent: plan.analysis?.intent ?? null
+      llmIntent: plan.analysis?.intent ?? null,
+      evidenceComplexity: plan.evidencePlan.complexity,
+      evidenceTerms: plan.evidencePlan.evidenceTerms,
+      evidenceNumericTerms: plan.evidencePlan.numericTerms,
+      effectiveTopK: finalResult.effectiveTopK,
+      evidenceCoverage: finalResult.evidenceCoverage,
+      evidenceExpansionApplied: finalResult.evidenceExpansionApplied,
+      evidenceGateStatus: finalResult.evidenceGateStatus
     }
 
     return {
@@ -97,34 +110,144 @@ export class KnowledgeRetrievalService {
 
   private async retrieveWithHints(
     knowledgeBaseId: string | undefined,
-    topK: number,
     plan: KnowledgeQueryPlan,
     hints: KnowledgeQueryRetrievalHints
   ): Promise<RetrievalExecutionResult> {
-    const candidateLimit = resolveCandidateLimit(topK, hints)
+    const effectiveTopK = plan.evidencePlan.targetTopK
+    const candidateLimit = resolveCandidateLimit(effectiveTopK, hints)
 
-    // 两路召回并行执行，避免 query analysis 打开后额外串行放大耗时。
-    const [bm25Candidates, vectorCandidates] = await Promise.all([
+    // 基础召回和 reference 轻量通道并行执行，避免规则/标准类文档被近邻业务文档盖掉。
+    const [bm25Candidates, vectorCandidates, referenceCandidates] = await Promise.all([
       this.knowledgeBm25Service.search(plan.bm25Query, knowledgeBaseId, candidateLimit),
-      this.vectorRecall(plan.vectorQuery, knowledgeBaseId, candidateLimit)
+      this.vectorRecall(plan.vectorQuery, knowledgeBaseId, candidateLimit),
+      this.referenceRecall(knowledgeBaseId, plan, candidateLimit)
     ])
 
     const mergedHits = mergeKnowledgeRetrievalCandidates(
-      bm25Candidates,
+      [...bm25Candidates, ...referenceCandidates],
       vectorCandidates,
-      topK,
+      Math.min(candidateLimit, plan.evidencePlan.maxTopK * 6),
       {
         bm25Weight: hints.bm25Weight,
         vectorWeight: hints.vectorWeight
       }
     )
+    const rerankedHits = applyDeterministicRerank(mergedHits, plan)
+    const finalHits = await this.assembleEvidenceContext(rerankedHits, plan)
+    const completedHits = includeReferenceEvidence(finalHits, referenceCandidates, plan)
+    const evidenceCoverage = computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
 
     return {
       hints,
       bm25Candidates,
       vectorCandidates,
-      hits: applyDeterministicRerank(mergedHits, plan)
+      hits: completedHits,
+      effectiveTopK,
+      evidenceCoverage,
+      evidenceExpansionApplied:
+        completedHits.some((hit) => hit.scoreDetail?.matchedBy.length === 0),
+      evidenceGateStatus: resolveEvidenceGateStatus(evidenceCoverage, plan.evidencePlan)
     }
+  }
+
+  private async assembleEvidenceContext(
+    hits: KnowledgeSearchHit[],
+    plan: KnowledgeQueryPlan
+  ): Promise<KnowledgeSearchHit[]> {
+    const selected = hits.slice(0, plan.evidencePlan.targetTopK)
+    const selectedCoverage = computeKnowledgeEvidenceCoverage(selected, plan.evidencePlan)
+
+    if (
+      selectedCoverage >= plan.evidencePlan.requiredCoverage ||
+      selected.length === 0 ||
+      selected.length >= plan.evidencePlan.maxTopK
+    ) {
+      return selected
+    }
+
+    const expanded = [...selected]
+    const seenChunkIds = new Set(expanded.map((hit) => hit.chunkId))
+    const documentIds = uniqueStrings(selected.slice(0, 3).map((hit) => hit.documentId))
+
+    for (const documentId of documentIds) {
+      if (expanded.length >= plan.evidencePlan.maxTopK) {
+        break
+      }
+
+      const siblingHits = await this.loadSiblingEvidenceChunks(documentId, seenChunkIds)
+      const scoredSiblings = siblingHits
+        .map((hit) => ({
+          hit: attachEvidenceScore(hit, plan),
+          score: computeKnowledgeEvidenceScore(hit, plan.evidencePlan).score
+        }))
+        .filter((item) => item.score > 0)
+        .sort((left, right) => right.score - left.score)
+
+      for (const item of scoredSiblings.slice(0, 3)) {
+        if (expanded.length >= plan.evidencePlan.maxTopK) {
+          break
+        }
+
+        expanded.push(markEvidenceExpansionHit(item.hit))
+        seenChunkIds.add(item.hit.chunkId)
+
+        const coverage = computeKnowledgeEvidenceCoverage(expanded, plan.evidencePlan)
+        if (coverage >= plan.evidencePlan.requiredCoverage) {
+          return expanded
+        }
+      }
+    }
+
+    return expanded
+  }
+
+  private async loadSiblingEvidenceChunks(
+    documentId: string,
+    excludedChunkIds: Set<string>
+  ): Promise<KnowledgeSearchHit[]> {
+    const rows = (await this.dataSource.query(
+      `
+        SELECT
+          chunk.id AS "chunkId",
+          chunk."documentId" AS "documentId",
+          chunk."documentName" AS "documentName",
+          chunk.sequence AS "sequence",
+          chunk."sectionPath" AS "sectionPath",
+          chunk."primaryTitle" AS "primaryTitle",
+          chunk.content AS "content"
+        FROM "knowledge_chunks" AS chunk
+        WHERE chunk."documentId" = $1::uuid
+        ORDER BY chunk.sequence ASC
+      `,
+      [documentId]
+    )) as Array<{
+      chunkId: string
+      documentId: string
+      documentName: string
+      sequence: number | null
+      sectionPath: string | null
+      primaryTitle: string | null
+      content: string
+    }>
+
+    return rows
+      .filter((row) => !excludedChunkIds.has(row.chunkId))
+      .map((row) => ({
+        chunkId: row.chunkId,
+        documentId: row.documentId,
+        documentName: row.documentName,
+        sequence: row.sequence,
+        sectionPath: row.sectionPath,
+        primaryTitle: row.primaryTitle,
+        content: row.content,
+        score: 0,
+        scoreDetail: {
+          matchedBy: [],
+          bm25Score: null,
+          vectorScore: null,
+          fusedScore: 0
+        }
+      }))
   }
 
   private async vectorRecall(
@@ -142,6 +265,9 @@ export class KnowledgeRetrievalService {
       chunkId: doc.id ?? '',
       documentId: String(doc.metadata.documentId ?? ''),
       documentName: String(doc.metadata.documentName ?? ''),
+      sequence: normalizeMetadataNumber(doc.metadata.sequence),
+      sectionPath: normalizeMetadataString(doc.metadata.sectionPath ?? doc.metadata.sectionPaths),
+      primaryTitle: normalizeMetadataString(doc.metadata.primaryTitle ?? doc.metadata.titles),
       content: doc.pageContent,
       bm25Score: null,
       vectorScore: Number((score * 100).toFixed(4)),
@@ -149,6 +275,152 @@ export class KnowledgeRetrievalService {
       vectorRank: index + 1,
       matchedBy: ['vector']
     }))
+  }
+
+  private async referenceRecall(
+    knowledgeBaseId: string | undefined,
+    plan: KnowledgeQueryPlan,
+    limit: number
+  ): Promise<KnowledgeRetrievalCandidate[]> {
+    if (!plan.evidencePlan.needsReference) {
+      return []
+    }
+
+    const terms = uniqueStrings([
+      ...plan.protectedTerms,
+      ...plan.evidencePlan.referenceTerms,
+      ...plan.evidencePlan.evidenceTerms
+    ]).slice(0, 24)
+
+    if (terms.length === 0) {
+      return []
+    }
+
+    const likePatterns = terms.map((term) => `%${escapeLikePattern(term.toLowerCase())}%`)
+    const strictRoleLikePatterns = buildStrictReferenceRoleLikePatterns()
+    const evidenceRows = (await this.dataSource.query(
+      `
+        SELECT
+          chunk.id AS "chunkId",
+          chunk."documentId" AS "documentId",
+          chunk."documentName" AS "documentName",
+          chunk.sequence AS "sequence",
+          chunk."sectionPath" AS "sectionPath",
+          chunk."primaryTitle" AS "primaryTitle",
+          chunk.content AS "content",
+          0 AS "roleNameScore",
+          (
+            SELECT COUNT(*)
+            FROM UNNEST($2::text[]) AS evidence_pattern
+            WHERE
+              LOWER(COALESCE(chunk."documentName", '')) LIKE evidence_pattern
+              OR LOWER(COALESCE(chunk."primaryTitle", '')) LIKE evidence_pattern
+              OR LOWER(COALESCE(chunk."sectionPath", '')) LIKE evidence_pattern
+              OR LOWER(chunk.content) LIKE evidence_pattern
+          ) AS "evidenceMatchCount"
+        FROM "knowledge_chunks" AS chunk
+        WHERE ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
+          AND (
+            LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($2::text[])
+            OR LOWER(COALESCE(chunk."primaryTitle", '')) LIKE ANY($2::text[])
+            OR LOWER(COALESCE(chunk."sectionPath", '')) LIKE ANY($2::text[])
+            OR LOWER(chunk.content) LIKE ANY($2::text[])
+          )
+        ORDER BY chunk."updatedAt" DESC, chunk.sequence ASC
+        LIMIT $3
+      `,
+      [knowledgeBaseId ?? null, likePatterns, Math.min(limit, 80)]
+    )) as ReferenceRecallRow[]
+    const roleRows = (await this.dataSource.query(
+      `
+        SELECT
+          chunk.id AS "chunkId",
+          chunk."documentId" AS "documentId",
+          chunk."documentName" AS "documentName",
+          chunk.sequence AS "sequence",
+          chunk."sectionPath" AS "sectionPath",
+          chunk."primaryTitle" AS "primaryTitle",
+          chunk.content AS "content",
+          (
+            CASE WHEN LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($2::text[]) THEN 4 ELSE 0 END +
+            CASE WHEN LOWER(COALESCE(chunk."primaryTitle", '')) LIKE ANY($2::text[]) THEN 3 ELSE 0 END +
+            CASE WHEN LOWER(COALESCE(chunk."sectionPath", '')) LIKE ANY($2::text[]) THEN 2 ELSE 0 END
+          ) AS "roleNameScore",
+          (
+            SELECT COUNT(*)
+            FROM UNNEST($3::text[]) AS evidence_pattern
+            WHERE
+              LOWER(COALESCE(chunk."documentName", '')) LIKE evidence_pattern
+              OR LOWER(COALESCE(chunk."primaryTitle", '')) LIKE evidence_pattern
+              OR LOWER(COALESCE(chunk."sectionPath", '')) LIKE evidence_pattern
+              OR LOWER(chunk.content) LIKE evidence_pattern
+          ) AS "evidenceMatchCount"
+        FROM "knowledge_chunks" AS chunk
+        WHERE ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
+          AND (
+            LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($2::text[])
+            OR LOWER(COALESCE(chunk."primaryTitle", '')) LIKE ANY($2::text[])
+            OR LOWER(COALESCE(chunk."sectionPath", '')) LIKE ANY($2::text[])
+          )
+          AND (
+            LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($3::text[])
+            OR LOWER(COALESCE(chunk."primaryTitle", '')) LIKE ANY($3::text[])
+            OR LOWER(COALESCE(chunk."sectionPath", '')) LIKE ANY($3::text[])
+            OR LOWER(chunk.content) LIKE ANY($3::text[])
+          )
+        ORDER BY "roleNameScore" DESC, "evidenceMatchCount" DESC, chunk.sequence ASC, chunk."updatedAt" DESC
+        LIMIT $4
+      `,
+      [knowledgeBaseId ?? null, strictRoleLikePatterns, likePatterns, Math.min(limit, 80)]
+    )) as ReferenceRecallRow[]
+
+    const scoredItems = mergeReferenceRecallRows(evidenceRows, roleRows)
+      .map((row) => {
+        const documentName = row.documentName ?? ''
+        const evidenceScore = computeKnowledgeEvidenceScore(
+          {
+            documentName,
+            primaryTitle: row.primaryTitle,
+            sectionPath: row.sectionPath,
+            content: row.content
+          },
+          plan.evidencePlan
+        ).score
+        const sqlEvidenceMatchCount = normalizeMetadataNumber(row.evidenceMatchCount) ?? 0
+        const sqlRoleNameScore = normalizeMetadataNumber(row.roleNameScore) ?? 0
+        const sequenceBoost = row.sequence === 0 ? 45 : row.sequence === 1 ? 10 : 0
+
+        return {
+          row,
+          evidenceScore,
+          sqlEvidenceMatchCount,
+          sqlRoleNameScore,
+          recallScore:
+            evidenceScore +
+            sqlEvidenceMatchCount * 5 +
+            sqlRoleNameScore * 12 +
+            sequenceBoost
+        }
+      })
+      .filter((item) => item.sqlRoleNameScore > 0 && item.recallScore > 0)
+      .sort((left, right) => right.recallScore - left.recallScore)
+
+    return dedupeReferenceRecallItems(scoredItems)
+      .slice(0, Math.min(limit, 40))
+      .map((item, index) => ({
+        chunkId: item.row.chunkId,
+        documentId: item.row.documentId,
+        documentName: item.row.documentName ?? '',
+        sequence: item.row.sequence,
+        sectionPath: item.row.sectionPath,
+        primaryTitle: item.row.primaryTitle,
+        content: item.row.content,
+        bm25Score: item.recallScore,
+        vectorScore: null,
+        bm25Rank: index + 1,
+        vectorRank: null,
+        matchedBy: ['bm25']
+      }))
   }
 }
 
@@ -240,9 +512,11 @@ function applyDeterministicRerank(
     return hits
   }
 
-  return [...hits].sort((left, right) => {
+  return hits.map((hit) => attachEvidenceScore(hit, plan)).sort((left, right) => {
     const leftSignal = computeHitSignal(left, plan.protectedTerms, plan.excludedTerms)
     const rightSignal = computeHitSignal(right, plan.protectedTerms, plan.excludedTerms)
+    const leftEvidenceScore = left.scoreDetail?.evidenceScore ?? 0
+    const rightEvidenceScore = right.scoreDetail?.evidenceScore ?? 0
 
     // 对带结构化编号的 query，先按完整编号覆盖做硬排序，避免近邻文档靠语义分顶上来。
     if (rightSignal.structuredFullCoverage !== leftSignal.structuredFullCoverage) {
@@ -281,6 +555,10 @@ function applyDeterministicRerank(
 
     if (rightSignal.termMatches !== leftSignal.termMatches) {
       return rightSignal.termMatches - leftSignal.termMatches
+    }
+
+    if (rightEvidenceScore !== leftEvidenceScore) {
+      return rightEvidenceScore - leftEvidenceScore
     }
 
     const rightFusedScore = right.scoreDetail?.fusedScore ?? 0
@@ -395,6 +673,105 @@ function computeHitSignal(
   }
 }
 
+function attachEvidenceScore(
+  hit: KnowledgeSearchHit,
+  plan: KnowledgeQueryPlan
+): KnowledgeSearchHit {
+  const evidence = computeKnowledgeEvidenceScore(hit, plan.evidencePlan)
+
+  return {
+    ...hit,
+    scoreDetail: {
+      matchedBy: hit.scoreDetail?.matchedBy ?? [],
+      bm25Score: hit.scoreDetail?.bm25Score ?? null,
+      vectorScore: hit.scoreDetail?.vectorScore ?? null,
+      fusedScore: hit.scoreDetail?.fusedScore ?? 0,
+      evidenceScore: evidence.score,
+      matchedEvidenceTerms: evidence.matchedEvidenceTerms,
+      matchedNumericTerms: evidence.matchedNumericTerms,
+      documentRole: evidence.documentRole
+    }
+  }
+}
+
+function markEvidenceExpansionHit(hit: KnowledgeSearchHit): KnowledgeSearchHit {
+  return {
+    ...hit,
+    score: hit.score > 0 ? hit.score : 1,
+    scoreDetail: {
+      matchedBy: [],
+      bm25Score: hit.scoreDetail?.bm25Score ?? null,
+      vectorScore: hit.scoreDetail?.vectorScore ?? null,
+      fusedScore: hit.scoreDetail?.fusedScore ?? 0,
+      evidenceScore: hit.scoreDetail?.evidenceScore ?? 0,
+      matchedEvidenceTerms: hit.scoreDetail?.matchedEvidenceTerms ?? [],
+      matchedNumericTerms: hit.scoreDetail?.matchedNumericTerms ?? [],
+      documentRole: hit.scoreDetail?.documentRole
+    }
+  }
+}
+
+function includeReferenceEvidence(
+  hits: KnowledgeSearchHit[],
+  referenceCandidates: KnowledgeRetrievalCandidate[],
+  plan: KnowledgeQueryPlan
+): KnowledgeSearchHit[] {
+  if (!plan.evidencePlan.needsReference || referenceCandidates.length === 0) {
+    return hits
+  }
+
+  const selected = hits.slice(0, plan.evidencePlan.maxTopK)
+  const coverage = computeKnowledgeEvidenceCoverage(selected, plan.evidencePlan)
+  const seenChunkIds = new Set(selected.map((hit) => hit.chunkId))
+  const seenDocumentNames = new Set(selected.map((hit) => hit.documentName))
+  const candidates = referenceCandidates
+    .filter((candidate) => !seenChunkIds.has(candidate.chunkId))
+    .filter((candidate) => !seenDocumentNames.has(candidate.documentName))
+    .map((candidate) => attachEvidenceScore(candidateToSearchHit(candidate), plan))
+    .sort((left, right) => {
+      const rightRecallScore = right.scoreDetail?.bm25Score ?? 0
+      const leftRecallScore = left.scoreDetail?.bm25Score ?? 0
+      if (rightRecallScore !== leftRecallScore) {
+        return rightRecallScore - leftRecallScore
+      }
+
+      return (right.scoreDetail?.evidenceScore ?? 0) - (left.scoreDetail?.evidenceScore ?? 0)
+    })
+
+  const bestCandidate = candidates[0]
+  const bestRecallScore = bestCandidate?.scoreDetail?.bm25Score ?? 0
+  if (!bestCandidate || (coverage >= plan.evidencePlan.requiredCoverage && bestRecallScore < 120)) {
+    return selected
+  }
+
+  if (selected.length < plan.evidencePlan.maxTopK) {
+    return [...selected, bestCandidate]
+  }
+
+  return selected.map((hit, index) =>
+    index === selected.length - 1 ? bestCandidate : hit
+  )
+}
+
+function candidateToSearchHit(candidate: KnowledgeRetrievalCandidate): KnowledgeSearchHit {
+  return {
+    chunkId: candidate.chunkId,
+    documentId: candidate.documentId,
+    documentName: candidate.documentName,
+    sequence: candidate.sequence,
+    sectionPath: candidate.sectionPath,
+    primaryTitle: candidate.primaryTitle,
+    content: candidate.content,
+    score: 1,
+    scoreDetail: {
+      matchedBy: candidate.matchedBy,
+      bm25Score: candidate.bm25Score,
+      vectorScore: candidate.vectorScore,
+      fusedScore: 0
+    }
+  }
+}
+
 function isStrongProtectedTermMatch(
   hit: KnowledgeSearchHit,
   protectedTerms: string[]
@@ -405,6 +782,7 @@ function isStrongProtectedTermMatch(
     : signal.fullCoverage === 1
 }
 
+    // 参考文档只补尾部证据，不抢占主检索的首位结果。
 function computeTopCoverageScore(
   hits: KnowledgeSearchHit[],
   protectedTerms: string[]
@@ -468,6 +846,78 @@ function containsExactTerm(haystack: string, needle: string): boolean {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (match) => `\\${match}`)
+}
+
+function buildStrictReferenceRoleLikePatterns(): string[] {
+  // 这里只表达“支撑/标准类文档”的文件名或标题角色，不绑定任何评测集文件名。
+  return [
+    '%reference%',
+    '%standard%',
+    '%guideline%',
+    '%specification%',
+    '%spec%',
+    '%pack%',
+    '%规范%',
+    '%标准%',
+    '%指南%',
+    '%参考%',
+    '%支撑%'
+  ]
+}
+
+function mergeReferenceRecallRows(
+  evidenceRows: ReferenceRecallRow[],
+  roleRows: ReferenceRecallRow[]
+): ReferenceRecallRow[] {
+  const merged = new Map<string, ReferenceRecallRow>()
+
+  for (const row of [...evidenceRows, ...roleRows]) {
+    const current = merged.get(row.chunkId)
+    if (!current) {
+      merged.set(row.chunkId, row)
+      continue
+    }
+
+    merged.set(row.chunkId, {
+      ...current,
+      roleNameScore: Math.max(
+        normalizeMetadataNumber(current.roleNameScore) ?? 0,
+        normalizeMetadataNumber(row.roleNameScore) ?? 0
+      ),
+      evidenceMatchCount: Math.max(
+        normalizeMetadataNumber(current.evidenceMatchCount) ?? 0,
+        normalizeMetadataNumber(row.evidenceMatchCount) ?? 0
+      )
+    })
+  }
+
+  return Array.from(merged.values())
+}
+
+function dedupeReferenceRecallItems<
+  T extends { row: ReferenceRecallRow; recallScore: number }
+>(items: T[]): T[] {
+  const seenDocumentNames = new Set<string>()
+  const result: T[] = []
+
+  for (const item of items) {
+    const documentName = item.row.documentName ?? ''
+    const documentKey = documentName.trim().toLowerCase()
+    if (documentKey && seenDocumentNames.has(documentKey)) {
+      continue
+    }
+
+    if (documentKey) {
+      seenDocumentNames.add(documentKey)
+    }
+    result.push(item)
+  }
+
+  return result
 }
 
 function splitProtectedTerms(protectedTerms: string[]): {
@@ -556,6 +1006,49 @@ function isStructuredIdentifierTerm(value: string): boolean {
   return /[a-z]/i.test(value) && /\d/.test(value)
 }
 
+function normalizeMetadataNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  return null
+}
+
+function normalizeMetadataString(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    const flattened = value.flat(Infinity).filter((item) => typeof item === 'string')
+    return flattened.length > 0 ? flattened.join(' / ') : null
+  }
+
+  return null
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const value of values) {
+    const normalized = value.trim()
+    if (!normalized || seen.has(normalized)) {
+      continue
+    }
+
+    seen.add(normalized)
+    result.push(normalized)
+  }
+
+  return result
+}
+
 const STRUCTURED_IDENTIFIER_TERM_PATTERN =
   /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,8}[-_]?\d{2,})\b/gi
 
@@ -564,4 +1057,20 @@ type RetrievalExecutionResult = {
   bm25Candidates: KnowledgeRetrievalCandidate[]
   vectorCandidates: KnowledgeRetrievalCandidate[]
   hits: KnowledgeSearchHit[]
+  effectiveTopK: number
+  evidenceCoverage: number
+  evidenceExpansionApplied: boolean
+  evidenceGateStatus: 'pass' | 'degraded' | 'blocked'
+}
+
+type ReferenceRecallRow = {
+  chunkId: string
+  documentId: string
+  documentName: string | null
+  sequence: number | null
+  sectionPath: string | null
+  primaryTitle: string | null
+  content: string
+  roleNameScore: string | number
+  evidenceMatchCount: string | number
 }

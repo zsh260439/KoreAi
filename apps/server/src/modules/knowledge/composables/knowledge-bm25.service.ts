@@ -8,6 +8,9 @@ const BM25_SEARCH_SQL = `
     chunk.id AS "chunkId",
     chunk."documentId" AS "documentId",
     chunk."documentName" AS "documentName",
+    chunk.sequence AS "sequence",
+    chunk."sectionPath" AS "sectionPath",
+    chunk."primaryTitle" AS "primaryTitle",
     chunk.content AS "content",
     COALESCE(pdb.score(chunk.id), 0)::float8 AS "bm25Score"
   FROM "knowledge_chunks" AS chunk
@@ -20,6 +23,9 @@ type KnowledgeBm25Row = {
   chunkId: string
   documentId: string
   documentName: string
+  sequence: number | string | null
+  sectionPath: string | null
+  primaryTitle: string | null
   content: string
   bm25Score: number | string
 }
@@ -49,6 +55,9 @@ export class KnowledgeBm25Service implements OnModuleInit {
             chunkId:row.chunkId,
             documentId:row.documentId,
             documentName:row.documentName,
+            sequence: row.sequence === null ? null : Number(row.sequence),
+            sectionPath: row.sectionPath,
+            primaryTitle: row.primaryTitle,
             content:row.content,
             bm25Score: Number(row.bm25Score),
             vectorScore: null,

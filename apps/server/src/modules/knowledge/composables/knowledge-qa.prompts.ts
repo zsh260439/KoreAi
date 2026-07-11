@@ -1,12 +1,17 @@
 import type { KnowledgeSearchHit } from 'share-type'
 
 //声明流式知识问答系统提示词构造器
-export function buildKnowledgeQaStreamingSystemPrompt(hasKnowledge: boolean): string {
+export function buildKnowledgeQaStreamingSystemPrompt(
+  hasKnowledge: boolean,
+  evidenceGateStatus: 'pass' | 'degraded' | 'blocked' = 'pass'
+): string {
   const baseInstructions = hasKnowledge
     ? [
         'You are a professional question-answering assistant.',
         'Use the provided knowledge-base excerpts as the primary source of truth.',
-        'If the knowledge base is incomplete, you may supplement with general knowledge, but clearly distinguish knowledge-base facts from general knowledge.',
+        'Do not supplement missing knowledge-base facts with general knowledge.',
+        'If a required fact is not present in the excerpts, explicitly say that the evidence is missing.',
+        'Every concrete number, identifier, role, threshold, rule, or conclusion must be grounded in the excerpts.',
         'Match the language of the user question.'
       ]
     : [
@@ -16,6 +21,12 @@ export function buildKnowledgeQaStreamingSystemPrompt(hasKnowledge: boolean): st
         'Match the language of the user question.'
       ]
 
+  if (evidenceGateStatus === 'degraded') {
+    baseInstructions.push(
+      'Evidence coverage is incomplete. Answer conservatively and mark missing details instead of guessing.'
+    )
+  }
+
   return baseInstructions.join('\n')
 }
 
@@ -23,14 +34,28 @@ export function buildKnowledgeQaStreamingSystemPrompt(hasKnowledge: boolean): st
 export function buildKnowledgeQaStreamingUserPrompt(
   query: string,
   hits: KnowledgeSearchHit[],
-  includeReasoning: boolean
+  includeReasoning: boolean,
+  evidence: {
+    evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
+    evidenceCoverage?: number
+  } = {}
 ): string {
   const context = buildKnowledgeQaContext(hits) || '(no knowledge excerpts found)'
+  const evidencePolicy = [
+    `Evidence gate status: ${evidence.evidenceGateStatus ?? 'pass'}`,
+    `Evidence coverage: ${typeof evidence.evidenceCoverage === 'number' ? evidence.evidenceCoverage : 'unknown'}`,
+    'Answering rules:',
+    '- Use only the knowledge excerpts above for factual claims.',
+    '- If the excerpts do not contain a requested fact, say that the fact is not found in the retrieved evidence.',
+    '- Do not infer exact numbers, dates, roles, thresholds, or identifiers from similar documents.',
+    '- For multi-fact questions, answer item by item and only include items that are supported by evidence.'
+  ].join('\n')
 
   if (!includeReasoning) {
     return [
       `User question:\n${query}`,
       `Knowledge excerpts:\n${context}`,
+      evidencePolicy,
       'Return only the final answer.',
       'Do not include any extra wrapper markers.'
     ].join('\n\n')
@@ -39,6 +64,7 @@ export function buildKnowledgeQaStreamingUserPrompt(
   return [
     `User question:\n${query}`,
     `Knowledge excerpts:\n${context}`,
+    evidencePolicy,
     'Return exactly two markdown sections in order.',
     'Section 1 heading must be exactly: ## Thinking',
     'Section 2 heading must be exactly: ## Answer',

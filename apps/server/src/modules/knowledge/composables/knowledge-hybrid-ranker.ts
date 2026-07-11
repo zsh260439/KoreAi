@@ -101,6 +101,9 @@ function formatToSearchHit(
     chunkId: item.chunkId,
     documentId: item.documentId,
     documentName: item.documentName,
+    sequence: item.sequence,
+    sectionPath: item.sectionPath,
+    primaryTitle: item.primaryTitle,
     content: item.content,
     score, // 对外展示的0-100匹配度分数
     scoreDetail: {

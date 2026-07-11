@@ -32,6 +32,8 @@ export class KnowledgeQaService {
       includeReasoning?: boolean
       signal?: AbortSignal
       temperature?: number
+      evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
+      evidenceCoverage?: number
     } = {}
   ): Promise<KnowledgeQaStreamResult> {
     const includeReasoning = Boolean(options.includeReasoning)
@@ -39,11 +41,19 @@ export class KnowledgeQaService {
       [
         {
           role: 'system',
-          content: buildKnowledgeQaStreamingSystemPrompt(hits.length > 0)
+          content: buildKnowledgeQaStreamingSystemPrompt(hits.length > 0, options.evidenceGateStatus)
         },
         {
           role: 'user',
-          content: buildKnowledgeQaStreamingUserPrompt(query, hits, includeReasoning)
+          content: buildKnowledgeQaStreamingUserPrompt(
+            query,
+            hits,
+            includeReasoning,
+            {
+              evidenceGateStatus: options.evidenceGateStatus,
+              evidenceCoverage: options.evidenceCoverage
+            }
+          )
         }
       ],
       { signal: options.signal } as never

@@ -36,6 +36,8 @@
 - Legacy local PostgreSQL data has been migrated from `knowledge_app` into the Docker `KoreAi` database; Docker is now the active runtime database for this project.
 - Knowledge chunk vector search now uses a pgvector HNSW index on `knowledge_chunks.embedding` via TypeORM migration `1760000004000-create-knowledge-chunks-hnsw-index.ts`; the Docker `KoreAi` database has been verified with `knowledge_chunks_embedding_hnsw_idx`.
 - Full RAGAS coverage evaluation lives under `scripts/ragas_eval`: `eval_dataset_full.json` covers all 231 generated corpus documents, `ragas_qa_cache_full.json` caches chat answers, and `ragas_progress_full.json` caches metric rows so long evaluations can resume without re-asking or re-scoring completed samples.
+- Evidence-driven retrieval now uses a free retrieval gate before paid RAGAS: `run_retrieval_gate.py` checks gold document recall, top-1 gold rate, required term coverage, cross/reference recall, multi-fact coverage, and irrelevant chunk rate against the full 231-question dataset.
+- Reference-required queries use a strict reference seed inside retrieval only: standard/reference/guideline/spec/pack-style documents are selected from document name/title/section path before SQL `LIMIT`, then merged into the BM25 branch without changing public `matchedBy` types. This avoids policy/playbook noise while preserving the normal BM25/vector baseline.
 
 ## Validation Habits
 - For backend changes, prefer at least `pnpm --filter server build`.

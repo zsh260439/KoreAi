@@ -150,6 +150,18 @@ export class KnowledgeService {
       },
     );
     const sources = retrievalResult.hits
+    if (retrievalResult.debug?.evidenceGateStatus === "blocked") {
+      return {
+        sources,
+        retrievalDebug: retrievalResult.debug,
+        model: this.knowledgeQaService.getModelName(),
+        totalTokens: Promise.resolve(null),
+        stream: createStaticKnowledgeAnswerStream(
+          "检索到的证据不足，无法基于当前知识库给出准确回答。请补充更明确的问题、指定知识库范围，或先完善相关文档后再查询。"
+        ),
+      };
+    }
+
     const qaStream = await this.knowledgeQaService.streamAnswerQuestion(
       query,
       sources,
@@ -157,6 +169,8 @@ export class KnowledgeService {
         includeReasoning: dto.think,
         signal: options.signal,
         temperature: runtimeConfig.answer.temperature,
+        evidenceGateStatus: retrievalResult.debug?.evidenceGateStatus,
+        evidenceCoverage: retrievalResult.debug?.evidenceCoverage,
       },
     );
 
@@ -749,6 +763,16 @@ function normalizeTopK(value: number | undefined, fallback: number): number {
   }
 
   return Math.min(Math.max(Math.floor(value), 1), 50);
+}
+
+//声明证据门禁拒答时的静态流，避免证据不足时继续消耗 LLM 并产生脑补。
+async function* createStaticKnowledgeAnswerStream(
+  answer: string,
+): AsyncGenerator<KnowledgeQaStreamEvent> {
+  yield {
+    type: "answer_delta",
+    delta: answer,
+  };
 }
 
 //声明文档实体映射逻辑

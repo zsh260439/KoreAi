@@ -5,6 +5,9 @@ export type KnowledgeRetrievalCandidate = {
   documentId: string
   documentName: string
   content: string
+  sequence: number | null
+  sectionPath: string | null
+  primaryTitle: string | null
   bm25Score: number | null
   vectorScore: number | null
   bm25Rank: number | null

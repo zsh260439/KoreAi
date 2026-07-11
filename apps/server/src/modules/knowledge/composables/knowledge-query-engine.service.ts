@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import type { KnowledgeBaseRuntimeConfig } from 'share-type'
 
 import { KnowledgeQueryAnalysisService } from './knowledge-query-analysis.service'
+import { buildKnowledgeQueryEvidencePlan } from './knowledge-evidence-planner'
 import {
   createRouteDecision,
   detectKnowledgeQueryRuleSignal
@@ -23,6 +24,7 @@ export class KnowledgeQueryEngineService {
     options: {
       enableAnalysis?: boolean
       runtimeConfig: KnowledgeBaseRuntimeConfig
+      requestedTopK?: number
     }
   ): Promise<KnowledgeQueryPlan> {
     // 保留原始 query，便于调试面板展示用户最初输入。
@@ -55,6 +57,14 @@ export class KnowledgeQueryEngineService {
     const constraintTerms = buildConstraintTerms(analysis)
     const excludedTerms = buildExcludedTerms(analysis)
     const protectedTerms = buildProtectedTerms(ruleSignal, analysis, constraintTerms)
+    const evidencePlan = buildKnowledgeQueryEvidencePlan({
+      normalizedQuery,
+      analysis,
+      protectedTerms,
+      optionalTerms: constraintTerms.optional,
+      excludedTerms,
+      requestedTopK: options.requestedTopK ?? options.runtimeConfig.retrieval.workspaceTopK
+    })
     const retrieval = buildRetrievalHints(
       routeDecision,
       options.runtimeConfig
@@ -83,6 +93,7 @@ export class KnowledgeQueryEngineService {
       constraints: analysis?.constraints ?? [],
       protectedTerms,
       excludedTerms,
+      evidencePlan,
       retrieval,
       fallbackRetrieval
     }

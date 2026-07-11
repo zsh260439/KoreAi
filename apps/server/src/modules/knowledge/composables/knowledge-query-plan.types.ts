@@ -124,6 +124,39 @@ export type KnowledgeQueryRetrievalHints = {
   maxCandidateLimit: number
 }
 
+export type KnowledgeQueryComplexity =
+  /** 单事实问题，通常只需要少量证据即可回答。 */
+  | 'single_fact'
+  /** 多事实问题，需要多个事实槽位同时覆盖。 */
+  | 'multi_fact'
+  /** 需要规则、标准、说明类支撑文档参与的参考型问题。 */
+  | 'reference_required'
+  /** 证据缺失风险更高的高约束问题。 */
+  | 'high_constraint'
+
+export type KnowledgeQueryEvidencePlan = {
+  /** 结构化编号、版本、错误码等必须优先覆盖的精确标识。 */
+  identifiers: string[]
+  /** query 中出现的数字、阈值、时间、次数等事实槽位。 */
+  numericTerms: string[]
+  /** 用于判断 chunk 是否覆盖关键证据的字段/术语词。 */
+  evidenceTerms: string[]
+  /** 用于触发 reference/standard/playbook 等支撑文档的通用概念词。 */
+  referenceTerms: string[]
+  /** query 复杂度，用于动态上下文预算和证据门禁。 */
+  complexity: KnowledgeQueryComplexity
+  /** 是否需要参考/标准/规则类文档一起参与回答。 */
+  needsReference: boolean
+  /** 当前问题建议返回给生成层的 chunk 数。 */
+  targetTopK: number
+  /** 当前问题允许的最大上下文 chunk 数。 */
+  maxTopK: number
+  /** 正常回答前建议达到的证据覆盖率。 */
+  requiredCoverage: number
+  /** 低于该覆盖率时应拒绝确定性回答。 */
+  hardGateCoverage: number
+}
+
 export type KnowledgeQueryAnalysisInput = {
   /** 用户输入的原始 query，保留给 LLM 分析和 debug 展示。 */
   originalQuery: string
@@ -181,6 +214,8 @@ export type KnowledgeQueryPlan = {
   protectedTerms: string[]
   /** 需要在排序阶段降权的排除词。 */
   excludedTerms: string[]
+  /** 证据驱动检索计划，供重排、上下文组装和生成门禁复用。 */
+  evidencePlan: KnowledgeQueryEvidencePlan
   /** 主检索执行策略。 */
   retrieval: KnowledgeQueryRetrievalHints
   /** 备用均衡检索策略；主策略为 balanced 时为空。 */

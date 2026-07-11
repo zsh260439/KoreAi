@@ -334,6 +334,20 @@ export interface KnowledgeSearchDebugInfo {
   excludedTerms?: string[]
   /** LLM 判断的 query 意图。 */
   llmIntent?: string | null
+  /** 证据规划复杂度，用于判断本次是否走多事实/参考文档预算。 */
+  evidenceComplexity?: string
+  /** 本次证据规划需要覆盖的关键证据词。 */
+  evidenceTerms?: string[]
+  /** 本次证据规划需要覆盖的数字、阈值、时间等事实槽位。 */
+  evidenceNumericTerms?: string[]
+  /** 本次最终采用的动态上下文 chunk 数。 */
+  effectiveTopK?: number
+  /** 生成前计算得到的证据覆盖率。 */
+  evidenceCoverage?: number
+  /** 是否触发同文档证据补全。 */
+  evidenceExpansionApplied?: boolean
+  /** 生成门禁判断结果。 */
+  evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
 }
 
 // 声明单条命中的分数细节，避免 UI 只能看到最终融合分。
@@ -346,6 +360,14 @@ export interface KnowledgeSearchScoreDetail {
   vectorScore: number | null
   /** BM25 与向量融合后的内部排序分。 */
   fusedScore: number
+  /** 本地证据感知重排分，用于解释为什么该 chunk 被前置。 */
+  evidenceScore?: number
+  /** 当前 chunk 覆盖的证据词。 */
+  matchedEvidenceTerms?: string[]
+  /** 当前 chunk 覆盖的数字事实槽位。 */
+  matchedNumericTerms?: string[]
+  /** 推断出的文档角色，供 debug 和前端展示。 */
+  documentRole?: string
 }
 
 export interface KnowledgeSearchHit {
@@ -361,6 +383,12 @@ export interface KnowledgeSearchHit {
   score: number
   /** 召回分数细节。 */
   scoreDetail?: KnowledgeSearchScoreDetail
+  /** chunk 在文档内的顺序，用于同文档证据补全和 debug。 */
+  sequence?: number | null
+  /** chunk 所在章节路径，用于证据补全和可解释展示。 */
+  sectionPath?: string | null
+  /** chunk 的主标题或最近标题。 */
+  primaryTitle?: string | null
 }
 
 // 声明搜索接口返回结构，把命中列表与调试信息拆开。
