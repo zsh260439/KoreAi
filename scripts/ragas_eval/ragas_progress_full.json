@@ -1,0 +1,2317 @@
+{
+  "dataset_signature": "Ragas High Standard Corpus::da9da64b5e7e240ef99406cc284fd14d25a0b0d0645d62c9c12658d91bff33a3",
+  "completed_samples": 231,
+  "rows": [
+    {
+      "sample_index": 0,
+      "user_input": "产品 NX-001-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：**3 条**（依据知识库[4]中提及的引用下限为 3 条，且该文档围绕 finance_strict_pack 描述，可定位为金融场景下的最少引用数）。  \n- 季度工单超过 **5 次**需要升级审批，升级给 **delivery_director**（依据知识库[4]明确写出的季度工单阈值 5 和审批角色 delivery_director）。",
+      "reference": "产品 NX-001-0 的金融最少引用数是 3 条；若季度工单超过 5 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.8223354913089853
+    },
+    {
+      "sample_index": 1,
+      "user_input": "运维手册 ORION-001-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：01:30-03:00（夜间）。\n- 夜间连续3次P2召回缺失时，需要通知 platform_manager。",
+      "reference": "运维手册 ORION-001-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.8333333332916666,
+      "answer_correctness": 0.862909489285324
+    },
+    {
+      "sample_index": 2,
+      "user_input": "供应商 SUP-001-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.81  \n- 合同金额区间由 regional_owner 审批：64 到 135（单位未明确，原文如此）",
+      "reference": "供应商 SUP-001-0 的召回覆盖率阈值是 0.81；合同金额位于 64 万至 135 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.5052913994941065
+    },
+    {
+      "sample_index": 3,
+      "user_input": "制度 POL-001-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-001-0 的规定：\n- 审计日志保留期限：181 天。\n- 第二次违规冻结天数：8 天。\n- 演示样本清理期限：3 天。",
+      "reference": "制度 POL-001-0 的审计日志保留 181 天；第二次违规冻结 8 天；演示样本清理期限是 3 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9626440516468346
+    },
+    {
+      "sample_index": 4,
+      "user_input": "事故复盘 INC-001-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize：从 270 调整为 410  \n- overlap：从 60 调整为 80  \n- 验收 gold_recall_rate 目标：知识库中未指定具体数值，仅要求 gold_recall_rate、context_precision 和 answer_correctness 三项指标协同改善，作为系统达标的标准。",
+      "reference": "事故复盘 INC-001-0 将 chunkSize 从 270 调整到 410；overlap 是 60；验收 gold_recall_rate 目标是 0.84。",
+      "faithfulness": 1.0,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.27846861556949326
+    },
+    {
+      "sample_index": 5,
+      "user_input": "产品 NX-001-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未给出具体数值。仅描述“若单次问答命中引用少于金融最低要求”则不能以默认模板直接对外发送，但未明确该最低要求的具体引用数量。\n- **季度工单超过6次**需要升级审批。\n- **升级给** finance_reviewer（金融审核人员）。",
+      "reference": "产品 NX-001-1 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.4347367387890682
+    },
+    {
+      "sample_index": 6,
+      "user_input": "运维手册 ORION-001-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "维护窗口：02:30-04:00（Asia/Shanghai 时区）。\n\n夜间连续 4 次 P2 召回缺失需要通知 incident_commander。",
+      "reference": "运维手册 ORION-001-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8624316028256193
+    },
+    {
+      "sample_index": 7,
+      "user_input": "供应商 SUP-001-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.82  \n- 由 regional_owner 审批的合同金额区间：64 到 135（单位未在原文中明确）",
+      "reference": "供应商 SUP-001-1 的召回覆盖率阈值是 0.82；合同金额位于 64 万至 135 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.7756399713459953
+    },
+    {
+      "sample_index": 8,
+      "user_input": "制度 POL-001-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "制度 POL-001-1 的审计日志保留 191 天，第二次违规冻结 9 天，演示样本清理期限为 4 天。",
+      "reference": "制度 POL-001-1 的审计日志保留 191 天；第二次违规冻结 9 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9938666623779302
+    },
+    {
+      "sample_index": 9,
+      "user_input": "事故复盘 INC-001-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 290 调到 430  \n- **overlap 调整**：从 80 调到 100  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值目标，仅指出该指标需与 context_precision、answer_correctness 一同改善，作为系统达标的标志。",
+      "reference": "事故复盘 INC-001-1 将 chunkSize 从 290 调整到 430；overlap 是 80；验收 gold_recall_rate 目标是 0.85。",
+      "faithfulness": 0.75,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.28729464557529716
+    },
+    {
+      "sample_index": 10,
+      "user_input": "产品 NX-001-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：根据知识库中的检索歧义矩阵，该产品涉及“引用下限”的信息，且同系列版本可能错误继承为“2条”，因此判断金融最少引用数为 **2 条**。  \n- **季度工单升级审批阈值**：季度工单超过 **7 次** 需要升级审批（来源：检索歧义矩阵明确提到“季度工单阈值7”）。  \n- **升级审批人**：升级审批给 **regional_manager**（来源：检索歧义矩阵明确提到“审批角色 regional_manager”）。",
+      "reference": "产品 NX-001-2 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.42857142857142855,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.47815030928190394
+    },
+    {
+      "sample_index": 11,
+      "user_input": "运维手册 ORION-001-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "ORION-001-2 的维护窗口为 **03:30-05:00**（Asia/Shanghai 时区）。\n\n夜间连续 **5 次** P2 召回缺失时，需通知 **search_owner**。",
+      "reference": "运维手册 ORION-001-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9670903129664312
+    },
+    {
+      "sample_index": 12,
+      "user_input": "供应商 SUP-001-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.83  \n- **合同金额区间（由 regional_owner 审批）**：64 万至 135 万（含边界）",
+      "reference": "供应商 SUP-001-2 的召回覆盖率阈值是 0.83；合同金额位于 64 万至 135 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9072321363193285
+    },
+    {
+      "sample_index": 13,
+      "user_input": "制度 POL-001-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留天数：201 天  \n- 第二次违规冻结天数：10 天  \n- 演示样本清理期限：5 天",
+      "reference": "制度 POL-001-2 的审计日志保留 201 天；第二次违规冻结 10 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8621960076631454
+    },
+    {
+      "sample_index": 14,
+      "user_input": "事故复盘 INC-001-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize**：从 **310** 调整到 **450**  \n- **overlap**：从 **100** 调整为 **120**  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值目标，只指出达标标准是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而非单一指标偶然上升。因此，实际验收需以整体指标提升为准，具体目标值未在本复盘文档中明确。",
+      "reference": "事故复盘 INC-001-2 将 chunkSize 从 310 调整到 450；overlap 是 100；验收 gold_recall_rate 目标是 0.86。",
+      "faithfulness": 0.8571428571428571,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.2502573762765845
+    },
+    {
+      "sample_index": 15,
+      "user_input": "产品 NX-002-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "根据知识库（product_NX-002-0.md）内容：\n\n- **金融最少引用数**：知识库未明确给出具体数字。文档仅表示“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”，但未说明该“要求”的具体数值。如需精确阈值，建议查阅产品详细配置或咨询相关负责人。（一般补充：同类产品常见设置为3～5条引用，但此处仅为常识推测。）\n\n- **季度工单超过多少次需要升级审批**：知识库规定，若季度内提交工单超过 **6 次**，则需升级审批。\n\n- **升级给谁**：升级审批的对象为 **finance_reviewer**（财务审批人）。",
+      "reference": "产品 NX-002-0 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 0.7142857142857143,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.4438006394488274
+    },
+    {
+      "sample_index": 16,
+      "user_input": "运维手册 ORION-002-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：01:30-03:00（时区为Asia/Shanghai）\n- 夜间连续4次P2召回缺失时，需通知incident_commander。",
+      "reference": "运维手册 ORION-002-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.6340236783708427
+    },
+    {
+      "sample_index": 17,
+      "user_input": "供应商 SUP-002-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.81  \n- **由 regional_owner 审批的合同金额区间**：68 万至 140 万（含边界）",
+      "reference": "供应商 SUP-002-0 的召回覆盖率阈值是 0.81；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9003648822135344
+    },
+    {
+      "sample_index": 18,
+      "user_input": "制度 POL-002-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：182 天  \n- 第二次违规冻结：9 天  \n- 演示样本清理期限：4 天",
+      "reference": "制度 POL-002-0 的审计日志保留 182 天；第二次违规冻结 9 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9369931075405177
+    },
+    {
+      "sample_index": 19,
+      "user_input": "事故复盘 INC-002-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "事故复盘 INC-002-0 中：\n- chunkSize 从 280 调整为 420；\n- overlap 从 60 调整为 80；\n- 验收 gold_recall_rate 目标：知识库中没有给出具体的数值目标，仅要求该指标与其他指标（context_precision、answer_correctness）整体改善。",
+      "reference": "事故复盘 INC-002-0 将 chunkSize 从 280 调整到 420；overlap 是 60；验收 gold_recall_rate 目标是 0.85。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.7499999999625,
+      "answer_correctness": 0.45729541232514437
+    },
+    {
+      "sample_index": 20,
+      "user_input": "产品 NX-002-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "根据产品 NX-002-1 的文档信息：\n\n- **金融最少引用数**：知识库中未直接给出明确数字。文档在“检索歧义矩阵”中提及“引用下限”可能被误继承为同系列别的版本（例如把2条写成其他值），且演练案例三暗示存在引用数不足降级规则。据此推断，金融场景最少引用数很可能为 **2 条**（此为基于上下文线索的推断，非文档明确写明）。\n\n- **季度工单升级审批阈值**：文档中明确提到“季度工单阈值 **7**”，即季度工单超过 **7 次** 时需要升级审批。\n\n- **升级审批对象**：文档中明确指定审批角色为 **regional_manager**（区域经理）。",
+      "reference": "产品 NX-002-1 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.7142857142857143,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.5209199693152746
+    },
+    {
+      "sample_index": 21,
+      "user_input": "运维手册 ORION-002-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：02:30-04:00（时区 Asia/Shanghai）。  \n- 夜间连续 5 次 P2 召回缺失时，需通知 **search_owner**。",
+      "reference": "运维手册 ORION-002-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9483861307491641
+    },
+    {
+      "sample_index": 22,
+      "user_input": "供应商 SUP-002-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：**0.82**。  \n- 由 regional_owner 审批的合同金额区间：**68 万到 140 万**（即合同金额 ≥68 且 ≤140 时，由 regional_owner 审批）。",
+      "reference": "供应商 SUP-002-1 的召回覆盖率阈值是 0.82；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8404971979388969
+    },
+    {
+      "sample_index": 23,
+      "user_input": "制度 POL-002-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：192 天  \n- 第二次违规冻结：10 天  \n- 演示样本清理期限：5 天",
+      "reference": "制度 POL-002-1 的审计日志保留 192 天；第二次违规冻结 10 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9418483776138339
+    },
+    {
+      "sample_index": 24,
+      "user_input": "事故复盘 INC-002-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize：从300调到440  \n- overlap：从80调到100  \n- 验收gold_recall_rate目标：知识库中未提供具体数值，仅说明需与其他指标（context_precision、answer_correctness）一并改善。",
+      "reference": "事故复盘 INC-002-1 将 chunkSize 从 300 调整到 440；overlap 是 80；验收 gold_recall_rate 目标是 0.86。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.5833333333041666,
+      "answer_correctness": 0.607240804039285
+    },
+    {
+      "sample_index": 25,
+      "user_input": "产品 NX-002-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库未直接给出明确数字。根据检索歧义矩阵中“引用条数规则”的提及以及同系列其他版本的上下文推测，可能为 **3 条**（非精确值，建议以产品文档实际配置为准）。  \n- **季度工单升级阈值**：超过 **8** 次需要升级审批。  \n- **升级审批对象**：升级给 **delivery_director**（交付总监）。",
+      "reference": "产品 NX-002-2 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.2,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.565870033093147
+    },
+    {
+      "sample_index": 26,
+      "user_input": "运维手册 ORION-002-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "运维手册 ORION-002-2 的维护窗口是 **03:30-05:00**。  \n夜间连续 **6 次** P2 召回缺失，需要通知 **platform_manager**。",
+      "reference": "运维手册 ORION-002-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.9733270868359143
+    },
+    {
+      "sample_index": 27,
+      "user_input": "供应商 SUP-002-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.83  \n- 由 regional_owner 审批的合同金额区间：68 到 140（单位未明确，推断为万）",
+      "reference": "供应商 SUP-002-2 的召回覆盖率阈值是 0.83；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8329149169719419
+    },
+    {
+      "sample_index": 28,
+      "user_input": "制度 POL-002-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：202 天  \n- 第二次违规冻结：11 天  \n- 演示样本清理期限：6 天",
+      "reference": "制度 POL-002-2 的审计日志保留 202 天；第二次违规冻结 11 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9416667773435536
+    },
+    {
+      "sample_index": 29,
+      "user_input": "事故复盘 INC-002-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 320 调到 460。\n- **overlap 调整**：从 100 调到 120。\n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值目标，仅指出需要与 context_precision 和 answer_correctness 共同改善作为达标标志。",
+      "reference": "事故复盘 INC-002-2 将 chunkSize 从 320 调整到 460；overlap 是 100；验收 gold_recall_rate 目标是 0.87。",
+      "faithfulness": 0.75,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.3100778800055162
+    },
+    {
+      "sample_index": 30,
+      "user_input": "产品 NX-003-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：2 条  \n- 季度工单超过 7 次需要升级审批  \n- 升级审批对象：regional_manager",
+      "reference": "产品 NX-003-0 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.8856153136818791
+    },
+    {
+      "sample_index": 31,
+      "user_input": "运维手册 ORION-003-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：01:30-03:00  \n- 夜间连续 2 次 P2 召回缺失时，需通知 search_owner。",
+      "reference": "运维手册 ORION-003-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.955680196411317
+    },
+    {
+      "sample_index": 32,
+      "user_input": "供应商 SUP-003-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "根据供应商SUP-003-0的知识库文档：\n- 召回覆盖率阈值为 **0.82**。\n- 合同金额在 **72 到 145** 的区间由 **regional_owner** 审批。",
+      "reference": "供应商 SUP-003-0 的召回覆盖率阈值是 0.82；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8393377302772888
+    },
+    {
+      "sample_index": 33,
+      "user_input": "制度 POL-003-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-003-0 的规定：\n- 审计访问日志至少保留 **183 天**。\n- 第二次违规冻结 **10 天**。\n- 演示样本文档清理期限为 **5 天**。",
+      "reference": "制度 POL-003-0 的审计日志保留 183 天；第二次违规冻结 10 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9417881663356481
+    },
+    {
+      "sample_index": 34,
+      "user_input": "事故复盘 INC-003-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 290 调至 430  \n- **overlap 调整**：从 60 调至 80  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值目标，仅指出达标标志应是 gold_recall_rate、context_precision 和 answer_correctness 三项指标 **一起改善**，而非单独提升某一项。",
+      "reference": "事故复盘 INC-003-0 将 chunkSize 从 290 调整到 430；overlap 是 60；验收 gold_recall_rate 目标是 0.85。",
+      "faithfulness": 1.0,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.28646036992527735
+    },
+    {
+      "sample_index": 35,
+      "user_input": "产品 NX-003-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：3 条  \n- 季度工单超过 8 次需要升级审批  \n- 升级审批角色：delivery_director",
+      "reference": "产品 NX-003-1 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.9478684807861436
+    },
+    {
+      "sample_index": 36,
+      "user_input": "运维手册 ORION-003-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "ORION-003-1 的维护窗口为 **02:30-04:00**（Asia/Shanghai 时区）。夜间连续 **3 次** P2 召回缺失，需要通知 **platform_manager**。",
+      "reference": "运维手册 ORION-003-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9731244023524451
+    },
+    {
+      "sample_index": 37,
+      "user_input": "供应商 SUP-003-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.83  \n- 由 regional_owner 审批的合同金额区间：72 到 145（单位：万）",
+      "reference": "供应商 SUP-003-1 的召回覆盖率阈值是 0.83；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9417682538427254
+    },
+    {
+      "sample_index": 38,
+      "user_input": "制度 POL-003-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：193 天  \n- 第二次违规冻结：11 天  \n- 演示样本清理期限：6 天",
+      "reference": "制度 POL-003-1 的审计日志保留 193 天；第二次违规冻结 11 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9444771257700165
+    },
+    {
+      "sample_index": 39,
+      "user_input": "事故复盘 INC-003-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "**参数调整：**  \n- chunkSize：从 310 调整为 450  \n- overlap：从 80 调整为 100  \n\n**验收 gold_recall_rate 目标：**  \n知识库中未给出具体的 gold_recall_rate 数值目标，仅指出真正达标的标志是 **gold_recall_rate、context_precision 和 answer_correctness 三项指标共同改善**，而非单一指标偶然上升。根据一般知识，在高标准评测中 gold_recall_rate 通常要求达到 90% 以上甚至更高，但具体数值应以团队定义的验收标准为准。",
+      "reference": "事故复盘 INC-003-1 将 chunkSize 从 310 调整到 450；overlap 是 80；验收 gold_recall_rate 目标是 0.86。",
+      "faithfulness": 0.7142857142857143,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.5833333333041666,
+      "answer_correctness": 0.24287550407649933
+    },
+    {
+      "sample_index": 40,
+      "user_input": "产品 NX-003-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未提供具体数字，仅说明“若单次问答命中引用少于金融最低要求”则不能以默认模板发送，但未定义最低引用数的阈值。\n- **季度工单超过次数**：9 次。超过 9 次后，续费审批必须升级。\n- **升级审批对象**：升级给 `finance_reviewer`。",
+      "reference": "产品 NX-003-2 的金融最少引用数是 4 条；若季度工单超过 9 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.5345221084269465
+    },
+    {
+      "sample_index": 41,
+      "user_input": "运维手册 ORION-003-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**：03:30-05:00（Asia/Shanghai时区）。\n- **夜间连续P2召回缺失阈值与通知对象**：连续4次P2召回缺失时，需通知 **incident_commander**。",
+      "reference": "运维手册 ORION-003-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8173512863472367
+    },
+    {
+      "sample_index": 42,
+      "user_input": "供应商 SUP-003-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "召回覆盖率阈值为0.84；合同金额在72万至145万区间由regional_owner审批。",
+      "reference": "供应商 SUP-003-2 的召回覆盖率阈值是 0.84；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9329601306126045
+    },
+    {
+      "sample_index": 43,
+      "user_input": "制度 POL-003-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据知识库，制度POL-003-2的规定如下：\n\n- 审计访问日志至少保留 **203** 天。\n- 第二次违规冻结 **12** 天。\n- 演示环境样本文档清理期限为 **7** 天（需在7天内完成 demo_cleanup_checklist）。",
+      "reference": "制度 POL-003-2 的审计日志保留 203 天；第二次违规冻结 12 天；演示样本清理期限是 7 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8591259485282635
+    },
+    {
+      "sample_index": 44,
+      "user_input": "事故复盘 INC-003-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "根据知识库文档，事故复盘 INC-003-2 将 chunkSize 从 **330** 调到 **470**，overlap 从 **100** 调到 **120**（知识片段 [2]）。\n\n对于验收 gold_recall_rate 的 **具体目标数值**，知识库中未明确给出。知识库 [1] 仅指出“真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善”，但未设定阈值。如需确切的验收目标，建议参考业务标准或额外文档，通常在此类检索系统中 gold_recall_rate 目标会设定在 95% 以上，但此数值不属于知识库内容。",
+      "reference": "事故复盘 INC-003-2 将 chunkSize 从 330 调整到 470；overlap 是 100；验收 gold_recall_rate 目标是 0.87。",
+      "faithfulness": 0.75,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.2241703320313323
+    },
+    {
+      "sample_index": 45,
+      "user_input": "产品 NX-004-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：3 条。  \n- 季度工单超过 **4 次**需要升级审批。  \n- 升级审批对象为 **delivery_director**。",
+      "reference": "产品 NX-004-0 的金融最少引用数是 3 条；若季度工单超过 4 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.3333333333333333,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.8290175212806248
+    },
+    {
+      "sample_index": 46,
+      "user_input": "运维手册 ORION-004-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**：01:30-03:00（Asia/Shanghai时区）。  \n- **夜间连续P2召回缺失**：连续3次缺失，需通知 **platform_manager**。",
+      "reference": "运维手册 ORION-004-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9454511983076467
+    },
+    {
+      "sample_index": 47,
+      "user_input": "供应商 SUP-004-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "**召回覆盖率阈值**：0.82（知识库[1]明确提到该数值）。\n\n**合同金额区间**：76 到 150（单位通常为万，需结合具体场景确认）。根据知识库[1]，该区间对应的审批规则属于 SUP-004-0 的专属字段；结合同族供应商文档的通用模式（如 SUP-014-2 中 116–200 万由 regional_owner 审批），此区间即由 **regional_owner** 审批。",
+      "reference": "供应商 SUP-004-0 的召回覆盖率阈值是 0.82；合同金额位于 76 万至 150 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.25,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.5906165692732941
+    },
+    {
+      "sample_index": 48,
+      "user_input": "制度 POL-004-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-004-0 的规定：\n- 审计日志保留 **184** 天。\n- 第二次违规冻结 **11** 天。\n- 演示样本清理期限为 **2** 天。",
+      "reference": "制度 POL-004-0 的审计日志保留 184 天；第二次违规冻结 11 天；演示样本清理期限是 2 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9563469853844142
+    },
+    {
+      "sample_index": 49,
+      "user_input": "事故复盘 INC-004-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "在事故复盘 INC-004-0 中：\n- chunkSize 从 **300** 调到 **440**。\n- overlap 从 **60** 调到 **80**（调整后的 overlap 为 80）。\n- 验收 gold_recall_rate 目标：知识库中未给出具体数值，仅指出达标标志是 gold_recall_rate、context_precision 和 answer_correctness 共同改善，而非单一指标上升。",
+      "reference": "事故复盘 INC-004-0 将 chunkSize 从 300 调整到 440；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9166666666361111,
+      "answer_correctness": 0.27244895512501555
+    },
+    {
+      "sample_index": 50,
+      "user_input": "产品 NX-004-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库未明确给出具体数值，仅说明“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”（[1]），但未定义该最低要求的具体数字。\n- **季度工单超过次数需升级审批**：季度内提交工单超过 **5 次**（[1]）。\n- **升级审批对象**：升级给 **finance_reviewer**（[1]）。",
+      "reference": "产品 NX-004-1 的金融最少引用数是 4 条；若季度工单超过 5 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.43875417072152584
+    },
+    {
+      "sample_index": 51,
+      "user_input": "运维手册 ORION-004-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：02:30-04:00（Asia/Shanghai 时区）  \n- 夜间连续 4 次 P2 召回缺失时，需要通知 incident_commander。",
+      "reference": "运维手册 ORION-004-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.840427868813633
+    },
+    {
+      "sample_index": 52,
+      "user_input": "供应商 SUP-004-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "供应商 SUP-004-1 的召回覆盖率阈值为 **0.83**。  \n合同金额在 **76 到 150**（单位可能为万元）区间内由 **regional_owner** 审批。",
+      "reference": "供应商 SUP-004-1 的召回覆盖率阈值是 0.83；合同金额位于 76 万至 150 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9543030552059455
+    },
+    {
+      "sample_index": 53,
+      "user_input": "制度 POL-004-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：194 天  \n- 第二次违规冻结：12 天  \n- 演示样本清理期限：3 天",
+      "reference": "制度 POL-004-1 的审计日志保留 194 天；第二次违规冻结 12 天；演示样本清理期限是 3 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9404748030689036
+    },
+    {
+      "sample_index": 54,
+      "user_input": "事故复盘 INC-004-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize**：从 320 调到 460  \n- **overlap**：从 80 调到 100  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅提到该指标需与 context_precision、answer_correctness 一起改善，未明确设定目标值。",
+      "reference": "事故复盘 INC-004-1 将 chunkSize 从 320 调整到 460；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "faithfulness": 0.8,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.28585395033950967
+    },
+    {
+      "sample_index": 55,
+      "user_input": "产品 NX-004-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "1. **金融最少引用数**：知识库中未给出具体数字，仅说明“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”。建议查阅产品详细配置文档或联系相关负责人确认该阈值。\n2. **季度工单超过次数**：超过 6 次。\n3. **升级审批对象**：regional_manager（区域经理）。",
+      "reference": "产品 NX-004-2 的金融最少引用数是 2 条；若季度工单超过 6 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.8,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.46129837614631247
+    },
+    {
+      "sample_index": 56,
+      "user_input": "运维手册 ORION-004-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：03:30-05:00（Asia/Shanghai 时区）。\n- 夜间连续 **5 次** P2 召回缺失，需要通知 **search_owner**。",
+      "reference": "运维手册 ORION-004-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.945499583945557
+    },
+    {
+      "sample_index": 57,
+      "user_input": "供应商 SUP-004-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.84  \n- 合同金额区间（由 regional_owner 审批）：76 至 150（单位：万，依据知识片段中的数值范围）",
+      "reference": "供应商 SUP-004-2 的召回覆盖率阈值是 0.84；合同金额位于 76 万至 150 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8472080264355071
+    },
+    {
+      "sample_index": 58,
+      "user_input": "制度 POL-004-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-004-2 的规定：\n- 审计日志保留天数：204 天\n- 第二次违规冻结天数：13 天\n- 演示样本清理期限：4 天",
+      "reference": "制度 POL-004-2 的审计日志保留 204 天；第二次违规冻结 13 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9663975500287864
+    },
+    {
+      "sample_index": 59,
+      "user_input": "事故复盘 INC-004-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 **340** 调整至 **480**  \n- **overlap 调整**：从 **100** 调整至 **120**  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值要求，仅指出应与其他指标（context_precision、answer_correctness）一同改善，作为系统达到长期可用标准的标志。",
+      "reference": "事故复盘 INC-004-2 将 chunkSize 从 340 调整到 480；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 0.8,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.24671117486691102
+    },
+    {
+      "sample_index": 60,
+      "user_input": "产品 NX-005-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "根据知识库（product_NX-005-0.md）内容：\n\n- **金融最少引用数**：知识库中提到了“金融最低要求”，但没有给出具体的引用数量数值。当前无法从提供的知识库中获取确切数字。\n- **季度工单超过多少次需要升级审批**：超过5次。\n- **升级给谁**：升级给 finance_reviewer（财务审批人）。",
+      "reference": "产品 NX-005-0 的金融最少引用数是 4 条；若季度工单超过 5 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.46574223929112446
+    },
+    {
+      "sample_index": 61,
+      "user_input": "运维手册 ORION-005-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "**维护窗口**：01:30-03:00（时区为Asia/Shanghai）。  \n**P2召回缺失通知条件**：夜间连续出现 **4次** P2召回缺失时，需要通知 **incident_commander**。",
+      "reference": "运维手册 ORION-005-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8568656655100291
+    },
+    {
+      "sample_index": 62,
+      "user_input": "供应商 SUP-005-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.83（即83%）。\n- **合同金额区间由 regional_owner 审批**：80万元（含）至155万元（含）之间。",
+      "reference": "供应商 SUP-005-0 的召回覆盖率阈值是 0.83；合同金额位于 80 万至 155 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9419468338525799
+    },
+    {
+      "sample_index": 63,
+      "user_input": "制度 POL-005-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "制度POL-005-0的要求如下：\n- 审计日志保留：185天\n- 第二次违规冻结：7天\n- 演示样本清理期限：3天",
+      "reference": "制度 POL-005-0 的审计日志保留 185 天；第二次违规冻结 7 天；演示样本清理期限是 3 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9506862312159214
+    },
+    {
+      "sample_index": 64,
+      "user_input": "事故复盘 INC-005-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize：从310调整为450  \n- overlap：从60调整为80  \n- 验收gold_recall_rate目标：知识库中未给出具体数值，仅要求gold_recall_rate、context_precision和answer_correctness整体改善，作为系统达标的标准。",
+      "reference": "事故复盘 INC-005-0 将 chunkSize 从 310 调整到 450；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "faithfulness": 1.0,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.2697178814037521
+    },
+    {
+      "sample_index": 65,
+      "user_input": "产品 NX-005-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未明确给出具体数字，仅提及“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”，但未定义该阈值，因此无法提供确切数值。\n- **季度工单升级条件**：季度内提交工单**超过6次**（即≥7次）时，续费审批必须升级。\n- **升级审批人**：升级给 **regional_manager**（区域经理）。",
+      "reference": "产品 NX-005-1 的金融最少引用数是 2 条；若季度工单超过 6 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.875,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.43484808118793483
+    },
+    {
+      "sample_index": 66,
+      "user_input": "运维手册 ORION-005-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：02:30-04:00  \n- 夜间连续 5 次 P2 召回缺失，需通知 search_owner。",
+      "reference": "运维手册 ORION-005-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.945933540105619
+    },
+    {
+      "sample_index": 67,
+      "user_input": "供应商 SUP-005-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.84  \n- 合同金额在 80 到 155（万元）之间由 regional_owner 审批。",
+      "reference": "供应商 SUP-005-1 的召回覆盖率阈值是 0.84；合同金额位于 80 万至 155 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9489037456702856
+    },
+    {
+      "sample_index": 68,
+      "user_input": "制度 POL-005-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：195 天  \n- 第二次违规冻结：8 天  \n- 演示样本清理期限：4 天",
+      "reference": "制度 POL-005-1 的审计日志保留 195 天；第二次违规冻结 8 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9365612283687708
+    },
+    {
+      "sample_index": 69,
+      "user_input": "事故复盘 INC-005-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "根据事故复盘文档 INC-005-1 的记录：\n\n- **chunkSize**：从 **330** 调整为 **470**。\n- **overlap**：从 **80** 调整为 **100**。\n- **验收目标 gold_recall_rate**：知识库中未给出具体数值目标，仅说明验收要求是 gold_recall_rate、context_precision 和 answer_correctness **一起改善**，不能只让单一指标上升。\n\n以上前三项来源于知识片段2的明确记录，验收目标描述来源于知识片段1。",
+      "reference": "事故复盘 INC-005-1 将 chunkSize 从 330 调整到 470；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "faithfulness": 0.5714285714285714,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.5833333333041666,
+      "answer_correctness": 0.24014550568187354
+    },
+    {
+      "sample_index": 70,
+      "user_input": "产品 NX-005-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：提供的知识片段中未直接给出 NX-005-2 的金融最少引用数具体数值。片段[4]曾提及“引用下限错误继承为同系列别的版本，从而把 3 条写成其他值”，暗示同系列其他版本可能为 3 条，但本产品的确切阈值在现有知识库中缺失，无法确认。  \n- **季度工单升级审批阈值**：超过 **7** 次（季度工单阈值 7），需要升级审批。  \n- **升级审批人**：升级审批给 **delivery_director**（交付主管）。\n\n（注：以上季度工单阈值和审批角色均来自知识片段[4]；金融最少引用数未在知识中明确，故无法确定。若需准确答案，请查阅完整产品文档。）",
+      "reference": "产品 NX-005-2 的金融最少引用数是 3 条；若季度工单超过 7 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.4444444444444444,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.3957468108167479
+    },
+    {
+      "sample_index": 71,
+      "user_input": "运维手册 ORION-005-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：03:30–05:00（Asia/Shanghai 时区）  \n- 连续 **6** 次 P2 召回缺失需通知 **platform_manager**",
+      "reference": "运维手册 ORION-005-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.7049822315808972
+    },
+    {
+      "sample_index": 72,
+      "user_input": "供应商 SUP-005-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：**0.85**  \n- 由 regional_owner 审批的合同金额区间：**80万至155万**（含两端）",
+      "reference": "供应商 SUP-005-2 的召回覆盖率阈值是 0.85；合同金额位于 80 万至 155 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8213878688075473
+    },
+    {
+      "sample_index": 73,
+      "user_input": "制度 POL-005-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：205 天  \n- 第二次违规冻结：9 天  \n- 演示样本清理期限：5 天",
+      "reference": "制度 POL-005-2 的审计日志保留 205 天；第二次违规冻结 9 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9390416526803804
+    },
+    {
+      "sample_index": 74,
+      "user_input": "事故复盘 INC-005-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 350 调到 490。  \n- **overlap 调整**：从 100 调到 120。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值目标。文献[1]仅指出“gold_recall_rate、context_precision 和 answer_correctness 一起改善”才是达标标志，但未设定明确的达标阈值。",
+      "reference": "事故复盘 INC-005-2 将 chunkSize 从 350 调整到 490；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 0.4,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.25732383146660265
+    },
+    {
+      "sample_index": 75,
+      "user_input": "产品 NX-006-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库未给出具体数值，仅规定“单次问答命中引用少于金融最低要求”时不可使用默认模板发送。若要执行精确限制，需查阅该产品的完整配置或联系业务负责人确认。\n- **季度工单升级阈值**：超过 **6 次**。\n- **升级审批对象**：升级给 **regional_manager**。",
+      "reference": "产品 NX-006-0 的金融最少引用数是 2 条；若季度工单超过 6 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.6,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.400137724564395
+    },
+    {
+      "sample_index": 76,
+      "user_input": "运维手册 ORION-006-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：01:30-03:00（Asia/Shanghai 时区）。\n- 夜间连续 **2** 次 P2 召回缺失时，需要通知 **search_owner**。",
+      "reference": "运维手册 ORION-006-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9590585122987885
+    },
+    {
+      "sample_index": 77,
+      "user_input": "供应商 SUP-006-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.83  \n- **由 regional_owner 审批的合同金额区间**：84 万至 160 万（含边界）",
+      "reference": "供应商 SUP-006-0 的召回覆盖率阈值是 0.83；合同金额位于 84 万至 160 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8289695410516678
+    },
+    {
+      "sample_index": 78,
+      "user_input": "制度 POL-006-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-006-0：  \n- 审计日志保留天数：186天  \n- 第二次违规冻结天数：8天  \n- 演示样本清理期限：4天  \n\n（以上信息来自知识库 policy_POL-006-0.md）",
+      "reference": "制度 POL-006-0 的审计日志保留 186 天；第二次违规冻结 8 天；演示样本清理期限是 4 天。",
+      "faithfulness": 0.75,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.841971120567065
+    },
+    {
+      "sample_index": 79,
+      "user_input": "事故复盘 INC-006-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "根据知识库记录：  \n- **chunkSize** 从 320 调整为 460  \n- **overlap** 从 60 调整为 80  \n- **验收 gold_recall_rate 目标**：知识库未给出具体数值，仅要求 gold_recall_rate、context_precision 和 answer_correctness 三项指标同步改善，以证明系统达到长期可用标准。如需精确目标值，需参考事故复盘后的具体评测方案或补充定义。",
+      "reference": "事故复盘 INC-006-0 将 chunkSize 从 320 调整到 460；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "faithfulness": 0.8333333333333334,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.2473019841900459
+    },
+    {
+      "sample_index": 80,
+      "user_input": "产品 NX-006-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：3 条  \n- 季度工单超过次数：7 次  \n- 升级审批对象：delivery_director",
+      "reference": "产品 NX-006-1 的金融最少引用数是 3 条；若季度工单超过 7 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.9512850037260385
+    },
+    {
+      "sample_index": 81,
+      "user_input": "运维手册 ORION-006-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：02:30-04:00（时区 Asia/Shanghai）。\n- 夜间连续 **3 次** P2 召回缺失，需通知 **platform_manager**。",
+      "reference": "运维手册 ORION-006-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9515448976130745
+    },
+    {
+      "sample_index": 82,
+      "user_input": "供应商 SUP-006-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.84（来自文档2的覆盖率阈值定义）。  \n- **合同金额审批区间**：合同金额位于 84 万至 160 万之间由 regional_owner 审批（来自文档1的付款审批规则）。",
+      "reference": "供应商 SUP-006-1 的召回覆盖率阈值是 0.84；合同金额位于 84 万至 160 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8445009663247535
+    },
+    {
+      "sample_index": 83,
+      "user_input": "制度 POL-006-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-006-1（文档 ID: a6603f37），具体天数如下：\n- **审计日志保留天数**：196 天（见基础要求及执行细则）。\n- **第二次违规冻结天数**：9 天（见制度执行细则）。\n- **演示样本清理期限**：5 天（见基础要求及执行细则，须在 5 天内完成 demo_cleanup_checklist）。",
+      "reference": "制度 POL-006-1 的审计日志保留 196 天；第二次违规冻结 9 天；演示样本清理期限是 5 天。",
+      "faithfulness": 0.8,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.6679605658651313
+    },
+    {
+      "sample_index": 84,
+      "user_input": "事故复盘 INC-006-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **事故前切片配置**：chunkSize=340，overlap=80  \n- **事故后切片配置**：chunkSize=480，overlap=100  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体的数字目标，仅要求 gold_recall_rate、context_precision 和 answer_correctness 共同改善，作为系统达标的判断依据。",
+      "reference": "事故复盘 INC-006-1 将 chunkSize 从 340 调整到 480；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "faithfulness": 1.0,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.3333333333,
+      "answer_correctness": 0.5294461946864137
+    },
+    {
+      "sample_index": 85,
+      "user_input": "产品 NX-006-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "1. **金融最少引用数**：知识库中未明确给出具体数值，仅指出“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”。该阈值需要从产品文档的其他部分或实际操作中确认。\n2. **季度工单超限次数**：超过 **8 次** 需要升级审批。\n3. **升级审批对象**：升级给 **finance_reviewer**。",
+      "reference": "产品 NX-006-2 的金融最少引用数是 4 条；若季度工单超过 8 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 0.8,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.43512451122419515
+    },
+    {
+      "sample_index": 86,
+      "user_input": "运维手册 ORION-006-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：**03:30-05:00**（Asia/Shanghai 时区）。\n- 连续 **4 次** P2 召回缺失，需通知 **incident_commander**。",
+      "reference": "运维手册 ORION-006-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.8975389822591828
+    },
+    {
+      "sample_index": 87,
+      "user_input": "供应商 SUP-006-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.85（根据知识库文件中关于避免混淆的提示推断得出）。  \n- **合同金额由 regional_owner 审批的区间**：84 万至 160 万之间。",
+      "reference": "供应商 SUP-006-2 的召回覆盖率阈值是 0.85；合同金额位于 84 万至 160 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.6954247802632202
+    },
+    {
+      "sample_index": 88,
+      "user_input": "制度 POL-006-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留天数：206 天  \n- 第二次违规冻结天数：10 天  \n- 演示样本清理期限：6 天",
+      "reference": "制度 POL-006-2 的审计日志保留 206 天；第二次违规冻结 10 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8572461622545384
+    },
+    {
+      "sample_index": 89,
+      "user_input": "事故复盘 INC-006-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 360 调到 500。  \n- **overlap 调整**：从 100 调到 120。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅说明需与 context_precision、answer_correctness 一同改善。",
+      "reference": "事故复盘 INC-006-2 将 chunkSize 从 360 调整到 500；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.3182739346872729
+    },
+    {
+      "sample_index": 90,
+      "user_input": "产品 NX-007-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：3 条  \n- 季度工单超过 7 次需要升级审批  \n- 升级审批角色：delivery_director",
+      "reference": "产品 NX-007-0 的金融最少引用数是 3 条；若季度工单超过 7 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.9434592802649197
+    },
+    {
+      "sample_index": 91,
+      "user_input": "运维手册 ORION-007-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "ORION-007-0 的夜间维护窗口为 **01:30-03:00**（时区 Asia/Shanghai）。  \n夜间连续 **3 次** P2 召回缺失需要通知 **platform_manager**。",
+      "reference": "运维手册 ORION-007-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": null,
+      "context_recall_error": "Failed to parse ContextRecallClassifications from completion {}. Got: 1 validation error for ContextRecallClassifications\nclassifications\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langchain/errors/OUTPUT_PARSING_FAILURE ",
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9702281137744421
+    },
+    {
+      "sample_index": 92,
+      "user_input": "供应商 SUP-007-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.84  \n- 合同金额区间：88 到 165（单位未明确，但根据上下文推测为万或具体数值）由 regional_owner 审批。",
+      "reference": "供应商 SUP-007-0 的召回覆盖率阈值是 0.84；合同金额位于 88 万至 165 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.3273199634866321
+    },
+    {
+      "sample_index": 93,
+      "user_input": "制度 POL-007-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度POL-007-0的规定：\n- 审计日志至少保留**187**天。\n- 第二次违规冻结期为**9**天。\n- 演示样本文档清理期限为**5**天（需在迁移前完成demo_cleanup_checklist）。",
+      "reference": "制度 POL-007-0 的审计日志保留 187 天；第二次违规冻结 9 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8392349033154739
+    },
+    {
+      "sample_index": 94,
+      "user_input": "事故复盘 INC-007-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 330 调到 470  \n- **overlap 调整**：从 60 调到 80  \n- **验收 gold_recall_rate 目标**：知识库中未明确给出具体数值目标，仅强调需与 context_precision、answer_correctness 一同改善，不能只追求单一指标上升。",
+      "reference": "事故复盘 INC-007-0 将 chunkSize 从 330 调整到 470；overlap 是 60；验收 gold_recall_rate 目标是 0.87。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.5833333333041666,
+      "answer_correctness": 0.2592968227685869
+    },
+    {
+      "sample_index": 95,
+      "user_input": "产品 NX-007-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "**1. 金融最少引用数**  \n知识库中未提供产品 NX-007-1 的“金融最少引用数”具体数值。文档仅指出“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”，但未定义该阈值。此类合规数字通常由公司内部合规手册或特定业务规则约定，建议查阅相关文档。\n\n**2. 季度工单升级审批**  \n当季度内提交工单超过 **8 次**时，续费审批必须升级给 **finance_reviewer**。",
+      "reference": "产品 NX-007-1 的金融最少引用数是 4 条；若季度工单超过 8 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.26482337554789215
+    },
+    {
+      "sample_index": 96,
+      "user_input": "运维手册 ORION-007-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：02:30-04:00（Asia/Shanghai 时区）。  \n- 夜间连续 4 次 P2 召回缺失时，需通知 **incident_commander**。",
+      "reference": "运维手册 ORION-007-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8364408006806261
+    },
+    {
+      "sample_index": 97,
+      "user_input": "供应商 SUP-007-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：**0.85**  \n- 合同金额由 regional_owner 审批的区间：**88 到 165**（单位与对照矩阵一致，推测为万）",
+      "reference": "供应商 SUP-007-1 的召回覆盖率阈值是 0.85；合同金额位于 88 万至 165 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.75,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8569574078886852
+    },
+    {
+      "sample_index": 98,
+      "user_input": "制度 POL-007-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留天数：197 天\n- 第二次违规冻结天数：10 天\n- 演示样本清理期限：6 天",
+      "reference": "制度 POL-007-1 的审计日志保留 197 天；第二次违规冻结 10 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.8664799903237257
+    },
+    {
+      "sample_index": 99,
+      "user_input": "事故复盘 INC-007-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize 从 **350** 调整为 **490**。  \n- overlap 从 **80** 调整为 **100**。  \n- 验收 gold_recall_rate 的目标数值在知识库中未明确给出，文档仅指出该系统应使 gold_recall_rate、context_precision 和 answer_correctness 共同改善，但未设定具体达标阈值。",
+      "reference": "事故复盘 INC-007-1 将 chunkSize 从 350 调整到 490；overlap 是 80；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 0.8,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.5833333333041666,
+      "answer_correctness": 0.26355864510832
+    },
+    {
+      "sample_index": 100,
+      "user_input": "产品 NX-007-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未明确给出产品 NX-007-2 的金融最少引用数具体数值。相关片段仅提到引用数不足会导致降级，以及“引用下限”可能被错误继承为 2 条（但这是针对同系列别版本的说法，并非当前产品的直接规则）。建议查阅补充文档或联系产品负责人获取精确数字。\n- **季度工单升级阈值与审批人**：季度工单超过 **9** 次需要升级审批，升级给 **regional_manager**。",
+      "reference": "产品 NX-007-2 的金融最少引用数是 2 条；若季度工单超过 9 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.75,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.42611589280910933
+    },
+    {
+      "sample_index": 101,
+      "user_input": "运维手册 ORION-007-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "维护窗口为 03:30-05:00（时区 Asia/Shanghai）。夜间连续 **5 次** P2 召回缺失需通知 **search_owner**。",
+      "reference": "运维手册 ORION-007-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9671021894707476
+    },
+    {
+      "sample_index": 102,
+      "user_input": "供应商 SUP-007-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.86  \n- 合同金额区间：88 到 165（单位：万）由 regional_owner 审批。",
+      "reference": "供应商 SUP-007-2 的召回覆盖率阈值是 0.86；合同金额位于 88 万至 165 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8580133708964116
+    },
+    {
+      "sample_index": 103,
+      "user_input": "制度 POL-007-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-007-2 的规定：\n- 审计日志保留 **207** 天。\n- 第二次违规冻结 **11** 天。\n- 演示样本清理期限为 **7** 天。",
+      "reference": "制度 POL-007-2 的审计日志保留 207 天；第二次违规冻结 11 天；演示样本清理期限是 7 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9582847645629247
+    },
+    {
+      "sample_index": 104,
+      "user_input": "事故复盘 INC-007-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 370 调到 510。  \n- **overlap 调整**：从 100 调到 120。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅要求 gold_recall_rate 与 context_precision、answer_correctness 共同改善，作为系统达标的标准。",
+      "reference": "事故复盘 INC-007-2 将 chunkSize 从 370 调整到 510；overlap 是 100；验收 gold_recall_rate 目标是 0.89。",
+      "faithfulness": 1.0,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.32978943001046834
+    },
+    {
+      "sample_index": 105,
+      "user_input": "产品 NX-008-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "知识库中未明确给出产品 NX-008-0 的“金融最少引用数”的具体数值，因此无法回答此项。\n\n季度工单超过 **4** 次时，续费审批必须升级给 **finance_reviewer**。",
+      "reference": "产品 NX-008-0 的金融最少引用数是 4 条；若季度工单超过 4 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.41540334173127647
+    },
+    {
+      "sample_index": 106,
+      "user_input": "运维手册 ORION-008-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "ORION-008-0 的维护窗口为 01:30-03:00（时区 Asia/Shanghai）。  \n夜间连续 **4 次** P2 召回缺失时，需通知 **incident_commander**。",
+      "reference": "运维手册 ORION-008-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.8634813749552054
+    },
+    {
+      "sample_index": 107,
+      "user_input": "供应商 SUP-008-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.84\n- 合同金额由 regional_owner 审批的区间：92 到 170（单位与原文一致，未明确标注，通常为万元）",
+      "reference": "供应商 SUP-008-0 的召回覆盖率阈值是 0.84；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9469885712884863
+    },
+    {
+      "sample_index": 108,
+      "user_input": "制度 POL-008-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "审计日志保留 **188 天**，第二次违规冻结 **10 天**，演示样本清理期限为 **2 天**。",
+      "reference": "制度 POL-008-0 的审计日志保留 188 天；第二次违规冻结 10 天；演示样本清理期限是 2 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8421262127006204
+    },
+    {
+      "sample_index": 109,
+      "user_input": "事故复盘 INC-008-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **旧配置**：chunkSize=340，overlap=60  \n- **新配置**：chunkSize=480，overlap=80  \n- **验收 gold_recall_rate 目标**：知识库中未明确给出具体数值，仅要求该指标与其他指标（context_precision、answer_correctness）一起改善。",
+      "reference": "事故复盘 INC-008-0 将 chunkSize 从 340 调整到 480；overlap 是 60；验收 gold_recall_rate 目标是 0.87。",
+      "faithfulness": 0.75,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.32932183922249814
+    },
+    {
+      "sample_index": 110,
+      "user_input": "产品 NX-008-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：2 条（依据：片段④指出同系列其他版本容易将引用下限误写为其他值，结合 NX-008-1 的上下文，该产品的金融最少引用数应为 2 条）。\n- 季度工单超过 5 次需要升级审批（依据：片段④明确提及季度工单阈值 5）。\n- 升级审批角色为 regional_manager（依据：片段④明确提及审批角色 regional_manager）。",
+      "reference": "产品 NX-008-1 的金融最少引用数是 2 条；若季度工单超过 5 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.5803333768270937
+    },
+    {
+      "sample_index": 111,
+      "user_input": "运维手册 ORION-008-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：02:30-04:00（Asia/Shanghai）。  \n- 夜间连续**5次**P2召回缺失，需要通知 **search_owner**。",
+      "reference": "运维手册 ORION-008-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.9424348072334975
+    },
+    {
+      "sample_index": 112,
+      "user_input": "供应商 SUP-008-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "召回覆盖率阈值为0.85。  \n合同金额在92万至170万之间由regional_owner审批。",
+      "reference": "供应商 SUP-008-1 的召回覆盖率阈值是 0.85；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8367854752851424
+    },
+    {
+      "sample_index": 113,
+      "user_input": "制度 POL-008-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：198 天  \n- 第二次违规冻结：11 天  \n- 演示样本清理期限：3 天",
+      "reference": "制度 POL-008-1 的审计日志保留 198 天；第二次违规冻结 11 天；演示样本清理期限是 3 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.931116292053803
+    },
+    {
+      "sample_index": 114,
+      "user_input": "事故复盘 INC-008-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "根据知识库中的事故摘要，INC-008-1 的切片配置调整如下：\n\n- **旧配置**：chunkSize=360，overlap=80\n- **新配置**：chunkSize=500，overlap=100\n\n关于验收目标 **gold_recall_rate**，知识库中没有给出具体数值，而是指出达标的标志是 **gold_recall_rate**、**context_precision** 和 **answer_correctness** 三个指标一起改善，而非仅让某一个指标上升。因此，具体的 gold_recall_rate 目标值在现有知识库中未明确。",
+      "reference": "事故复盘 INC-008-1 将 chunkSize 从 360 调整到 500；overlap 是 80；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 1.0,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.3171291379303295
+    },
+    {
+      "sample_index": 115,
+      "user_input": "产品 NX-008-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未直接写明具体数字，但根据“检索歧义矩阵”对引用下限的说明（模型可能错误继承为 3 条），推断该产品的金融最少引用数为 **3 条**。  \n- **季度工单升级阈值**：知识库明确记载，季度工单超过 **6 次** 需要升级审批。  \n- **升级审批角色**：升级审批对象为 **delivery_director**。",
+      "reference": "产品 NX-008-2 的金融最少引用数是 3 条；若季度工单超过 6 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.4,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.6896771038607772
+    },
+    {
+      "sample_index": 116,
+      "user_input": "运维手册 ORION-008-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：03:30-05:00 (Asia/Shanghai)。  \n- 夜间连续 6 次 P2 召回缺失需通知 **platform_manager**。",
+      "reference": "运维手册 ORION-008-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9456633184793002
+    },
+    {
+      "sample_index": 117,
+      "user_input": "供应商 SUP-008-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：**0.86**（依据每月提交的 monthly_recall_coverage_report_v3，阈值以该供应商文档为准）。  \n- 合同金额由 regional_owner 审批的区间：**92 万至 170 万**（含两端，高于 170 万则升级至 procurement_committee 审批）。",
+      "reference": "供应商 SUP-008-2 的召回覆盖率阈值是 0.86；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.5055799269726613
+    },
+    {
+      "sample_index": 118,
+      "user_input": "制度 POL-008-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度POL-008-2的规定：\n- 审计访问日志至少保留 **208** 天。\n- 第二次违规冻结 **12** 天。\n- 演示样本文档清理期限为 **4** 天。",
+      "reference": "制度 POL-008-2 的审计日志保留 208 天；第二次违规冻结 12 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8622190585684035
+    },
+    {
+      "sample_index": 119,
+      "user_input": "事故复盘 INC-008-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 380 调到 520。  \n- **overlap 调整**：从 100 调到 120。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅要求 gold_recall_rate、context_precision 和 answer_correctness 共同改善，作为系统达标的标志。",
+      "reference": "事故复盘 INC-008-2 将 chunkSize 从 380 调整到 520；overlap 是 100；验收 gold_recall_rate 目标是 0.89。",
+      "faithfulness": 1.0,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.5833333333041666,
+      "answer_correctness": 0.274049540643168
+    },
+    {
+      "sample_index": 120,
+      "user_input": "产品 NX-009-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：在提供的知识库中，未找到产品 NX-009-0 明确的金融最少引用数字。同系列其他版本曾出现引用下限为2条的情况，但该值不适用于本产品，无法从现有资料确认具体数值。\n- **季度工单升级阈值**：超过 **5** 次需要升级审批。\n- **升级审批人**：升级给 **regional_manager**（区域经理）。",
+      "reference": "产品 NX-009-0 的金融最少引用数是 2 条；若季度工单超过 5 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.3977445772884384
+    },
+    {
+      "sample_index": 121,
+      "user_input": "运维手册 ORION-009-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "运维手册 ORION-009-0 的夜间维护窗口为 01:30-03:00。  \n夜间连续 **2 次** P2 召回缺失时，需要通知 **search_owner**。",
+      "reference": "运维手册 ORION-009-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8570236751178486
+    },
+    {
+      "sample_index": 122,
+      "user_input": "供应商 SUP-009-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.85  \n- 合同金额区间（由 regional_owner 审批）：96 到 175（单位：万）",
+      "reference": "供应商 SUP-009-0 的召回覆盖率阈值是 0.85；合同金额位于 96 万至 175 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9455631838630276
+    },
+    {
+      "sample_index": 123,
+      "user_input": "制度 POL-009-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-009-0 的规定：\n- 审计日志保留：189 天\n- 第二次违规冻结：11 天\n- 演示样本清理期限：3 天",
+      "reference": "制度 POL-009-0 的审计日志保留 189 天；第二次违规冻结 11 天；演示样本清理期限是 3 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9656704601666768
+    },
+    {
+      "sample_index": 124,
+      "user_input": "事故复盘 INC-009-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 350 调至 490。  \n- **overlap 调整**：从 60 调至 80。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，但要求 gold_recall_rate 与 context_precision、answer_correctness 三项指标共同改善。",
+      "reference": "事故复盘 INC-009-0 将 chunkSize 从 350 调整到 490；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 0.75,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.3097685777091125
+    },
+    {
+      "sample_index": 125,
+      "user_input": "产品 NX-009-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：3条。该值基于知识库中关于引用下限的线索推断（矩阵中提到“把3条写成其他值”），表示产品NX-009-1在金融场景中至少需要引用3条内容。\n- **季度工单升级阈值**：超过6次。知识库明确提到“季度工单阈值6”，即季度工单数量超过6次时需要升级审批。\n- **升级审批人**：delivery_director。知识库指出“审批角色delivery_director”为升级审批人。",
+      "reference": "产品 NX-009-1 的金融最少引用数是 3 条；若季度工单超过 6 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.2222222222222222,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.6119848211612182
+    },
+    {
+      "sample_index": 126,
+      "user_input": "运维手册 ORION-009-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "ORION-009-1 的夜间维护窗口为 02:30-04:00。  \n夜间连续 **3 次** P2 召回缺失时，需要通知 **platform_manager**。",
+      "reference": "运维手册 ORION-009-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9755338586101672
+    },
+    {
+      "sample_index": 127,
+      "user_input": "供应商 SUP-009-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.86\n- regional_owner 审批的合同金额区间：96 万 至 175 万",
+      "reference": "供应商 SUP-009-1 的召回覆盖率阈值是 0.86；合同金额位于 96 万至 175 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9599455520525129
+    },
+    {
+      "sample_index": 128,
+      "user_input": "制度 POL-009-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留天数：199 天  \n- 第二次违规冻结天数：12 天  \n- 演示样本清理期限：4 天",
+      "reference": "制度 POL-009-1 的审计日志保留 199 天；第二次违规冻结 12 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8664068278970126
+    },
+    {
+      "sample_index": 129,
+      "user_input": "事故复盘 INC-009-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 **370** 调到 **510**。  \n- **overlap 调整**：从 **80** 调到 **100**。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体的数值目标，仅指出验收时需确保 gold_recall_rate 与 context_precision、answer_correctness 一同改善。",
+      "reference": "事故复盘 INC-009-1 将 chunkSize 从 370 调整到 510；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.3107356260336499
+    },
+    {
+      "sample_index": 130,
+      "user_input": "产品 NX-009-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未给出具体数值，仅提及“金融最低要求”，但未说明具体次数。\n- **季度工单升级阈值**：超过 **7 次** 需要升级审批。\n- **升级审批对象**：升级给 **finance_reviewer**。",
+      "reference": "产品 NX-009-2 的金融最少引用数是 4 条；若季度工单超过 7 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 0.8333333333333334,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.584829691423102
+    },
+    {
+      "sample_index": 131,
+      "user_input": "运维手册 ORION-009-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "运维手册 ORION-009-2 的维护窗口为 **03:30‑05:00**（时区 Asia/Shanghai）。  \n夜间连续 **4 次** P2 召回缺失时，需要通知 **incident_commander**。",
+      "reference": "运维手册 ORION-009-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.849230077796947
+    },
+    {
+      "sample_index": 132,
+      "user_input": "供应商 SUP-009-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.87\n- 合同金额区间（由 regional_owner 审批）：96 到 175（单位未标注，参照上下文可能为万）",
+      "reference": "供应商 SUP-009-2 的召回覆盖率阈值是 0.87；合同金额位于 96 万至 175 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.3333333333333333,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.37389982427835594
+    },
+    {
+      "sample_index": 133,
+      "user_input": "制度 POL-009-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-009-2 的规定：\n- 审计日志保留 **209** 天；\n- 第二次违规冻结 **13** 天；\n- 演示样本清理期限为 **5** 天。",
+      "reference": "制度 POL-009-2 的审计日志保留 209 天；第二次违规冻结 13 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9575582140144574
+    },
+    {
+      "sample_index": 134,
+      "user_input": "事故复盘 INC-009-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize**：从 390 调到 530。  \n- **overlap**：从 100 调到 120。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅要求该指标与 context_precision、answer_correctness 共同改善，以达到长期可用标准。",
+      "reference": "事故复盘 INC-009-2 将 chunkSize 从 390 调整到 530；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "faithfulness": 1.0,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.3333333333,
+      "answer_correctness": 0.2793599742489962
+    },
+    {
+      "sample_index": 135,
+      "user_input": "产品 NX-010-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：3条  \n- 季度工单超过 **6 次** 需要升级审批  \n- 升级审批对象：**delivery_director**",
+      "reference": "产品 NX-010-0 的金融最少引用数是 3 条；若季度工单超过 6 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.3333333333333333,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.9402964304289233
+    },
+    {
+      "sample_index": 136,
+      "user_input": "运维手册 ORION-010-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "ORION-010-0 的维护窗口是 **01:30-03:00**（时区：Asia/Shanghai）。\n\n夜间连续 **3 次** P2 召回缺失，需要通知 **platform_manager**。",
+      "reference": "运维手册 ORION-010-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9701954933705201
+    },
+    {
+      "sample_index": 137,
+      "user_input": "供应商 SUP-010-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.85  \n- **由 regional_owner 审批的合同金额区间**：100万至180万。",
+      "reference": "供应商 SUP-010-0 的召回覆盖率阈值是 0.85；合同金额位于 100 万至 180 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8229622272040453
+    },
+    {
+      "sample_index": 138,
+      "user_input": "制度 POL-010-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-010-0 的规定：\n- 审计日志保留天数：**190 天**\n- 第二次违规冻结天数：**7 天**\n- 演示样本清理期限：**4 天**（需在 4 天内完成 demo_cleanup_checklist）",
+      "reference": "制度 POL-010-0 的审计日志保留 190 天；第二次违规冻结 7 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9689752385028633
+    },
+    {
+      "sample_index": 139,
+      "user_input": "事故复盘 INC-010-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "**chunkSize 变更**：从 360 调到 500。  \n**overlap 变更**：从 60 调到 80。  \n**验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅说明需要与 context_precision 和 answer_correctness 一同改善，才能证明系统达到长期可用标准。",
+      "reference": "事故复盘 INC-010-0 将 chunkSize 从 360 调整到 500；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 0.8,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.9166666666361111,
+      "answer_correctness": 0.2899291462753417
+    },
+    {
+      "sample_index": 140,
+      "user_input": "产品 NX-010-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库未给出具体数值，仅指出存在“金融最低要求”这一规则，若单次问答命中引用数低于该要求，则不能以产品默认模板直接对外发送。\n- **季度工单升级审批阈值**：季度内提交工单超过7次，续费审批必须升级。\n- **升级审批对象**：升级给 finance_reviewer。",
+      "reference": "产品 NX-010-1 的金融最少引用数是 4 条；若季度工单超过 7 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.5885504071012208
+    },
+    {
+      "sample_index": 141,
+      "user_input": "运维手册 ORION-010-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**：02:30-04:00（Asia/Shanghai 时区）  \n- **夜间连续 P2 召回缺失**：连续 **4 次** P2 缺失时，需通知 **incident_commander**。",
+      "reference": "运维手册 ORION-010-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8446756824810473
+    },
+    {
+      "sample_index": 142,
+      "user_input": "供应商 SUP-010-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.86（依据文档[2]）。\n- 合同金额由 regional_owner 审批的区间：100 万至 180 万（含边界？依据文档[1]表述“位于 100 万至 180 万之间”）。",
+      "reference": "供应商 SUP-010-1 的召回覆盖率阈值是 0.86；合同金额位于 100 万至 180 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.4,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8475322787399462
+    },
+    {
+      "sample_index": 143,
+      "user_input": "制度 POL-010-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "对于制度 POL-010-1：\n- 审计日志保留 **200** 天；\n- 第二次违规冻结 **8** 天；\n- 演示样本清理期限为 **5** 天。",
+      "reference": "制度 POL-010-1 的审计日志保留 200 天；第二次违规冻结 8 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9602043699550356
+    },
+    {
+      "sample_index": 144,
+      "user_input": "事故复盘 INC-010-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize：从 380 调整为 520  \n- overlap：从 80 调整为 100  \n- 验收 gold_recall_rate 目标：知识库中未给出具体数值，仅要求 gold_recall_rate、context_precision 和 answer_correctness 一起改善。",
+      "reference": "事故复盘 INC-010-1 将 chunkSize 从 380 调整到 520；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.3108417029580887
+    },
+    {
+      "sample_index": 145,
+      "user_input": "产品 NX-010-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "**金融最少引用数：** 知识库中未给出产品 NX-010-2 的金融最少引用数具体数值，仅说明“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”。如需确切数字，建议查阅相关配置文档或咨询业务负责人。\n\n**季度工单升级审批阈值：** 超过 **8** 次。\n\n**升级审批对象：** 升级给 **regional_manager**。",
+      "reference": "产品 NX-010-2 的金融最少引用数是 2 条；若季度工单超过 8 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.8,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.4433032067630587
+    },
+    {
+      "sample_index": 146,
+      "user_input": "运维手册 ORION-010-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**: 03:30-05:00 (Asia/Shanghai时区)。  \n- **夜间连续P2召回缺失触发条件**: 连续 **5** 次P2缺失。  \n- **需通知对象**: **search_owner**。",
+      "reference": "运维手册 ORION-010-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9457437451944322
+    },
+    {
+      "sample_index": 147,
+      "user_input": "供应商 SUP-010-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.87  \n- 合同金额由 regional_owner 审批的区间：知识库中仅提及供应商 SUP-010-2 的合同金额区间 100 到 180 存在特定的审批规则，但未明确指定审批者身份。其他供应商的 regional_owner 审批区间（如 112-195、120-205）不适用于该供应商。",
+      "reference": "供应商 SUP-010-2 的召回覆盖率阈值是 0.87；合同金额位于 100 万至 180 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.6302728021928052
+    },
+    {
+      "sample_index": 148,
+      "user_input": "制度 POL-010-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-010-2 的规定（来源：知识库片段[1][2]）：\n\n- **审计日志保留天数**：至少 210 天。\n- **第二次违规冻结天数**：9 天。\n- **演示样本清理期限**：6 天（须在迁移前完成 demo_cleanup_checklist）。",
+      "reference": "制度 POL-010-2 的审计日志保留 210 天；第二次违规冻结 9 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.7608301211571159
+    },
+    {
+      "sample_index": 149,
+      "user_input": "事故复盘 INC-010-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 400 调到 540  \n- **overlap 调整**：从 100 调到 120  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅要求 gold_recall_rate、context_precision 和 answer_correctness 三者共同改善，作为系统达标的标准。",
+      "reference": "事故复盘 INC-010-2 将 chunkSize 从 400 调整到 540；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "faithfulness": 1.0,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.25824756043368513
+    },
+    {
+      "sample_index": 150,
+      "user_input": "产品 NX-011-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未给出具体数值，仅提到存在“金融最低要求”但未明确定义阈值，因此无法提供准确数字。  \n- **季度工单超过多少次需升级审批**：超过 **7 次**。  \n- **升级给谁**：升级给 **finance_reviewer**。",
+      "reference": "产品 NX-011-0 的金融最少引用数是 4 条；若季度工单超过 7 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.41899938233523476
+    },
+    {
+      "sample_index": 151,
+      "user_input": "运维手册 ORION-011-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**：01:30-03:00（时区：Asia/Shanghai，来源：知识库[2]）。\n- **通知触发条件与对象**：夜间连续 **4 次** P2 召回缺失时，需通知 **incident_commander**（来源：知识库[1]）。",
+      "reference": "运维手册 ORION-011-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.6325172793945564
+    },
+    {
+      "sample_index": 152,
+      "user_input": "供应商 SUP-011-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.86  \n- 合同金额区间（由 regional_owner 审批）：104 到 185（单位：万元，根据模板上下文推断）",
+      "reference": "供应商 SUP-011-0 的召回覆盖率阈值是 0.86；合同金额位于 104 万至 185 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9094706772749008
+    },
+    {
+      "sample_index": 153,
+      "user_input": "制度 POL-011-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：191天  \n- 第二次违规冻结：8天  \n- 演示样本清理期限：5天",
+      "reference": "制度 POL-011-0 的审计日志保留 191 天；第二次违规冻结 8 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8596377377690179
+    },
+    {
+      "sample_index": 154,
+      "user_input": "事故复盘 INC-011-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 **370** 调到 **510**。  \n- **overlap 调整**：从 **60** 调到 **80**。  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅说明 gold_recall_rate 应与 context_precision、answer_correctness 一起改善，作为达标的综合标志。",
+      "reference": "事故复盘 INC-011-0 将 chunkSize 从 370 调整到 510；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9166666666361111,
+      "answer_correctness": 0.2681328486967551
+    },
+    {
+      "sample_index": 155,
+      "user_input": "产品 NX-011-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "**金融最少引用数**  \n知识库中未明确给出产品 NX-011-1 的“金融最少引用数”具体数值，仅提到“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”，但该“最低要求”的数字未记载。\n\n**季度工单超过多少次需要升级审批**  \n季度内提交工单超过 **8 次**。\n\n**升级给谁**  \n升级给 **regional_manager**。",
+      "reference": "产品 NX-011-1 的金融最少引用数是 2 条；若季度工单超过 8 次，审批必须升级给 regional_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.4625725815445195
+    },
+    {
+      "sample_index": 156,
+      "user_input": "运维手册 ORION-011-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**：02:30-04:00（时间区为 Asia/Shanghai）。  \n- **P2 召回缺失通知规则**：夜间连续 **5 次** P2 召回缺失需通知 **search_owner**。",
+      "reference": "运维手册 ORION-011-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9444279692467439
+    },
+    {
+      "sample_index": 157,
+      "user_input": "供应商 SUP-011-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.87  \n- 合同金额由 regional_owner 审批的区间：104 到 185（单位：万）",
+      "reference": "供应商 SUP-011-1 的召回覆盖率阈值是 0.87；合同金额位于 104 万至 185 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8371116532258422
+    },
+    {
+      "sample_index": 158,
+      "user_input": "制度 POL-011-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留天数：201 天  \n- 第二次违规冻结天数：9 天  \n- 演示样本清理期限：6 天",
+      "reference": "制度 POL-011-1 的审计日志保留 201 天；第二次违规冻结 9 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.863047226781536
+    },
+    {
+      "sample_index": 159,
+      "user_input": "事故复盘 INC-011-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "根据知识库内容，INC-011-1 的调整情况如下：\n\n- **chunkSize**：从 390 调整到 530。\n- **overlap**：从 80 调整到 100。\n\n关于 **gold_recall_rate 的验收目标**，知识库中未给出具体数值。相关描述指出，整改后应通过包含精确阈值、多跳问答、近邻干扰和思考模式展示规则的整套题集重新评估，真正达标的标志是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而不是只让某一个指标偶然上升。具体验收目标需要结合高标准评测流程确定。",
+      "reference": "事故复盘 INC-011-1 将 chunkSize 从 390 调整到 530；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "faithfulness": 0.8571428571428571,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.2812197570497775
+    },
+    {
+      "sample_index": 160,
+      "user_input": "产品 NX-011-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未明确给出产品 NX-011-2 的具体数值。文档提示同系列其他版本引用下限为 3 条，但 NX-011-2 有自身的独立配置，正确值需参考实际产品配置或更详细的文档。  \n- **季度工单升级阈值**：季度工单超过 **9** 次需要升级审批。  \n- **升级审批人**：升级审批给 **delivery_director**。",
+      "reference": "产品 NX-011-2 的金融最少引用数是 3 条；若季度工单超过 9 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.4067425445137852
+    },
+    {
+      "sample_index": 161,
+      "user_input": "运维手册 ORION-011-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：03:30-05:00（亚洲/上海时区）\n- 夜间连续 **6** 次 P2 召回缺失需通知 **platform_manager**。",
+      "reference": "运维手册 ORION-011-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9446901754900228
+    },
+    {
+      "sample_index": 162,
+      "user_input": "供应商 SUP-011-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.88  \n- 由 regional_owner 审批的合同金额区间：104 到 185 (万)",
+      "reference": "供应商 SUP-011-2 的召回覆盖率阈值是 0.88；合同金额位于 104 万至 185 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9127958435113648
+    },
+    {
+      "sample_index": 163,
+      "user_input": "制度 POL-011-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL‑011‑2 的文档：\n- 审计日志保留天数为 **211 天**；\n- 第二次违规冻结天数为 **10 天**；\n- 演示样本清理期限为 **7 天**。",
+      "reference": "制度 POL-011-2 的审计日志保留 211 天；第二次违规冻结 10 天；演示样本清理期限是 7 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9506232761119086
+    },
+    {
+      "sample_index": 164,
+      "user_input": "事故复盘 INC-011-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "根据知识库（postmortem_INC-011-2.md）：\n- chunkSize 从 410 调整为 550。\n- overlap 从 100 调整为 120。\n- 关于验收 gold_recall_rate 目标，知识库中未给出具体数值，仅指出“真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善”，但未提供明确的量化目标。如需具体数值，可能需要参考项目评测标准或补充说明。",
+      "reference": "事故复盘 INC-011-2 将 chunkSize 从 410 调整到 550；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "faithfulness": 0.8333333333333334,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.2545352306222771
+    },
+    {
+      "sample_index": 165,
+      "user_input": "产品 NX-012-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：2 条  \n- **季度工单超过多少次需要升级审批**：4 次  \n- **升级给谁**：regional_manager  \n\n（以上信息基于产品 NX-012-0 的检索歧义矩阵文档中的阈值和角色描述。）",
+      "reference": "产品 NX-012-0 的金融最少引用数是 2 条；若季度工单超过 4 次，审批必须升级给 regional_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.7204530428910582
+    },
+    {
+      "sample_index": 166,
+      "user_input": "运维手册 ORION-012-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "维护窗口：01:30-03:00（Asia/Shanghai 时区）。  \n夜间连续 2 次 P2 召回缺失，需要通知 search_owner。",
+      "reference": "运维手册 ORION-012-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9582297634436379
+    },
+    {
+      "sample_index": 167,
+      "user_input": "供应商 SUP-012-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：**0.86**  \n- 合同金额区间（由 regional_owner 审批）：**108万 至 190万**（含边界）",
+      "reference": "供应商 SUP-012-0 的召回覆盖率阈值是 0.86；合同金额位于 108 万至 190 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8280076891688065
+    },
+    {
+      "sample_index": 168,
+      "user_input": "制度 POL-012-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：192天  \n- 第二次违规冻结：9天  \n- 演示样本清理期限：2天",
+      "reference": "制度 POL-012-0 的审计日志保留 192 天；第二次违规冻结 9 天；演示样本清理期限是 2 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.857854018232068
+    },
+    {
+      "sample_index": 169,
+      "user_input": "事故复盘 INC-012-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize 从 380 调到 520。  \n- overlap 从 60 调到 80。  \n- 验收 gold_recall_rate 目标：知识库中未给出具体数值，仅要求该指标与 context_precision、answer_correctness 一同改善，作为系统达标的标志。如需要确切数字，建议参考实际评测标准或补充相关文档。",
+      "reference": "事故复盘 INC-012-0 将 chunkSize 从 380 调整到 520；overlap 是 60；验收 gold_recall_rate 目标是 0.89。",
+      "faithfulness": 0.8,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.9166666666361111,
+      "answer_correctness": 0.3902779615186157
+    },
+    {
+      "sample_index": 170,
+      "user_input": "产品 NX-012-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：3 条  \n- **季度工单超过**：5 次  \n- **升级审批角色**：delivery_director",
+      "reference": "产品 NX-012-1 的金融最少引用数是 3 条；若季度工单超过 5 次，审批必须升级给 delivery_director。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.9353889781492395
+    },
+    {
+      "sample_index": 171,
+      "user_input": "运维手册 ORION-012-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "根据运维手册 ORION-012-1：\n- 维护窗口为 **02:30-04:00**。\n- 夜间连续 **3次** P2 召回缺失，需要通知 **platform_manager**。",
+      "reference": "运维手册 ORION-012-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9688026379606172
+    },
+    {
+      "sample_index": 172,
+      "user_input": "供应商 SUP-012-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.87  \n- 合同金额在 108 万元到 190 万元之间由 regional_owner 审批。",
+      "reference": "供应商 SUP-012-1 的召回覆盖率阈值是 0.87；合同金额位于 108 万至 190 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9454675134511684
+    },
+    {
+      "sample_index": 173,
+      "user_input": "制度 POL-012-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "对于制度 POL-012-1：\n- 审计日志保留 **202** 天\n- 第二次违规冻结 **10** 天\n- 演示样本清理期限 **3** 天",
+      "reference": "制度 POL-012-1 的审计日志保留 202 天；第二次违规冻结 10 天；演示样本清理期限是 3 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.850213234093807
+    },
+    {
+      "sample_index": 174,
+      "user_input": "事故复盘 INC-012-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize**：从 400 调到 540（事故前 400，事故后 540）。\n- **overlap**：从 80 调到 100（事故前 80，事故后 100）。\n- **验收 gold_recall_rate 目标**：在提供的知识库中未列出具体数值，只提到 gold_recall_rate 应与 context_precision、answer_correctness 一起改善作为达标标志，但无明确的目标阈值。如需精确目标，建议参考内部评测标准或补充文档。",
+      "reference": "事故复盘 INC-012-1 将 chunkSize 从 400 调整到 540；overlap 是 80；验收 gold_recall_rate 目标是 0.90。",
+      "faithfulness": 0.9,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.5833333333041666,
+      "answer_correctness": 0.2453732314336004
+    },
+    {
+      "sample_index": 175,
+      "user_input": "产品 NX-012-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库未明确定义具体数值，仅提及“若单次问答命中引用少于金融最低要求”，该阈值需要参考产品内部更详细的配置文档或规则。\n- **季度工单升级阈值**：季度内提交工单超过 **6 次**，续费审批必须升级。\n- **升级审批对象**：升级给 **finance_reviewer**。",
+      "reference": "产品 NX-012-2 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.5217094803858017
+    },
+    {
+      "sample_index": 176,
+      "user_input": "运维手册 ORION-012-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "根据运维手册 ORION-012-2，**维护窗口**为 **03:30-05:00**（Asia/Shanghai 时区）。\n\n当出现 **夜间连续 4 次 P2 召回缺失** 时，需要通知 **incident_commander**，并在值班记录中注明通知的具体时间点以及后续升级采取的隔离动作。",
+      "reference": "运维手册 ORION-012-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.7086413955917931
+    },
+    {
+      "sample_index": 177,
+      "user_input": "供应商 SUP-012-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.88  \n- **合同金额区间（由regional_owner审批）**：108万至190万（含边界）",
+      "reference": "供应商 SUP-012-2 的召回覆盖率阈值是 0.88；合同金额位于 108 万至 190 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9313792169292737
+    },
+    {
+      "sample_index": 178,
+      "user_input": "制度 POL-012-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度POL-012-2的规定：\n- 审计日志保留天数：212天\n- 第二次违规冻结天数：11天\n- 演示样本清理期限：4天",
+      "reference": "制度 POL-012-2 的审计日志保留 212 天；第二次违规冻结 11 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9532045573056294
+    },
+    {
+      "sample_index": 179,
+      "user_input": "事故复盘 INC-012-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 420 调到 560  \n- **overlap 调整**：从 100 调到 120  \n- **验收 gold_recall_rate 目标**：知识库中未明确给出具体数值，仅指出 gold_recall_rate 需与 context_precision 和 answer_correctness 一起改善，以达到系统长期可用标准。",
+      "reference": "事故复盘 INC-012-2 将 chunkSize 从 420 调整到 560；overlap 是 100；验收 gold_recall_rate 目标是 0.91。",
+      "faithfulness": 0.8,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.26490666519896366
+    },
+    {
+      "sample_index": 180,
+      "user_input": "产品 NX-013-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数为 **3 条**。  \n- 季度工单超过 **5 次** 需要升级审批，升级给 **delivery_director**。",
+      "reference": "产品 NX-013-0 的金融最少引用数是 3 条；若季度工单超过 5 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.6666666666666666,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.938253216095712
+    },
+    {
+      "sample_index": 181,
+      "user_input": "运维手册 ORION-013-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "运维手册 ORION-013-0 的维护窗口为 **01:30-03:00**；夜间连续 **3 次** P2 召回缺失需要通知 **platform_manager**。",
+      "reference": "运维手册 ORION-013-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8683476705483832
+    },
+    {
+      "sample_index": 182,
+      "user_input": "供应商 SUP-013-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.86  \n- **合同金额由regional_owner审批的区间**：112万至195万（含边界）",
+      "reference": "供应商 SUP-013-0 的召回覆盖率阈值是 0.86；合同金额位于 112 万至 195 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8416407281381535
+    },
+    {
+      "sample_index": 183,
+      "user_input": "制度 POL-013-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-013-0 的执行细则：\n- 审计日志保留 **193** 天；\n- 第二次违规冻结 **10** 天；\n- 演示样本清理期限 **3** 天。",
+      "reference": "制度 POL-013-0 的审计日志保留 193 天；第二次违规冻结 10 天；演示样本清理期限是 3 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9511124561232738
+    },
+    {
+      "sample_index": 184,
+      "user_input": "事故复盘 INC-013-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize 从 390 调到 530。  \n- overlap 从 60 调到 80。  \n- 验收 gold_recall_rate 目标：知识库中没有给出具体数值目标，仅要求 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而非只关注单一指标提升。",
+      "reference": "事故复盘 INC-013-0 将 chunkSize 从 390 调整到 530；overlap 是 60；验收 gold_recall_rate 目标是 0.89。",
+      "faithfulness": 0.8,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9166666666361111,
+      "answer_correctness": 0.44462008792422464
+    },
+    {
+      "sample_index": 185,
+      "user_input": "产品 NX-013-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：根据提供的知识库，未明确给出“金融最少引用数”的具体数值。文档仅指出“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”，但未定义该最低要求的具体值。\n- **季度工单升级审批阈值**：季度内提交工单超过 **6 次**时，续费审批必须升级。\n- **升级给谁**：升级审批给 **finance_reviewer**（财务审批人）。",
+      "reference": "产品 NX-013-1 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.571637159665914
+    },
+    {
+      "sample_index": 186,
+      "user_input": "运维手册 ORION-013-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "维护窗口为 02:30-04:00；夜间连续 4 次 P2 召回缺失需通知 incident_commander。",
+      "reference": "运维手册 ORION-013-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9471858278916075
+    },
+    {
+      "sample_index": 187,
+      "user_input": "供应商 SUP-013-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.88  \n- 合同金额由 regional_owner 审批的区间：112 万至 195 万（含上下限）",
+      "reference": "供应商 SUP-013-1 的召回覆盖率阈值是 0.88；合同金额位于 112 万至 195 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8436388605088663
+    },
+    {
+      "sample_index": 188,
+      "user_input": "制度 POL-013-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留天数：203 天  \n- 第二次违规冻结天数：11 天  \n- 演示样本清理期限：4 天",
+      "reference": "制度 POL-013-1 的审计日志保留 203 天；第二次违规冻结 11 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8654750795335667
+    },
+    {
+      "sample_index": 189,
+      "user_input": "事故复盘 INC-013-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "事故复盘 INC-013-1 中，chunkSize 从 410 调整到 550，overlap 从 80 调整到 100。  \n知识库中未明确验收 gold_recall_rate 的具体目标数值，仅要求 gold_recall_rate、context_precision 和 answer_correctness 一起改善作为达标标志。",
+      "reference": "事故复盘 INC-013-1 将 chunkSize 从 410 调整到 550；overlap 是 80；验收 gold_recall_rate 目标是 0.90。",
+      "faithfulness": 1.0,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.36110907522374697
+    },
+    {
+      "sample_index": 190,
+      "user_input": "产品 NX-013-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- 金融最少引用数：2 条（依据[4]中关于引用下限的描述）。  \n- 季度工单超过 7 次需要升级审批（依据[4]明确提及的“季度工单阈值 7”）。  \n- 升级审批给 regional_manager（依据[4]明确提及的“审批角色 regional_manager”）。",
+      "reference": "产品 NX-013-2 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.3333333333333333,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.8204746561065899
+    },
+    {
+      "sample_index": 191,
+      "user_input": "运维手册 ORION-013-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：03:30-05:00（时区：Asia/Shanghai）。\n- 夜间连续P2召回缺失触发条件：**连续5次**。\n- 通知角色：**search_owner**。",
+      "reference": "运维手册 ORION-013-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8641417021142328
+    },
+    {
+      "sample_index": 192,
+      "user_input": "供应商 SUP-013-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.89  \n- **合同金额由regional_owner审批的区间**：112万至195万（含边界）",
+      "reference": "供应商 SUP-013-2 的召回覆盖率阈值是 0.89；合同金额位于 112 万至 195 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8422287773360444
+    },
+    {
+      "sample_index": 193,
+      "user_input": "制度 POL-013-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：213天\n- 第二次违规冻结：12天\n- 演示样本清理：5天",
+      "reference": "制度 POL-013-2 的审计日志保留 213 天；第二次违规冻结 12 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8556700630668543
+    },
+    {
+      "sample_index": 194,
+      "user_input": "事故复盘 INC-013-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 430 调到 570  \n- **overlap 调整**：从 100 调到 120  \n- **验收 gold_recall_rate 目标**：知识库中未给出具体数值，仅要求 gold_recall_rate 与 context_precision、answer_correctness 一起改善作为达标标志。",
+      "reference": "事故复盘 INC-013-2 将 chunkSize 从 430 调整到 570；overlap 是 100；验收 gold_recall_rate 目标是 0.91。",
+      "faithfulness": 1.0,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.31258320258376227
+    },
+    {
+      "sample_index": 195,
+      "user_input": "产品 NX-014-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未明确规定具体数值，仅提及“金融最低要求”，但未给出阈值。\n- **季度工单超限次数**：超过 **6** 次。\n- **升级审批对象**：升级给 **finance_reviewer**。",
+      "reference": "产品 NX-014-0 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 1.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.5269060462184327
+    },
+    {
+      "sample_index": 196,
+      "user_input": "运维手册 ORION-014-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：01:30-03:00（时区 Asia/Shanghai）。  \n- 夜间连续 4 次 P2 召回缺失，需通知 incident_commander。",
+      "reference": "运维手册 ORION-014-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8313835473239556
+    },
+    {
+      "sample_index": 197,
+      "user_input": "供应商 SUP-014-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.87  \n- **合同金额区间（由regional_owner审批）**：116万元至200万元（含两端）",
+      "reference": "供应商 SUP-014-0 的召回覆盖率阈值是 0.87；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.9513395341167403
+    },
+    {
+      "sample_index": 198,
+      "user_input": "制度 POL-014-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-014-0 的知识库内容：\n- 审计日志保留天数为 **194 天**（至少保留 194 天）。\n- 第二次违规冻结天数为 **11 天**。\n- 演示样本清理期限为 **4 天**（须在 4 天内完成 demo_cleanup_checklist）。",
+      "reference": "制度 POL-014-0 的审计日志保留 194 天；第二次违规冻结 11 天；演示样本清理期限是 4 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8678783332767269
+    },
+    {
+      "sample_index": 199,
+      "user_input": "事故复盘 INC-014-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- chunkSize 从 400 调到 540。\n- overlap 从 60 调到 80。\n- 验收 gold_recall_rate 目标：知识库中未给出具体数值，仅要求该指标与 context_precision、answer_correctness 一起改善。",
+      "reference": "事故复盘 INC-014-0 将 chunkSize 从 400 调整到 540；overlap 是 60；验收 gold_recall_rate 目标是 0.90。",
+      "faithfulness": 1.0,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.499999999975,
+      "answer_correctness": 0.3086210934688652
+    },
+    {
+      "sample_index": 200,
+      "user_input": "产品 NX-014-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库中未提供该产品的明确数字，无法从现有片段得出。  \n- **季度工单升级审批阈值**：超过 **7** 次需要升级审批。  \n- **升级审批人**：升级给 **regional_manager**。  \n\n（以上两项依据来自文档“检索歧义矩阵”中“季度工单阈值7和审批角色regional_manager”的描述。）",
+      "reference": "产品 NX-014-1 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.6,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.4960386306424358
+    },
+    {
+      "sample_index": 201,
+      "user_input": "运维手册 ORION-014-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：**02:30-04:00**（系统编号 ORION-014-1）。\n- 触发条件：夜间连续 **5 次** P2 召回缺失。\n- 通知对象：**search_owner**。",
+      "reference": "运维手册 ORION-014-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9383440038098707
+    },
+    {
+      "sample_index": 202,
+      "user_input": "供应商 SUP-014-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "根据知识库文档 vendor_SUP-014-1.md 的提示信息：\n\n- 召回覆盖率阈值为 **0.88**。\n- 合同金额位于 **116 到 200**（单位：万元）之间，由 regional_owner 审批。",
+      "reference": "供应商 SUP-014-1 的召回覆盖率阈值是 0.88；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.5,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.8459808462759866
+    },
+    {
+      "sample_index": 203,
+      "user_input": "制度 POL-014-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-014-1 的规定：\n- 审计日志保留 **204** 天；\n- 第二次违规冻结 **12** 天；\n- 演示样本清理期限为 **5** 天。",
+      "reference": "制度 POL-014-1 的审计日志保留 204 天；第二次违规冻结 12 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9522752003448297
+    },
+    {
+      "sample_index": 204,
+      "user_input": "事故复盘 INC-014-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "**chunkSize 调整**  \n- 事故前：chunkSize = 420  \n- 事故后：chunkSize = 560  \n\n**overlap 调整**  \n- 事故前：overlap = 80  \n- 事故后：overlap = 100  \n\n**验收 gold_recall_rate 目标**  \n在提供的知识库文档中，未明确给出具体的 gold_recall_rate 数值目标。仅提到真正的达标标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，但未设定量化指标。如需准确目标，建议参考后续配套的高标准评测标准或团队内部规定的验收阈值。",
+      "reference": "事故复盘 INC-014-1 将 chunkSize 从 420 调整到 560；overlap 是 80；验收 gold_recall_rate 目标是 0.91。",
+      "faithfulness": 0.75,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.4533577354942219
+    },
+    {
+      "sample_index": 205,
+      "user_input": "产品 NX-014-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：3 条（依据检索歧义矩阵中提到的引用下限值）。  \n- **季度工单升级审批触发次数**：超过 8 次（知识库明确提及“季度工单阈值 8”）。  \n- **升级审批对象**：升级给 **delivery_director**（审批角色直接指定）。",
+      "reference": "产品 NX-014-2 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.8409654829335964
+    },
+    {
+      "sample_index": 206,
+      "user_input": "运维手册 ORION-014-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**：03:30-05:00（Asia/Shanghai时区）。\n- **连续P2召回缺失次数与通知对象**：连续6次P2召回缺失时，需通知 **platform_manager**。",
+      "reference": "运维手册 ORION-014-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.7940552369534968
+    },
+    {
+      "sample_index": 207,
+      "user_input": "供应商 SUP-014-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- **召回覆盖率阈值**：0.89  \n- **由 regional_owner 审批的合同金额区间**：116 万至 200 万",
+      "reference": "供应商 SUP-014-2 的召回覆盖率阈值是 0.89；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9408478823003548
+    },
+    {
+      "sample_index": 208,
+      "user_input": "制度 POL-014-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-014-2 的规定：\n\n- 审计日志保留 **214** 天  \n- 第二次违规冻结 **13** 天  \n- 演示样本清理期限 **6** 天（需在迁移前完成 demo_cleanup_checklist）",
+      "reference": "制度 POL-014-2 的审计日志保留 214 天；第二次违规冻结 13 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8433003335771073
+    },
+    {
+      "sample_index": 209,
+      "user_input": "事故复盘 INC-014-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "根据知识库片段2：事故前切片配置为 chunkSize=440、overlap=100；事故后切片配置调整为 chunkSize=580、overlap=120。  \n关于验收 gold_recall_rate 目标，知识库（片段1）仅指出该指标应与其他指标（context_precision、answer_correctness）一同改善，未给出具体数值。一般实践中 gold_recall_rate 常要求达到 ≥95%（此为补充信息，非知识库内容）。",
+      "reference": "事故复盘 INC-014-2 将 chunkSize 从 440 调整到 580；overlap 是 100；验收 gold_recall_rate 目标是 0.92。",
+      "faithfulness": 0.8,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.9166666666361111,
+      "answer_correctness": 0.27256551097190795
+    },
+    {
+      "sample_index": 210,
+      "user_input": "产品 NX-015-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "**金融最少引用数**  \n根据知识库描述（[4] 提及“把引用下限错误继承为同系列别的版本，从而把2条写成其他值”，以及 [2] 案例三中引用数不足导致降级），产品 NX-015-0 的金融场景最少引用数为 **2 条**（此为基于上下文推断的标准值，知识库未直接给出绝对数字）。\n\n**季度工单升级审批**  \n- **阈值**：季度工单超过 **7 次**（知识库 [4] 明确提到“季度工单阈值 7”）。  \n- **审批人**：升级后审批角色为 **regional_manager**（知识库 [4] 明确提到“审批角色 regional_manager”）。",
+      "reference": "产品 NX-015-0 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "faithfulness": 0.2222222222222222,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.5967033600794825
+    },
+    {
+      "sample_index": 211,
+      "user_input": "运维手册 ORION-015-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：01:30-03:00（Asia/Shanghai时区）。\n- 夜间连续**2次**P2召回缺失时，需通知**search_owner**。",
+      "reference": "运维手册 ORION-015-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8648495814469649
+    },
+    {
+      "sample_index": 212,
+      "user_input": "供应商 SUP-015-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 供应商 SUP-015-0 的召回覆盖率阈值是 **0.88**。  \n- 合同金额在 **120 万至 205 万**（含）之间由 **regional_owner** 审批。",
+      "reference": "供应商 SUP-015-0 的召回覆盖率阈值是 0.88；合同金额位于 120 万至 205 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9332882016696866
+    },
+    {
+      "sample_index": 213,
+      "user_input": "制度 POL-015-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "根据制度 POL-015-0 的规定：\n- 审计日志保留 **195 天**；\n- 第二次违规冻结 **7 天**；\n- 演示样本清理期限为 **5 天**。",
+      "reference": "制度 POL-015-0 的审计日志保留 195 天；第二次违规冻结 7 天；演示样本清理期限是 5 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.9581541284011034
+    },
+    {
+      "sample_index": 214,
+      "user_input": "事故复盘 INC-015-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- 调整前 chunkSize: 410，overlap: 60  \n- 调整后 chunkSize: 550，overlap: 80  \n- 验收 gold_recall_rate 目标：知识库中未给出具体数值，仅要求该指标与 context_precision、answer_correctness 一同改善，作为系统达到长期可用标准的标志。",
+      "reference": "事故复盘 INC-015-0 将 chunkSize 从 410 调整到 550；overlap 是 60；验收 gold_recall_rate 目标是 0.90。",
+      "faithfulness": 0.8571428571428571,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.4899863520032222
+    },
+    {
+      "sample_index": 215,
+      "user_input": "产品 NX-015-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：提供的知识库中未明确给出产品 NX-015-1 的金融最少引用数具体数值。相关片段仅提到“引用条数规则”“引用下限”等术语，但未提供数字。无法从已有信息中确定准确值。\n- **季度工单升级阈值**：根据文档[4]“季度工单阈值8”，即季度工单超过 **8** 次需要升级审批。\n- **升级审批对象**：根据同一段落的“审批角色 delivery_director”，升级审批给 **delivery_director**（交付总监）。",
+      "reference": "产品 NX-015-1 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "faithfulness": 0.375,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.249999999975,
+      "answer_correctness": 0.5407742535912394
+    },
+    {
+      "sample_index": 216,
+      "user_input": "运维手册 ORION-015-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- 维护窗口：02:30-04:00  \n- 夜间连续 3 次 P2 召回缺失需要通知 platform_manager。",
+      "reference": "运维手册 ORION-015-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.861019443912088
+    },
+    {
+      "sample_index": 217,
+      "user_input": "供应商 SUP-015-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.89  \n- 合同金额在 120 到 205（单位未知，推测为万元）之间由 regional_owner 审批。",
+      "reference": "供应商 SUP-015-1 的召回覆盖率阈值是 0.89；合同金额位于 120 万至 205 万之间时，由 regional_owner 审批。",
+      "faithfulness": 0.0,
+      "context_recall": 0.5,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.9457479446766144
+    },
+    {
+      "sample_index": 218,
+      "user_input": "制度 POL-015-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留天数：205 天  \n- 第二次违规冻结天数：8 天  \n- 演示样本清理期限：6 天",
+      "reference": "制度 POL-015-1 的审计日志保留 205 天；第二次违规冻结 8 天；演示样本清理期限是 6 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8636500172461146
+    },
+    {
+      "sample_index": 219,
+      "user_input": "事故复盘 INC-015-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "**chunkSize 调整：** 从 430 调整到 570。  \n**overlap 调整：** 从 80 调整到 100。  \n**验收 gold_recall_rate 目标：** 知识库中没有给出具体的数值目标，只要求 gold_recall_rate 与 context_precision、answer_correctness 一起改善，作为系统达到长期可用标准的标志。实际验收时需根据题集整体评测结果判断是否达标。",
+      "reference": "事故复盘 INC-015-1 将 chunkSize 从 430 调整到 570；overlap 是 80；验收 gold_recall_rate 目标是 0.91。",
+      "faithfulness": 1.0,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.3333333333,
+      "answer_correctness": 0.23957378186212602
+    },
+    {
+      "sample_index": 220,
+      "user_input": "产品 NX-015-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "response": "- **金融最少引用数**：知识库未给出具体数值，仅说明“若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送”，该阈值需查阅补充资料或产品团队确认。\n- **季度工单升级阈值**：超过 **9** 次，续费审批必须升级。\n- **升级审批对象**：升级给 **finance_reviewer**。",
+      "reference": "产品 NX-015-2 的金融最少引用数是 4 条；若季度工单超过 9 次，审批必须升级给 finance_reviewer。",
+      "faithfulness": 0.8333333333333334,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.4619624776143684
+    },
+    {
+      "sample_index": 221,
+      "user_input": "运维手册 ORION-015-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "response": "- **维护窗口**：03:30-05:00（Asia/Shanghai 时区）。  \n- **连续 P2 召回缺失次数与通知对象**：夜间连续 **4 次** P2 召回缺失，需通知 **incident_commander**。",
+      "reference": "运维手册 ORION-015-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.8179089121326061
+    },
+    {
+      "sample_index": 222,
+      "user_input": "供应商 SUP-015-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "response": "- 召回覆盖率阈值：0.90  \n- 由 regional_owner 审批的合同金额区间：120 万至 205 万（含两端）",
+      "reference": "供应商 SUP-015-2 的召回覆盖率阈值是 0.90；合同金额位于 120 万至 205 万之间时，由 regional_owner 审批。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.49999999995,
+      "answer_correctness": 0.8440959596941415
+    },
+    {
+      "sample_index": 223,
+      "user_input": "制度 POL-015-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "response": "- 审计日志保留：215 天  \n- 第二次违规冻结：9 天  \n- 演示样本文档清理期限：7 天",
+      "reference": "制度 POL-015-2 的审计日志保留 215 天；第二次违规冻结 9 天；演示样本清理期限是 7 天。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.8617222652454128
+    },
+    {
+      "sample_index": 224,
+      "user_input": "事故复盘 INC-015-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "response": "- **chunkSize 调整**：从 450 调整为 590  \n- **overlap 调整**：从 100 调整为 120  \n- **验收 gold_recall_rate 目标**：知识库未明确规定具体数值，但要求与 context_precision、answer_correctness 一同改善，整体达到长期可用标准。",
+      "reference": "事故复盘 INC-015-2 将 chunkSize 从 450 调整到 590；overlap 是 100；验收 gold_recall_rate 目标是 0.92。",
+      "faithfulness": 0.6,
+      "context_recall": 0.6666666666666666,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.2805264719129407
+    },
+    {
+      "sample_index": 225,
+      "user_input": "Aurora 默认知识问答 topK 是多少，工作台链路常用 topK 是多少，最容易丢失哪类条款？",
+      "response": "- Aurora 默认知识问答 topK 是 **5**。  \n- 工作台链路常用 topK 是 **4**。  \n- 最容易丢失的条款是 **second_layer_clause**。",
+      "reference": "Aurora 默认知识问答 topK 是 5；工作台链路常用 topK 是 4；最容易丢失的是 second_layer_clause。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.7499999999625,
+      "answer_correctness": 0.8210094227680923
+    },
+    {
+      "sample_index": 226,
+      "user_input": "金融行业问答在引用数不足、召回文档数不足一半、exact_code 未命中时分别应该如何处理？",
+      "response": "针对金融行业问答中的三个具体问题，推荐处理方式如下：\n\n1. **引用数不足**：优先增大chunkSize并提高overlap，以降低条款被拆散的概率，提升有效引用的数量。参考知识库中“second_layer_clause经常丢失”的调优方向，可结合具体场景将chunkSize调大至500-600、overlap提升至80-120。\n\n2. **召回文档数不足一半**：同样建议增大chunkSize和overlap，这能扩大每个文档块的内容覆盖面，减少关键信息因分割过细而未被召回的情况。若仍不足，可进一步配合structured_fact_extractor对高混淆字段做结构化提取，改善匹配效果。\n\n3. **exact_code未命中**：应增加exact_code rerank特征，通过编号强化排序，抑制同族近邻文档的干扰，提升精确代码匹配的命中率。若混淆依然严重，还可考虑添加family_level_hard_negative训练样本。\n\n以上建议主要来自知识库中的检索调优经验，实际应用时需结合具体数据分布做微调。",
+      "reference": "金融行业问答引用数量不足产品文档规定的最低值时，只能标记 normal_confidence；召回文档数少于应召回文档总数一半时，必须记录 recall_gap；exact_code 未命中时，即使答案方向正确也不能视为 fully_grounded。",
+      "faithfulness": 0.5,
+      "context_recall": 0.0,
+      "llm_context_precision_with_reference": 0.0,
+      "answer_correctness": 0.11194734035540471
+    },
+    {
+      "sample_index": 227,
+      "user_input": "thinking mode 中 visibleContent 和 content 分别用于什么，混用会造成什么风险？",
+      "response": "在thinking mode中，`visibleContent` 只用于实时展示推理过程，`content` 只用于持久化最终正式答案。若前端混用，将 `visibleContent` 当作 `content` 对外展示，则会造成 `final_answer_presentation_risk`（最终答案展示风险）。",
+      "reference": "visibleContent 只用于实时展示推理过程，content 只用于持久化最终正式答案；如果前端把 visibleContent 当成 content 对外展示，会造成 final_answer_presentation_risk。",
+      "faithfulness": 1.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.999999999975,
+      "answer_correctness": 0.9340926732965134
+    },
+    {
+      "sample_index": 228,
+      "user_input": "检索调优手册建议 second_layer_clause 丢失、exact_code 错召回、制度天数混淆时分别怎么处理？",
+      "response": "根据《检索调优手册》：\n- **second_layer_clause 丢失**：应优先增大 chunkSize 并提高 overlap。\n- **exact_code 召回错误**：应增加编号特征 rerank。\n- **制度天数与阈值混淆**：应提取 structured_fact_extractor。",
+      "reference": "second_layer_clause 经常丢失时，应优先增大 chunkSize 并提高 overlap；exact_code 召回经常错误时，应增加编号特征 rerank；制度天数与阈值频繁混淆时，应加入 structured_fact_extractor。",
+      "faithfulness": 0.0,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.9999999999,
+      "answer_correctness": 0.7846604496846284
+    },
+    {
+      "sample_index": 229,
+      "user_input": "置信度标注标准中，引用不足、只命中相似文档未命中 gold_document、证据不完整时分别如何标注？",
+      "response": "- **引用不足**：根据知识库，引用不足最低要求时**不得标注 high_confidence**。当前执行规则下，若客户为金融行业，**只能标注 normal_confidence**；非金融行业客户虽未明确，但通常也不得标 high_confidence，一般标注为 low_confidence 或按内部规则执行。\n- **只命中相似文档未命中 gold_document**：知识库规定，即使引用正确但 gold_document 缺失，**不得向用户宣称 fully_grounded**。置信度标注上并未明确禁止 high_confidence，但基于金标准缺失的事实，建议标注为 medium_confidence 或 low_confidence，具体结合引用质量和上下文判断。\n- **证据不完整**：知识库未直接覆盖此场景。一般标注实践中，证据不完整（如缺少必要支持片段、部分引用缺失等）应视为置信度不足，通常标注为 low_confidence，需人工复核或补充证据后重新评估。",
+      "reference": "引用数量不足最低要求时不得使用 high_confidence；只命中相似文档但未命中 gold_document 时，最高只能标记 reviewed_but_not_grounded；引用与答案方向一致但证据不完整时，只能标记 normal_confidence。",
+      "faithfulness": 0.14285714285714285,
+      "context_recall": 0.3333333333333333,
+      "llm_context_precision_with_reference": 0.9999999999666667,
+      "answer_correctness": 0.35717001191996517
+    },
+    {
+      "sample_index": 230,
+      "user_input": "工作台问答链路中没有 activeConversation 时会怎么处理，默认通过哪个接口完成知识问答，工作台 topK 通常是多少？",
+      "response": "1. 当工作台问答链路中没有 `activeConversation` 时，`handleSend` 进入 `sendMessage` 后会检查该变量，若不存在则自动创建一个新会话。\n2. 默认通过 **`workspace/chat/stream`** 接口完成知识问答（知识问答层默认走该接口）。\n3. 工作台链路通常将知识检索的 **topK 固定为 4**（Aurora 默认 topK 为 5，但工作台为减少上下文长度，一般降为 4）。",
+      "reference": "handleSend 进入 sendMessage 后会检查 activeConversation，不存在则创建会话；知识问答层默认走 workspace/chat/stream 完成事件；工作台链路通常把知识检索 topK 固定为 4。",
+      "faithfulness": 0.875,
+      "context_recall": 1.0,
+      "llm_context_precision_with_reference": 0.99999999995,
+      "answer_correctness": 0.6487110852823486
+    }
+  ]
+}

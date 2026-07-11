@@ -27,11 +27,11 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
   const quotedTerms = extractQuotedTerms(normalizedQuery)
   const identifierTerms = extractPatternTerms(normalizedQuery, IDENTIFIER_LIKE_PATTERN)
   const errorCodeTerms = extractPatternTerms(normalizedQuery, ERROR_CODE_LIKE_PATTERN)
-  const exactTerms = uniqueStrings([
+  const exactTerms = compactStructuredExactTerms(uniqueStrings([
     ...quotedTerms,
     ...identifierTerms,
     ...errorCodeTerms
-  ])
+  ]))
 
   const tokenCount = normalizedQuery.split(/\s+/).filter(Boolean).length
   const shortQuery = tokenCount > 0 && tokenCount <= 3 && normalizedQuery.length <= 48
@@ -168,4 +168,34 @@ function uniqueStrings(values: string[]): string[] {
   }
 
   return result
+}
+
+function compactStructuredExactTerms(values: string[]): string[] {
+  return values.filter((value, index) => {
+    if (!isStructuredExactTerm(value)) {
+      return true
+    }
+
+    const normalizedValue = value.toLowerCase()
+
+    return !values.some((candidate, candidateIndex) => {
+      if (candidateIndex === index) {
+        return false
+      }
+
+      if (!isStructuredExactTerm(candidate)) {
+        return false
+      }
+
+      const normalizedCandidate = candidate.toLowerCase()
+      return (
+        normalizedCandidate.length > normalizedValue.length &&
+        normalizedCandidate.includes(normalizedValue)
+      )
+    })
+  })
+}
+
+function isStructuredExactTerm(value: string): boolean {
+  return /[a-z]/i.test(value) && /\d/.test(value)
 }

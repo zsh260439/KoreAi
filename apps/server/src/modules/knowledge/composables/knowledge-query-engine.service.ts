@@ -286,12 +286,12 @@ function buildProtectedTerms(
 
   const requiredTerms = analysis?.requiredTerms ?? []
 
-  return uniqueStrings([
+  return compactStructuredExactTerms(uniqueStrings([
     ...ruleSignal.exactTerms,
     ...entityTerms,
     ...requiredTerms,
     ...constraintTerms.required
-  ]).slice(0, 8)
+  ])).slice(0, 8)
 }
 
 function buildConstraintTerms(
@@ -434,6 +434,36 @@ function uniqueStrings(values: string[]): string[] {
   }
 
   return result
+}
+
+function compactStructuredExactTerms(values: string[]): string[] {
+  return values.filter((value, index) => {
+    if (!isStructuredExactTerm(value)) {
+      return true
+    }
+
+    const normalizedValue = value.toLowerCase()
+
+    return !values.some((candidate, candidateIndex) => {
+      if (candidateIndex === index) {
+        return false
+      }
+
+      if (!isStructuredExactTerm(candidate)) {
+        return false
+      }
+
+      const normalizedCandidate = candidate.toLowerCase()
+      return (
+        normalizedCandidate.length > normalizedValue.length &&
+        normalizedCandidate.includes(normalizedValue)
+      )
+    })
+  })
+}
+
+function isStructuredExactTerm(value: string): boolean {
+  return /[a-z]/i.test(value) && /\d/.test(value)
 }
 
 function clampWeight(value: number): number {

@@ -32,19 +32,32 @@ SERVER_DIR = ROOT_DIR / "apps" / "server"
 CORPUS_DIR = Path(__file__).resolve().parent / "generated_corpus"
 
 #声明数据集文件
-DATASET_PATH = Path(__file__).resolve().parent / "eval_dataset.json"
+DATASET_PATH = Path(os.getenv("RAGAS_DATASET_PATH", Path(__file__).resolve().parent / "eval_dataset.json"))
 
 #声明清单文件
 MANIFEST_PATH = Path(__file__).resolve().parent / "corpus_manifest.json"
 
 #声明报告文件
-REPORT_PATH = Path(__file__).resolve().parent / "ragas_report.json"
+REPORT_PATH = Path(os.getenv("RAGAS_REPORT_PATH", Path(__file__).resolve().parent / "ragas_report.json"))
 
 #声明进度文件
-PROGRESS_PATH = Path(__file__).resolve().parent / "ragas_progress.json"
+PROGRESS_PATH = Path(os.getenv("RAGAS_PROGRESS_PATH", Path(__file__).resolve().parent / "ragas_progress.json"))
+
+#声明问答缓存文件
+QA_CACHE_PATH = Path(os.getenv("RAGAS_QA_CACHE_PATH", Path(__file__).resolve().parent / "ragas_qa_cache.json"))
 
 #声明单指标硬超时秒数
 METRIC_HARD_TIMEOUT_SECONDS = 480
+
+
+#声明评分并发数，只用于 RAGAS 离线评测脚本
+def get_score_concurrency() -> int:
+  raw_value = os.getenv("RAGAS_SCORE_CONCURRENCY", "3")
+  try:
+    value = int(raw_value)
+  except ValueError:
+    return 3
+  return max(1, min(value, 8))
 
 
 #声明读取环境变量
@@ -164,10 +177,11 @@ def create_document(base_url: str, kb_id: str, file_path: Path) -> dict[str, Any
     json={
       "name": file_path.name,
       "storagePath": str(file_path),
-      "chunkStrategy": "fixed_size",
       "chunkConfig": {
-        "chunkSize": 420,
-        "overlap": 90,
+        "targetChars": 700,
+        "maxChars": 900,
+        "minChars": 300,
+        "overlapChars": 80,
       },
     },
     timeout=120,
@@ -203,6 +217,7 @@ def ask_knowledge(base_url: str, kb_id: str, question: str) -> dict[str, Any]:
     json={
       "query": question,
       "knowledgeBaseId": kb_id,
+      "think": True,
     },
     stream=True,
     timeout=300,
@@ -224,6 +239,75 @@ def ask_knowledge(base_url: str, kb_id: str, question: str) -> dict[str, Any]:
 
 
 #声明构造样本
+def ask_knowledge_with_retry(base_url: str, kb_id: str, question: str) -> dict[str, Any]:
+  last_error: Exception | None = None
+
+  for attempt in range(3):
+    try:
+      return ask_knowledge(base_url, kb_id, question)
+    except Exception as error:
+      last_error = error
+      if attempt >= 2:
+        break
+      time.sleep(2)
+
+  raise RuntimeError(f"Question failed after retries: {question}; reason: {last_error}")
+
+
+#声明读取问答缓存
+def load_qa_cache(signature: str) -> dict[str, dict[str, Any]]:
+  if not QA_CACHE_PATH.exists():
+    return {}
+  payload = json.loads(QA_CACHE_PATH.read_text(encoding="utf-8"))
+  if payload.get("dataset_signature") != signature:
+    return {}
+  return {row["question_id"]: row["result"] for row in payload.get("rows", [])}
+
+
+#声明写入问答缓存
+def write_qa_cache(signature: str, rows: list[dict[str, Any]]) -> None:
+  payload = json.dumps(
+    {
+      "dataset_signature": signature,
+      "completed_questions": len(rows),
+      "rows": rows,
+    },
+    ensure_ascii=False,
+    indent=2,
+  )
+  temp_path = QA_CACHE_PATH.with_suffix(f"{QA_CACHE_PATH.suffix}.tmp")
+  temp_path.write_text(payload, encoding="utf-8")
+  temp_path.replace(QA_CACHE_PATH)
+
+
+#声明执行问答并保存断点，防止长评测重跑时重复调用 LLM
+def collect_ask_results(
+  base_url: str,
+  kb_id: str,
+  eval_questions: list[dict[str, Any]],
+  signature: str,
+) -> list[dict[str, Any]]:
+  rows_by_id: dict[str, dict[str, Any]] = {
+    question_id: {
+      "question_id": question_id,
+      "result": result,
+    }
+    for question_id, result in load_qa_cache(signature).items()
+  }
+
+  for question in eval_questions:
+    question_id = question["question_id"]
+    if question_id not in rows_by_id:
+      rows_by_id[question_id] = {
+        "question_id": question_id,
+        "result": ask_knowledge_with_retry(base_url, kb_id, question["question"]),
+      }
+      ordered_rows = [rows_by_id[item["question_id"]] for item in eval_questions if item["question_id"] in rows_by_id]
+      write_qa_cache(signature, ordered_rows)
+
+  return [rows_by_id[item["question_id"]]["result"] for item in eval_questions]
+
+
 def build_samples(eval_questions: list[dict[str, Any]], ask_results: list[dict[str, Any]]) -> list[SingleTurnSample]:
   return [
     SingleTurnSample(
@@ -267,8 +351,10 @@ def build_recall_gap(eval_questions: list[dict[str, Any]], ask_results: list[dic
   rows: list[dict[str, Any]] = []
   for question, ask_result in zip(eval_questions, ask_results):
     gold_names = question["gold_document_names"]
-    retrieved_names = [item["documentName"] for item in ask_result["sources"]]
-    hit_gold_names = [name for name in retrieved_names if name in gold_names]
+    #声明同一文档可能命中多个 chunk，召回统计必须按文档去重
+    retrieved_names = list(dict.fromkeys(item["documentName"] for item in ask_result["sources"]))
+    retrieved_name_set = set(retrieved_names)
+    hit_gold_names = [name for name in gold_names if name in retrieved_name_set]
     missed_gold_names = [name for name in gold_names if name not in retrieved_names]
     rows.append(
       {
@@ -352,12 +438,8 @@ async def score_samples_async(
   signature: str,
   existing_rows: dict[int, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-  rows: list[dict[str, Any]] = []
-  for index, sample in enumerate(samples):
-    if index in existing_rows:
-      rows.append(existing_rows[index])
-      continue
-
+  #澹版槑杩斿洖鍗曟潯璇勫垎缁撴灉锛屽苟鍙戠敱涓婂眰缁熶竴鎺у埗
+  async def score_one_sample(index: int, sample: SingleTurnSample) -> dict[str, Any]:
     row: dict[str, Any] = {
       "sample_index": index,
       "user_input": sample.user_input,
@@ -375,10 +457,25 @@ async def score_samples_async(
       except Exception as error:
         row[metric.name] = None
         row[f"{metric.name}_error"] = str(error)
-    rows.append(row)
+    return row
+
+  rows_by_index: dict[int, dict[str, Any]] = dict(existing_rows)
+  pending_samples = [(index, sample) for index, sample in enumerate(samples) if index not in rows_by_index]
+  semaphore = asyncio.Semaphore(get_score_concurrency())
+
+  #澹版槑闄愬埗骞跺彂锛岄伩鍏嶈瘎娴婰LM/API 鎵撴弧
+  async def run_with_limit(index: int, sample: SingleTurnSample) -> dict[str, Any]:
+    async with semaphore:
+      return await score_one_sample(index, sample)
+
+  tasks = [asyncio.create_task(run_with_limit(index, sample)) for index, sample in pending_samples]
+  for task in asyncio.as_completed(tasks):
+    row = await task
+    rows_by_index[int(row["sample_index"])] = row
+    rows = sorted(rows_by_index.values(), key=lambda item: int(item["sample_index"]))
     write_progress(signature, rows)
 
-  rows.sort(key=lambda item: int(item["sample_index"]))
+  rows = sorted(rows_by_index.values(), key=lambda item: int(item["sample_index"]))
   write_progress(signature, rows)
   return rows
 
@@ -420,7 +517,7 @@ def main() -> None:
         rebuild_document(api_base_url, created_document["id"])
 
     documents = find_documents(api_base_url, knowledge_base["id"])
-    ask_results = [ask_knowledge(api_base_url, knowledge_base["id"], item["question"]) for item in dataset["questions"]]
+    ask_results = collect_ask_results(api_base_url, knowledge_base["id"], dataset["questions"], signature)
     samples = build_samples(dataset["questions"], ask_results)
     metrics = build_metrics(env)
     existing_rows = load_progress(signature)

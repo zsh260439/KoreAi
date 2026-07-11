@@ -34,6 +34,8 @@
 - Docker-based database bootstrap now uses `pnpm infra:up` / `pnpm db:bootstrap`: empty databases first create base tables from entities, existing complete databases skip schema sync, and partial databases fail fast instead of guessing.
 - The old `apps/server/sql/knowledge-bm25/*.sql` scripts are retired; BM25 database changes now live only in TypeORM migrations and bootstrap flow.
 - Legacy local PostgreSQL data has been migrated from `knowledge_app` into the Docker `KoreAi` database; Docker is now the active runtime database for this project.
+- Knowledge chunk vector search now uses a pgvector HNSW index on `knowledge_chunks.embedding` via TypeORM migration `1760000004000-create-knowledge-chunks-hnsw-index.ts`; the Docker `KoreAi` database has been verified with `knowledge_chunks_embedding_hnsw_idx`.
+- Full RAGAS coverage evaluation lives under `scripts/ragas_eval`: `eval_dataset_full.json` covers all 231 generated corpus documents, `ragas_qa_cache_full.json` caches chat answers, and `ragas_progress_full.json` caches metric rows so long evaluations can resume without re-asking or re-scoring completed samples.
 
 ## Validation Habits
 - For backend changes, prefer at least `pnpm --filter server build`.

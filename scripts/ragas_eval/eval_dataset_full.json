@@ -1,0 +1,5206 @@
+{
+  "knowledge_base_name": "Ragas High Standard Corpus",
+  "knowledge_base_description": "Full-document deterministic RAGAS dataset generated from corpus_manifest facts.",
+  "document_count": 231,
+  "question_count": 231,
+  "documents": [
+    {
+      "relative_path": "product_specs/product_NX-001-0.md",
+      "name": "product_NX-001-0.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-001-0",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.78",
+        "quarterly_ticket_limit": 5,
+        "visibility_retention_days": 31,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-001-0.md",
+      "name": "ops_ORION-001-0.md",
+      "char_count": 2678,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-001-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-001-0.md",
+      "name": "vendor_SUP-001-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-001-0",
+        "coverage_threshold": "0.81",
+        "approval_low": 64,
+        "approval_high": 135,
+        "penalty_days": 6,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-001-0.md",
+      "name": "policy_POL-001-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-001-0",
+        "audit_retention_days": 181,
+        "second_violation_freeze_days": 8,
+        "demo_cleanup_deadline_days": 3,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-001-0.md",
+      "name": "postmortem_INC-001-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-001-0",
+        "old_chunk_size": 270,
+        "new_chunk_size": 410,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.84",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-001-1.md",
+      "name": "product_NX-001-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-001-1",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.79",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 41,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-001-1.md",
+      "name": "ops_ORION-001-1.md",
+      "char_count": 2704,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-001-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-001-1.md",
+      "name": "vendor_SUP-001-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-001-1",
+        "coverage_threshold": "0.82",
+        "approval_low": 64,
+        "approval_high": 135,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-001-1.md",
+      "name": "policy_POL-001-1.md",
+      "char_count": 2419,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-001-1",
+        "audit_retention_days": 191,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-001-1.md",
+      "name": "postmortem_INC-001-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-001-1",
+        "old_chunk_size": 290,
+        "new_chunk_size": 430,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.85",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-001-2.md",
+      "name": "product_NX-001-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-001-2",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.80",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 51,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-001-2.md",
+      "name": "ops_ORION-001-2.md",
+      "char_count": 2696,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-001-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-001-2.md",
+      "name": "vendor_SUP-001-2.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-001-2",
+        "coverage_threshold": "0.83",
+        "approval_low": 64,
+        "approval_high": 135,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-001-2.md",
+      "name": "policy_POL-001-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-001-2",
+        "audit_retention_days": 201,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-001-2.md",
+      "name": "postmortem_INC-001-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-001-2",
+        "old_chunk_size": 310,
+        "new_chunk_size": 450,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.86",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-002-0.md",
+      "name": "product_NX-002-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-002-0",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.78",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 32,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-002-0.md",
+      "name": "ops_ORION-002-0.md",
+      "char_count": 2684,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-002-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-002-0.md",
+      "name": "vendor_SUP-002-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-002-0",
+        "coverage_threshold": "0.81",
+        "approval_low": 68,
+        "approval_high": 140,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-002-0.md",
+      "name": "policy_POL-002-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-002-0",
+        "audit_retention_days": 182,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-002-0.md",
+      "name": "postmortem_INC-002-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-002-0",
+        "old_chunk_size": 280,
+        "new_chunk_size": 420,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.85",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-002-1.md",
+      "name": "product_NX-002-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-002-1",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.79",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 42,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-002-1.md",
+      "name": "ops_ORION-002-1.md",
+      "char_count": 2686,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-002-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-002-1.md",
+      "name": "vendor_SUP-002-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-002-1",
+        "coverage_threshold": "0.82",
+        "approval_low": 68,
+        "approval_high": 140,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-002-1.md",
+      "name": "policy_POL-002-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-002-1",
+        "audit_retention_days": 192,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-002-1.md",
+      "name": "postmortem_INC-002-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-002-1",
+        "old_chunk_size": 300,
+        "new_chunk_size": 440,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.86",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-002-2.md",
+      "name": "product_NX-002-2.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-002-2",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.80",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 52,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-002-2.md",
+      "name": "ops_ORION-002-2.md",
+      "char_count": 2708,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-002-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 6,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-002-2.md",
+      "name": "vendor_SUP-002-2.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-002-2",
+        "coverage_threshold": "0.83",
+        "approval_low": 68,
+        "approval_high": 140,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-002-2.md",
+      "name": "policy_POL-002-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-002-2",
+        "audit_retention_days": 202,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-002-2.md",
+      "name": "postmortem_INC-002-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-002-2",
+        "old_chunk_size": 320,
+        "new_chunk_size": 460,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.87",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-003-0.md",
+      "name": "product_NX-003-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-003-0",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.79",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 33,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-003-0.md",
+      "name": "ops_ORION-003-0.md",
+      "char_count": 2666,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-003-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 2,
+        "notify_role": "search_owner",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-003-0.md",
+      "name": "vendor_SUP-003-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-003-0",
+        "coverage_threshold": "0.82",
+        "approval_low": 72,
+        "approval_high": 145,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-003-0.md",
+      "name": "policy_POL-003-0.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-003-0",
+        "audit_retention_days": 183,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-003-0.md",
+      "name": "postmortem_INC-003-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-003-0",
+        "old_chunk_size": 290,
+        "new_chunk_size": 430,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.85",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-003-1.md",
+      "name": "product_NX-003-1.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-003-1",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.80",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 43,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-003-1.md",
+      "name": "ops_ORION-003-1.md",
+      "char_count": 2698,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-003-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-003-1.md",
+      "name": "vendor_SUP-003-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-003-1",
+        "coverage_threshold": "0.83",
+        "approval_low": 72,
+        "approval_high": 145,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-003-1.md",
+      "name": "policy_POL-003-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-003-1",
+        "audit_retention_days": 193,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-003-1.md",
+      "name": "postmortem_INC-003-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-003-1",
+        "old_chunk_size": 310,
+        "new_chunk_size": 450,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.86",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-003-2.md",
+      "name": "product_NX-003-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-003-2",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.81",
+        "quarterly_ticket_limit": 9,
+        "visibility_retention_days": 53,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-003-2.md",
+      "name": "ops_ORION-003-2.md",
+      "char_count": 2714,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-003-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-003-2.md",
+      "name": "vendor_SUP-003-2.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-003-2",
+        "coverage_threshold": "0.84",
+        "approval_low": 72,
+        "approval_high": 145,
+        "penalty_days": 10,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-003-2.md",
+      "name": "policy_POL-003-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-003-2",
+        "audit_retention_days": 203,
+        "second_violation_freeze_days": 12,
+        "demo_cleanup_deadline_days": 7,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-003-2.md",
+      "name": "postmortem_INC-003-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-003-2",
+        "old_chunk_size": 330,
+        "new_chunk_size": 470,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.87",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-004-0.md",
+      "name": "product_NX-004-0.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-004-0",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.79",
+        "quarterly_ticket_limit": 4,
+        "visibility_retention_days": 34,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-004-0.md",
+      "name": "ops_ORION-004-0.md",
+      "char_count": 2678,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-004-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-004-0.md",
+      "name": "vendor_SUP-004-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-004-0",
+        "coverage_threshold": "0.82",
+        "approval_low": 76,
+        "approval_high": 150,
+        "penalty_days": 5,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-004-0.md",
+      "name": "policy_POL-004-0.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-004-0",
+        "audit_retention_days": 184,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 2,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-004-0.md",
+      "name": "postmortem_INC-004-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-004-0",
+        "old_chunk_size": 300,
+        "new_chunk_size": 440,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.86",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-004-1.md",
+      "name": "product_NX-004-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-004-1",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.80",
+        "quarterly_ticket_limit": 5,
+        "visibility_retention_days": 44,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-004-1.md",
+      "name": "ops_ORION-004-1.md",
+      "char_count": 2704,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-004-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-004-1.md",
+      "name": "vendor_SUP-004-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-004-1",
+        "coverage_threshold": "0.83",
+        "approval_low": 76,
+        "approval_high": 150,
+        "penalty_days": 6,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-004-1.md",
+      "name": "policy_POL-004-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-004-1",
+        "audit_retention_days": 194,
+        "second_violation_freeze_days": 12,
+        "demo_cleanup_deadline_days": 3,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-004-1.md",
+      "name": "postmortem_INC-004-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-004-1",
+        "old_chunk_size": 320,
+        "new_chunk_size": 460,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.87",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-004-2.md",
+      "name": "product_NX-004-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-004-2",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.81",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 54,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-004-2.md",
+      "name": "ops_ORION-004-2.md",
+      "char_count": 2696,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-004-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-004-2.md",
+      "name": "vendor_SUP-004-2.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-004-2",
+        "coverage_threshold": "0.84",
+        "approval_low": 76,
+        "approval_high": 150,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-004-2.md",
+      "name": "policy_POL-004-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-004-2",
+        "audit_retention_days": 204,
+        "second_violation_freeze_days": 13,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-004-2.md",
+      "name": "postmortem_INC-004-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-004-2",
+        "old_chunk_size": 340,
+        "new_chunk_size": 480,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-005-0.md",
+      "name": "product_NX-005-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-005-0",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.80",
+        "quarterly_ticket_limit": 5,
+        "visibility_retention_days": 35,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-005-0.md",
+      "name": "ops_ORION-005-0.md",
+      "char_count": 2684,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-005-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-005-0.md",
+      "name": "vendor_SUP-005-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-005-0",
+        "coverage_threshold": "0.83",
+        "approval_low": 80,
+        "approval_high": 155,
+        "penalty_days": 6,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-005-0.md",
+      "name": "policy_POL-005-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-005-0",
+        "audit_retention_days": 185,
+        "second_violation_freeze_days": 7,
+        "demo_cleanup_deadline_days": 3,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-005-0.md",
+      "name": "postmortem_INC-005-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-005-0",
+        "old_chunk_size": 310,
+        "new_chunk_size": 450,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.86",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-005-1.md",
+      "name": "product_NX-005-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-005-1",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.81",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 45,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-005-1.md",
+      "name": "ops_ORION-005-1.md",
+      "char_count": 2686,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-005-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-005-1.md",
+      "name": "vendor_SUP-005-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-005-1",
+        "coverage_threshold": "0.84",
+        "approval_low": 80,
+        "approval_high": 155,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-005-1.md",
+      "name": "policy_POL-005-1.md",
+      "char_count": 2419,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-005-1",
+        "audit_retention_days": 195,
+        "second_violation_freeze_days": 8,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-005-1.md",
+      "name": "postmortem_INC-005-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-005-1",
+        "old_chunk_size": 330,
+        "new_chunk_size": 470,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.87",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-005-2.md",
+      "name": "product_NX-005-2.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-005-2",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.82",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 55,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-005-2.md",
+      "name": "ops_ORION-005-2.md",
+      "char_count": 2708,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-005-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 6,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-005-2.md",
+      "name": "vendor_SUP-005-2.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-005-2",
+        "coverage_threshold": "0.85",
+        "approval_low": 80,
+        "approval_high": 155,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-005-2.md",
+      "name": "policy_POL-005-2.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-005-2",
+        "audit_retention_days": 205,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-005-2.md",
+      "name": "postmortem_INC-005-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-005-2",
+        "old_chunk_size": 350,
+        "new_chunk_size": 490,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-006-0.md",
+      "name": "product_NX-006-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-006-0",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.81",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 30,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-006-0.md",
+      "name": "ops_ORION-006-0.md",
+      "char_count": 2666,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-006-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 2,
+        "notify_role": "search_owner",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-006-0.md",
+      "name": "vendor_SUP-006-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-006-0",
+        "coverage_threshold": "0.83",
+        "approval_low": 84,
+        "approval_high": 160,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-006-0.md",
+      "name": "policy_POL-006-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-006-0",
+        "audit_retention_days": 186,
+        "second_violation_freeze_days": 8,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-006-0.md",
+      "name": "postmortem_INC-006-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-006-0",
+        "old_chunk_size": 320,
+        "new_chunk_size": 460,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.86",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-006-1.md",
+      "name": "product_NX-006-1.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-006-1",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.82",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 40,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-006-1.md",
+      "name": "ops_ORION-006-1.md",
+      "char_count": 2698,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-006-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-006-1.md",
+      "name": "vendor_SUP-006-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-006-1",
+        "coverage_threshold": "0.84",
+        "approval_low": 84,
+        "approval_high": 160,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-006-1.md",
+      "name": "policy_POL-006-1.md",
+      "char_count": 2419,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-006-1",
+        "audit_retention_days": 196,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-006-1.md",
+      "name": "postmortem_INC-006-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-006-1",
+        "old_chunk_size": 340,
+        "new_chunk_size": 480,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.87",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-006-2.md",
+      "name": "product_NX-006-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-006-2",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.83",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 50,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-006-2.md",
+      "name": "ops_ORION-006-2.md",
+      "char_count": 2714,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-006-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-006-2.md",
+      "name": "vendor_SUP-006-2.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-006-2",
+        "coverage_threshold": "0.85",
+        "approval_low": 84,
+        "approval_high": 160,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-006-2.md",
+      "name": "policy_POL-006-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-006-2",
+        "audit_retention_days": 206,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-006-2.md",
+      "name": "postmortem_INC-006-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-006-2",
+        "old_chunk_size": 360,
+        "new_chunk_size": 500,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-007-0.md",
+      "name": "product_NX-007-0.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-007-0",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.81",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 31,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-007-0.md",
+      "name": "ops_ORION-007-0.md",
+      "char_count": 2678,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-007-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-007-0.md",
+      "name": "vendor_SUP-007-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-007-0",
+        "coverage_threshold": "0.84",
+        "approval_low": 88,
+        "approval_high": 165,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-007-0.md",
+      "name": "policy_POL-007-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-007-0",
+        "audit_retention_days": 187,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-007-0.md",
+      "name": "postmortem_INC-007-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-007-0",
+        "old_chunk_size": 330,
+        "new_chunk_size": 470,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.87",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-007-1.md",
+      "name": "product_NX-007-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-007-1",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.82",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 41,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-007-1.md",
+      "name": "ops_ORION-007-1.md",
+      "char_count": 2704,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-007-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-007-1.md",
+      "name": "vendor_SUP-007-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-007-1",
+        "coverage_threshold": "0.85",
+        "approval_low": 88,
+        "approval_high": 165,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-007-1.md",
+      "name": "policy_POL-007-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-007-1",
+        "audit_retention_days": 197,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-007-1.md",
+      "name": "postmortem_INC-007-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-007-1",
+        "old_chunk_size": 350,
+        "new_chunk_size": 490,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-007-2.md",
+      "name": "product_NX-007-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-007-2",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.83",
+        "quarterly_ticket_limit": 9,
+        "visibility_retention_days": 51,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-007-2.md",
+      "name": "ops_ORION-007-2.md",
+      "char_count": 2696,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-007-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-007-2.md",
+      "name": "vendor_SUP-007-2.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-007-2",
+        "coverage_threshold": "0.86",
+        "approval_low": 88,
+        "approval_high": 165,
+        "penalty_days": 10,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-007-2.md",
+      "name": "policy_POL-007-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-007-2",
+        "audit_retention_days": 207,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 7,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-007-2.md",
+      "name": "postmortem_INC-007-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-007-2",
+        "old_chunk_size": 370,
+        "new_chunk_size": 510,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.89",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-008-0.md",
+      "name": "product_NX-008-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-008-0",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.82",
+        "quarterly_ticket_limit": 4,
+        "visibility_retention_days": 32,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-008-0.md",
+      "name": "ops_ORION-008-0.md",
+      "char_count": 2684,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-008-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-008-0.md",
+      "name": "vendor_SUP-008-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-008-0",
+        "coverage_threshold": "0.84",
+        "approval_low": 92,
+        "approval_high": 170,
+        "penalty_days": 5,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-008-0.md",
+      "name": "policy_POL-008-0.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-008-0",
+        "audit_retention_days": 188,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 2,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-008-0.md",
+      "name": "postmortem_INC-008-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-008-0",
+        "old_chunk_size": 340,
+        "new_chunk_size": 480,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.87",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-008-1.md",
+      "name": "product_NX-008-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-008-1",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.83",
+        "quarterly_ticket_limit": 5,
+        "visibility_retention_days": 42,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-008-1.md",
+      "name": "ops_ORION-008-1.md",
+      "char_count": 2686,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-008-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-008-1.md",
+      "name": "vendor_SUP-008-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-008-1",
+        "coverage_threshold": "0.85",
+        "approval_low": 92,
+        "approval_high": 170,
+        "penalty_days": 6,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-008-1.md",
+      "name": "policy_POL-008-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-008-1",
+        "audit_retention_days": 198,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 3,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-008-1.md",
+      "name": "postmortem_INC-008-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-008-1",
+        "old_chunk_size": 360,
+        "new_chunk_size": 500,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-008-2.md",
+      "name": "product_NX-008-2.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-008-2",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.84",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 52,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-008-2.md",
+      "name": "ops_ORION-008-2.md",
+      "char_count": 2708,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-008-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 6,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-008-2.md",
+      "name": "vendor_SUP-008-2.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-008-2",
+        "coverage_threshold": "0.86",
+        "approval_low": 92,
+        "approval_high": 170,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-008-2.md",
+      "name": "policy_POL-008-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-008-2",
+        "audit_retention_days": 208,
+        "second_violation_freeze_days": 12,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-008-2.md",
+      "name": "postmortem_INC-008-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-008-2",
+        "old_chunk_size": 380,
+        "new_chunk_size": 520,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.89",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-009-0.md",
+      "name": "product_NX-009-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-009-0",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.82",
+        "quarterly_ticket_limit": 5,
+        "visibility_retention_days": 33,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-009-0.md",
+      "name": "ops_ORION-009-0.md",
+      "char_count": 2666,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-009-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 2,
+        "notify_role": "search_owner",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-009-0.md",
+      "name": "vendor_SUP-009-0.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-009-0",
+        "coverage_threshold": "0.85",
+        "approval_low": 96,
+        "approval_high": 175,
+        "penalty_days": 6,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-009-0.md",
+      "name": "policy_POL-009-0.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-009-0",
+        "audit_retention_days": 189,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 3,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-009-0.md",
+      "name": "postmortem_INC-009-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-009-0",
+        "old_chunk_size": 350,
+        "new_chunk_size": 490,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-009-1.md",
+      "name": "product_NX-009-1.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-009-1",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.83",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 43,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-009-1.md",
+      "name": "ops_ORION-009-1.md",
+      "char_count": 2698,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-009-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-009-1.md",
+      "name": "vendor_SUP-009-1.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-009-1",
+        "coverage_threshold": "0.86",
+        "approval_low": 96,
+        "approval_high": 175,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-009-1.md",
+      "name": "policy_POL-009-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-009-1",
+        "audit_retention_days": 199,
+        "second_violation_freeze_days": 12,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-009-1.md",
+      "name": "postmortem_INC-009-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-009-1",
+        "old_chunk_size": 370,
+        "new_chunk_size": 510,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.89",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-009-2.md",
+      "name": "product_NX-009-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-009-2",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.84",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 53,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-009-2.md",
+      "name": "ops_ORION-009-2.md",
+      "char_count": 2714,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-009-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-009-2.md",
+      "name": "vendor_SUP-009-2.md",
+      "char_count": 2603,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-009-2",
+        "coverage_threshold": "0.87",
+        "approval_low": 96,
+        "approval_high": 175,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-009-2.md",
+      "name": "policy_POL-009-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-009-2",
+        "audit_retention_days": 209,
+        "second_violation_freeze_days": 13,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-009-2.md",
+      "name": "postmortem_INC-009-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-009-2",
+        "old_chunk_size": 390,
+        "new_chunk_size": 530,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.90",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-010-0.md",
+      "name": "product_NX-010-0.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-010-0",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.83",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 34,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-010-0.md",
+      "name": "ops_ORION-010-0.md",
+      "char_count": 2678,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-010-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-010-0.md",
+      "name": "vendor_SUP-010-0.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-010-0",
+        "coverage_threshold": "0.85",
+        "approval_low": 100,
+        "approval_high": 180,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-010-0.md",
+      "name": "policy_POL-010-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-010-0",
+        "audit_retention_days": 190,
+        "second_violation_freeze_days": 7,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-010-0.md",
+      "name": "postmortem_INC-010-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-010-0",
+        "old_chunk_size": 360,
+        "new_chunk_size": 500,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-010-1.md",
+      "name": "product_NX-010-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-010-1",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.84",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 44,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-010-1.md",
+      "name": "ops_ORION-010-1.md",
+      "char_count": 2704,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-010-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-010-1.md",
+      "name": "vendor_SUP-010-1.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-010-1",
+        "coverage_threshold": "0.86",
+        "approval_low": 100,
+        "approval_high": 180,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-010-1.md",
+      "name": "policy_POL-010-1.md",
+      "char_count": 2419,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-010-1",
+        "audit_retention_days": 200,
+        "second_violation_freeze_days": 8,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-010-1.md",
+      "name": "postmortem_INC-010-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-010-1",
+        "old_chunk_size": 380,
+        "new_chunk_size": 520,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.89",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-010-2.md",
+      "name": "product_NX-010-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-010-2",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.85",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 54,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-010-2.md",
+      "name": "ops_ORION-010-2.md",
+      "char_count": 2696,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-010-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-010-2.md",
+      "name": "vendor_SUP-010-2.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-010-2",
+        "coverage_threshold": "0.87",
+        "approval_low": 100,
+        "approval_high": 180,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-010-2.md",
+      "name": "policy_POL-010-2.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-010-2",
+        "audit_retention_days": 210,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-010-2.md",
+      "name": "postmortem_INC-010-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-010-2",
+        "old_chunk_size": 400,
+        "new_chunk_size": 540,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.90",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-011-0.md",
+      "name": "product_NX-011-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-011-0",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.84",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 35,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-011-0.md",
+      "name": "ops_ORION-011-0.md",
+      "char_count": 2684,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-011-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-011-0.md",
+      "name": "vendor_SUP-011-0.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-011-0",
+        "coverage_threshold": "0.86",
+        "approval_low": 104,
+        "approval_high": 185,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-011-0.md",
+      "name": "policy_POL-011-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-011-0",
+        "audit_retention_days": 191,
+        "second_violation_freeze_days": 8,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-011-0.md",
+      "name": "postmortem_INC-011-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-011-0",
+        "old_chunk_size": 370,
+        "new_chunk_size": 510,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.88",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-011-1.md",
+      "name": "product_NX-011-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-011-1",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.85",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 45,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-011-1.md",
+      "name": "ops_ORION-011-1.md",
+      "char_count": 2686,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-011-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-011-1.md",
+      "name": "vendor_SUP-011-1.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-011-1",
+        "coverage_threshold": "0.87",
+        "approval_low": 104,
+        "approval_high": 185,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-011-1.md",
+      "name": "policy_POL-011-1.md",
+      "char_count": 2419,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-011-1",
+        "audit_retention_days": 201,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-011-1.md",
+      "name": "postmortem_INC-011-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-011-1",
+        "old_chunk_size": 390,
+        "new_chunk_size": 530,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.89",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-011-2.md",
+      "name": "product_NX-011-2.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-011-2",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.86",
+        "quarterly_ticket_limit": 9,
+        "visibility_retention_days": 55,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-011-2.md",
+      "name": "ops_ORION-011-2.md",
+      "char_count": 2708,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-011-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 6,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-011-2.md",
+      "name": "vendor_SUP-011-2.md",
+      "char_count": 2611,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-011-2",
+        "coverage_threshold": "0.88",
+        "approval_low": 104,
+        "approval_high": 185,
+        "penalty_days": 10,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-011-2.md",
+      "name": "policy_POL-011-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-011-2",
+        "audit_retention_days": 211,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 7,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-011-2.md",
+      "name": "postmortem_INC-011-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-011-2",
+        "old_chunk_size": 410,
+        "new_chunk_size": 550,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.90",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-012-0.md",
+      "name": "product_NX-012-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-012-0",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.84",
+        "quarterly_ticket_limit": 4,
+        "visibility_retention_days": 30,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-012-0.md",
+      "name": "ops_ORION-012-0.md",
+      "char_count": 2666,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-012-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 2,
+        "notify_role": "search_owner",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-012-0.md",
+      "name": "vendor_SUP-012-0.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-012-0",
+        "coverage_threshold": "0.86",
+        "approval_low": 108,
+        "approval_high": 190,
+        "penalty_days": 5,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-012-0.md",
+      "name": "policy_POL-012-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-012-0",
+        "audit_retention_days": 192,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 2,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-012-0.md",
+      "name": "postmortem_INC-012-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-012-0",
+        "old_chunk_size": 380,
+        "new_chunk_size": 520,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.89",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-012-1.md",
+      "name": "product_NX-012-1.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-012-1",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.85",
+        "quarterly_ticket_limit": 5,
+        "visibility_retention_days": 40,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-012-1.md",
+      "name": "ops_ORION-012-1.md",
+      "char_count": 2698,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-012-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-012-1.md",
+      "name": "vendor_SUP-012-1.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-012-1",
+        "coverage_threshold": "0.87",
+        "approval_low": 108,
+        "approval_high": 190,
+        "penalty_days": 6,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-012-1.md",
+      "name": "policy_POL-012-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-012-1",
+        "audit_retention_days": 202,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 3,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-012-1.md",
+      "name": "postmortem_INC-012-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-012-1",
+        "old_chunk_size": 400,
+        "new_chunk_size": 540,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.90",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-012-2.md",
+      "name": "product_NX-012-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-012-2",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.86",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 50,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-012-2.md",
+      "name": "ops_ORION-012-2.md",
+      "char_count": 2714,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-012-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-012-2.md",
+      "name": "vendor_SUP-012-2.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-012-2",
+        "coverage_threshold": "0.88",
+        "approval_low": 108,
+        "approval_high": 190,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-012-2.md",
+      "name": "policy_POL-012-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-012-2",
+        "audit_retention_days": 212,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-012-2.md",
+      "name": "postmortem_INC-012-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-012-2",
+        "old_chunk_size": 420,
+        "new_chunk_size": 560,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.91",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-013-0.md",
+      "name": "product_NX-013-0.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-013-0",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.85",
+        "quarterly_ticket_limit": 5,
+        "visibility_retention_days": 31,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-013-0.md",
+      "name": "ops_ORION-013-0.md",
+      "char_count": 2678,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-013-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-013-0.md",
+      "name": "vendor_SUP-013-0.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-013-0",
+        "coverage_threshold": "0.86",
+        "approval_low": 112,
+        "approval_high": 195,
+        "penalty_days": 6,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-013-0.md",
+      "name": "policy_POL-013-0.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-013-0",
+        "audit_retention_days": 193,
+        "second_violation_freeze_days": 10,
+        "demo_cleanup_deadline_days": 3,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-013-0.md",
+      "name": "postmortem_INC-013-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-013-0",
+        "old_chunk_size": 390,
+        "new_chunk_size": 530,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.89",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-013-1.md",
+      "name": "product_NX-013-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-013-1",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.86",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 41,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-013-1.md",
+      "name": "ops_ORION-013-1.md",
+      "char_count": 2704,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-013-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-013-1.md",
+      "name": "vendor_SUP-013-1.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-013-1",
+        "coverage_threshold": "0.88",
+        "approval_low": 112,
+        "approval_high": 195,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-013-1.md",
+      "name": "policy_POL-013-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-013-1",
+        "audit_retention_days": 203,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-013-1.md",
+      "name": "postmortem_INC-013-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-013-1",
+        "old_chunk_size": 410,
+        "new_chunk_size": 550,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.90",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-013-2.md",
+      "name": "product_NX-013-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-013-2",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.87",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 51,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-013-2.md",
+      "name": "ops_ORION-013-2.md",
+      "char_count": 2696,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-013-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-013-2.md",
+      "name": "vendor_SUP-013-2.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-013-2",
+        "coverage_threshold": "0.89",
+        "approval_low": 112,
+        "approval_high": 195,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-013-2.md",
+      "name": "policy_POL-013-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-013-2",
+        "audit_retention_days": 213,
+        "second_violation_freeze_days": 12,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-013-2.md",
+      "name": "postmortem_INC-013-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-013-2",
+        "old_chunk_size": 430,
+        "new_chunk_size": 570,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.91",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-014-0.md",
+      "name": "product_NX-014-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-014-0",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.85",
+        "quarterly_ticket_limit": 6,
+        "visibility_retention_days": 32,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-014-0.md",
+      "name": "ops_ORION-014-0.md",
+      "char_count": 2684,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-014-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-014-0.md",
+      "name": "vendor_SUP-014-0.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-014-0",
+        "coverage_threshold": "0.87",
+        "approval_low": 116,
+        "approval_high": 200,
+        "penalty_days": 7,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-014-0.md",
+      "name": "policy_POL-014-0.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-014-0",
+        "audit_retention_days": 194,
+        "second_violation_freeze_days": 11,
+        "demo_cleanup_deadline_days": 4,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-014-0.md",
+      "name": "postmortem_INC-014-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-014-0",
+        "old_chunk_size": 400,
+        "new_chunk_size": 540,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.90",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-014-1.md",
+      "name": "product_NX-014-1.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-014-1",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.86",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 42,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-014-1.md",
+      "name": "ops_ORION-014-1.md",
+      "char_count": 2686,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-014-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 5,
+        "notify_role": "search_owner",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-014-1.md",
+      "name": "vendor_SUP-014-1.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-014-1",
+        "coverage_threshold": "0.88",
+        "approval_low": 116,
+        "approval_high": 200,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-014-1.md",
+      "name": "policy_POL-014-1.md",
+      "char_count": 2421,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-014-1",
+        "audit_retention_days": 204,
+        "second_violation_freeze_days": 12,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-014-1.md",
+      "name": "postmortem_INC-014-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-014-1",
+        "old_chunk_size": 420,
+        "new_chunk_size": 560,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.91",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-014-2.md",
+      "name": "product_NX-014-2.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-014-2",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.87",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 52,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-014-2.md",
+      "name": "ops_ORION-014-2.md",
+      "char_count": 2708,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-014-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 6,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-014-2.md",
+      "name": "vendor_SUP-014-2.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-014-2",
+        "coverage_threshold": "0.89",
+        "approval_low": 116,
+        "approval_high": 200,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-014-2.md",
+      "name": "policy_POL-014-2.md",
+      "char_count": 2429,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-014-2",
+        "audit_retention_days": 214,
+        "second_violation_freeze_days": 13,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-014-2.md",
+      "name": "postmortem_INC-014-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-014-2",
+        "old_chunk_size": 440,
+        "new_chunk_size": 580,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.92",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-015-0.md",
+      "name": "product_NX-015-0.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-015-0",
+        "finance_min_citations": 2,
+        "finance_recall_threshold": "0.86",
+        "quarterly_ticket_limit": 7,
+        "visibility_retention_days": 33,
+        "approval_role": "regional_manager"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-015-0.md",
+      "name": "ops_ORION-015-0.md",
+      "char_count": 2666,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-015-0",
+        "maintenance_window": "01:30-03:00",
+        "night_p2_limit": 2,
+        "notify_role": "search_owner",
+        "rollback_strategy": "blue_green"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-015-0.md",
+      "name": "vendor_SUP-015-0.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-015-0",
+        "coverage_threshold": "0.88",
+        "approval_low": 120,
+        "approval_high": 205,
+        "penalty_days": 8,
+        "monthly_report": "monthly_recall_coverage_report_v1"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-015-0.md",
+      "name": "policy_POL-015-0.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-015-0",
+        "audit_retention_days": 195,
+        "second_violation_freeze_days": 7,
+        "demo_cleanup_deadline_days": 5,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-015-0.md",
+      "name": "postmortem_INC-015-0.md",
+      "char_count": 2528,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-015-0",
+        "old_chunk_size": 410,
+        "new_chunk_size": 550,
+        "overlap_size": 60,
+        "acceptance_recall_target": "0.90",
+        "missed_clause_family": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-015-1.md",
+      "name": "product_NX-015-1.md",
+      "char_count": 3021,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-015-1",
+        "finance_min_citations": 3,
+        "finance_recall_threshold": "0.87",
+        "quarterly_ticket_limit": 8,
+        "visibility_retention_days": 43,
+        "approval_role": "delivery_director"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-015-1.md",
+      "name": "ops_ORION-015-1.md",
+      "char_count": 2698,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-015-1",
+        "maintenance_window": "02:30-04:00",
+        "night_p2_limit": 3,
+        "notify_role": "platform_manager",
+        "rollback_strategy": "shadow_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-015-1.md",
+      "name": "vendor_SUP-015-1.md",
+      "char_count": 2607,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-015-1",
+        "coverage_threshold": "0.89",
+        "approval_low": 120,
+        "approval_high": 205,
+        "penalty_days": 9,
+        "monthly_report": "monthly_recall_coverage_report_v2"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-015-1.md",
+      "name": "policy_POL-015-1.md",
+      "char_count": 2419,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-015-1",
+        "audit_retention_days": 205,
+        "second_violation_freeze_days": 8,
+        "demo_cleanup_deadline_days": 6,
+        "confidence_rule": "normal_confidence_only_under_finance_pack"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-015-1.md",
+      "name": "postmortem_INC-015-1.md",
+      "char_count": 2539,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-015-1",
+        "old_chunk_size": 430,
+        "new_chunk_size": 570,
+        "overlap_size": 80,
+        "acceptance_recall_target": "0.91",
+        "missed_clause_family": "confidence_rule_clause"
+      }
+    },
+    {
+      "relative_path": "product_specs/product_NX-015-2.md",
+      "name": "product_NX-015-2.md",
+      "char_count": 3016,
+      "facts": {
+        "doc_type": "product",
+        "code": "NX-015-2",
+        "finance_min_citations": 4,
+        "finance_recall_threshold": "0.88",
+        "quarterly_ticket_limit": 9,
+        "visibility_retention_days": 53,
+        "approval_role": "finance_reviewer"
+      }
+    },
+    {
+      "relative_path": "ops_manuals/ops_ORION-015-2.md",
+      "name": "ops_ORION-015-2.md",
+      "char_count": 2714,
+      "facts": {
+        "doc_type": "ops",
+        "code": "ORION-015-2",
+        "maintenance_window": "03:30-05:00",
+        "night_p2_limit": 4,
+        "notify_role": "incident_commander",
+        "rollback_strategy": "snapshot_restore"
+      }
+    },
+    {
+      "relative_path": "procurement/vendor_SUP-015-2.md",
+      "name": "vendor_SUP-015-2.md",
+      "char_count": 2611,
+      "facts": {
+        "doc_type": "procurement",
+        "code": "SUP-015-2",
+        "coverage_threshold": "0.90",
+        "approval_low": 120,
+        "approval_high": 205,
+        "penalty_days": 10,
+        "monthly_report": "monthly_recall_coverage_report_v3"
+      }
+    },
+    {
+      "relative_path": "policies/policy_POL-015-2.md",
+      "name": "policy_POL-015-2.md",
+      "char_count": 2427,
+      "facts": {
+        "doc_type": "policy",
+        "code": "POL-015-2",
+        "audit_retention_days": 215,
+        "second_violation_freeze_days": 9,
+        "demo_cleanup_deadline_days": 7,
+        "confidence_rule": "no_high_confidence_without_enough_citations"
+      }
+    },
+    {
+      "relative_path": "postmortems/postmortem_INC-015-2.md",
+      "name": "postmortem_INC-015-2.md",
+      "char_count": 2544,
+      "facts": {
+        "doc_type": "postmortem",
+        "code": "INC-015-2",
+        "old_chunk_size": 450,
+        "new_chunk_size": 590,
+        "overlap_size": 100,
+        "acceptance_recall_target": "0.92",
+        "missed_clause_family": "cleanup_deadline_clause"
+      }
+    },
+    {
+      "relative_path": "cross_refs/strategy_aurora.md",
+      "name": "strategy_aurora.md",
+      "char_count": 1142,
+      "facts": {
+        "doc_type": "cross_ref",
+        "code": "strategy_aurora",
+        "default_topk": 5,
+        "workspace_topk": 4,
+        "weakness": "second_layer_clause"
+      }
+    },
+    {
+      "relative_path": "cross_refs/finance_strict_pack.md",
+      "name": "finance_strict_pack.md",
+      "char_count": 943,
+      "facts": {
+        "doc_type": "cross_ref",
+        "code": "finance_strict_pack"
+      }
+    },
+    {
+      "relative_path": "cross_refs/thinking_mode_guideline.md",
+      "name": "thinking_mode_guideline.md",
+      "char_count": 969,
+      "facts": {
+        "doc_type": "cross_ref",
+        "code": "thinking_mode_guideline"
+      }
+    },
+    {
+      "relative_path": "cross_refs/retrieval_tuning_playbook.md",
+      "name": "retrieval_tuning_playbook.md",
+      "char_count": 998,
+      "facts": {
+        "doc_type": "cross_ref",
+        "code": "retrieval_tuning_playbook"
+      }
+    },
+    {
+      "relative_path": "cross_refs/confidence_labelling_standard.md",
+      "name": "confidence_labelling_standard.md",
+      "char_count": 1043,
+      "facts": {
+        "doc_type": "cross_ref",
+        "code": "confidence_labelling_standard"
+      }
+    },
+    {
+      "relative_path": "cross_refs/workspace_chain_overview.md",
+      "name": "workspace_chain_overview.md",
+      "char_count": 987,
+      "facts": {
+        "doc_type": "cross_ref",
+        "code": "workspace_chain_overview"
+      }
+    }
+  ],
+  "questions": [
+    {
+      "question_id": "full_001",
+      "question": "产品 NX-001-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-001-0 的金融最少引用数是 3 条；若季度工单超过 5 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-001-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_002",
+      "question": "运维手册 ORION-001-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-001-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-001-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_003",
+      "question": "供应商 SUP-001-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-001-0 的召回覆盖率阈值是 0.81；合同金额位于 64 万至 135 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-001-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_004",
+      "question": "制度 POL-001-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-001-0 的审计日志保留 181 天；第二次违规冻结 8 天；演示样本清理期限是 3 天。",
+      "gold_document_names": [
+        "policy_POL-001-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_005",
+      "question": "事故复盘 INC-001-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-001-0 将 chunkSize 从 270 调整到 410；overlap 是 60；验收 gold_recall_rate 目标是 0.84。",
+      "gold_document_names": [
+        "postmortem_INC-001-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_006",
+      "question": "产品 NX-001-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-001-1 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-001-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_007",
+      "question": "运维手册 ORION-001-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-001-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-001-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_008",
+      "question": "供应商 SUP-001-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-001-1 的召回覆盖率阈值是 0.82；合同金额位于 64 万至 135 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-001-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_009",
+      "question": "制度 POL-001-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-001-1 的审计日志保留 191 天；第二次违规冻结 9 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-001-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_010",
+      "question": "事故复盘 INC-001-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-001-1 将 chunkSize 从 290 调整到 430；overlap 是 80；验收 gold_recall_rate 目标是 0.85。",
+      "gold_document_names": [
+        "postmortem_INC-001-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_011",
+      "question": "产品 NX-001-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-001-2 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-001-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_012",
+      "question": "运维手册 ORION-001-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-001-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-001-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_013",
+      "question": "供应商 SUP-001-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-001-2 的召回覆盖率阈值是 0.83；合同金额位于 64 万至 135 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-001-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_014",
+      "question": "制度 POL-001-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-001-2 的审计日志保留 201 天；第二次违规冻结 10 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-001-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_015",
+      "question": "事故复盘 INC-001-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-001-2 将 chunkSize 从 310 调整到 450；overlap 是 100；验收 gold_recall_rate 目标是 0.86。",
+      "gold_document_names": [
+        "postmortem_INC-001-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_016",
+      "question": "产品 NX-002-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-002-0 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-002-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_017",
+      "question": "运维手册 ORION-002-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-002-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-002-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_018",
+      "question": "供应商 SUP-002-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-002-0 的召回覆盖率阈值是 0.81；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-002-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_019",
+      "question": "制度 POL-002-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-002-0 的审计日志保留 182 天；第二次违规冻结 9 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-002-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_020",
+      "question": "事故复盘 INC-002-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-002-0 将 chunkSize 从 280 调整到 420；overlap 是 60；验收 gold_recall_rate 目标是 0.85。",
+      "gold_document_names": [
+        "postmortem_INC-002-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_021",
+      "question": "产品 NX-002-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-002-1 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-002-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_022",
+      "question": "运维手册 ORION-002-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-002-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-002-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_023",
+      "question": "供应商 SUP-002-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-002-1 的召回覆盖率阈值是 0.82；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-002-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_024",
+      "question": "制度 POL-002-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-002-1 的审计日志保留 192 天；第二次违规冻结 10 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-002-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_025",
+      "question": "事故复盘 INC-002-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-002-1 将 chunkSize 从 300 调整到 440；overlap 是 80；验收 gold_recall_rate 目标是 0.86。",
+      "gold_document_names": [
+        "postmortem_INC-002-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_026",
+      "question": "产品 NX-002-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-002-2 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-002-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_027",
+      "question": "运维手册 ORION-002-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-002-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-002-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_028",
+      "question": "供应商 SUP-002-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-002-2 的召回覆盖率阈值是 0.83；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-002-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_029",
+      "question": "制度 POL-002-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-002-2 的审计日志保留 202 天；第二次违规冻结 11 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-002-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_030",
+      "question": "事故复盘 INC-002-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-002-2 将 chunkSize 从 320 调整到 460；overlap 是 100；验收 gold_recall_rate 目标是 0.87。",
+      "gold_document_names": [
+        "postmortem_INC-002-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_031",
+      "question": "产品 NX-003-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-003-0 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-003-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_032",
+      "question": "运维手册 ORION-003-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-003-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-003-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_033",
+      "question": "供应商 SUP-003-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-003-0 的召回覆盖率阈值是 0.82；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-003-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_034",
+      "question": "制度 POL-003-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-003-0 的审计日志保留 183 天；第二次违规冻结 10 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-003-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_035",
+      "question": "事故复盘 INC-003-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-003-0 将 chunkSize 从 290 调整到 430；overlap 是 60；验收 gold_recall_rate 目标是 0.85。",
+      "gold_document_names": [
+        "postmortem_INC-003-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_036",
+      "question": "产品 NX-003-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-003-1 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-003-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_037",
+      "question": "运维手册 ORION-003-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-003-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-003-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_038",
+      "question": "供应商 SUP-003-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-003-1 的召回覆盖率阈值是 0.83；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-003-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_039",
+      "question": "制度 POL-003-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-003-1 的审计日志保留 193 天；第二次违规冻结 11 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-003-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_040",
+      "question": "事故复盘 INC-003-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-003-1 将 chunkSize 从 310 调整到 450；overlap 是 80；验收 gold_recall_rate 目标是 0.86。",
+      "gold_document_names": [
+        "postmortem_INC-003-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_041",
+      "question": "产品 NX-003-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-003-2 的金融最少引用数是 4 条；若季度工单超过 9 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-003-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_042",
+      "question": "运维手册 ORION-003-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-003-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-003-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_043",
+      "question": "供应商 SUP-003-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-003-2 的召回覆盖率阈值是 0.84；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-003-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_044",
+      "question": "制度 POL-003-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-003-2 的审计日志保留 203 天；第二次违规冻结 12 天；演示样本清理期限是 7 天。",
+      "gold_document_names": [
+        "policy_POL-003-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_045",
+      "question": "事故复盘 INC-003-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-003-2 将 chunkSize 从 330 调整到 470；overlap 是 100；验收 gold_recall_rate 目标是 0.87。",
+      "gold_document_names": [
+        "postmortem_INC-003-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_046",
+      "question": "产品 NX-004-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-004-0 的金融最少引用数是 3 条；若季度工单超过 4 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-004-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_047",
+      "question": "运维手册 ORION-004-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-004-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-004-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_048",
+      "question": "供应商 SUP-004-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-004-0 的召回覆盖率阈值是 0.82；合同金额位于 76 万至 150 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-004-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_049",
+      "question": "制度 POL-004-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-004-0 的审计日志保留 184 天；第二次违规冻结 11 天；演示样本清理期限是 2 天。",
+      "gold_document_names": [
+        "policy_POL-004-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_050",
+      "question": "事故复盘 INC-004-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-004-0 将 chunkSize 从 300 调整到 440；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "gold_document_names": [
+        "postmortem_INC-004-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_051",
+      "question": "产品 NX-004-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-004-1 的金融最少引用数是 4 条；若季度工单超过 5 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-004-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_052",
+      "question": "运维手册 ORION-004-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-004-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-004-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_053",
+      "question": "供应商 SUP-004-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-004-1 的召回覆盖率阈值是 0.83；合同金额位于 76 万至 150 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-004-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_054",
+      "question": "制度 POL-004-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-004-1 的审计日志保留 194 天；第二次违规冻结 12 天；演示样本清理期限是 3 天。",
+      "gold_document_names": [
+        "policy_POL-004-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_055",
+      "question": "事故复盘 INC-004-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-004-1 将 chunkSize 从 320 调整到 460；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "gold_document_names": [
+        "postmortem_INC-004-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_056",
+      "question": "产品 NX-004-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-004-2 的金融最少引用数是 2 条；若季度工单超过 6 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-004-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_057",
+      "question": "运维手册 ORION-004-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-004-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-004-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_058",
+      "question": "供应商 SUP-004-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-004-2 的召回覆盖率阈值是 0.84；合同金额位于 76 万至 150 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-004-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_059",
+      "question": "制度 POL-004-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-004-2 的审计日志保留 204 天；第二次违规冻结 13 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-004-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_060",
+      "question": "事故复盘 INC-004-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-004-2 将 chunkSize 从 340 调整到 480；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-004-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_061",
+      "question": "产品 NX-005-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-005-0 的金融最少引用数是 4 条；若季度工单超过 5 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-005-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_062",
+      "question": "运维手册 ORION-005-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-005-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-005-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_063",
+      "question": "供应商 SUP-005-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-005-0 的召回覆盖率阈值是 0.83；合同金额位于 80 万至 155 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-005-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_064",
+      "question": "制度 POL-005-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-005-0 的审计日志保留 185 天；第二次违规冻结 7 天；演示样本清理期限是 3 天。",
+      "gold_document_names": [
+        "policy_POL-005-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_065",
+      "question": "事故复盘 INC-005-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-005-0 将 chunkSize 从 310 调整到 450；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "gold_document_names": [
+        "postmortem_INC-005-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_066",
+      "question": "产品 NX-005-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-005-1 的金融最少引用数是 2 条；若季度工单超过 6 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-005-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_067",
+      "question": "运维手册 ORION-005-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-005-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-005-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_068",
+      "question": "供应商 SUP-005-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-005-1 的召回覆盖率阈值是 0.84；合同金额位于 80 万至 155 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-005-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_069",
+      "question": "制度 POL-005-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-005-1 的审计日志保留 195 天；第二次违规冻结 8 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-005-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_070",
+      "question": "事故复盘 INC-005-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-005-1 将 chunkSize 从 330 调整到 470；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "gold_document_names": [
+        "postmortem_INC-005-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_071",
+      "question": "产品 NX-005-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-005-2 的金融最少引用数是 3 条；若季度工单超过 7 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-005-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_072",
+      "question": "运维手册 ORION-005-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-005-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-005-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_073",
+      "question": "供应商 SUP-005-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-005-2 的召回覆盖率阈值是 0.85；合同金额位于 80 万至 155 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-005-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_074",
+      "question": "制度 POL-005-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-005-2 的审计日志保留 205 天；第二次违规冻结 9 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-005-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_075",
+      "question": "事故复盘 INC-005-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-005-2 将 chunkSize 从 350 调整到 490；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-005-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_076",
+      "question": "产品 NX-006-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-006-0 的金融最少引用数是 2 条；若季度工单超过 6 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-006-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_077",
+      "question": "运维手册 ORION-006-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-006-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-006-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_078",
+      "question": "供应商 SUP-006-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-006-0 的召回覆盖率阈值是 0.83；合同金额位于 84 万至 160 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-006-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_079",
+      "question": "制度 POL-006-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-006-0 的审计日志保留 186 天；第二次违规冻结 8 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-006-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_080",
+      "question": "事故复盘 INC-006-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-006-0 将 chunkSize 从 320 调整到 460；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "gold_document_names": [
+        "postmortem_INC-006-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_081",
+      "question": "产品 NX-006-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-006-1 的金融最少引用数是 3 条；若季度工单超过 7 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-006-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_082",
+      "question": "运维手册 ORION-006-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-006-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-006-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_083",
+      "question": "供应商 SUP-006-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-006-1 的召回覆盖率阈值是 0.84；合同金额位于 84 万至 160 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-006-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_084",
+      "question": "制度 POL-006-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-006-1 的审计日志保留 196 天；第二次违规冻结 9 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-006-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_085",
+      "question": "事故复盘 INC-006-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-006-1 将 chunkSize 从 340 调整到 480；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "gold_document_names": [
+        "postmortem_INC-006-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_086",
+      "question": "产品 NX-006-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-006-2 的金融最少引用数是 4 条；若季度工单超过 8 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-006-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_087",
+      "question": "运维手册 ORION-006-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-006-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-006-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_088",
+      "question": "供应商 SUP-006-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-006-2 的召回覆盖率阈值是 0.85；合同金额位于 84 万至 160 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-006-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_089",
+      "question": "制度 POL-006-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-006-2 的审计日志保留 206 天；第二次违规冻结 10 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-006-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_090",
+      "question": "事故复盘 INC-006-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-006-2 将 chunkSize 从 360 调整到 500；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-006-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_091",
+      "question": "产品 NX-007-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-007-0 的金融最少引用数是 3 条；若季度工单超过 7 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-007-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_092",
+      "question": "运维手册 ORION-007-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-007-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-007-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_093",
+      "question": "供应商 SUP-007-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-007-0 的召回覆盖率阈值是 0.84；合同金额位于 88 万至 165 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-007-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_094",
+      "question": "制度 POL-007-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-007-0 的审计日志保留 187 天；第二次违规冻结 9 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-007-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_095",
+      "question": "事故复盘 INC-007-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-007-0 将 chunkSize 从 330 调整到 470；overlap 是 60；验收 gold_recall_rate 目标是 0.87。",
+      "gold_document_names": [
+        "postmortem_INC-007-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_096",
+      "question": "产品 NX-007-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-007-1 的金融最少引用数是 4 条；若季度工单超过 8 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-007-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_097",
+      "question": "运维手册 ORION-007-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-007-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-007-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_098",
+      "question": "供应商 SUP-007-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-007-1 的召回覆盖率阈值是 0.85；合同金额位于 88 万至 165 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-007-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_099",
+      "question": "制度 POL-007-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-007-1 的审计日志保留 197 天；第二次违规冻结 10 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-007-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_100",
+      "question": "事故复盘 INC-007-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-007-1 将 chunkSize 从 350 调整到 490；overlap 是 80；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-007-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_101",
+      "question": "产品 NX-007-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-007-2 的金融最少引用数是 2 条；若季度工单超过 9 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-007-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_102",
+      "question": "运维手册 ORION-007-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-007-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-007-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_103",
+      "question": "供应商 SUP-007-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-007-2 的召回覆盖率阈值是 0.86；合同金额位于 88 万至 165 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-007-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_104",
+      "question": "制度 POL-007-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-007-2 的审计日志保留 207 天；第二次违规冻结 11 天；演示样本清理期限是 7 天。",
+      "gold_document_names": [
+        "policy_POL-007-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_105",
+      "question": "事故复盘 INC-007-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-007-2 将 chunkSize 从 370 调整到 510；overlap 是 100；验收 gold_recall_rate 目标是 0.89。",
+      "gold_document_names": [
+        "postmortem_INC-007-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_106",
+      "question": "产品 NX-008-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-008-0 的金融最少引用数是 4 条；若季度工单超过 4 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-008-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_107",
+      "question": "运维手册 ORION-008-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-008-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-008-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_108",
+      "question": "供应商 SUP-008-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-008-0 的召回覆盖率阈值是 0.84；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-008-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_109",
+      "question": "制度 POL-008-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-008-0 的审计日志保留 188 天；第二次违规冻结 10 天；演示样本清理期限是 2 天。",
+      "gold_document_names": [
+        "policy_POL-008-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_110",
+      "question": "事故复盘 INC-008-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-008-0 将 chunkSize 从 340 调整到 480；overlap 是 60；验收 gold_recall_rate 目标是 0.87。",
+      "gold_document_names": [
+        "postmortem_INC-008-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_111",
+      "question": "产品 NX-008-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-008-1 的金融最少引用数是 2 条；若季度工单超过 5 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-008-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_112",
+      "question": "运维手册 ORION-008-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-008-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-008-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_113",
+      "question": "供应商 SUP-008-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-008-1 的召回覆盖率阈值是 0.85；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-008-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_114",
+      "question": "制度 POL-008-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-008-1 的审计日志保留 198 天；第二次违规冻结 11 天；演示样本清理期限是 3 天。",
+      "gold_document_names": [
+        "policy_POL-008-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_115",
+      "question": "事故复盘 INC-008-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-008-1 将 chunkSize 从 360 调整到 500；overlap 是 80；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-008-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_116",
+      "question": "产品 NX-008-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-008-2 的金融最少引用数是 3 条；若季度工单超过 6 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-008-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_117",
+      "question": "运维手册 ORION-008-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-008-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-008-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_118",
+      "question": "供应商 SUP-008-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-008-2 的召回覆盖率阈值是 0.86；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-008-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_119",
+      "question": "制度 POL-008-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-008-2 的审计日志保留 208 天；第二次违规冻结 12 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-008-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_120",
+      "question": "事故复盘 INC-008-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-008-2 将 chunkSize 从 380 调整到 520；overlap 是 100；验收 gold_recall_rate 目标是 0.89。",
+      "gold_document_names": [
+        "postmortem_INC-008-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_121",
+      "question": "产品 NX-009-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-009-0 的金融最少引用数是 2 条；若季度工单超过 5 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-009-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_122",
+      "question": "运维手册 ORION-009-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-009-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-009-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_123",
+      "question": "供应商 SUP-009-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-009-0 的召回覆盖率阈值是 0.85；合同金额位于 96 万至 175 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-009-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_124",
+      "question": "制度 POL-009-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-009-0 的审计日志保留 189 天；第二次违规冻结 11 天；演示样本清理期限是 3 天。",
+      "gold_document_names": [
+        "policy_POL-009-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_125",
+      "question": "事故复盘 INC-009-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-009-0 将 chunkSize 从 350 调整到 490；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-009-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_126",
+      "question": "产品 NX-009-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-009-1 的金融最少引用数是 3 条；若季度工单超过 6 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-009-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_127",
+      "question": "运维手册 ORION-009-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-009-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-009-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_128",
+      "question": "供应商 SUP-009-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-009-1 的召回覆盖率阈值是 0.86；合同金额位于 96 万至 175 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-009-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_129",
+      "question": "制度 POL-009-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-009-1 的审计日志保留 199 天；第二次违规冻结 12 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-009-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_130",
+      "question": "事故复盘 INC-009-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-009-1 将 chunkSize 从 370 调整到 510；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "gold_document_names": [
+        "postmortem_INC-009-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_131",
+      "question": "产品 NX-009-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-009-2 的金融最少引用数是 4 条；若季度工单超过 7 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-009-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_132",
+      "question": "运维手册 ORION-009-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-009-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-009-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_133",
+      "question": "供应商 SUP-009-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-009-2 的召回覆盖率阈值是 0.87；合同金额位于 96 万至 175 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-009-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_134",
+      "question": "制度 POL-009-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-009-2 的审计日志保留 209 天；第二次违规冻结 13 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-009-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_135",
+      "question": "事故复盘 INC-009-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-009-2 将 chunkSize 从 390 调整到 530；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "gold_document_names": [
+        "postmortem_INC-009-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_136",
+      "question": "产品 NX-010-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-010-0 的金融最少引用数是 3 条；若季度工单超过 6 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-010-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_137",
+      "question": "运维手册 ORION-010-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-010-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-010-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_138",
+      "question": "供应商 SUP-010-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-010-0 的召回覆盖率阈值是 0.85；合同金额位于 100 万至 180 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-010-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_139",
+      "question": "制度 POL-010-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-010-0 的审计日志保留 190 天；第二次违规冻结 7 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-010-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_140",
+      "question": "事故复盘 INC-010-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-010-0 将 chunkSize 从 360 调整到 500；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-010-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_141",
+      "question": "产品 NX-010-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-010-1 的金融最少引用数是 4 条；若季度工单超过 7 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-010-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_142",
+      "question": "运维手册 ORION-010-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-010-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-010-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_143",
+      "question": "供应商 SUP-010-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-010-1 的召回覆盖率阈值是 0.86；合同金额位于 100 万至 180 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-010-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_144",
+      "question": "制度 POL-010-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-010-1 的审计日志保留 200 天；第二次违规冻结 8 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-010-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_145",
+      "question": "事故复盘 INC-010-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-010-1 将 chunkSize 从 380 调整到 520；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "gold_document_names": [
+        "postmortem_INC-010-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_146",
+      "question": "产品 NX-010-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-010-2 的金融最少引用数是 2 条；若季度工单超过 8 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-010-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_147",
+      "question": "运维手册 ORION-010-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-010-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-010-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_148",
+      "question": "供应商 SUP-010-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-010-2 的召回覆盖率阈值是 0.87；合同金额位于 100 万至 180 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-010-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_149",
+      "question": "制度 POL-010-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-010-2 的审计日志保留 210 天；第二次违规冻结 9 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-010-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_150",
+      "question": "事故复盘 INC-010-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-010-2 将 chunkSize 从 400 调整到 540；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "gold_document_names": [
+        "postmortem_INC-010-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_151",
+      "question": "产品 NX-011-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-011-0 的金融最少引用数是 4 条；若季度工单超过 7 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-011-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_152",
+      "question": "运维手册 ORION-011-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-011-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-011-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_153",
+      "question": "供应商 SUP-011-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-011-0 的召回覆盖率阈值是 0.86；合同金额位于 104 万至 185 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-011-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_154",
+      "question": "制度 POL-011-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-011-0 的审计日志保留 191 天；第二次违规冻结 8 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-011-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_155",
+      "question": "事故复盘 INC-011-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-011-0 将 chunkSize 从 370 调整到 510；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "gold_document_names": [
+        "postmortem_INC-011-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_156",
+      "question": "产品 NX-011-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-011-1 的金融最少引用数是 2 条；若季度工单超过 8 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-011-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_157",
+      "question": "运维手册 ORION-011-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-011-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-011-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_158",
+      "question": "供应商 SUP-011-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-011-1 的召回覆盖率阈值是 0.87；合同金额位于 104 万至 185 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-011-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_159",
+      "question": "制度 POL-011-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-011-1 的审计日志保留 201 天；第二次违规冻结 9 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-011-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_160",
+      "question": "事故复盘 INC-011-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-011-1 将 chunkSize 从 390 调整到 530；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "gold_document_names": [
+        "postmortem_INC-011-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_161",
+      "question": "产品 NX-011-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-011-2 的金融最少引用数是 3 条；若季度工单超过 9 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-011-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_162",
+      "question": "运维手册 ORION-011-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-011-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-011-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_163",
+      "question": "供应商 SUP-011-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-011-2 的召回覆盖率阈值是 0.88；合同金额位于 104 万至 185 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-011-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_164",
+      "question": "制度 POL-011-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-011-2 的审计日志保留 211 天；第二次违规冻结 10 天；演示样本清理期限是 7 天。",
+      "gold_document_names": [
+        "policy_POL-011-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_165",
+      "question": "事故复盘 INC-011-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-011-2 将 chunkSize 从 410 调整到 550；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "gold_document_names": [
+        "postmortem_INC-011-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_166",
+      "question": "产品 NX-012-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-012-0 的金融最少引用数是 2 条；若季度工单超过 4 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-012-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_167",
+      "question": "运维手册 ORION-012-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-012-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-012-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_168",
+      "question": "供应商 SUP-012-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-012-0 的召回覆盖率阈值是 0.86；合同金额位于 108 万至 190 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-012-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_169",
+      "question": "制度 POL-012-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-012-0 的审计日志保留 192 天；第二次违规冻结 9 天；演示样本清理期限是 2 天。",
+      "gold_document_names": [
+        "policy_POL-012-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_170",
+      "question": "事故复盘 INC-012-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-012-0 将 chunkSize 从 380 调整到 520；overlap 是 60；验收 gold_recall_rate 目标是 0.89。",
+      "gold_document_names": [
+        "postmortem_INC-012-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_171",
+      "question": "产品 NX-012-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-012-1 的金融最少引用数是 3 条；若季度工单超过 5 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-012-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_172",
+      "question": "运维手册 ORION-012-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-012-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-012-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_173",
+      "question": "供应商 SUP-012-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-012-1 的召回覆盖率阈值是 0.87；合同金额位于 108 万至 190 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-012-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_174",
+      "question": "制度 POL-012-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-012-1 的审计日志保留 202 天；第二次违规冻结 10 天；演示样本清理期限是 3 天。",
+      "gold_document_names": [
+        "policy_POL-012-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_175",
+      "question": "事故复盘 INC-012-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-012-1 将 chunkSize 从 400 调整到 540；overlap 是 80；验收 gold_recall_rate 目标是 0.90。",
+      "gold_document_names": [
+        "postmortem_INC-012-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_176",
+      "question": "产品 NX-012-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-012-2 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-012-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_177",
+      "question": "运维手册 ORION-012-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-012-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-012-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_178",
+      "question": "供应商 SUP-012-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-012-2 的召回覆盖率阈值是 0.88；合同金额位于 108 万至 190 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-012-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_179",
+      "question": "制度 POL-012-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-012-2 的审计日志保留 212 天；第二次违规冻结 11 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-012-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_180",
+      "question": "事故复盘 INC-012-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-012-2 将 chunkSize 从 420 调整到 560；overlap 是 100；验收 gold_recall_rate 目标是 0.91。",
+      "gold_document_names": [
+        "postmortem_INC-012-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_181",
+      "question": "产品 NX-013-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-013-0 的金融最少引用数是 3 条；若季度工单超过 5 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-013-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_182",
+      "question": "运维手册 ORION-013-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-013-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-013-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_183",
+      "question": "供应商 SUP-013-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-013-0 的召回覆盖率阈值是 0.86；合同金额位于 112 万至 195 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-013-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_184",
+      "question": "制度 POL-013-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-013-0 的审计日志保留 193 天；第二次违规冻结 10 天；演示样本清理期限是 3 天。",
+      "gold_document_names": [
+        "policy_POL-013-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_185",
+      "question": "事故复盘 INC-013-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-0 将 chunkSize 从 390 调整到 530；overlap 是 60；验收 gold_recall_rate 目标是 0.89。",
+      "gold_document_names": [
+        "postmortem_INC-013-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_186",
+      "question": "产品 NX-013-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-013-1 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-013-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_187",
+      "question": "运维手册 ORION-013-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-013-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-013-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_188",
+      "question": "供应商 SUP-013-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-013-1 的召回覆盖率阈值是 0.88；合同金额位于 112 万至 195 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-013-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_189",
+      "question": "制度 POL-013-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-013-1 的审计日志保留 203 天；第二次违规冻结 11 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-013-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_190",
+      "question": "事故复盘 INC-013-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-1 将 chunkSize 从 410 调整到 550；overlap 是 80；验收 gold_recall_rate 目标是 0.90。",
+      "gold_document_names": [
+        "postmortem_INC-013-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_191",
+      "question": "产品 NX-013-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-013-2 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-013-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_192",
+      "question": "运维手册 ORION-013-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-013-2 的维护窗口是 03:30-05:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-013-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_193",
+      "question": "供应商 SUP-013-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-013-2 的召回覆盖率阈值是 0.89；合同金额位于 112 万至 195 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-013-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_194",
+      "question": "制度 POL-013-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-013-2 的审计日志保留 213 天；第二次违规冻结 12 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-013-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_195",
+      "question": "事故复盘 INC-013-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-2 将 chunkSize 从 430 调整到 570；overlap 是 100；验收 gold_recall_rate 目标是 0.91。",
+      "gold_document_names": [
+        "postmortem_INC-013-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_196",
+      "question": "产品 NX-014-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-014-0 的金融最少引用数是 4 条；若季度工单超过 6 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-014-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_197",
+      "question": "运维手册 ORION-014-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-014-0 的维护窗口是 01:30-03:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-014-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_198",
+      "question": "供应商 SUP-014-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-014-0 的召回覆盖率阈值是 0.87；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-014-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_199",
+      "question": "制度 POL-014-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-014-0 的审计日志保留 194 天；第二次违规冻结 11 天；演示样本清理期限是 4 天。",
+      "gold_document_names": [
+        "policy_POL-014-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_200",
+      "question": "事故复盘 INC-014-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-014-0 将 chunkSize 从 400 调整到 540；overlap 是 60；验收 gold_recall_rate 目标是 0.90。",
+      "gold_document_names": [
+        "postmortem_INC-014-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_201",
+      "question": "产品 NX-014-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-014-1 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-014-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_202",
+      "question": "运维手册 ORION-014-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-014-1 的维护窗口是 02:30-04:00；夜间连续出现 5 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-014-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_203",
+      "question": "供应商 SUP-014-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-014-1 的召回覆盖率阈值是 0.88；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-014-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_204",
+      "question": "制度 POL-014-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-014-1 的审计日志保留 204 天；第二次违规冻结 12 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-014-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_205",
+      "question": "事故复盘 INC-014-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-014-1 将 chunkSize 从 420 调整到 560；overlap 是 80；验收 gold_recall_rate 目标是 0.91。",
+      "gold_document_names": [
+        "postmortem_INC-014-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_206",
+      "question": "产品 NX-014-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-014-2 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-014-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_207",
+      "question": "运维手册 ORION-014-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-014-2 的维护窗口是 03:30-05:00；夜间连续出现 6 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-014-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_208",
+      "question": "供应商 SUP-014-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-014-2 的召回覆盖率阈值是 0.89；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-014-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_209",
+      "question": "制度 POL-014-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-014-2 的审计日志保留 214 天；第二次违规冻结 13 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-014-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_210",
+      "question": "事故复盘 INC-014-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-014-2 将 chunkSize 从 440 调整到 580；overlap 是 100；验收 gold_recall_rate 目标是 0.92。",
+      "gold_document_names": [
+        "postmortem_INC-014-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_211",
+      "question": "产品 NX-015-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-015-0 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "gold_document_names": [
+        "product_NX-015-0.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_212",
+      "question": "运维手册 ORION-015-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-015-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "gold_document_names": [
+        "ops_ORION-015-0.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_213",
+      "question": "供应商 SUP-015-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-015-0 的召回覆盖率阈值是 0.88；合同金额位于 120 万至 205 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-015-0.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_214",
+      "question": "制度 POL-015-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-015-0 的审计日志保留 195 天；第二次违规冻结 7 天；演示样本清理期限是 5 天。",
+      "gold_document_names": [
+        "policy_POL-015-0.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_215",
+      "question": "事故复盘 INC-015-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-015-0 将 chunkSize 从 410 调整到 550；overlap 是 60；验收 gold_recall_rate 目标是 0.90。",
+      "gold_document_names": [
+        "postmortem_INC-015-0.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_216",
+      "question": "产品 NX-015-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-015-1 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "gold_document_names": [
+        "product_NX-015-1.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_217",
+      "question": "运维手册 ORION-015-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-015-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "gold_document_names": [
+        "ops_ORION-015-1.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_218",
+      "question": "供应商 SUP-015-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-015-1 的召回覆盖率阈值是 0.89；合同金额位于 120 万至 205 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-015-1.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_219",
+      "question": "制度 POL-015-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-015-1 的审计日志保留 205 天；第二次违规冻结 8 天；演示样本清理期限是 6 天。",
+      "gold_document_names": [
+        "policy_POL-015-1.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_220",
+      "question": "事故复盘 INC-015-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-015-1 将 chunkSize 从 430 调整到 570；overlap 是 80；验收 gold_recall_rate 目标是 0.91。",
+      "gold_document_names": [
+        "postmortem_INC-015-1.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_221",
+      "question": "产品 NX-015-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-015-2 的金融最少引用数是 4 条；若季度工单超过 9 次，审批必须升级给 finance_reviewer。",
+      "gold_document_names": [
+        "product_NX-015-2.md"
+      ],
+      "difficulty": "full_doc_product_exact"
+    },
+    {
+      "question_id": "full_222",
+      "question": "运维手册 ORION-015-2 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference_answer": "运维手册 ORION-015-2 的维护窗口是 03:30-05:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "gold_document_names": [
+        "ops_ORION-015-2.md"
+      ],
+      "difficulty": "full_doc_ops_exact"
+    },
+    {
+      "question_id": "full_223",
+      "question": "供应商 SUP-015-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-015-2 的召回覆盖率阈值是 0.90；合同金额位于 120 万至 205 万之间时，由 regional_owner 审批。",
+      "gold_document_names": [
+        "vendor_SUP-015-2.md"
+      ],
+      "difficulty": "full_doc_procurement_exact"
+    },
+    {
+      "question_id": "full_224",
+      "question": "制度 POL-015-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference_answer": "制度 POL-015-2 的审计日志保留 215 天；第二次违规冻结 9 天；演示样本清理期限是 7 天。",
+      "gold_document_names": [
+        "policy_POL-015-2.md"
+      ],
+      "difficulty": "full_doc_policy_exact"
+    },
+    {
+      "question_id": "full_225",
+      "question": "事故复盘 INC-015-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-015-2 将 chunkSize 从 450 调整到 590；overlap 是 100；验收 gold_recall_rate 目标是 0.92。",
+      "gold_document_names": [
+        "postmortem_INC-015-2.md"
+      ],
+      "difficulty": "full_doc_postmortem_exact"
+    },
+    {
+      "question_id": "full_226",
+      "question": "Aurora 默认知识问答 topK 是多少，工作台链路常用 topK 是多少，最容易丢失哪类条款？",
+      "reference_answer": "Aurora 默认知识问答 topK 是 5；工作台链路常用 topK 是 4；最容易丢失的是 second_layer_clause。",
+      "gold_document_names": [
+        "strategy_aurora.md"
+      ],
+      "difficulty": "full_doc_cross_ref_strategy"
+    },
+    {
+      "question_id": "full_227",
+      "question": "金融行业问答在引用数不足、召回文档数不足一半、exact_code 未命中时分别应该如何处理？",
+      "reference_answer": "金融行业问答引用数量不足产品文档规定的最低值时，只能标记 normal_confidence；召回文档数少于应召回文档总数一半时，必须记录 recall_gap；exact_code 未命中时，即使答案方向正确也不能视为 fully_grounded。",
+      "gold_document_names": [
+        "finance_strict_pack.md"
+      ],
+      "difficulty": "full_doc_cross_ref_finance"
+    },
+    {
+      "question_id": "full_228",
+      "question": "thinking mode 中 visibleContent 和 content 分别用于什么，混用会造成什么风险？",
+      "reference_answer": "visibleContent 只用于实时展示推理过程，content 只用于持久化最终正式答案；如果前端把 visibleContent 当成 content 对外展示，会造成 final_answer_presentation_risk。",
+      "gold_document_names": [
+        "thinking_mode_guideline.md"
+      ],
+      "difficulty": "full_doc_cross_ref_thinking"
+    },
+    {
+      "question_id": "full_229",
+      "question": "检索调优手册建议 second_layer_clause 丢失、exact_code 错召回、制度天数混淆时分别怎么处理？",
+      "reference_answer": "second_layer_clause 经常丢失时，应优先增大 chunkSize 并提高 overlap；exact_code 召回经常错误时，应增加编号特征 rerank；制度天数与阈值频繁混淆时，应加入 structured_fact_extractor。",
+      "gold_document_names": [
+        "retrieval_tuning_playbook.md"
+      ],
+      "difficulty": "full_doc_cross_ref_tuning"
+    },
+    {
+      "question_id": "full_230",
+      "question": "置信度标注标准中，引用不足、只命中相似文档未命中 gold_document、证据不完整时分别如何标注？",
+      "reference_answer": "引用数量不足最低要求时不得使用 high_confidence；只命中相似文档但未命中 gold_document 时，最高只能标记 reviewed_but_not_grounded；引用与答案方向一致但证据不完整时，只能标记 normal_confidence。",
+      "gold_document_names": [
+        "confidence_labelling_standard.md"
+      ],
+      "difficulty": "full_doc_cross_ref_confidence"
+    },
+    {
+      "question_id": "full_231",
+      "question": "工作台问答链路中没有 activeConversation 时会怎么处理，默认通过哪个接口完成知识问答，工作台 topK 通常是多少？",
+      "reference_answer": "handleSend 进入 sendMessage 后会检查 activeConversation，不存在则创建会话；知识问答层默认走 workspace/chat/stream 完成事件；工作台链路通常把知识检索 topK 固定为 4。",
+      "gold_document_names": [
+        "workspace_chain_overview.md"
+      ],
+      "difficulty": "full_doc_cross_ref_workspace"
+    }
+  ]
+}

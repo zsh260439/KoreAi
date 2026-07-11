@@ -244,12 +244,35 @@ function applyDeterministicRerank(
     const leftSignal = computeHitSignal(left, plan.protectedTerms, plan.excludedTerms)
     const rightSignal = computeHitSignal(right, plan.protectedTerms, plan.excludedTerms)
 
+    // 对带结构化编号的 query，先按完整编号覆盖做硬排序，避免近邻文档靠语义分顶上来。
+    if (rightSignal.structuredFullCoverage !== leftSignal.structuredFullCoverage) {
+      return rightSignal.structuredFullCoverage - leftSignal.structuredFullCoverage
+    }
+
+    // 同族不同号属于典型误召回，要比普通 fused score 更早地下沉。
+    if (leftSignal.siblingIdentifierConflicts !== rightSignal.siblingIdentifierConflicts) {
+      return leftSignal.siblingIdentifierConflicts - rightSignal.siblingIdentifierConflicts
+    }
+
     if (rightSignal.fullCoverage !== leftSignal.fullCoverage) {
       return rightSignal.fullCoverage - leftSignal.fullCoverage
     }
 
     if (leftSignal.excludedMatches !== rightSignal.excludedMatches) {
       return leftSignal.excludedMatches - rightSignal.excludedMatches
+    }
+
+    if (
+      rightSignal.structuredDocumentNameMatches !== leftSignal.structuredDocumentNameMatches
+    ) {
+      return (
+        rightSignal.structuredDocumentNameMatches -
+        leftSignal.structuredDocumentNameMatches
+      )
+    }
+
+    if (rightSignal.structuredTermMatches !== leftSignal.structuredTermMatches) {
+      return rightSignal.structuredTermMatches - leftSignal.structuredTermMatches
     }
 
     if (rightSignal.documentNameMatches !== leftSignal.documentNameMatches) {
@@ -281,6 +304,10 @@ function computeHitSignal(
   protectedTerms: string[],
   excludedTerms: string[]
 ): {
+  structuredFullCoverage: number
+  structuredTermMatches: number
+  structuredDocumentNameMatches: number
+  siblingIdentifierConflicts: number
   fullCoverage: number
   termMatches: number
   documentNameMatches: number
@@ -289,6 +316,7 @@ function computeHitSignal(
   const normalizedDocumentName = normalizeForExactMatch(hit.documentName)
   const normalizedContent = normalizeForExactMatch(hit.content)
   const normalizedText = `${normalizedDocumentName} ${normalizedContent}`
+  const protectedTermGroups = splitProtectedTerms(protectedTerms)
 
   let excludedMatches = 0
 
@@ -305,6 +333,10 @@ function computeHitSignal(
 
   if (protectedTerms.length === 0) {
     return {
+      structuredFullCoverage: 0,
+      structuredTermMatches: 0,
+      structuredDocumentNameMatches: 0,
+      siblingIdentifierConflicts: 0,
       fullCoverage: 0,
       termMatches: 0,
       documentNameMatches: 0,
@@ -314,6 +346,8 @@ function computeHitSignal(
 
   let termMatches = 0
   let documentNameMatches = 0
+  let structuredTermMatches = 0
+  let structuredDocumentNameMatches = 0
 
   for (const term of protectedTerms) {
     const normalizedTerm = normalizeForExactMatch(term)
@@ -321,18 +355,39 @@ function computeHitSignal(
       continue
     }
 
+    const structuredTerm = protectedTermGroups.structuredSet.has(normalizedTerm)
+
     if (containsExactTerm(normalizedDocumentName, normalizedTerm)) {
       documentNameMatches += 1
       termMatches += 1
+      if (structuredTerm) {
+        structuredDocumentNameMatches += 1
+        structuredTermMatches += 1
+      }
       continue
     }
 
     if (containsExactTerm(normalizedContent, normalizedTerm)) {
       termMatches += 1
+      if (structuredTerm) {
+        structuredTermMatches += 1
+      }
     }
   }
 
+  const siblingIdentifierConflicts = countSiblingIdentifierConflicts(
+    normalizedDocumentName,
+    normalizedText,
+    protectedTermGroups.structured
+  )
+  const structuredProtectedCount = protectedTermGroups.structured.length
+
   return {
+    structuredFullCoverage:
+      structuredProtectedCount > 0 && structuredTermMatches === structuredProtectedCount ? 1 : 0,
+    structuredTermMatches,
+    structuredDocumentNameMatches,
+    siblingIdentifierConflicts,
     fullCoverage: termMatches === protectedTerms.length ? 1 : 0,
     termMatches,
     documentNameMatches,
@@ -344,7 +399,10 @@ function isStrongProtectedTermMatch(
   hit: KnowledgeSearchHit,
   protectedTerms: string[]
 ): boolean {
-  return computeHitSignal(hit, protectedTerms, []).fullCoverage === 1
+  const signal = computeHitSignal(hit, protectedTerms, [])
+  return signal.structuredTermMatches > 0
+    ? signal.structuredFullCoverage === 1
+    : signal.fullCoverage === 1
 }
 
 function computeTopCoverageScore(
@@ -360,6 +418,9 @@ function computeTopCoverageScore(
     .reduce((maxScore, hit) => {
       const signal = computeHitSignal(hit, protectedTerms, [])
       const coverageScore =
+        signal.structuredFullCoverage * 1000 +
+        signal.structuredDocumentNameMatches * 100 -
+        signal.siblingIdentifierConflicts * 20 +
         signal.fullCoverage * 100 +
         signal.documentNameMatches * 10 +
         signal.termMatches
@@ -408,6 +469,95 @@ function containsExactTerm(haystack: string, needle: string): boolean {
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
+
+function splitProtectedTerms(protectedTerms: string[]): {
+  structured: string[]
+  structuredSet: Set<string>
+} {
+  const structured = protectedTerms
+    .map((term) => normalizeForExactMatch(term))
+    .filter((term) => term && isStructuredIdentifierTerm(term))
+
+  return {
+    structured,
+    structuredSet: new Set(structured)
+  }
+}
+
+function countSiblingIdentifierConflicts(
+  normalizedDocumentName: string,
+  normalizedText: string,
+  structuredProtectedTerms: string[]
+): number {
+  if (structuredProtectedTerms.length === 0) {
+    return 0
+  }
+
+  const documentIdentifiers = extractStructuredIdentifierTerms(normalizedDocumentName)
+  const textIdentifiers = extractStructuredIdentifierTerms(normalizedText)
+  let conflicts = 0
+
+  for (const term of structuredProtectedTerms) {
+    if (containsExactTerm(normalizedText, term)) {
+      continue
+    }
+
+    const familyKey = buildIdentifierFamilyKey(term)
+    if (!familyKey) {
+      continue
+    }
+
+    const hasSiblingInDocumentName = documentIdentifiers.some(
+      (candidate) => candidate !== term && buildIdentifierFamilyKey(candidate) === familyKey
+    )
+    if (hasSiblingInDocumentName) {
+      conflicts += 1
+      continue
+    }
+
+    const hasSiblingInContent = textIdentifiers.some(
+      (candidate) => candidate !== term && buildIdentifierFamilyKey(candidate) === familyKey
+    )
+    if (hasSiblingInContent) {
+      conflicts += 1
+    }
+  }
+
+  return conflicts
+}
+
+function extractStructuredIdentifierTerms(value: string): string[] {
+  const matches = value.match(STRUCTURED_IDENTIFIER_TERM_PATTERN) ?? []
+  return [...new Set(matches.map((item) => item.trim()).filter(Boolean))]
+}
+
+function buildIdentifierFamilyKey(value: string): string {
+  const lastSeparatorIndex = Math.max(
+    value.lastIndexOf('-'),
+    value.lastIndexOf('_'),
+    value.lastIndexOf('.'),
+    value.lastIndexOf('/'),
+    value.lastIndexOf(':')
+  )
+
+  if (lastSeparatorIndex > 0) {
+    return value.slice(0, lastSeparatorIndex)
+  }
+
+  const compactMatch = value.match(/^([a-z]+)(\d{2,})$/i)
+  if (compactMatch) {
+    return compactMatch[1].toLowerCase()
+  }
+
+  return ''
+}
+
+function isStructuredIdentifierTerm(value: string): boolean {
+  return /[a-z]/i.test(value) && /\d/.test(value)
+}
+
+const STRUCTURED_IDENTIFIER_TERM_PATTERN =
+  /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,8}[-_]?\d{2,})\b/gi
 
 type RetrievalExecutionResult = {
   hints: KnowledgeQueryRetrievalHints
