@@ -14,12 +14,13 @@ type EvidenceFactCandidate = KnowledgeEvidenceFact & {
 
 const STRUCTURED_IDENTIFIER_PATTERN =
   /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,12}[-_]?\d{2,})\b/gi
+const CAMEL_CASE_IDENTIFIER_PATTERN = /\b[a-z]+(?:[A-Z][a-z0-9]*)+\b/g
 
 const NUMBER_PATTERN =
   /\b\d+(?:\.\d+)?\s*(?:%|万|次|天|条|小时|分钟|days?|times?|items?)?\b/gi
 
 const SENTENCE_SPLIT_PATTERN = /(?<=[。！？!?；;])\s*|\r?\n+/
-const MAX_FACTS = 8
+const MAX_FACTS = 12
 const MAX_SIGNAL_TERMS = 64
 const MAX_FACT_TEXT_LENGTH = 220
 
@@ -49,9 +50,7 @@ export function extractKnowledgeEvidenceFacts(input: {
     extractHitFactCandidates(hit, hitIndex, signalTerms)
   )
 
-  return dedupeFacts(candidates)
-    .sort((left, right) => right.score - left.score)
-    .slice(0, MAX_FACTS)
+  return selectEvidenceFacts(dedupeFacts(candidates), MAX_FACTS)
     .map(({ score: _score, ...fact }) => fact)
 }
 
@@ -72,6 +71,7 @@ function extractHitFactCandidates(
       ])
       const exactValues = uniqueNormalizedTerms([
         ...extractMatches(sentence, STRUCTURED_IDENTIFIER_PATTERN),
+        ...extractMatches(sentence, CAMEL_CASE_IDENTIFIER_PATTERN),
         ...extractMatches(sentence, NUMBER_PATTERN)
       ])
       const score = scoreFactCandidate(sentence, matchedTerms, hit, titleMatchedTerms.length)
@@ -95,7 +95,9 @@ function scoreFactCandidate(
   titleMatchCount: number
 ): number {
   const factLength = compactText(sentence).length
-  const identifierCount = extractMatches(sentence, STRUCTURED_IDENTIFIER_PATTERN).length
+  const identifierCount =
+    extractMatches(sentence, STRUCTURED_IDENTIFIER_PATTERN).length +
+    extractMatches(sentence, CAMEL_CASE_IDENTIFIER_PATTERN).length
   const numberCount = extractMatches(sentence, NUMBER_PATTERN).length
   const hasStructuredValue = identifierCount + numberCount > 0
   if (matchedTerms.length === 0 || (matchedTerms.length < 2 && !hasStructuredValue)) {
@@ -130,7 +132,10 @@ function splitFactSentences(content: string): string[] {
 }
 
 function extractQueryTerms(query: string): string[] {
-  const identifiers = extractMatches(query, STRUCTURED_IDENTIFIER_PATTERN)
+  const identifiers = uniqueNormalizedTerms([
+    ...extractMatches(query, STRUCTURED_IDENTIFIER_PATTERN),
+    ...extractMatches(query, CAMEL_CASE_IDENTIFIER_PATTERN)
+  ])
   const numbers = extractMatches(query, NUMBER_PATTERN)
     .filter((numberTerm) => !identifiers.some((identifier) => identifier.includes(numberTerm)))
   const asciiTerms = extractAsciiTerms(query)
@@ -145,7 +150,14 @@ function extractQueryTerms(query: string): string[] {
 }
 
 function extractCjkTerms(value: string): string[] {
-  return value.match(/[\u4e00-\u9fff]{2,}/g) ?? []
+  const segments = value.match(/[\u4e00-\u9fff]{2,}/g) ?? []
+  return segments.flatMap((segment) => [
+    segment,
+    ...Array.from(
+      { length: Math.max(0, segment.length - 1) },
+      (_, index) => segment.slice(index, index + 2)
+    )
+  ])
 }
 
 function extractAsciiTerms(value: string): string[] {
@@ -195,6 +207,41 @@ function dedupeFacts(candidates: EvidenceFactCandidate[]): EvidenceFactCandidate
   return result
 }
 
+function selectEvidenceFacts(
+  candidates: EvidenceFactCandidate[],
+  limit: number
+): EvidenceFactCandidate[] {
+  const remaining = [...candidates]
+  const selected: EvidenceFactCandidate[] = []
+  const coveredTerms = new Set<string>()
+
+  while (remaining.length > 0 && selected.length < limit) {
+    let bestIndex = 0
+    let bestScore = Number.NEGATIVE_INFINITY
+
+    for (let index = 0; index < remaining.length; index += 1) {
+      const candidate = remaining[index]
+      const uncoveredCount = uniqueNormalizedTerms(candidate.matchedTerms)
+        .map(normalizeTerm)
+        .filter((term) => !coveredTerms.has(term)).length
+      const coverageScore = uncoveredCount * 1000 + candidate.score
+
+      if (coverageScore > bestScore) {
+        bestIndex = index
+        bestScore = coverageScore
+      }
+    }
+
+    const [bestCandidate] = remaining.splice(bestIndex, 1)
+    selected.push(bestCandidate)
+    for (const term of bestCandidate.matchedTerms) {
+      coveredTerms.add(normalizeTerm(term))
+    }
+  }
+
+  return selected
+}
+
 function computeLengthPenalty(length: number): number {
   if (length <= 120) {
     return 0
@@ -229,13 +276,13 @@ function isOverlappingFact(
 
   const leftValues = uniqueNormalizedTerms(left.exactValues).map(normalizeTerm)
   const rightValues = new Set(uniqueNormalizedTerms(right.exactValues).map(normalizeTerm))
-  const smallerValueCount = Math.min(leftValues.length, rightValues.size)
-  if (smallerValueCount === 0) {
+  if (leftValues.length === 0 || rightValues.size === 0) {
     return false
   }
 
   const valueOverlapCount = leftValues.filter((value) => rightValues.has(value)).length
-  return valueOverlapCount / smallerValueCount >= 0.8
+  const valueUnionCount = new Set([...leftValues, ...rightValues]).size
+  return valueOverlapCount / valueUnionCount >= 0.8
 }
 
 function extractMatches(value: string, pattern: RegExp): string[] {
