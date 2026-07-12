@@ -174,22 +174,21 @@ export class KnowledgeRetrievalService {
         break
       }
 
-      const siblingHits = await this.loadSiblingEvidenceChunks(documentId, seenChunkIds)
-      const scoredSiblings = siblingHits
-        .map((hit) => ({
-          hit: attachEvidenceScore(hit, plan),
-          score: computeKnowledgeEvidenceScore(hit, plan.evidencePlan).score
-        }))
-        .filter((item) => item.score > 0)
-        .sort((left, right) => right.score - left.score)
+      const siblingPool = (await this.loadSiblingEvidenceChunks(documentId, seenChunkIds))
+        .map((hit) => attachEvidenceScore(hit, plan))
 
-      for (const item of scoredSiblings.slice(0, 3)) {
+      for (let pickedCount = 0; pickedCount < 3; pickedCount += 1) {
         if (expanded.length >= plan.evidencePlan.maxTopK) {
           break
         }
 
-        expanded.push(markEvidenceExpansionHit(item.hit))
-        seenChunkIds.add(item.hit.chunkId)
+        const nextSibling = pickBestUncoveredEvidenceSibling(siblingPool, expanded, plan)
+        if (!nextSibling) {
+          break
+        }
+
+        expanded.push(markEvidenceExpansionHit(nextSibling))
+        seenChunkIds.add(nextSibling.chunkId)
 
         const coverage = computeKnowledgeEvidenceCoverage(expanded, plan.evidencePlan)
         if (coverage >= plan.evidencePlan.requiredCoverage) {
@@ -711,6 +710,86 @@ function markEvidenceExpansionHit(hit: KnowledgeSearchHit): KnowledgeSearchHit {
   }
 }
 
+function pickBestUncoveredEvidenceSibling(
+  candidates: KnowledgeSearchHit[],
+  selectedHits: KnowledgeSearchHit[],
+  plan: KnowledgeQueryPlan
+): KnowledgeSearchHit | null {
+  const coveredTerms = collectCoveredEvidenceTerms(selectedHits, plan.evidencePlan)
+  let bestIndex = -1
+  let bestScore = 0
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index]
+    const evidence = computeKnowledgeEvidenceScore(candidate, plan.evidencePlan)
+    const uncoveredGain = computeUncoveredEvidenceGain(evidence, coveredTerms)
+    const totalScore = uncoveredGain > 0 ? uncoveredGain * 100 + evidence.score : 0
+
+    if (totalScore > bestScore) {
+      bestIndex = index
+      bestScore = totalScore
+    }
+  }
+
+  if (bestIndex < 0 || bestScore <= 0) {
+    return null
+  }
+
+  const [bestCandidate] = candidates.splice(bestIndex, 1)
+  return bestCandidate
+}
+
+function collectCoveredEvidenceTerms(
+  hits: KnowledgeSearchHit[],
+  plan: KnowledgeQueryPlan['evidencePlan']
+): CoveredEvidenceTerms {
+  const coveredTerms: CoveredEvidenceTerms = {
+    identifiers: new Set<string>(),
+    numericTerms: new Set<string>(),
+    evidenceTerms: new Set<string>()
+  }
+
+  for (const hit of hits) {
+    const evidence = computeKnowledgeEvidenceScore(hit, plan)
+    addCoveredTerms(coveredTerms.identifiers, evidence.matchedIdentifiers)
+    addCoveredTerms(coveredTerms.numericTerms, evidence.matchedNumericTerms)
+    addCoveredTerms(coveredTerms.evidenceTerms, evidence.matchedEvidenceTerms)
+  }
+
+  return coveredTerms
+}
+
+function computeUncoveredEvidenceGain(
+  evidence: ReturnType<typeof computeKnowledgeEvidenceScore>,
+  coveredTerms: CoveredEvidenceTerms
+): number {
+  const identifierGain = countUncoveredTerms(evidence.matchedIdentifiers, coveredTerms.identifiers) * 50
+  const numericGain = countUncoveredTerms(evidence.matchedNumericTerms, coveredTerms.numericTerms) * 35
+  const evidenceTermGain = Math.min(
+    countUncoveredTerms(evidence.matchedEvidenceTerms, coveredTerms.evidenceTerms) * 10,
+    40
+  )
+
+  return identifierGain + numericGain + evidenceTermGain
+}
+
+function countUncoveredTerms(terms: string[], coveredTerms: Set<string>): number {
+  return uniqueStrings(terms).filter((term) => !coveredTerms.has(normalizeEvidenceTerm(term))).length
+}
+
+function addCoveredTerms(target: Set<string>, terms: string[]): void {
+  for (const term of terms) {
+    const normalizedTerm = normalizeEvidenceTerm(term)
+    if (normalizedTerm) {
+      target.add(normalizedTerm)
+    }
+  }
+}
+
+function normalizeEvidenceTerm(value: string): string {
+  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
 function includeReferenceEvidence(
   hits: KnowledgeSearchHit[],
   referenceCandidates: KnowledgeRetrievalCandidate[],
@@ -1073,4 +1152,10 @@ type ReferenceRecallRow = {
   content: string
   roleNameScore: string | number
   evidenceMatchCount: string | number
+}
+
+type CoveredEvidenceTerms = {
+  identifiers: Set<string>
+  numericTerms: Set<string>
+  evidenceTerms: Set<string>
 }

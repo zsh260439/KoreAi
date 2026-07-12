@@ -171,6 +171,7 @@ export class KnowledgeService {
         temperature: runtimeConfig.answer.temperature,
         evidenceGateStatus: retrievalResult.debug?.evidenceGateStatus,
         evidenceCoverage: retrievalResult.debug?.evidenceCoverage,
+        retrievalDebug: retrievalResult.debug,
       },
     );
 

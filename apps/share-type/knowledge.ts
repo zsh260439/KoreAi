@@ -120,7 +120,7 @@ export const DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG: KnowledgeBaseRuntimeConfig =
     queryAnalysisTemperature: 0.1
   },
   answer: {
-    temperature: 0.2
+    temperature: 0
   }
 }
 

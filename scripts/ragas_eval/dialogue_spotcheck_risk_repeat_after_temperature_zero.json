@@ -1,0 +1,94 @@
+{
+  "rows": [
+    {
+      "question_id": "full_173",
+      "run": 1,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87\n- 合同金额由 regional_owner 审批的区间：108万 至 190万"
+    },
+    {
+      "question_id": "full_173",
+      "run": 2,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87  \n- 合同金额区间：108万至190万（由 regional_owner 审批）"
+    },
+    {
+      "question_id": "full_173",
+      "run": 3,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87\n- 合同金额区间：108 万至 190 万"
+    },
+    {
+      "question_id": "full_173",
+      "run": 4,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87  \n- 合同金额在 108 万至 190 万之间由 regional_owner 审批"
+    },
+    {
+      "question_id": "full_173",
+      "run": 5,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87\n- 由 regional_owner 审批的合同金额区间：108 万至 190 万"
+    },
+    {
+      "question_id": "full_165",
+      "run": 1,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 事故前 chunkSize：410  \n- 事故前 overlap：100  \n- 事故后 chunkSize：550  \n- 验收 gold_recall_rate 目标：不低于0.90"
+    },
+    {
+      "question_id": "full_165",
+      "run": 2,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 事故前 chunkSize: 410，overlap: 100  \n- 事故后 chunkSize 调整到: 550  \n- 验收 gold_recall_rate 目标: 不低于 0.90"
+    },
+    {
+      "question_id": "full_165",
+      "run": 3,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- **事故前 chunkSize**：410  \n- **事故前 overlap**：100  \n- **事故后 chunkSize**：550  \n- **验收 gold_recall_rate 目标**：不低于 0.90"
+    },
+    {
+      "question_id": "full_165",
+      "run": 4,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 事故前 chunkSize: 410  \n- 事故前 overlap: 100  \n- 事故后 chunkSize: 550  \n- 验收 gold_recall_rate 目标: 0.90"
+    },
+    {
+      "question_id": "full_165",
+      "run": 5,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 事故前 chunkSize：410  \n- 事故前 overlap：100  \n- 事故后 chunkSize：550  \n- 验收 gold_recall_rate 目标：不低于 0.90"
+    }
+  ]
+}

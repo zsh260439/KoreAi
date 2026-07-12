@@ -1,0 +1,31 @@
+{
+  "question": "事故复盘 INC-011-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+  "reference": "事故复盘 INC-011-2 的事故前 chunkSize 是 410，事故前 overlap 是 100；事故后 chunkSize 调整到 550；验收 gold_recall_rate 目标是 0.90。",
+  "rows": [
+    {
+      "run": 1,
+      "ok": false,
+      "answer": "事故前 chunkSize 为 410，overlap 为 100；事故后 chunkSize 调整为 550，overlap 调整为 120。验收 gold_recall_rate 目标是不低于 0.90。"
+    },
+    {
+      "run": 2,
+      "ok": true,
+      "answer": "- 事故前 chunkSize：410  \n- 事故前 overlap：100  \n- 事故后 chunkSize 调整到：550  \n- 验收 gold_recall_rate 目标：不低于 0.90"
+    },
+    {
+      "run": 3,
+      "ok": true,
+      "answer": "- 事故前 chunkSize 为 410，overlap 为 100。\n- 事故后 chunkSize 调整为 550。\n- 验收 gold_recall_rate 目标为不低于 0.90。"
+    },
+    {
+      "run": 4,
+      "ok": true,
+      "answer": "- 事故前 chunkSize：410  \n- 事故前 overlap：100  \n- 事故后 chunkSize：550  \n- 验收 gold_recall_rate 目标：不低于 0.90"
+    },
+    {
+      "run": 5,
+      "ok": true,
+      "answer": "- 事故前 chunkSize 为 410，overlap 为 100。  \n- 事故后 chunkSize 调整为 550。  \n- 验收 gold_recall_rate 目标为不低于 0.90。"
+    }
+  ]
+}

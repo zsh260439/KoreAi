@@ -1,0 +1,58 @@
+{
+  "rows": [
+    {
+      "question_id": "full_173",
+      "run": 1,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87  \n- 合同金额由 regional_owner 审批的区间：108 万至 190 万（含上限？原文为“位于 108 万至 190 万之间”，通常含端点，具体以合同制度为准）"
+    },
+    {
+      "question_id": "full_173",
+      "run": 2,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87（依据供应商SUP-012-1专属文档中的描述，该阈值区别于其他供应商）。\n- 合同金额由 regional_owner 审批的区间：108万至190万。"
+    },
+    {
+      "question_id": "full_173",
+      "run": 3,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 召回覆盖率阈值：0.87。\n- 合同金额在 108 万至 190 万之间由 regional_owner 审批。"
+    },
+    {
+      "question_id": "full_165",
+      "run": 1,
+      "ok": false,
+      "bad_cite": true,
+      "bad_overlap": true,
+      "bad_missing": false,
+      "answer": "**事故前：** chunkSize = 410，overlap = 100  \n**事故后：** chunkSize 调整到 550（根据片段[6]，overlap 同步调整为 120）  \n**验收 gold_recall_rate 目标：** 不低于 0.90（来源于片段[1]）"
+    },
+    {
+      "question_id": "full_165",
+      "run": 2,
+      "ok": false,
+      "bad_cite": true,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- 事故前 chunkSize：410（证据 [5]、[6]）  \n- 事故前 overlap：100（证据 [5]、[6]）  \n- 事故后 chunkSize 调整为：550（证据 [5]、[6]）  \n- 验收 gold_recall_rate 目标：不低于 0.90（证据 [1]）"
+    },
+    {
+      "question_id": "full_165",
+      "run": 3,
+      "ok": true,
+      "bad_cite": false,
+      "bad_overlap": false,
+      "bad_missing": false,
+      "answer": "- **事故前 chunkSize**：410  \n- **事故前 overlap**：100  \n- **事故后 chunkSize**：550  \n- **验收 gold_recall_rate 目标**：不低于 0.90"
+    }
+  ]
+}

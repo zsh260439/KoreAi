@@ -1,0 +1,924 @@
+{
+  "rows": [
+    {
+      "sample_index": 27,
+      "question_id": "full_028",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_scores": {
+        "faithfulness": 0.75,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "answer_correctness": 0.3290503694013467
+      },
+      "question": "供应商 SUP-002-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-002-2 的召回覆盖率阈值是 0.83；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "previous_response": "- **召回覆盖率阈值**：在所提供知识片段中未找到供应商 SUP-002-2 的明确召回覆盖率阈值，证据缺失。  \n- **合同金额区间由 regional_owner 审批**：合同金额位于 68 万至 140 万之间，由 regional_owner 审批（依据文档 vendor_SUP-002-2.md 的付款审批规则）。",
+      "current_answer": "- **召回覆盖率阈值**：在提供的知识片段中，未找到供应商SUP-002-2明确的召回覆盖率阈值。片段[3]虽然提及“阈值0.83”，但该内容是针对检索混淆的警告，并未声明该数值属于SUP-002-2。\n- **由regional_owner审批的合同金额区间**：合同金额位于68万至140万之间，由regional_owner审批（依据文档[1]）。",
+      "sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-002-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 68 万，由 department_owner 审批。 合同金额位于 68 万至 140 万之间，由 regional_owner 审批。 合同金额高于 140 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-002-2.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "供应商信息\n\n供应商编号为 SUP-002-2，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v3。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_2。 审计周期统一走 cycle_3，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-002-2.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "供应商对照矩阵\n\nSUP-002-2 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-002-2 与 monthly_recall_coverage_report_v3 的绑定关系，就容易把阈值 0.83 写成其他编号的数值。 合同金额区间 68 到 140 的审批规则必须与当前供应商文档"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-014-2.md",
+          "score": 91.42,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-013-2.md",
+          "score": 89.78,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 112 万，由 department_owner 审批。 合同金额位于 112 万至 195 万之间，由 regional_owner 审批。 合同金额高于 195 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 6,
+          "documentName": "vendor_SUP-014-1.md",
+          "score": 89.71,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 7,
+          "documentName": "vendor_SUP-013-1.md",
+          "score": 89.32,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 112 万，由 department_owner 审批。 合同金额位于 112 万至 195 万之间，由 regional_owner 审批。 合同金额高于 195 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 8,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 89.13,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-002-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-002-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-002-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-002-2 regional_owner",
+        "vectorQuery": "供应商 SUP-002-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-002-2",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "002",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2230
+    },
+    {
+      "sample_index": 107,
+      "question_id": "full_108",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_scores": {
+        "faithfulness": 0.6666666666666666,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.8055555555287036,
+        "answer_correctness": 0.3856966815039457
+      },
+      "question": "供应商 SUP-008-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-008-0 的召回覆盖率阈值是 0.84；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "previous_response": "- **召回覆盖率阈值**：知识片段中未提供供应商SUP-008-0的召回覆盖率阈值具体数值，该事实不在当前检索到的证据中。\n\n- **合同金额区间由regional_owner审批**：根据供应商SUP-008-0的付款审批规则，合同金额位于**92万至170万**之间时由regional_owner审批。",
+      "current_answer": "- 召回覆盖率阈值：0.84  \n- 合同金额由 regional_owner 审批的区间：92 万至 170 万",
+      "sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-008-0.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 92 万，由 department_owner 审批。 合同金额位于 92 万至 170 万之间，由 regional_owner 审批。 合同金额高于 170 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-008-0.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "供应商信息\n\n供应商编号为 SUP-008-0，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v1。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_2。 审计周期统一走 cycle_1，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-008-0.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "供应商对照矩阵\n\nSUP-008-0 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-008-0 与 monthly_recall_coverage_report_v1 的绑定关系，就容易把阈值 0.84 写成其他编号的数值。 合同金额区间 92 到 170 的审批规则必须与当前供应商文档"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-008-2.md",
+          "score": 52.19,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 92 万，由 department_owner 审批。 合同金额位于 92 万至 170 万之间，由 regional_owner 审批。 合同金额高于 170 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-008-1.md",
+          "score": 51.59,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 92 万，由 department_owner 审批。 合同金额位于 92 万至 170 万之间，由 regional_owner 审批。 合同金额高于 170 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 6,
+          "documentName": "vendor_SUP-012-1.md",
+          "score": 83.72,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 108 万，由 department_owner 审批。 合同金额位于 108 万至 190 万之间，由 regional_owner 审批。 合同金额高于 190 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 7,
+          "documentName": "vendor_SUP-012-2.md",
+          "score": 83.56,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 108 万，由 department_owner 审批。 合同金额位于 108 万至 190 万之间，由 regional_owner 审批。 合同金额高于 190 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 8,
+          "documentName": "vendor_SUP-012-0.md",
+          "score": 83.26,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 108 万，由 department_owner 审批。 合同金额位于 108 万至 190 万之间，由 regional_owner 审批。 合同金额高于 190 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-008-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-008-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-008-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-008-0 regional_owner",
+        "vectorQuery": "供应商 SUP-008-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-008-0",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "008",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2091
+    },
+    {
+      "sample_index": 197,
+      "question_id": "full_198",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_scores": {
+        "faithfulness": 1.0,
+        "context_recall": 0.5,
+        "llm_context_precision_with_reference": 0.7555555555303703,
+        "answer_correctness": 0.3881605352326352
+      },
+      "question": "供应商 SUP-014-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-014-0 的召回覆盖率阈值是 0.87；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "previous_response": "- 召回覆盖率阈值：未在提供的知识片段中找到明确数值。\n- 由 regional_owner 审批的合同金额区间：116 万至 200 万（含区间端点）。",
+      "current_answer": "供应商 SUP-014-0 的召回覆盖率阈值为 **0.87**。  \n合同金额在 **116 万至 200 万** 之间由 regional_owner 审批。",
+      "sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 93.44,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "供应商信息\n\n供应商编号为 SUP-014-0，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v1。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_2。 审计周期统一走 cycle_1，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "供应商对照矩阵\n\nSUP-014-0 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-014-0 与 monthly_recall_coverage_report_v1 的绑定关系，就容易把阈值 0.87 写成其他编号的数值。 合同金额区间 116 到 200 的审批规则必须与当前供应商文"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-014-2.md",
+          "score": 87.82,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-014-1.md",
+          "score": 86.57,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 6,
+          "documentName": "vendor_SUP-015-2.md",
+          "score": 88.44,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 120 万，由 department_owner 审批。 合同金额位于 120 万至 205 万之间，由 regional_owner 审批。 合同金额高于 205 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 7,
+          "documentName": "vendor_SUP-013-2.md",
+          "score": 88.41,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 112 万，由 department_owner 审批。 合同金额位于 112 万至 195 万之间，由 regional_owner 审批。 合同金额高于 195 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 8,
+          "documentName": "vendor_SUP-015-0.md",
+          "score": 88.01,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 120 万，由 department_owner 审批。 合同金额位于 120 万至 205 万之间，由 regional_owner 审批。 合同金额高于 205 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-014-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-014-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-014-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-014-0 regional_owner",
+        "vectorQuery": "供应商 SUP-014-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-014-0",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "014",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2181
+    },
+    {
+      "sample_index": 82,
+      "question_id": "full_083",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_scores": {
+        "faithfulness": 0.8333333333333334,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "answer_correctness": 0.39519469279355035
+      },
+      "question": "供应商 SUP-006-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-006-1 的召回覆盖率阈值是 0.84；合同金额位于 84 万至 160 万之间时，由 regional_owner 审批。",
+      "previous_response": "**召回覆盖率阈值：** 提供的知识库片段中未明确给出供应商 SUP-006-1 的召回覆盖率具体数值，仅提到存在“召回覆盖率红线”以及需要提交月度报告，因此该事实缺失。\n\n**合同金额由 regional_owner 审批的区间：** 合同金额位于 84 万至 160 万之间，由 regional_owner 审批。",
+      "current_answer": "- 召回覆盖率阈值：0.84  \n- 由 regional_owner 审批的合同金额区间：84 万至 160 万",
+      "sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-006-1.md",
+          "score": 96.76,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 84 万，由 department_owner 审批。 合同金额位于 84 万至 160 万之间，由 regional_owner 审批。 合同金额高于 160 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-006-1.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "供应商信息\n\n供应商编号为 SUP-006-1，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v2。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_0。 审计周期统一走 cycle_2，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-006-1.md",
+          "score": 99.56,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "供应商对照矩阵\n\nSUP-006-1 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-006-1 与 monthly_recall_coverage_report_v2 的绑定关系，就容易把阈值 0.84 写成其他编号的数值。 合同金额区间 84 到 160 的审批规则必须与当前供应商文档"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-006-2.md",
+          "score": 73.58,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 84 万，由 department_owner 审批。 合同金额位于 84 万至 160 万之间，由 regional_owner 审批。 合同金额高于 160 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-006-0.md",
+          "score": 72.33,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 84 万，由 department_owner 审批。 合同金额位于 84 万至 160 万之间，由 regional_owner 审批。 合同金额高于 160 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 6,
+          "documentName": "vendor_SUP-014-2.md",
+          "score": 92.62,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 7,
+          "documentName": "vendor_SUP-014-1.md",
+          "score": 90.84,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 8,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 90.29,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-006-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-006-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-006-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-006-1 regional_owner",
+        "vectorQuery": "供应商 SUP-006-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-006-1",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "006",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2298
+    },
+    {
+      "sample_index": 57,
+      "question_id": "full_058",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_scores": {
+        "faithfulness": 1.0,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "answer_correctness": 0.43809182279262726
+      },
+      "question": "供应商 SUP-004-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-004-2 的召回覆盖率阈值是 0.84；合同金额位于 76 万至 150 万之间时，由 regional_owner 审批。",
+      "previous_response": "- **召回覆盖率阈值**：在知识库提供的关于供应商 SUP-004-2 的文档中，未明确给出其召回覆盖率阈值。\n- **合同金额由 regional_owner 审批的区间**：合同金额位于 76 万至 150 万之间，由 regional_owner 审批（证据来源：文档[1]）。",
+      "current_answer": "- 召回覆盖率阈值：0.84  \n- 合同金额由 regional_owner 审批的区间：76 万至 150 万",
+      "sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-004-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 76 万，由 department_owner 审批。 合同金额位于 76 万至 150 万之间，由 regional_owner 审批。 合同金额高于 150 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-004-2.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "供应商信息\n\n供应商编号为 SUP-004-2，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v3。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_4。 审计周期统一走 cycle_3，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-004-2.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "供应商对照矩阵\n\nSUP-004-2 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-004-2 与 monthly_recall_coverage_report_v3 的绑定关系，就容易把阈值 0.84 写成其他编号的数值。 合同金额区间 76 到 150 的审批规则必须与当前供应商文档"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-015-2.md",
+          "score": 87.8,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 120 万，由 department_owner 审批。 合同金额位于 120 万至 205 万之间，由 regional_owner 审批。 合同金额高于 205 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-015-0.md",
+          "score": 87.02,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 120 万，由 department_owner 审批。 合同金额位于 120 万至 205 万之间，由 regional_owner 审批。 合同金额高于 205 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 6,
+          "documentName": "vendor_SUP-013-2.md",
+          "score": 86.81,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 112 万，由 department_owner 审批。 合同金额位于 112 万至 195 万之间，由 regional_owner 审批。 合同金额高于 195 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 7,
+          "documentName": "vendor_SUP-014-2.md",
+          "score": 86.75,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 8,
+          "documentName": "vendor_SUP-013-1.md",
+          "score": 86.25,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "付款审批\n\n合同金额低于 112 万，由 department_owner 审批。 合同金额位于 112 万至 195 万之间，由 regional_owner 审批。 合同金额高于 195 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-004-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-004-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-004-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-004-2 regional_owner",
+        "vectorQuery": "供应商 SUP-004-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-004-2",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "004",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2204
+    },
+    {
+      "sample_index": 189,
+      "question_id": "full_190",
+      "difficulty": "full_doc_postmortem_exact",
+      "previous_scores": {
+        "faithfulness": 0.625,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.26666666665333333,
+        "answer_correctness": 0.45866891378885316
+      },
+      "question": "事故复盘 INC-013-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference": "事故复盘 INC-013-1 的事故前 chunkSize 是 410，事故前 overlap 是 80；事故后 chunkSize 调整到 550；验收 gold_recall_rate 目标是 0.90。",
+      "previous_response": "- 事故前 chunkSize：410，overlap：80（出自片段[6]“事故摘要”）。\n- 事故后 chunkSize 调整到：550（出自片段[6]“事故摘要”）。\n- 验收 gold_recall_rate 目标：不低于 0.90（出自片段[1]“验收标准”）。\n\n（注：事故后 overlap 调整为 100，但用户未询问该项，此处仅按提问列出。其他指标如 answer_correctness 等未在提问范围，故不赘述。）",
+      "current_answer": "- 事故前 chunkSize = 410，overlap = 80。  \n- 事故后 chunkSize = 550，overlap = 100。  \n- 验收目标 gold_recall_rate：不低于 0.90。",
+      "sources": [
+        {
+          "rank": 1,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 114.92,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "验收标准\n\n验收目标一：gold_recall_rate 不低于 0.90。 验收目标二：answer_correctness 必须高于上一轮最小 RAG 基线。 验收目标三：对于金融行业问答，引用数量与置信度标注必须一致。 验收目标四：所有复盘场景都要明确记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 2,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "整改后压测要求\n\nINC-013-1 整改完成后，不应只复测单一问题，而应在包含精确阈值、多跳问答、近邻干扰和思考模式展示规则的整套题集中重新评估。 如果整改只是把 chunkSize 从 410 调到 550，却没有同步压测近邻错召回，那么结果仍不足以证明系统已经达到长期可用标准。 真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而不是只让某一个指标偶然上升。 因此 postmortem 文档既是事故记录，也是后续高标准"
+        },
+        {
+          "rank": 3,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 65.24,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "证据链分析\n\n复盘确认关键词召回与向量召回都拿到了相似文档，但 exact_code 排序不足。 复盘确认 second_layer_clause 由于被拆散到相邻 chunk，导致最小 RAG 更容易漏掉。 复盘确认高相似模板文档造成了数字阈值与制度天数混淆。 复盘明确要求后续评测必须同时看 answer_correctness 与 gold_recall_rate。"
+        },
+        {
+          "rank": 4,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "演练案例\n\n案例一：INC-013-1_trial_a 命中同类文档但未命中目标制度，导致 answer_correctness 降低。 案例二：INC-013-1_trial_b 调整 chunkSize 与 overlap 后恢复 second_layer_clause 命中。 案例三：INC-013-1_trial_c 加入 exact_code rerank 后压制了相邻编号错召回。 案例四：INC-013-1_trial_d 用高标准问答集验证整改是否真正生效。"
+        },
+        {
+          "rank": 5,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "时间线补录\n\nINC-013-1 的事故时间线必须清楚记录旧切片配置 chunkSize=410、overlap=80 与新配置 chunkSize=550 的切换时间点，避免后续评测无法映射到具体实验。 如果 confidence_rule_clause 的缺失发生在切片重建前后交界时刻，复盘中还要补记旧索引残留时间和新索引生效时间。 高标准评测不是只看整改后答案变长，而是要确认在时间线上哪个步骤真正把 gold_document 拉回到了高位上下文中。 因此时间线记录需要同时包含召回命中变化、排序变化和最终答案"
+        },
+        {
+          "rank": 6,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 99.56,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "contentPreview": "事故摘要\n\n事故编号为 INC-013-1，核心问题是 confidence_rule_clause 在召回链路中被遗漏。 事故前切片配置使用 chunkSize=410 与 overlap=80。 事故后切片配置调整为 chunkSize=550 与 overlap=100。 根因不是答案模型完全不会答，而是命中了同类近邻文档却没命中 gold_document。"
+        },
+        {
+          "rank": 7,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "证据缺口校验\n\nINC-013-1 的复盘模板必须保留 missingGoldDocumentNames、expectedRecallDocCount、actualHitDocCount 和最终引用列表，否则无法量化 confidence_rule_clause 是否真正被修复。 如果最终答案引用了相似文档但没有引用目标制度或目标产品文档，那么即使文本看起来流畅，也不应被计入 fully_grounded 样本。 证据校验阶段还要比较整改前后的 gold_document 排名位置，避免只看有没有命中而忽略命中顺序"
+        },
+        {
+          "rank": 8,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "实验对照记录\n\nINC-013-1 的实验对照至少要覆盖旧配置、只调大 chunkSize、同时调大 overlap，以及增加 exact_code rerank 这几组方案，不能只比较整改前后两个快照。 如果答案在旧配置下已经方向正确，但 gold_document 仍未命中，则应判定为 grounding 不足，而不是简单视为模型已经具备稳定能力。 对照实验必须明确观察 0.90 的验收目标是否达成，同时记录 context_precision 是否因为近邻文档下降而受损。 若 second_layer_cla"
+        },
+        {
+          "rank": 9,
+          "documentName": "postmortem_INC-013-2.md",
+          "score": 1,
+          "matchedBy": [
+            "bm25"
+          ],
+          "contentPreview": "验收标准\n\n验收目标一：gold_recall_rate 不低于 0.91。 验收目标二：answer_correctness 必须高于上一轮最小 RAG 基线。 验收目标三：对于金融行业问答，引用数量与置信度标注必须一致。 验收目标四：所有复盘场景都要明确记录 expectedRecallDocCount 与 actualHitDocCount。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "事故复盘 INC-013-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+        "normalizedQuery": "事故复盘 INC-013-1 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "bm25Query": "事故复盘 INC-013-1 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少? INC-013-1 gold_recall_rate",
+        "vectorQuery": "事故复盘 INC-013-1 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "INC-013-1",
+          "gold_recall_rate"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "inc",
+          "chunksize",
+          "overlap",
+          "事故复盘",
+          "事故前",
+          "分别是多少",
+          "事故后",
+          "调整到多少",
+          "验收",
+          "目标是多少"
+        ],
+        "evidenceNumericTerms": [
+          "013",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 0.8333,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "degraded"
+      },
+      "totalTokens": 2847
+    }
+  ]
+}

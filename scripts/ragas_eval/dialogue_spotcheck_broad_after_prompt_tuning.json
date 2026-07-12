@@ -1,0 +1,3968 @@
+{
+  "summary": {
+    "sample_count": 31,
+    "avg_term_coverage": 0.8772,
+    "low_term_coverage_cases": [
+      {
+        "question_id": "full_190",
+        "difficulty": "full_doc_postmortem_exact",
+        "term_coverage": 0.875,
+        "missing": [
+          "INC-013-1"
+        ],
+        "answer": "- 事故前 chunkSize：410  \n- 事故前 overlap：80  \n- 事故后 chunkSize：550  \n- 验收 gold_recall_rate 目标：不低于 0.90"
+      },
+      {
+        "question_id": "full_071",
+        "difficulty": "full_doc_product_exact",
+        "term_coverage": 0.5,
+        "missing": [
+          "NX-005-2"
+        ],
+        "answer": "1. 金融最少引用数：3 条（当客户启用 finance_strict_pack 时）。  \n2. 季度工单超过 7 次需要升级审批。  \n3. 升级给 delivery_director。"
+      },
+      {
+        "question_id": "full_061",
+        "difficulty": "full_doc_product_exact",
+        "term_coverage": 0.5,
+        "missing": [
+          "NX-005-0"
+        ],
+        "answer": "- 金融最少引用数：若启用 finance_strict_pack，最终答案至少展示 **4 条**引用（[4]）。\n- 季度工单升级阈值：若季度内提交工单超过 **5 次**，续费审批必须升级（[2]）。\n- 升级审批对象：升级给 **finance_reviewer**（[2]）。"
+      },
+      {
+        "question_id": "full_051",
+        "difficulty": "full_doc_product_exact",
+        "term_coverage": 0.5,
+        "missing": [
+          "NX-004-1"
+        ],
+        "answer": "- 金融最少引用数：4 条。  \n- 季度工单超过 5 次需要升级审批。  \n- 升级审批给：finance_reviewer。"
+      },
+      {
+        "question_id": "full_191",
+        "difficulty": "full_doc_product_exact",
+        "term_coverage": 0.5,
+        "missing": [
+          "NX-013-2"
+        ],
+        "answer": "- 金融最少引用数：2条（启用 finance_strict_pack 时，最终答案至少展示2条引用）。\n- 季度工单超过次数：7次（若季度内提交工单超过7次，需升级审批）。\n- 升级给：regional_manager。"
+      },
+      {
+        "question_id": "full_217",
+        "difficulty": "full_doc_ops_exact",
+        "term_coverage": 0.75,
+        "missing": [
+          "ORION-015-1"
+        ],
+        "answer": "- 维护窗口：02:30-04:00。\n- 夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。"
+      },
+      {
+        "question_id": "full_108",
+        "difficulty": "full_doc_procurement_exact",
+        "term_coverage": 0.8,
+        "missing": [
+          "SUP-008-0"
+        ],
+        "answer": "召回覆盖率阈值为0.84，合同金额位于92万至170万之间由regional_owner审批。"
+      },
+      {
+        "question_id": "full_198",
+        "difficulty": "full_doc_procurement_exact",
+        "term_coverage": 0.8,
+        "missing": [
+          "SUP-014-0"
+        ],
+        "answer": "- 召回覆盖率阈值：0.87\n- 合同金额区间（由 regional_owner 审批）：116 万至 200 万"
+      },
+      {
+        "question_id": "full_038",
+        "difficulty": "full_doc_procurement_exact",
+        "term_coverage": 0.8,
+        "missing": [
+          "SUP-003-1"
+        ],
+        "answer": "- 召回覆盖率阈值：0.83  \n- 合同金额区间：72 万至 145 万之间由 regional_owner 审批。"
+      },
+      {
+        "question_id": "full_209",
+        "difficulty": "full_doc_policy_exact",
+        "term_coverage": 0.6667,
+        "missing": [
+          "POL-014-2"
+        ],
+        "answer": "- 审计日志保留：214天  \n- 第二次违规冻结：13天  \n- 演示样本清理期限：6天"
+      },
+      {
+        "question_id": "full_035",
+        "difficulty": "full_doc_postmortem_exact",
+        "term_coverage": 0.875,
+        "missing": [
+          "INC-003-0"
+        ],
+        "answer": "- 事故前 chunkSize：290  \n- 事故前 overlap：60  \n- 事故后 chunkSize：430  \n- 验收 gold_recall_rate 目标：不低于 0.85"
+      },
+      {
+        "question_id": "full_170",
+        "difficulty": "full_doc_postmortem_exact",
+        "term_coverage": 0.875,
+        "missing": [
+          "INC-012-0"
+        ],
+        "answer": "- 事故前 chunkSize=380、overlap=60。  \n- 事故后 chunkSize 调整到 520。  \n- 验收 gold_recall_rate 目标为不低于 0.89。"
+      },
+      {
+        "question_id": "full_045",
+        "difficulty": "full_doc_postmortem_exact",
+        "term_coverage": 0.875,
+        "missing": [
+          "INC-003-2"
+        ],
+        "answer": "- **事故前 chunkSize**：330  \n- **事故前 overlap**：100  \n- **事故后 chunkSize**：470  \n- **验收 gold_recall_rate 目标**：0.87（不低于 0.87）"
+      },
+      {
+        "question_id": "full_165",
+        "difficulty": "full_doc_postmortem_exact",
+        "term_coverage": 0.875,
+        "missing": [
+          "INC-011-2"
+        ],
+        "answer": "- **事故前 chunkSize**：410  \n- **事故前 overlap**：100  \n- **事故后 chunkSize**：550（同时 overlap 调整至 120）  \n- **验收 gold_recall_rate 目标**：不低于 0.90"
+      }
+    ]
+  },
+  "rows": [
+    {
+      "sample_index": 27,
+      "question_id": "full_028",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_answer_correctness": 0.3290503694013467,
+      "previous_context_recall": 1.0,
+      "question": "供应商 SUP-002-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-002-2 的召回覆盖率阈值是 0.83；合同金额位于 68 万至 140 万之间时，由 regional_owner 审批。",
+      "answer": "- 供应商 SUP-002-2 的召回覆盖率阈值为 **0.83**。\n- 合同金额在 **68 万至 140 万** 之间由 **regional_owner** 审批。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "SUP-002-2",
+        "0.83",
+        "68",
+        "140",
+        "regional_owner"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-002-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 68 万，由 department_owner 审批。 合同金额位于 68 万至 140 万之间，由 regional_owner 审批。 合同金额高于 140 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-002-2.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "供应商信息\n\n供应商编号为 SUP-002-2，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v3。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_2。 审计周期统一走 cycle_3，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-002-2.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "供应商对照矩阵\n\nSUP-002-2 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-002-2 与 monthly_recall_coverage_report_v3 的绑定关系，就容易把阈值 0.83 写成"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-014-2.md",
+          "score": 91.42,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-013-2.md",
+          "score": 89.78,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "付款审批\n\n合同金额低于 112 万，由 department_owner 审批。 合同金额位于 112 万至 195 万之间，由 regional_owner 审批。 合同金额高于 195 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-002-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-002-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-002-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-002-2 regional_owner",
+        "vectorQuery": "供应商 SUP-002-2 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-002-2",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "002",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2134
+    },
+    {
+      "sample_index": 189,
+      "question_id": "full_190",
+      "difficulty": "full_doc_postmortem_exact",
+      "previous_answer_correctness": 0.45866891378885316,
+      "previous_context_recall": 1.0,
+      "question": "事故复盘 INC-013-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference": "事故复盘 INC-013-1 的事故前 chunkSize 是 410，事故前 overlap 是 80；事故后 chunkSize 调整到 550；验收 gold_recall_rate 目标是 0.90。",
+      "answer": "- 事故前 chunkSize：410  \n- 事故前 overlap：80  \n- 事故后 chunkSize：550  \n- 验收 gold_recall_rate 目标：不低于 0.90",
+      "term_coverage": 0.875,
+      "matched_reference_terms": [
+        "chunkSize",
+        "410",
+        "overlap",
+        "80",
+        "550",
+        "gold_recall_rate",
+        "0.90"
+      ],
+      "missing_reference_terms": [
+        "INC-013-1"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 114.92,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "验收标准\n\n验收目标一：gold_recall_rate 不低于 0.90。 验收目标二：answer_correctness 必须高于上一轮最小 RAG 基线。 验收目标三：对于金融行业问答，引用数量与置信度标注必须一致。 验收目标四：所有复盘场景都要明确记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 2,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改后压测要求\n\nINC-013-1 整改完成后，不应只复测单一问题，而应在包含精确阈值、多跳问答、近邻干扰和思考模式展示规则的整套题集中重新评估。 如果整改只是把 chunkSize 从 410 调到 550，却没有同步压测近邻错召回，那么结果仍不足以证明系统已经达到长期可用标准。 真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而不是只让某"
+        },
+        {
+          "rank": 3,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 65.24,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "证据链分析\n\n复盘确认关键词召回与向量召回都拿到了相似文档，但 exact_code 排序不足。 复盘确认 second_layer_clause 由于被拆散到相邻 chunk，导致最小 RAG 更容易漏掉。 复盘确认高相似模板文档造成了数字阈值与制度天数混淆。 复盘明确要求后续评测必须同时看 answer_correctness 与 gold_recall_rate。"
+        },
+        {
+          "rank": 4,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：INC-013-1_trial_a 命中同类文档但未命中目标制度，导致 answer_correctness 降低。 案例二：INC-013-1_trial_b 调整 chunkSize 与 overlap 后恢复 second_layer_clause 命中。 案例三：INC-013-1_trial_c 加入 exact_code rerank 后压制了相邻编号错召回。 案例四：INC-013-1_trial_d "
+        },
+        {
+          "rank": 5,
+          "documentName": "postmortem_INC-013-1.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "时间线补录\n\nINC-013-1 的事故时间线必须清楚记录旧切片配置 chunkSize=410、overlap=80 与新配置 chunkSize=550 的切换时间点，避免后续评测无法映射到具体实验。 如果 confidence_rule_clause 的缺失发生在切片重建前后交界时刻，复盘中还要补记旧索引残留时间和新索引生效时间。 高标准评测不是只看整改后答案变长，而是要确认在时间线上哪个步骤真正把 gold_document 拉"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "事故复盘 INC-013-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+        "normalizedQuery": "事故复盘 INC-013-1 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "bm25Query": "事故复盘 INC-013-1 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少? INC-013-1 gold_recall_rate",
+        "vectorQuery": "事故复盘 INC-013-1 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "INC-013-1",
+          "gold_recall_rate"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "inc",
+          "chunksize",
+          "overlap",
+          "事故复盘",
+          "事故前",
+          "分别是多少",
+          "事故后",
+          "调整到多少",
+          "验收",
+          "目标是多少"
+        ],
+        "evidenceNumericTerms": [
+          "013",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 0.8333,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "degraded"
+      },
+      "totalTokens": 2745
+    },
+    {
+      "sample_index": 70,
+      "question_id": "full_071",
+      "difficulty": "full_doc_product_exact",
+      "previous_answer_correctness": 0.5743386887967091,
+      "previous_context_recall": 1.0,
+      "question": "产品 NX-005-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference": "产品 NX-005-2 的金融最少引用数是 3 条；若季度工单超过 7 次，审批必须升级给 delivery_director。",
+      "answer": "1. 金融最少引用数：3 条（当客户启用 finance_strict_pack 时）。  \n2. 季度工单超过 7 次需要升级审批。  \n3. 升级给 delivery_director。",
+      "term_coverage": 0.5,
+      "matched_reference_terms": [
+        "delivery_director"
+      ],
+      "missing_reference_terms": [
+        "NX-005-2"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "product_NX-005-2.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "长尾问答提醒\n\n当问题同时询问最少引用数、召回覆盖率和审批升级条件时，NX-005-2 的答案需要跨越多个 section 聚合信息，这正是多跳检索与长文聚合的重点压测场景。 visibleContent 相关规则不能替代正式答复规则，任何把思考过程直接暴露给用户的实现都应与 content 字段的正式输出严格分离。 对于金融行业演示环境，如果样本文档未经清理直接混入正式知识库，即使最终答案偶然正确，也会破坏后续评分对真实召回质量的判断"
+        },
+        {
+          "rank": 2,
+          "documentName": "product_NX-005-2.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "审计补录清单\n\nNX-005-2 的金融问答复盘必须同时记录 expectedRecallDocCount、actualHitDocCount、citation_bundle_id 和 confidence_label，避免只留下最终答案而丢失证据链。 如果最终答案引用不足 3 条，但界面仍展示 high_confidence，则应立即归类为高风险标注错误并进入专项复核。 对于启用 think_mode 的场景，还必须核查 visibl"
+        },
+        {
+          "rank": 3,
+          "documentName": "product_NX-005-2.md",
+          "score": 65.24,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "工单与升级规则\n\n若季度内提交工单超过 7 次，续费审批必须升级给 delivery_director。 若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送。 若当月复盘发现 second_layer_clause 丢失，则要同步检索优化责任人和客户成功负责人。 对于 regulated_workspace 场景，必须记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 4,
+          "documentName": "product_NX-005-2.md",
+          "score": 64.3,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "金融增强约束\n\n若客户启用 finance_strict_pack，则最终答案至少展示 3 条引用。 若当次引用数量不足 3 条，则答案只能标记为 normal_confidence，禁止标记 high_confidence。 finance_strict_pack 还要求召回覆盖率不低于 0.82，否则要触发专项复盘。 若监管问答连续两个工作日低于阈值，则审批角色升级为 delivery_director。"
+        },
+        {
+          "rank": 5,
+          "documentName": "product_NX-005-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：在 product_NX-005-2_scenario_a 中，因 topK 配置偏低导致监管条款缺失。 案例二：在 product_NX-005-2_scenario_b 中，因 overlap 过小导致 second_layer_clause 被拆散。 案例三：在 product_NX-005-2_scenario_c 中，虽然答案方向正确，但引用数不足仍被降为 normal_confidence。 案例四：在 "
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "产品 NX-005-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+        "normalizedQuery": "产品 NX-005-2 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "bm25Query": "产品 NX-005-2 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁? NX-005-2",
+        "vectorQuery": "产品 NX-005-2 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "NX-005-2"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "引用",
+          "的金",
+          "金融",
+          "融最",
+          "最少",
+          "少引",
+          "用数",
+          "数是",
+          "是多",
+          "的金融",
+          "金融最",
+          "融最少",
+          "最少引",
+          "少引用",
+          "引用数",
+          "用数是",
+          "数是多",
+          "是多少",
+          "的金融最",
+          "金融最少",
+          "融最少引",
+          "最少引用",
+          "少引用数",
+          "引用数是"
+        ],
+        "evidenceNumericTerms": [
+          "005",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2697
+    },
+    {
+      "sample_index": 215,
+      "question_id": "full_216",
+      "difficulty": "full_doc_product_exact",
+      "previous_answer_correctness": 0.5826337048932015,
+      "previous_context_recall": 1.0,
+      "question": "产品 NX-015-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference": "产品 NX-015-1 的金融最少引用数是 3 条；若季度工单超过 8 次，审批必须升级给 delivery_director。",
+      "answer": "产品 NX-015-1 的金融最少引用数是 3 条。  \n季度工单超过 8 次需要升级审批。  \n升级给 delivery_director。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "NX-015-1",
+        "delivery_director"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "product_NX-015-1.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "长尾问答提醒\n\n当问题同时询问最少引用数、召回覆盖率和审批升级条件时，NX-015-1 的答案需要跨越多个 section 聚合信息，这正是多跳检索与长文聚合的重点压测场景。 visibleContent 相关规则不能替代正式答复规则，任何把思考过程直接暴露给用户的实现都应与 content 字段的正式输出严格分离。 对于金融行业演示环境，如果样本文档未经清理直接混入正式知识库，即使最终答案偶然正确，也会破坏后续评分对真实召回质量的判断"
+        },
+        {
+          "rank": 2,
+          "documentName": "product_NX-015-1.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "审计补录清单\n\nNX-015-1 的金融问答复盘必须同时记录 expectedRecallDocCount、actualHitDocCount、citation_bundle_id 和 confidence_label，避免只留下最终答案而丢失证据链。 如果最终答案引用不足 3 条，但界面仍展示 high_confidence，则应立即归类为高风险标注错误并进入专项复核。 对于启用 think_mode 的场景，还必须核查 visibl"
+        },
+        {
+          "rank": 3,
+          "documentName": "product_NX-015-1.md",
+          "score": 65.24,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "工单与升级规则\n\n若季度内提交工单超过 8 次，续费审批必须升级给 delivery_director。 若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送。 若当月复盘发现 second_layer_clause 丢失，则要同步检索优化责任人和客户成功负责人。 对于 regulated_workspace 场景，必须记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 4,
+          "documentName": "product_NX-015-1.md",
+          "score": 64.3,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "金融增强约束\n\n若客户启用 finance_strict_pack，则最终答案至少展示 3 条引用。 若当次引用数量不足 3 条，则答案只能标记为 normal_confidence，禁止标记 high_confidence。 finance_strict_pack 还要求召回覆盖率不低于 0.87，否则要触发专项复盘。 若监管问答连续两个工作日低于阈值，则审批角色升级为 delivery_director。"
+        },
+        {
+          "rank": 5,
+          "documentName": "product_NX-015-1.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：在 product_NX-015-1_scenario_a 中，因 topK 配置偏低导致监管条款缺失。 案例二：在 product_NX-015-1_scenario_b 中，因 overlap 过小导致 second_layer_clause 被拆散。 案例三：在 product_NX-015-1_scenario_c 中，虽然答案方向正确，但引用数不足仍被降为 normal_confidence。 案例四：在 "
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "产品 NX-015-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+        "normalizedQuery": "产品 NX-015-1 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "bm25Query": "产品 NX-015-1 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁? NX-015-1",
+        "vectorQuery": "产品 NX-015-1 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "NX-015-1"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "引用",
+          "的金",
+          "金融",
+          "融最",
+          "最少",
+          "少引",
+          "用数",
+          "数是",
+          "是多",
+          "的金融",
+          "金融最",
+          "融最少",
+          "最少引",
+          "少引用",
+          "引用数",
+          "用数是",
+          "数是多",
+          "是多少",
+          "的金融最",
+          "金融最少",
+          "融最少引",
+          "最少引用",
+          "少引用数",
+          "引用数是"
+        ],
+        "evidenceNumericTerms": [
+          "015",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2926
+    },
+    {
+      "sample_index": 60,
+      "question_id": "full_061",
+      "difficulty": "full_doc_product_exact",
+      "previous_answer_correctness": 0.6052085003550812,
+      "previous_context_recall": 1.0,
+      "question": "产品 NX-005-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference": "产品 NX-005-0 的金融最少引用数是 4 条；若季度工单超过 5 次，审批必须升级给 finance_reviewer。",
+      "answer": "- 金融最少引用数：若启用 finance_strict_pack，最终答案至少展示 **4 条**引用（[4]）。\n- 季度工单升级阈值：若季度内提交工单超过 **5 次**，续费审批必须升级（[2]）。\n- 升级审批对象：升级给 **finance_reviewer**（[2]）。",
+      "term_coverage": 0.5,
+      "matched_reference_terms": [
+        "finance_reviewer"
+      ],
+      "missing_reference_terms": [
+        "NX-005-0"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "product_NX-005-0.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "长尾问答提醒\n\n当问题同时询问最少引用数、召回覆盖率和审批升级条件时，NX-005-0 的答案需要跨越多个 section 聚合信息，这正是多跳检索与长文聚合的重点压测场景。 visibleContent 相关规则不能替代正式答复规则，任何把思考过程直接暴露给用户的实现都应与 content 字段的正式输出严格分离。 对于金融行业演示环境，如果样本文档未经清理直接混入正式知识库，即使最终答案偶然正确，也会破坏后续评分对真实召回质量的判断"
+        },
+        {
+          "rank": 2,
+          "documentName": "product_NX-005-0.md",
+          "score": 92.07,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "工单与升级规则\n\n若季度内提交工单超过 5 次，续费审批必须升级给 finance_reviewer。 若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送。 若当月复盘发现 second_layer_clause 丢失，则要同步检索优化责任人和客户成功负责人。 对于 regulated_workspace 场景，必须记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 3,
+          "documentName": "product_NX-005-0.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "审计补录清单\n\nNX-005-0 的金融问答复盘必须同时记录 expectedRecallDocCount、actualHitDocCount、citation_bundle_id 和 confidence_label，避免只留下最终答案而丢失证据链。 如果最终答案引用不足 4 条，但界面仍展示 high_confidence，则应立即归类为高风险标注错误并进入专项复核。 对于启用 think_mode 的场景，还必须核查 visibl"
+        },
+        {
+          "rank": 4,
+          "documentName": "product_NX-005-0.md",
+          "score": 64.3,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "金融增强约束\n\n若客户启用 finance_strict_pack，则最终答案至少展示 4 条引用。 若当次引用数量不足 4 条，则答案只能标记为 normal_confidence，禁止标记 high_confidence。 finance_strict_pack 还要求召回覆盖率不低于 0.80，否则要触发专项复盘。 若监管问答连续两个工作日低于阈值，则审批角色升级为 finance_reviewer。"
+        },
+        {
+          "rank": 5,
+          "documentName": "product_NX-005-0.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：在 product_NX-005-0_scenario_a 中，因 topK 配置偏低导致监管条款缺失。 案例二：在 product_NX-005-0_scenario_b 中，因 overlap 过小导致 second_layer_clause 被拆散。 案例三：在 product_NX-005-0_scenario_c 中，虽然答案方向正确，但引用数不足仍被降为 normal_confidence。 案例四：在 "
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "产品 NX-005-0 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+        "normalizedQuery": "产品 NX-005-0 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "bm25Query": "产品 NX-005-0 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁? NX-005-0",
+        "vectorQuery": "产品 NX-005-0 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "NX-005-0"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "引用",
+          "的金",
+          "金融",
+          "融最",
+          "最少",
+          "少引",
+          "用数",
+          "数是",
+          "是多",
+          "的金融",
+          "金融最",
+          "融最少",
+          "最少引",
+          "少引用",
+          "引用数",
+          "用数是",
+          "数是多",
+          "是多少",
+          "的金融最",
+          "金融最少",
+          "融最少引",
+          "最少引用",
+          "少引用数",
+          "引用数是"
+        ],
+        "evidenceNumericTerms": [
+          "005",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2761
+    },
+    {
+      "sample_index": 50,
+      "question_id": "full_051",
+      "difficulty": "full_doc_product_exact",
+      "previous_answer_correctness": 0.8228216769213814,
+      "previous_context_recall": 1.0,
+      "question": "产品 NX-004-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference": "产品 NX-004-1 的金融最少引用数是 4 条；若季度工单超过 5 次，审批必须升级给 finance_reviewer。",
+      "answer": "- 金融最少引用数：4 条。  \n- 季度工单超过 5 次需要升级审批。  \n- 升级审批给：finance_reviewer。",
+      "term_coverage": 0.5,
+      "matched_reference_terms": [
+        "finance_reviewer"
+      ],
+      "missing_reference_terms": [
+        "NX-004-1"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "product_NX-004-1.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "长尾问答提醒\n\n当问题同时询问最少引用数、召回覆盖率和审批升级条件时，NX-004-1 的答案需要跨越多个 section 聚合信息，这正是多跳检索与长文聚合的重点压测场景。 visibleContent 相关规则不能替代正式答复规则，任何把思考过程直接暴露给用户的实现都应与 content 字段的正式输出严格分离。 对于金融行业演示环境，如果样本文档未经清理直接混入正式知识库，即使最终答案偶然正确，也会破坏后续评分对真实召回质量的判断"
+        },
+        {
+          "rank": 2,
+          "documentName": "product_NX-004-1.md",
+          "score": 88.67,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "工单与升级规则\n\n若季度内提交工单超过 5 次，续费审批必须升级给 finance_reviewer。 若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送。 若当月复盘发现 second_layer_clause 丢失，则要同步检索优化责任人和客户成功负责人。 对于 regulated_workspace 场景，必须记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 3,
+          "documentName": "product_NX-004-1.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "审计补录清单\n\nNX-004-1 的金融问答复盘必须同时记录 expectedRecallDocCount、actualHitDocCount、citation_bundle_id 和 confidence_label，避免只留下最终答案而丢失证据链。 如果最终答案引用不足 4 条，但界面仍展示 high_confidence，则应立即归类为高风险标注错误并进入专项复核。 对于启用 think_mode 的场景，还必须核查 visibl"
+        },
+        {
+          "rank": 4,
+          "documentName": "product_NX-004-1.md",
+          "score": 64.3,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "金融增强约束\n\n若客户启用 finance_strict_pack，则最终答案至少展示 4 条引用。 若当次引用数量不足 4 条，则答案只能标记为 normal_confidence，禁止标记 high_confidence。 finance_strict_pack 还要求召回覆盖率不低于 0.80，否则要触发专项复盘。 若监管问答连续两个工作日低于阈值，则审批角色升级为 finance_reviewer。"
+        },
+        {
+          "rank": 5,
+          "documentName": "product_NX-004-1.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：在 product_NX-004-1_scenario_a 中，因 topK 配置偏低导致监管条款缺失。 案例二：在 product_NX-004-1_scenario_b 中，因 overlap 过小导致 second_layer_clause 被拆散。 案例三：在 product_NX-004-1_scenario_c 中，虽然答案方向正确，但引用数不足仍被降为 normal_confidence。 案例四：在 "
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "产品 NX-004-1 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+        "normalizedQuery": "产品 NX-004-1 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "bm25Query": "产品 NX-004-1 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁? NX-004-1",
+        "vectorQuery": "产品 NX-004-1 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "NX-004-1"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "引用",
+          "的金",
+          "金融",
+          "融最",
+          "最少",
+          "少引",
+          "用数",
+          "数是",
+          "是多",
+          "的金融",
+          "金融最",
+          "融最少",
+          "最少引",
+          "少引用",
+          "引用数",
+          "用数是",
+          "数是多",
+          "是多少",
+          "的金融最",
+          "金融最少",
+          "融最少引",
+          "最少引用",
+          "少引用数",
+          "引用数是"
+        ],
+        "evidenceNumericTerms": [
+          "004",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2663
+    },
+    {
+      "sample_index": 190,
+      "question_id": "full_191",
+      "difficulty": "full_doc_product_exact",
+      "previous_answer_correctness": 0.9409454223031002,
+      "previous_context_recall": 1.0,
+      "question": "产品 NX-013-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference": "产品 NX-013-2 的金融最少引用数是 2 条；若季度工单超过 7 次，审批必须升级给 regional_manager。",
+      "answer": "- 金融最少引用数：2条（启用 finance_strict_pack 时，最终答案至少展示2条引用）。\n- 季度工单超过次数：7次（若季度内提交工单超过7次，需升级审批）。\n- 升级给：regional_manager。",
+      "term_coverage": 0.5,
+      "matched_reference_terms": [
+        "regional_manager"
+      ],
+      "missing_reference_terms": [
+        "NX-013-2"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "product_NX-013-2.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "长尾问答提醒\n\n当问题同时询问最少引用数、召回覆盖率和审批升级条件时，NX-013-2 的答案需要跨越多个 section 聚合信息，这正是多跳检索与长文聚合的重点压测场景。 visibleContent 相关规则不能替代正式答复规则，任何把思考过程直接暴露给用户的实现都应与 content 字段的正式输出严格分离。 对于金融行业演示环境，如果样本文档未经清理直接混入正式知识库，即使最终答案偶然正确，也会破坏后续评分对真实召回质量的判断"
+        },
+        {
+          "rank": 2,
+          "documentName": "product_NX-013-2.md",
+          "score": 84.15,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "工单与升级规则\n\n若季度内提交工单超过 7 次，续费审批必须升级给 regional_manager。 若单次问答命中引用少于金融最低要求，则不能以产品默认模板直接对外发送。 若当月复盘发现 second_layer_clause 丢失，则要同步检索优化责任人和客户成功负责人。 对于 regulated_workspace 场景，必须记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 3,
+          "documentName": "product_NX-013-2.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "审计补录清单\n\nNX-013-2 的金融问答复盘必须同时记录 expectedRecallDocCount、actualHitDocCount、citation_bundle_id 和 confidence_label，避免只留下最终答案而丢失证据链。 如果最终答案引用不足 2 条，但界面仍展示 high_confidence，则应立即归类为高风险标注错误并进入专项复核。 对于启用 think_mode 的场景，还必须核查 visibl"
+        },
+        {
+          "rank": 4,
+          "documentName": "product_NX-013-2.md",
+          "score": 64.3,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "金融增强约束\n\n若客户启用 finance_strict_pack，则最终答案至少展示 2 条引用。 若当次引用数量不足 2 条，则答案只能标记为 normal_confidence，禁止标记 high_confidence。 finance_strict_pack 还要求召回覆盖率不低于 0.87，否则要触发专项复盘。 若监管问答连续两个工作日低于阈值，则审批角色升级为 regional_manager。"
+        },
+        {
+          "rank": 5,
+          "documentName": "product_NX-013-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：在 product_NX-013-2_scenario_a 中，因 topK 配置偏低导致监管条款缺失。 案例二：在 product_NX-013-2_scenario_b 中，因 overlap 过小导致 second_layer_clause 被拆散。 案例三：在 product_NX-013-2_scenario_c 中，虽然答案方向正确，但引用数不足仍被降为 normal_confidence。 案例四：在 "
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "产品 NX-013-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+        "normalizedQuery": "产品 NX-013-2 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "bm25Query": "产品 NX-013-2 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁? NX-013-2",
+        "vectorQuery": "产品 NX-013-2 的金融最少引用数是多少,季度工单超过多少次需要升级审批,升级给谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "NX-013-2"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "引用",
+          "的金",
+          "金融",
+          "融最",
+          "最少",
+          "少引",
+          "用数",
+          "数是",
+          "是多",
+          "的金融",
+          "金融最",
+          "融最少",
+          "最少引",
+          "少引用",
+          "引用数",
+          "用数是",
+          "数是多",
+          "是多少",
+          "的金融最",
+          "金融最少",
+          "融最少引",
+          "最少引用",
+          "少引用数",
+          "引用数是"
+        ],
+        "evidenceNumericTerms": [
+          "013",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2550
+    },
+    {
+      "sample_index": 141,
+      "question_id": "full_142",
+      "difficulty": "full_doc_ops_exact",
+      "previous_answer_correctness": 0.6187368144442236,
+      "previous_context_recall": 1.0,
+      "question": "运维手册 ORION-010-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference": "运维手册 ORION-010-1 的维护窗口是 02:30-04:00；夜间连续出现 4 次 P2 召回缺失时，必须通知 incident_commander。",
+      "answer": "该运维手册（ORION-010-1）的维护窗口为 **02:30-04:00**（时区为 Asia/Shanghai）。\n\n若夜间连续出现 **4 次** P2 级召回缺失，必须通知 **incident_commander**。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "ORION-010-1",
+        "02:30-04:00",
+        "P2",
+        "incident_commander"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "ops_ORION-010-1.md",
+          "score": 96.83,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "夜间值班对照\n\nORION-010-1 与同族 ORION 文档共用大量值班和告警术语，因此在夜间场景下特别容易把 P1、P2、P3 的处置要求和错误系统编号混在一起。 高标准评测要求系统不仅答出需要通知 incident_commander，还要保留连续 4 次 P2 缺失这一触发条件，任何省略数字的回答都不算完整。 维护窗口 02:30-04:00 只在当前系统编号下成立，相邻编号文档虽然主题接近，但窗口时间、通知角色和回滚策略可能"
+        },
+        {
+          "rank": 2,
+          "documentName": "ops_ORION-010-1.md",
+          "score": 72.73,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "系统归属\n\n系统编号为 ORION-010-1，负责域为 knowledge_runtime_domain_0。 值班时区统一为 Asia/Shanghai，夜间维护窗口为 02:30-04:00。 默认混合召回策略为 hybrid_recall_profile_1，回滚方式采用 shadow_restore。 若命中 think_mode 场景，则最终对外答案仍以 content 字段为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "ops_ORION-010-1.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "链路排查补录\n\nORION-010-1 的夜间召回故障排查不能只看应用日志，还要同时检查向量库写入时间、倒排索引更新时间和切片重建是否落在 02:30-04:00 维护窗口附近。 如果仅关键词召回正常而向量召回异常，复盘中必须明确记录 embedding 变更批次与回滚前后的排序差异，不能只写一句向量异常。 针对连续 4 次 P2 缺失的场景，值班记录必须注明通知 incident_commander 的具体时间点以及升级后采取的隔离动"
+        },
+        {
+          "rank": 4,
+          "documentName": "ops_ORION-010-1.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "附录说明\n\nORION-010-1 与同族 ORION 文档共享大量流程术语，评测时极易出现近邻错召回。 该文档特意保留与采购、制度、事故复盘相似的词汇，以放大最小 RAG 的误召回问题。 若升级版 RAG 增加 rerank 或 exact_code 约束，这类文档应显著改善。 本手册用于长期高标准基准测试，不得再退回短文本实验版本。"
+        },
+        {
+          "rank": 5,
+          "documentName": "ops_ORION-010-1.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "混淆样本说明\n\nORION-010-1 的语料特意保留与采购、制度和事故复盘相近的术语，例如 recall_gap、cleanup_checklist 和 confidence_label，用于放大跨域误召回问题。 最小 RAG 在这类场景中常见的问题不是完全答不出来，而是拿到相似文档后用大模型把答案补得看似通顺，却把关键数字和角色补错。 升级版 RAG 如果增加 exact_code 约束、family hard negative 和"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "运维手册 ORION-010-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+        "normalizedQuery": "运维手册 ORION-010-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "bm25Query": "运维手册 ORION-010-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁? ORION-010-1",
+        "vectorQuery": "运维手册 ORION-010-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "ORION-010-1"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "orion",
+          "手册",
+          "运维手册",
+          "的维",
+          "维护",
+          "护窗",
+          "窗口",
+          "口是",
+          "是什",
+          "的维护",
+          "维护窗",
+          "护窗口",
+          "窗口是",
+          "口是什",
+          "是什么",
+          "的维护窗",
+          "维护窗口",
+          "护窗口是",
+          "窗口是什",
+          "口是什么",
+          "夜间",
+          "间连",
+          "连续",
+          "续多"
+        ],
+        "evidenceNumericTerms": [
+          "010",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2409
+    },
+    {
+      "sample_index": 126,
+      "question_id": "full_127",
+      "difficulty": "full_doc_ops_exact",
+      "previous_answer_correctness": 0.7194411556314764,
+      "previous_context_recall": 1.0,
+      "question": "运维手册 ORION-009-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference": "运维手册 ORION-009-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "answer": "ORION-009-1 的夜间维护窗口为 02:30-04:00。若夜间连续出现 3 次 P2 级召回缺失，则必须通知 platform_manager。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "ORION-009-1",
+        "02:30-04:00",
+        "P2",
+        "platform_manager"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "ops_ORION-009-1.md",
+          "score": 97.69,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "夜间值班对照\n\nORION-009-1 与同族 ORION 文档共用大量值班和告警术语，因此在夜间场景下特别容易把 P1、P2、P3 的处置要求和错误系统编号混在一起。 高标准评测要求系统不仅答出需要通知 platform_manager，还要保留连续 3 次 P2 缺失这一触发条件，任何省略数字的回答都不算完整。 维护窗口 02:30-04:00 只在当前系统编号下成立，相邻编号文档虽然主题接近，但窗口时间、通知角色和回滚策略可能完全"
+        },
+        {
+          "rank": 2,
+          "documentName": "ops_ORION-009-1.md",
+          "score": 72.73,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "系统归属\n\n系统编号为 ORION-009-1，负责域为 knowledge_runtime_domain_4。 值班时区统一为 Asia/Shanghai，夜间维护窗口为 02:30-04:00。 默认混合召回策略为 hybrid_recall_profile_1，回滚方式采用 shadow_restore。 若命中 think_mode 场景，则最终对外答案仍以 content 字段为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "ops_ORION-009-1.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "链路排查补录\n\nORION-009-1 的夜间召回故障排查不能只看应用日志，还要同时检查向量库写入时间、倒排索引更新时间和切片重建是否落在 02:30-04:00 维护窗口附近。 如果仅关键词召回正常而向量召回异常，复盘中必须明确记录 embedding 变更批次与回滚前后的排序差异，不能只写一句向量异常。 针对连续 3 次 P2 缺失的场景，值班记录必须注明通知 platform_manager 的具体时间点以及升级后采取的隔离动作。"
+        },
+        {
+          "rank": 4,
+          "documentName": "ops_ORION-009-1.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "附录说明\n\nORION-009-1 与同族 ORION 文档共享大量流程术语，评测时极易出现近邻错召回。 该文档特意保留与采购、制度、事故复盘相似的词汇，以放大最小 RAG 的误召回问题。 若升级版 RAG 增加 rerank 或 exact_code 约束，这类文档应显著改善。 本手册用于长期高标准基准测试，不得再退回短文本实验版本。"
+        },
+        {
+          "rank": 5,
+          "documentName": "ops_ORION-009-1.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "混淆样本说明\n\nORION-009-1 的语料特意保留与采购、制度和事故复盘相近的术语，例如 recall_gap、cleanup_checklist 和 confidence_label，用于放大跨域误召回问题。 最小 RAG 在这类场景中常见的问题不是完全答不出来，而是拿到相似文档后用大模型把答案补得看似通顺，却把关键数字和角色补错。 升级版 RAG 如果增加 exact_code 约束、family hard negative 和"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "运维手册 ORION-009-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+        "normalizedQuery": "运维手册 ORION-009-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "bm25Query": "运维手册 ORION-009-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁? ORION-009-1",
+        "vectorQuery": "运维手册 ORION-009-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "ORION-009-1"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "orion",
+          "手册",
+          "运维手册",
+          "的维",
+          "维护",
+          "护窗",
+          "窗口",
+          "口是",
+          "是什",
+          "的维护",
+          "维护窗",
+          "护窗口",
+          "窗口是",
+          "口是什",
+          "是什么",
+          "的维护窗",
+          "维护窗口",
+          "护窗口是",
+          "窗口是什",
+          "口是什么",
+          "夜间",
+          "间连",
+          "连续",
+          "续多"
+        ],
+        "evidenceNumericTerms": [
+          "009",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2436
+    },
+    {
+      "sample_index": 181,
+      "question_id": "full_182",
+      "difficulty": "full_doc_ops_exact",
+      "previous_answer_correctness": 0.769499478491476,
+      "previous_context_recall": 1.0,
+      "question": "运维手册 ORION-013-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference": "运维手册 ORION-013-0 的维护窗口是 01:30-03:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "answer": "ORION-013-0的夜间维护窗口为 **01:30-03:00**（时区为Asia/Shanghai）。  \n\n若夜间连续出现 **3次** P2级召回缺失，必须通知 **platform_manager**。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "ORION-013-0",
+        "01:30-03:00",
+        "P2",
+        "platform_manager"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "ops_ORION-013-0.md",
+          "score": 97.69,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "夜间值班对照\n\nORION-013-0 与同族 ORION 文档共用大量值班和告警术语，因此在夜间场景下特别容易把 P1、P2、P3 的处置要求和错误系统编号混在一起。 高标准评测要求系统不仅答出需要通知 platform_manager，还要保留连续 3 次 P2 缺失这一触发条件，任何省略数字的回答都不算完整。 维护窗口 01:30-03:00 只在当前系统编号下成立，相邻编号文档虽然主题接近，但窗口时间、通知角色和回滚策略可能完全"
+        },
+        {
+          "rank": 2,
+          "documentName": "ops_ORION-013-0.md",
+          "score": 72.73,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "系统归属\n\n系统编号为 ORION-013-0，负责域为 knowledge_runtime_domain_3。 值班时区统一为 Asia/Shanghai，夜间维护窗口为 01:30-03:00。 默认混合召回策略为 hybrid_recall_profile_0，回滚方式采用 blue_green。 若命中 think_mode 场景，则最终对外答案仍以 content 字段为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "ops_ORION-013-0.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "链路排查补录\n\nORION-013-0 的夜间召回故障排查不能只看应用日志，还要同时检查向量库写入时间、倒排索引更新时间和切片重建是否落在 01:30-03:00 维护窗口附近。 如果仅关键词召回正常而向量召回异常，复盘中必须明确记录 embedding 变更批次与回滚前后的排序差异，不能只写一句向量异常。 针对连续 3 次 P2 缺失的场景，值班记录必须注明通知 platform_manager 的具体时间点以及升级后采取的隔离动作。"
+        },
+        {
+          "rank": 4,
+          "documentName": "ops_ORION-013-0.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "附录说明\n\nORION-013-0 与同族 ORION 文档共享大量流程术语，评测时极易出现近邻错召回。 该文档特意保留与采购、制度、事故复盘相似的词汇，以放大最小 RAG 的误召回问题。 若升级版 RAG 增加 rerank 或 exact_code 约束，这类文档应显著改善。 本手册用于长期高标准基准测试，不得再退回短文本实验版本。"
+        },
+        {
+          "rank": 5,
+          "documentName": "ops_ORION-013-0.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "混淆样本说明\n\nORION-013-0 的语料特意保留与采购、制度和事故复盘相近的术语，例如 recall_gap、cleanup_checklist 和 confidence_label，用于放大跨域误召回问题。 最小 RAG 在这类场景中常见的问题不是完全答不出来，而是拿到相似文档后用大模型把答案补得看似通顺，却把关键数字和角色补错。 升级版 RAG 如果增加 exact_code 约束、family hard negative 和"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "运维手册 ORION-013-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+        "normalizedQuery": "运维手册 ORION-013-0 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "bm25Query": "运维手册 ORION-013-0 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁? ORION-013-0",
+        "vectorQuery": "运维手册 ORION-013-0 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "ORION-013-0"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "orion",
+          "手册",
+          "运维手册",
+          "的维",
+          "维护",
+          "护窗",
+          "窗口",
+          "口是",
+          "是什",
+          "的维护",
+          "维护窗",
+          "护窗口",
+          "窗口是",
+          "口是什",
+          "是什么",
+          "的维护窗",
+          "维护窗口",
+          "护窗口是",
+          "窗口是什",
+          "口是什么",
+          "夜间",
+          "间连",
+          "连续",
+          "续多"
+        ],
+        "evidenceNumericTerms": [
+          "013",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2311
+    },
+    {
+      "sample_index": 216,
+      "question_id": "full_217",
+      "difficulty": "full_doc_ops_exact",
+      "previous_answer_correctness": 0.9227438150301421,
+      "previous_context_recall": 1.0,
+      "question": "运维手册 ORION-015-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference": "运维手册 ORION-015-1 的维护窗口是 02:30-04:00；夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "answer": "- 维护窗口：02:30-04:00。\n- 夜间连续出现 3 次 P2 召回缺失时，必须通知 platform_manager。",
+      "term_coverage": 0.75,
+      "matched_reference_terms": [
+        "02:30-04:00",
+        "P2",
+        "platform_manager"
+      ],
+      "missing_reference_terms": [
+        "ORION-015-1"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "ops_ORION-015-1.md",
+          "score": 93.85,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "夜间值班对照\n\nORION-015-1 与同族 ORION 文档共用大量值班和告警术语，因此在夜间场景下特别容易把 P1、P2、P3 的处置要求和错误系统编号混在一起。 高标准评测要求系统不仅答出需要通知 platform_manager，还要保留连续 3 次 P2 缺失这一触发条件，任何省略数字的回答都不算完整。 维护窗口 02:30-04:00 只在当前系统编号下成立，相邻编号文档虽然主题接近，但窗口时间、通知角色和回滚策略可能完全"
+        },
+        {
+          "rank": 2,
+          "documentName": "ops_ORION-015-1.md",
+          "score": 72.73,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "系统归属\n\n系统编号为 ORION-015-1，负责域为 knowledge_runtime_domain_0。 值班时区统一为 Asia/Shanghai，夜间维护窗口为 02:30-04:00。 默认混合召回策略为 hybrid_recall_profile_1，回滚方式采用 shadow_restore。 若命中 think_mode 场景，则最终对外答案仍以 content 字段为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "ops_ORION-015-1.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "链路排查补录\n\nORION-015-1 的夜间召回故障排查不能只看应用日志，还要同时检查向量库写入时间、倒排索引更新时间和切片重建是否落在 02:30-04:00 维护窗口附近。 如果仅关键词召回正常而向量召回异常，复盘中必须明确记录 embedding 变更批次与回滚前后的排序差异，不能只写一句向量异常。 针对连续 3 次 P2 缺失的场景，值班记录必须注明通知 platform_manager 的具体时间点以及升级后采取的隔离动作。"
+        },
+        {
+          "rank": 4,
+          "documentName": "ops_ORION-015-1.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "附录说明\n\nORION-015-1 与同族 ORION 文档共享大量流程术语，评测时极易出现近邻错召回。 该文档特意保留与采购、制度、事故复盘相似的词汇，以放大最小 RAG 的误召回问题。 若升级版 RAG 增加 rerank 或 exact_code 约束，这类文档应显著改善。 本手册用于长期高标准基准测试，不得再退回短文本实验版本。"
+        },
+        {
+          "rank": 5,
+          "documentName": "ops_ORION-015-1.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "混淆样本说明\n\nORION-015-1 的语料特意保留与采购、制度和事故复盘相近的术语，例如 recall_gap、cleanup_checklist 和 confidence_label，用于放大跨域误召回问题。 最小 RAG 在这类场景中常见的问题不是完全答不出来，而是拿到相似文档后用大模型把答案补得看似通顺，却把关键数字和角色补错。 升级版 RAG 如果增加 exact_code 约束、family hard negative 和"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "运维手册 ORION-015-1 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+        "normalizedQuery": "运维手册 ORION-015-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "bm25Query": "运维手册 ORION-015-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁? ORION-015-1",
+        "vectorQuery": "运维手册 ORION-015-1 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "ORION-015-1"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "orion",
+          "手册",
+          "运维手册",
+          "的维",
+          "维护",
+          "护窗",
+          "窗口",
+          "口是",
+          "是什",
+          "的维护",
+          "维护窗",
+          "护窗口",
+          "窗口是",
+          "口是什",
+          "是什么",
+          "的维护窗",
+          "维护窗口",
+          "护窗口是",
+          "窗口是什",
+          "口是什么",
+          "夜间",
+          "间连",
+          "连续",
+          "续多"
+        ],
+        "evidenceNumericTerms": [
+          "015",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2342
+    },
+    {
+      "sample_index": 31,
+      "question_id": "full_032",
+      "difficulty": "full_doc_ops_exact",
+      "previous_answer_correctness": 0.9947897892486741,
+      "previous_context_recall": 1.0,
+      "question": "运维手册 ORION-003-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+      "reference": "运维手册 ORION-003-0 的维护窗口是 01:30-03:00；夜间连续出现 2 次 P2 召回缺失时，必须通知 search_owner。",
+      "answer": "ORION-003-0 的夜间维护窗口为 **01:30-03:00**。\n\n若夜间连续出现 **2 次** P2 级召回缺失，则必须通知 **search_owner**。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "ORION-003-0",
+        "01:30-03:00",
+        "P2",
+        "search_owner"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "ops_ORION-003-0.md",
+          "score": 97.25,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "夜间值班对照\n\nORION-003-0 与同族 ORION 文档共用大量值班和告警术语，因此在夜间场景下特别容易把 P1、P2、P3 的处置要求和错误系统编号混在一起。 高标准评测要求系统不仅答出需要通知 search_owner，还要保留连续 2 次 P2 缺失这一触发条件，任何省略数字的回答都不算完整。 维护窗口 01:30-03:00 只在当前系统编号下成立，相邻编号文档虽然主题接近，但窗口时间、通知角色和回滚策略可能完全不同。 "
+        },
+        {
+          "rank": 2,
+          "documentName": "ops_ORION-003-0.md",
+          "score": 72.73,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "系统归属\n\n系统编号为 ORION-003-0，负责域为 knowledge_runtime_domain_3。 值班时区统一为 Asia/Shanghai，夜间维护窗口为 01:30-03:00。 默认混合召回策略为 hybrid_recall_profile_0，回滚方式采用 blue_green。 若命中 think_mode 场景，则最终对外答案仍以 content 字段为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "ops_ORION-003-0.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "链路排查补录\n\nORION-003-0 的夜间召回故障排查不能只看应用日志，还要同时检查向量库写入时间、倒排索引更新时间和切片重建是否落在 01:30-03:00 维护窗口附近。 如果仅关键词召回正常而向量召回异常，复盘中必须明确记录 embedding 变更批次与回滚前后的排序差异，不能只写一句向量异常。 针对连续 2 次 P2 缺失的场景，值班记录必须注明通知 search_owner 的具体时间点以及升级后采取的隔离动作。 若回滚"
+        },
+        {
+          "rank": 4,
+          "documentName": "ops_ORION-003-0.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "附录说明\n\nORION-003-0 与同族 ORION 文档共享大量流程术语，评测时极易出现近邻错召回。 该文档特意保留与采购、制度、事故复盘相似的词汇，以放大最小 RAG 的误召回问题。 若升级版 RAG 增加 rerank 或 exact_code 约束，这类文档应显著改善。 本手册用于长期高标准基准测试，不得再退回短文本实验版本。"
+        },
+        {
+          "rank": 5,
+          "documentName": "ops_ORION-003-0.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "混淆样本说明\n\nORION-003-0 的语料特意保留与采购、制度和事故复盘相近的术语，例如 recall_gap、cleanup_checklist 和 confidence_label，用于放大跨域误召回问题。 最小 RAG 在这类场景中常见的问题不是完全答不出来，而是拿到相似文档后用大模型把答案补得看似通顺，却把关键数字和角色补错。 升级版 RAG 如果增加 exact_code 约束、family hard negative 和"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "运维手册 ORION-003-0 的维护窗口是什么，夜间连续多少次 P2 召回缺失要通知谁？",
+        "normalizedQuery": "运维手册 ORION-003-0 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "bm25Query": "运维手册 ORION-003-0 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁? ORION-003-0",
+        "vectorQuery": "运维手册 ORION-003-0 的维护窗口是什么,夜间连续多少次 P2 召回缺失要通知谁?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "ORION-003-0"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "orion",
+          "手册",
+          "运维手册",
+          "的维",
+          "维护",
+          "护窗",
+          "窗口",
+          "口是",
+          "是什",
+          "的维护",
+          "维护窗",
+          "护窗口",
+          "窗口是",
+          "口是什",
+          "是什么",
+          "的维护窗",
+          "维护窗口",
+          "护窗口是",
+          "窗口是什",
+          "口是什么",
+          "夜间",
+          "间连",
+          "连续",
+          "续多"
+        ],
+        "evidenceNumericTerms": [
+          "003",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2276
+    },
+    {
+      "sample_index": 107,
+      "question_id": "full_108",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_answer_correctness": 0.3856966815039457,
+      "previous_context_recall": 1.0,
+      "question": "供应商 SUP-008-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-008-0 的召回覆盖率阈值是 0.84；合同金额位于 92 万至 170 万之间时，由 regional_owner 审批。",
+      "answer": "召回覆盖率阈值为0.84，合同金额位于92万至170万之间由regional_owner审批。",
+      "term_coverage": 0.8,
+      "matched_reference_terms": [
+        "0.84",
+        "92",
+        "170",
+        "regional_owner"
+      ],
+      "missing_reference_terms": [
+        "SUP-008-0"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-008-0.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 92 万，由 department_owner 审批。 合同金额位于 92 万至 170 万之间，由 regional_owner 审批。 合同金额高于 170 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-008-0.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "供应商信息\n\n供应商编号为 SUP-008-0，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v1。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_2。 审计周期统一走 cycle_1，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-008-0.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "供应商对照矩阵\n\nSUP-008-0 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-008-0 与 monthly_recall_coverage_report_v1 的绑定关系，就容易把阈值 0.84 写成"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-008-2.md",
+          "score": 52.19,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 92 万，由 department_owner 审批。 合同金额位于 92 万至 170 万之间，由 regional_owner 审批。 合同金额高于 170 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-008-1.md",
+          "score": 51.59,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 92 万，由 department_owner 审批。 合同金额位于 92 万至 170 万之间，由 regional_owner 审批。 合同金额高于 170 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-008-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-008-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-008-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-008-0 regional_owner",
+        "vectorQuery": "供应商 SUP-008-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-008-0",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "008",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 1890
+    },
+    {
+      "sample_index": 197,
+      "question_id": "full_198",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_answer_correctness": 0.3881605352326352,
+      "previous_context_recall": 0.5,
+      "question": "供应商 SUP-014-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-014-0 的召回覆盖率阈值是 0.87；合同金额位于 116 万至 200 万之间时，由 regional_owner 审批。",
+      "answer": "- 召回覆盖率阈值：0.87\n- 合同金额区间（由 regional_owner 审批）：116 万至 200 万",
+      "term_coverage": 0.8,
+      "matched_reference_terms": [
+        "0.87",
+        "116",
+        "200",
+        "regional_owner"
+      ],
+      "missing_reference_terms": [
+        "SUP-014-0"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 93.44,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "供应商信息\n\n供应商编号为 SUP-014-0，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v1。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_2。 审计周期统一走 cycle_1，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-014-0.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "供应商对照矩阵\n\nSUP-014-0 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-014-0 与 monthly_recall_coverage_report_v1 的绑定关系，就容易把阈值 0.87 写成"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-014-2.md",
+          "score": 87.82,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-014-1.md",
+          "score": 86.57,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "付款审批\n\n合同金额低于 116 万，由 department_owner 审批。 合同金额位于 116 万至 200 万之间，由 regional_owner 审批。 合同金额高于 200 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-014-0 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-014-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-014-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-014-0 regional_owner",
+        "vectorQuery": "供应商 SUP-014-0 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-014-0",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "014",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2186
+    },
+    {
+      "sample_index": 37,
+      "question_id": "full_038",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_answer_correctness": 0.5052283211836665,
+      "previous_context_recall": 1.0,
+      "question": "供应商 SUP-003-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-003-1 的召回覆盖率阈值是 0.83；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "answer": "- 召回覆盖率阈值：0.83  \n- 合同金额区间：72 万至 145 万之间由 regional_owner 审批。",
+      "term_coverage": 0.8,
+      "matched_reference_terms": [
+        "0.83",
+        "72",
+        "145",
+        "regional_owner"
+      ],
+      "missing_reference_terms": [
+        "SUP-003-1"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-003-1.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 72 万，由 department_owner 审批。 合同金额位于 72 万至 145 万之间，由 regional_owner 审批。 合同金额高于 145 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-003-1.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "供应商信息\n\n供应商编号为 SUP-003-1，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v2。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_3。 审计周期统一走 cycle_2，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-003-1.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "供应商对照矩阵\n\nSUP-003-1 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-003-1 与 monthly_recall_coverage_report_v2 的绑定关系，就容易把阈值 0.83 写成"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-015-2.md",
+          "score": 87.8,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "付款审批\n\n合同金额低于 120 万，由 department_owner 审批。 合同金额位于 120 万至 205 万之间，由 regional_owner 审批。 合同金额高于 205 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-015-0.md",
+          "score": 86.79,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "付款审批\n\n合同金额低于 120 万，由 department_owner 审批。 合同金额位于 120 万至 205 万之间，由 regional_owner 审批。 合同金额高于 205 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-003-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-003-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-003-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-003-1 regional_owner",
+        "vectorQuery": "供应商 SUP-003-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-003-1",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "003",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2195
+    },
+    {
+      "sample_index": 172,
+      "question_id": "full_173",
+      "difficulty": "full_doc_procurement_exact",
+      "previous_answer_correctness": 0.9764587927541143,
+      "previous_context_recall": 1.0,
+      "question": "供应商 SUP-012-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference": "供应商 SUP-012-1 的召回覆盖率阈值是 0.87；合同金额位于 108 万至 190 万之间时，由 regional_owner 审批。",
+      "answer": "- **召回覆盖率阈值**：在所提供的知识片段中，未直接明确声明供应商 SUP-012-1 的召回覆盖率阈值。文档[3]中提及“阈值 0.87”仅为描述检索混淆时的示例，并非正式阈值定义，因此该信息不可靠。  \n- **regional_owner 审批区间**：合同金额位于 **108 万至 190 万** 之间，由 regional_owner 审批（依据文档[1]）。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "SUP-012-1",
+        "0.87",
+        "108",
+        "190",
+        "regional_owner"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "vendor_SUP-012-1.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 108 万，由 department_owner 审批。 合同金额位于 108 万至 190 万之间，由 regional_owner 审批。 合同金额高于 190 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 2,
+          "documentName": "vendor_SUP-012-1.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "供应商信息\n\n供应商编号为 SUP-012-1，服务范围覆盖 llm_service、embedding_service、retrieval_service。 双职责供应商必须按月提交 monthly_recall_coverage_report_v2。 若同时承担模型与检索职责，还要附带 incident_taxonomy_sheet_0。 审计周期统一走 cycle_2，但处罚阈值以本文件为准。"
+        },
+        {
+          "rank": 3,
+          "documentName": "vendor_SUP-012-1.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "供应商对照矩阵\n\nSUP-012-1 与相邻供应商文档共享大量采购模板字段，例如 coverage_threshold、整改观察期和 approval range，因此检索时极易出现同族近邻文档上浮。 如果检索链路只抓住 monthly_recall_coverage_report 这类通用词，而没有抓住 SUP-012-1 与 monthly_recall_coverage_report_v2 的绑定关系，就容易把阈值 0.87 写成"
+        },
+        {
+          "rank": 4,
+          "documentName": "vendor_SUP-012-2.md",
+          "score": 60.77,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 108 万，由 department_owner 审批。 合同金额位于 108 万至 190 万之间，由 regional_owner 审批。 合同金额高于 190 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        },
+        {
+          "rank": 5,
+          "documentName": "vendor_SUP-012-0.md",
+          "score": 59.95,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "付款审批\n\n合同金额低于 108 万，由 department_owner 审批。 合同金额位于 108 万至 190 万之间，由 regional_owner 审批。 合同金额高于 190 万，则升级到 procurement_committee 审批。 若供应商本月存在召回覆盖率红线，则即便金额未超阈值也要补充风险说明。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "供应商 SUP-012-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+        "normalizedQuery": "供应商 SUP-012-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "bm25Query": "供应商 SUP-012-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批? SUP-012-1 regional_owner",
+        "vectorQuery": "供应商 SUP-012-1 的召回覆盖率阈值是多少,合同金额在哪个区间由 regional_owner 审批?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "SUP-012-1",
+          "regional_owner"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "sup",
+          "供应商",
+          "的召",
+          "召回",
+          "回覆",
+          "覆盖",
+          "盖率",
+          "率阈",
+          "阈值",
+          "值是",
+          "是多",
+          "的召回",
+          "召回覆",
+          "回覆盖",
+          "覆盖率",
+          "盖率阈",
+          "率阈值",
+          "阈值是",
+          "值是多",
+          "是多少",
+          "的召回覆",
+          "召回覆盖",
+          "回覆盖率",
+          "覆盖率阈"
+        ],
+        "evidenceNumericTerms": [
+          "012",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2094
+    },
+    {
+      "sample_index": 88,
+      "question_id": "full_089",
+      "difficulty": "full_doc_policy_exact",
+      "previous_answer_correctness": 0.8490306148590012,
+      "previous_context_recall": 1.0,
+      "question": "制度 POL-006-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference": "制度 POL-006-2 的审计日志保留 206 天；第二次违规冻结 10 天；演示样本清理期限是 6 天。",
+      "answer": "- 审计日志保留：206天（来源于 documentId: aa45972d-eb1d-4e57-b948-6eca0d0bb593，policy_POL-006-2.md）\n- 第二次违规冻结：10天（同上）\n- 演示样本清理期限：6天（同上）",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "POL-006-2",
+        "206",
+        "10"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "policy_POL-006-2.md",
+          "score": 97.96,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "制度执行细则\n\nPOL-006-2 的执行重点不只是合规原则，还包括审计日志保留 206 天、第二次违规冻结 10 天以及演示样本清理 6 天这三类离散约束。 如果检索没有命中目标制度文档，模型往往会保留正确的原则结论，却把冻结天数或清理时限错误套用到同族制度上。 confidence_rule 字段 no_high_confidence_without_enough_citations 只在当前制度编号下成立，相邻制度虽然也讨论 hi"
+        },
+        {
+          "rank": 2,
+          "documentName": "policy_POL-006-2.md",
+          "score": 147.7,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "基础要求\n\n制度编号为 POL-006-2，审计访问日志至少保留 206 天。 演示环境样本文档迁移前必须在 6 天内完成 demo_cleanup_checklist。 任何样本文档不得混入正式知识库，否则视为 production_knowledge_pollution。 若启用思考模式，对外展示必须区分 visibleContent 与 content。"
+        },
+        {
+          "rank": 3,
+          "documentName": "policy_POL-006-2.md",
+          "score": 88.55,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "展示与归档补录\n\nPOL-006-2 的复核记录必须明确区分 visibleContent 用于实时思考展示，content 用于正式答案落库，两者一旦混用就构成展示风险。 如果演示环境样本超过 6 天仍未清理，应在审计记录中标记数据污染风险，并暂停将该环境内容纳入正式知识库。 审计链路需要同时保存 citation_trace_chain、confidence_label 和违规处置节点，否则无法证明 high_confidence "
+        },
+        {
+          "rank": 4,
+          "documentName": "policy_POL-006-2.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "术语冲突说明\n\nPOL-006-2 刻意复用了 finance_strict_pack、final_answer_presentation_risk 和 demo_cleanup_checklist 等跨域术语，使制度、产品和运维文档在主题层面高度相似。 如果系统只依赖语义相似度排序，很可能拿到正确主题但错误编号的制度条款，从而在审计天数和冻结周期上发生细微但关键的偏差。 高标准评测不会因为回答提到了合规或审计就判定通过，而是要看这些术"
+        },
+        {
+          "rank": 5,
+          "documentName": "policy_POL-006-2.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "违规升级样本\n\nPOL-006-2 的常见错答模式是正确说出不能随意标记 high_confidence，却漏掉需要遵循 no_high_confidence_without_enough_citations 或者把冻结期写错成别的制度天数。 另一类问题是回答里说演示样本需要及时清理，但没有给出 6 天这个硬约束，导致答案看似合理但不可执行。 如果系统只命中通用思考模式文档而没有命中当前制度编号，通常会正确提到 visibleConte"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "制度 POL-006-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+        "normalizedQuery": "制度 POL-006-2 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "bm25Query": "制度 POL-006-2 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天? POL-006-2",
+        "vectorQuery": "制度 POL-006-2 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "POL-006-2"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "pol",
+          "审计",
+          "制度",
+          "的审",
+          "计日",
+          "日志",
+          "志保",
+          "保留",
+          "留多",
+          "少天",
+          "的审计",
+          "审计日",
+          "计日志",
+          "日志保",
+          "志保留",
+          "保留多",
+          "留多少",
+          "多少天",
+          "的审计日",
+          "审计日志",
+          "计日志保",
+          "日志保留",
+          "志保留多",
+          "保留多少"
+        ],
+        "evidenceNumericTerms": [
+          "006",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2672
+    },
+    {
+      "sample_index": 23,
+      "question_id": "full_024",
+      "difficulty": "full_doc_policy_exact",
+      "previous_answer_correctness": 0.8491608985393504,
+      "previous_context_recall": 1.0,
+      "question": "制度 POL-002-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference": "制度 POL-002-1 的审计日志保留 192 天；第二次违规冻结 10 天；演示样本清理期限是 5 天。",
+      "answer": "根据制度 POL-002-1（文档 e11575a2）的规定：\n- 审计日志保留 **192** 天；\n- 第二次违规冻结 **10** 天；\n- 演示样本清理期限为 **5** 天。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "POL-002-1",
+        "192",
+        "10"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "policy_POL-002-1.md",
+          "score": 97.96,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "制度执行细则\n\nPOL-002-1 的执行重点不只是合规原则，还包括审计日志保留 192 天、第二次违规冻结 10 天以及演示样本清理 5 天这三类离散约束。 如果检索没有命中目标制度文档，模型往往会保留正确的原则结论，却把冻结天数或清理时限错误套用到同族制度上。 confidence_rule 字段 normal_confidence_only_under_finance_pack 只在当前制度编号下成立，相邻制度虽然也讨论 high"
+        },
+        {
+          "rank": 2,
+          "documentName": "policy_POL-002-1.md",
+          "score": 147.7,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "基础要求\n\n制度编号为 POL-002-1，审计访问日志至少保留 192 天。 演示环境样本文档迁移前必须在 5 天内完成 demo_cleanup_checklist。 任何样本文档不得混入正式知识库，否则视为 production_knowledge_pollution。 若启用思考模式，对外展示必须区分 visibleContent 与 content。"
+        },
+        {
+          "rank": 3,
+          "documentName": "policy_POL-002-1.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "术语冲突说明\n\nPOL-002-1 刻意复用了 finance_strict_pack、final_answer_presentation_risk 和 demo_cleanup_checklist 等跨域术语，使制度、产品和运维文档在主题层面高度相似。 如果系统只依赖语义相似度排序，很可能拿到正确主题但错误编号的制度条款，从而在审计天数和冻结周期上发生细微但关键的偏差。 高标准评测不会因为回答提到了合规或审计就判定通过，而是要看这些术"
+        },
+        {
+          "rank": 4,
+          "documentName": "policy_POL-002-1.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "展示与归档补录\n\nPOL-002-1 的复核记录必须明确区分 visibleContent 用于实时思考展示，content 用于正式答案落库，两者一旦混用就构成展示风险。 如果演示环境样本超过 5 天仍未清理，应在审计记录中标记数据污染风险，并暂停将该环境内容纳入正式知识库。 审计链路需要同时保存 citation_trace_chain、confidence_label 和违规处置节点，否则无法证明 high_confidence "
+        },
+        {
+          "rank": 5,
+          "documentName": "policy_POL-002-1.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "违规升级样本\n\nPOL-002-1 的常见错答模式是正确说出不能随意标记 high_confidence，却漏掉需要遵循 normal_confidence_only_under_finance_pack 或者把冻结期写错成别的制度天数。 另一类问题是回答里说演示样本需要及时清理，但没有给出 5 天这个硬约束，导致答案看似合理但不可执行。 如果系统只命中通用思考模式文档而没有命中当前制度编号，通常会正确提到 visibleContent"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "制度 POL-002-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+        "normalizedQuery": "制度 POL-002-1 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "bm25Query": "制度 POL-002-1 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天? POL-002-1",
+        "vectorQuery": "制度 POL-002-1 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "POL-002-1"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "pol",
+          "审计",
+          "制度",
+          "的审",
+          "计日",
+          "日志",
+          "志保",
+          "保留",
+          "留多",
+          "少天",
+          "的审计",
+          "审计日",
+          "计日志",
+          "日志保",
+          "志保留",
+          "保留多",
+          "留多少",
+          "多少天",
+          "的审计日",
+          "审计日志",
+          "计日志保",
+          "日志保留",
+          "志保留多",
+          "保留多少"
+        ],
+        "evidenceNumericTerms": [
+          "002",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2635
+    },
+    {
+      "sample_index": 138,
+      "question_id": "full_139",
+      "difficulty": "full_doc_policy_exact",
+      "previous_answer_correctness": 0.8533919037936516,
+      "previous_context_recall": 1.0,
+      "question": "制度 POL-010-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference": "制度 POL-010-0 的审计日志保留 190 天；第二次违规冻结 7 天；演示样本清理期限是 4 天。",
+      "answer": "根据制度 POL-010-0 的规定：\n- 审计日志保留 190 天。\n- 第二次违规冻结 7 天。\n- 演示样本清理期限为 4 天。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "POL-010-0",
+        "190"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "policy_POL-010-0.md",
+          "score": 98.39,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "制度执行细则\n\nPOL-010-0 的执行重点不只是合规原则，还包括审计日志保留 190 天、第二次违规冻结 7 天以及演示样本清理 4 天这三类离散约束。 如果检索没有命中目标制度文档，模型往往会保留正确的原则结论，却把冻结天数或清理时限错误套用到同族制度上。 confidence_rule 字段 no_high_confidence_without_enough_citations 只在当前制度编号下成立，相邻制度虽然也讨论 hig"
+        },
+        {
+          "rank": 2,
+          "documentName": "policy_POL-010-0.md",
+          "score": 147.7,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "基础要求\n\n制度编号为 POL-010-0，审计访问日志至少保留 190 天。 演示环境样本文档迁移前必须在 4 天内完成 demo_cleanup_checklist。 任何样本文档不得混入正式知识库，否则视为 production_knowledge_pollution。 若启用思考模式，对外展示必须区分 visibleContent 与 content。"
+        },
+        {
+          "rank": 3,
+          "documentName": "policy_POL-010-0.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "术语冲突说明\n\nPOL-010-0 刻意复用了 finance_strict_pack、final_answer_presentation_risk 和 demo_cleanup_checklist 等跨域术语，使制度、产品和运维文档在主题层面高度相似。 如果系统只依赖语义相似度排序，很可能拿到正确主题但错误编号的制度条款，从而在审计天数和冻结周期上发生细微但关键的偏差。 高标准评测不会因为回答提到了合规或审计就判定通过，而是要看这些术"
+        },
+        {
+          "rank": 4,
+          "documentName": "policy_POL-010-0.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "展示与归档补录\n\nPOL-010-0 的复核记录必须明确区分 visibleContent 用于实时思考展示，content 用于正式答案落库，两者一旦混用就构成展示风险。 如果演示环境样本超过 4 天仍未清理，应在审计记录中标记数据污染风险，并暂停将该环境内容纳入正式知识库。 审计链路需要同时保存 citation_trace_chain、confidence_label 和违规处置节点，否则无法证明 high_confidence "
+        },
+        {
+          "rank": 5,
+          "documentName": "policy_POL-010-0.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "违规升级样本\n\nPOL-010-0 的常见错答模式是正确说出不能随意标记 high_confidence，却漏掉需要遵循 no_high_confidence_without_enough_citations 或者把冻结期写错成别的制度天数。 另一类问题是回答里说演示样本需要及时清理，但没有给出 4 天这个硬约束，导致答案看似合理但不可执行。 如果系统只命中通用思考模式文档而没有命中当前制度编号，通常会正确提到 visibleConte"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "制度 POL-010-0 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+        "normalizedQuery": "制度 POL-010-0 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "bm25Query": "制度 POL-010-0 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天? POL-010-0",
+        "vectorQuery": "制度 POL-010-0 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "POL-010-0"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "pol",
+          "审计",
+          "制度",
+          "的审",
+          "计日",
+          "日志",
+          "志保",
+          "保留",
+          "留多",
+          "少天",
+          "的审计",
+          "审计日",
+          "计日志",
+          "日志保",
+          "志保留",
+          "保留多",
+          "留多少",
+          "多少天",
+          "的审计日",
+          "审计日志",
+          "计日志保",
+          "日志保留",
+          "志保留多",
+          "保留多少"
+        ],
+        "evidenceNumericTerms": [
+          "010",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2686
+    },
+    {
+      "sample_index": 113,
+      "question_id": "full_114",
+      "difficulty": "full_doc_policy_exact",
+      "previous_answer_correctness": 0.9283119735462751,
+      "previous_context_recall": 1.0,
+      "question": "制度 POL-008-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference": "制度 POL-008-1 的审计日志保留 198 天；第二次违规冻结 11 天；演示样本清理期限是 3 天。",
+      "answer": "- **审计日志保留天数**：198 天  \n- **第二次违规冻结天数**：11 天  \n- **演示样本清理期限**：3 天  \n\n以上数字均来自制度 POL-008-1 的执行细则和基础要求。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "POL-008-1",
+        "198",
+        "11"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "policy_POL-008-1.md",
+          "score": 97.96,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "制度执行细则\n\nPOL-008-1 的执行重点不只是合规原则，还包括审计日志保留 198 天、第二次违规冻结 11 天以及演示样本清理 3 天这三类离散约束。 如果检索没有命中目标制度文档，模型往往会保留正确的原则结论，却把冻结天数或清理时限错误套用到同族制度上。 confidence_rule 字段 normal_confidence_only_under_finance_pack 只在当前制度编号下成立，相邻制度虽然也讨论 high"
+        },
+        {
+          "rank": 2,
+          "documentName": "policy_POL-008-1.md",
+          "score": 147.26,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "基础要求\n\n制度编号为 POL-008-1，审计访问日志至少保留 198 天。 演示环境样本文档迁移前必须在 3 天内完成 demo_cleanup_checklist。 任何样本文档不得混入正式知识库，否则视为 production_knowledge_pollution。 若启用思考模式，对外展示必须区分 visibleContent 与 content。"
+        },
+        {
+          "rank": 3,
+          "documentName": "policy_POL-008-1.md",
+          "score": 92.05,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "展示与归档补录\n\nPOL-008-1 的复核记录必须明确区分 visibleContent 用于实时思考展示，content 用于正式答案落库，两者一旦混用就构成展示风险。 如果演示环境样本超过 3 天仍未清理，应在审计记录中标记数据污染风险，并暂停将该环境内容纳入正式知识库。 审计链路需要同时保存 citation_trace_chain、confidence_label 和违规处置节点，否则无法证明 high_confidence "
+        },
+        {
+          "rank": 4,
+          "documentName": "policy_POL-008-1.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "术语冲突说明\n\nPOL-008-1 刻意复用了 finance_strict_pack、final_answer_presentation_risk 和 demo_cleanup_checklist 等跨域术语，使制度、产品和运维文档在主题层面高度相似。 如果系统只依赖语义相似度排序，很可能拿到正确主题但错误编号的制度条款，从而在审计天数和冻结周期上发生细微但关键的偏差。 高标准评测不会因为回答提到了合规或审计就判定通过，而是要看这些术"
+        },
+        {
+          "rank": 5,
+          "documentName": "policy_POL-008-1.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "违规升级样本\n\nPOL-008-1 的常见错答模式是正确说出不能随意标记 high_confidence，却漏掉需要遵循 normal_confidence_only_under_finance_pack 或者把冻结期写错成别的制度天数。 另一类问题是回答里说演示样本需要及时清理，但没有给出 3 天这个硬约束，导致答案看似合理但不可执行。 如果系统只命中通用思考模式文档而没有命中当前制度编号，通常会正确提到 visibleContent"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "制度 POL-008-1 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+        "normalizedQuery": "制度 POL-008-1 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "bm25Query": "制度 POL-008-1 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天? POL-008-1",
+        "vectorQuery": "制度 POL-008-1 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "POL-008-1"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "pol",
+          "审计",
+          "制度",
+          "的审",
+          "计日",
+          "日志",
+          "志保",
+          "保留",
+          "留多",
+          "少天",
+          "的审计",
+          "审计日",
+          "计日志",
+          "日志保",
+          "志保留",
+          "保留多",
+          "留多少",
+          "多少天",
+          "的审计日",
+          "审计日志",
+          "计日志保",
+          "日志保留",
+          "志保留多",
+          "保留多少"
+        ],
+        "evidenceNumericTerms": [
+          "008",
+          "1"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2562
+    },
+    {
+      "sample_index": 208,
+      "question_id": "full_209",
+      "difficulty": "full_doc_policy_exact",
+      "previous_answer_correctness": 0.9945657891686067,
+      "previous_context_recall": 1.0,
+      "question": "制度 POL-014-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+      "reference": "制度 POL-014-2 的审计日志保留 214 天；第二次违规冻结 13 天；演示样本清理期限是 6 天。",
+      "answer": "- 审计日志保留：214天  \n- 第二次违规冻结：13天  \n- 演示样本清理期限：6天",
+      "term_coverage": 0.6667,
+      "matched_reference_terms": [
+        "214",
+        "13"
+      ],
+      "missing_reference_terms": [
+        "POL-014-2"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "policy_POL-014-2.md",
+          "score": 95.66,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "制度执行细则\n\nPOL-014-2 的执行重点不只是合规原则，还包括审计日志保留 214 天、第二次违规冻结 13 天以及演示样本清理 6 天这三类离散约束。 如果检索没有命中目标制度文档，模型往往会保留正确的原则结论，却把冻结天数或清理时限错误套用到同族制度上。 confidence_rule 字段 no_high_confidence_without_enough_citations 只在当前制度编号下成立，相邻制度虽然也讨论 hi"
+        },
+        {
+          "rank": 2,
+          "documentName": "policy_POL-014-2.md",
+          "score": 146.84,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "基础要求\n\n制度编号为 POL-014-2，审计访问日志至少保留 214 天。 演示环境样本文档迁移前必须在 6 天内完成 demo_cleanup_checklist。 任何样本文档不得混入正式知识库，否则视为 production_knowledge_pollution。 若启用思考模式，对外展示必须区分 visibleContent 与 content。"
+        },
+        {
+          "rank": 3,
+          "documentName": "policy_POL-014-2.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "术语冲突说明\n\nPOL-014-2 刻意复用了 finance_strict_pack、final_answer_presentation_risk 和 demo_cleanup_checklist 等跨域术语，使制度、产品和运维文档在主题层面高度相似。 如果系统只依赖语义相似度排序，很可能拿到正确主题但错误编号的制度条款，从而在审计天数和冻结周期上发生细微但关键的偏差。 高标准评测不会因为回答提到了合规或审计就判定通过，而是要看这些术"
+        },
+        {
+          "rank": 4,
+          "documentName": "policy_POL-014-2.md",
+          "score": 67.22,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "展示与归档补录\n\nPOL-014-2 的复核记录必须明确区分 visibleContent 用于实时思考展示，content 用于正式答案落库，两者一旦混用就构成展示风险。 如果演示环境样本超过 6 天仍未清理，应在审计记录中标记数据污染风险，并暂停将该环境内容纳入正式知识库。 审计链路需要同时保存 citation_trace_chain、confidence_label 和违规处置节点，否则无法证明 high_confidence "
+        },
+        {
+          "rank": 5,
+          "documentName": "policy_POL-014-2.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "补充说明\n\n制度文档故意保留大量相似表达，以压测策略升级前后的 exact_code 命中能力。 若模型只答出原则但没命中目标制度，answer_correctness 仍会显著下降。 若召回命中了相邻制度但日期或天数错误，则属于高混淆错召回。 该文件用于长期高标准评测，因此保留精确天数与清理时限字段。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "制度 POL-014-2 的审计日志保留多少天，第二次违规冻结多少天，演示样本清理期限是多少天？",
+        "normalizedQuery": "制度 POL-014-2 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "bm25Query": "制度 POL-014-2 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天? POL-014-2",
+        "vectorQuery": "制度 POL-014-2 的审计日志保留多少天,第二次违规冻结多少天,演示样本清理期限是多少天?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "POL-014-2"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "pol",
+          "审计",
+          "制度",
+          "的审",
+          "计日",
+          "日志",
+          "志保",
+          "保留",
+          "留多",
+          "少天",
+          "的审计",
+          "审计日",
+          "计日志",
+          "日志保",
+          "志保留",
+          "保留多",
+          "留多少",
+          "多少天",
+          "的审计日",
+          "审计日志",
+          "计日志保",
+          "日志保留",
+          "志保留多",
+          "保留多少"
+        ],
+        "evidenceNumericTerms": [
+          "014",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2454
+    },
+    {
+      "sample_index": 34,
+      "question_id": "full_035",
+      "difficulty": "full_doc_postmortem_exact",
+      "previous_answer_correctness": 0.46843625431653946,
+      "previous_context_recall": 1.0,
+      "question": "事故复盘 INC-003-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference": "事故复盘 INC-003-0 的事故前 chunkSize 是 290，事故前 overlap 是 60；事故后 chunkSize 调整到 430；验收 gold_recall_rate 目标是 0.85。",
+      "answer": "- 事故前 chunkSize：290  \n- 事故前 overlap：60  \n- 事故后 chunkSize：430  \n- 验收 gold_recall_rate 目标：不低于 0.85",
+      "term_coverage": 0.875,
+      "matched_reference_terms": [
+        "chunkSize",
+        "290",
+        "overlap",
+        "60",
+        "430",
+        "gold_recall_rate",
+        "0.85"
+      ],
+      "missing_reference_terms": [
+        "INC-003-0"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "postmortem_INC-003-0.md",
+          "score": 114.92,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "验收标准\n\n验收目标一：gold_recall_rate 不低于 0.85。 验收目标二：answer_correctness 必须高于上一轮最小 RAG 基线。 验收目标三：对于金融行业问答，引用数量与置信度标注必须一致。 验收目标四：所有复盘场景都要明确记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 2,
+          "documentName": "postmortem_INC-003-0.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改后压测要求\n\nINC-003-0 整改完成后，不应只复测单一问题，而应在包含精确阈值、多跳问答、近邻干扰和思考模式展示规则的整套题集中重新评估。 如果整改只是把 chunkSize 从 290 调到 430，却没有同步压测近邻错召回，那么结果仍不足以证明系统已经达到长期可用标准。 真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而不是只让某"
+        },
+        {
+          "rank": 3,
+          "documentName": "postmortem_INC-003-0.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "证据链分析\n\n复盘确认关键词召回与向量召回都拿到了相似文档，但 exact_code 排序不足。 复盘确认 second_layer_clause 由于被拆散到相邻 chunk，导致最小 RAG 更容易漏掉。 复盘确认高相似模板文档造成了数字阈值与制度天数混淆。 复盘明确要求后续评测必须同时看 answer_correctness 与 gold_recall_rate。"
+        },
+        {
+          "rank": 4,
+          "documentName": "postmortem_INC-003-0.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：INC-003-0_trial_a 命中同类文档但未命中目标制度，导致 answer_correctness 降低。 案例二：INC-003-0_trial_b 调整 chunkSize 与 overlap 后恢复 second_layer_clause 命中。 案例三：INC-003-0_trial_c 加入 exact_code rerank 后压制了相邻编号错召回。 案例四：INC-003-0_trial_d "
+        },
+        {
+          "rank": 5,
+          "documentName": "postmortem_INC-003-0.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "时间线补录\n\nINC-003-0 的事故时间线必须清楚记录旧切片配置 chunkSize=290、overlap=60 与新配置 chunkSize=430 的切换时间点，避免后续评测无法映射到具体实验。 如果 second_layer_clause 的缺失发生在切片重建前后交界时刻，复盘中还要补记旧索引残留时间和新索引生效时间。 高标准评测不是只看整改后答案变长，而是要确认在时间线上哪个步骤真正把 gold_document 拉回到了"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "事故复盘 INC-003-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+        "normalizedQuery": "事故复盘 INC-003-0 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "bm25Query": "事故复盘 INC-003-0 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少? INC-003-0 gold_recall_rate",
+        "vectorQuery": "事故复盘 INC-003-0 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "INC-003-0",
+          "gold_recall_rate"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "inc",
+          "chunksize",
+          "overlap",
+          "事故复盘",
+          "事故前",
+          "分别是多少",
+          "事故后",
+          "调整到多少",
+          "验收",
+          "目标是多少"
+        ],
+        "evidenceNumericTerms": [
+          "003",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 0.8333,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "degraded"
+      },
+      "totalTokens": 2640
+    },
+    {
+      "sample_index": 169,
+      "question_id": "full_170",
+      "difficulty": "full_doc_postmortem_exact",
+      "previous_answer_correctness": 0.6561317080299509,
+      "previous_context_recall": 1.0,
+      "question": "事故复盘 INC-012-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference": "事故复盘 INC-012-0 的事故前 chunkSize 是 380，事故前 overlap 是 60；事故后 chunkSize 调整到 520；验收 gold_recall_rate 目标是 0.89。",
+      "answer": "- 事故前 chunkSize=380、overlap=60。  \n- 事故后 chunkSize 调整到 520。  \n- 验收 gold_recall_rate 目标为不低于 0.89。",
+      "term_coverage": 0.875,
+      "matched_reference_terms": [
+        "chunkSize",
+        "380",
+        "overlap",
+        "60",
+        "520",
+        "gold_recall_rate",
+        "0.89"
+      ],
+      "missing_reference_terms": [
+        "INC-012-0"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "postmortem_INC-012-0.md",
+          "score": 114.92,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "验收标准\n\n验收目标一：gold_recall_rate 不低于 0.89。 验收目标二：answer_correctness 必须高于上一轮最小 RAG 基线。 验收目标三：对于金融行业问答，引用数量与置信度标注必须一致。 验收目标四：所有复盘场景都要明确记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 2,
+          "documentName": "postmortem_INC-012-0.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改后压测要求\n\nINC-012-0 整改完成后，不应只复测单一问题，而应在包含精确阈值、多跳问答、近邻干扰和思考模式展示规则的整套题集中重新评估。 如果整改只是把 chunkSize 从 380 调到 520，却没有同步压测近邻错召回，那么结果仍不足以证明系统已经达到长期可用标准。 真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而不是只让某"
+        },
+        {
+          "rank": 3,
+          "documentName": "postmortem_INC-012-0.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "证据链分析\n\n复盘确认关键词召回与向量召回都拿到了相似文档，但 exact_code 排序不足。 复盘确认 second_layer_clause 由于被拆散到相邻 chunk，导致最小 RAG 更容易漏掉。 复盘确认高相似模板文档造成了数字阈值与制度天数混淆。 复盘明确要求后续评测必须同时看 answer_correctness 与 gold_recall_rate。"
+        },
+        {
+          "rank": 4,
+          "documentName": "postmortem_INC-012-0.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：INC-012-0_trial_a 命中同类文档但未命中目标制度，导致 answer_correctness 降低。 案例二：INC-012-0_trial_b 调整 chunkSize 与 overlap 后恢复 second_layer_clause 命中。 案例三：INC-012-0_trial_c 加入 exact_code rerank 后压制了相邻编号错召回。 案例四：INC-012-0_trial_d "
+        },
+        {
+          "rank": 5,
+          "documentName": "postmortem_INC-012-0.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "时间线补录\n\nINC-012-0 的事故时间线必须清楚记录旧切片配置 chunkSize=380、overlap=60 与新配置 chunkSize=520 的切换时间点，避免后续评测无法映射到具体实验。 如果 second_layer_clause 的缺失发生在切片重建前后交界时刻，复盘中还要补记旧索引残留时间和新索引生效时间。 高标准评测不是只看整改后答案变长，而是要确认在时间线上哪个步骤真正把 gold_document 拉回到了"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "事故复盘 INC-012-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+        "normalizedQuery": "事故复盘 INC-012-0 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "bm25Query": "事故复盘 INC-012-0 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少? INC-012-0 gold_recall_rate",
+        "vectorQuery": "事故复盘 INC-012-0 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "INC-012-0",
+          "gold_recall_rate"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "inc",
+          "chunksize",
+          "overlap",
+          "事故复盘",
+          "事故前",
+          "分别是多少",
+          "事故后",
+          "调整到多少",
+          "验收",
+          "目标是多少"
+        ],
+        "evidenceNumericTerms": [
+          "012",
+          "0"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 0.8333,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "degraded"
+      },
+      "totalTokens": 2955
+    },
+    {
+      "sample_index": 44,
+      "question_id": "full_045",
+      "difficulty": "full_doc_postmortem_exact",
+      "previous_answer_correctness": 0.9485079155300391,
+      "previous_context_recall": 1.0,
+      "question": "事故复盘 INC-003-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference": "事故复盘 INC-003-2 的事故前 chunkSize 是 330，事故前 overlap 是 100；事故后 chunkSize 调整到 470；验收 gold_recall_rate 目标是 0.87。",
+      "answer": "- **事故前 chunkSize**：330  \n- **事故前 overlap**：100  \n- **事故后 chunkSize**：470  \n- **验收 gold_recall_rate 目标**：0.87（不低于 0.87）",
+      "term_coverage": 0.875,
+      "matched_reference_terms": [
+        "chunkSize",
+        "330",
+        "overlap",
+        "100",
+        "470",
+        "gold_recall_rate",
+        "0.87"
+      ],
+      "missing_reference_terms": [
+        "INC-003-2"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "postmortem_INC-003-2.md",
+          "score": 114.92,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "验收标准\n\n验收目标一：gold_recall_rate 不低于 0.87。 验收目标二：answer_correctness 必须高于上一轮最小 RAG 基线。 验收目标三：对于金融行业问答，引用数量与置信度标注必须一致。 验收目标四：所有复盘场景都要明确记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 2,
+          "documentName": "postmortem_INC-003-2.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改后压测要求\n\nINC-003-2 整改完成后，不应只复测单一问题，而应在包含精确阈值、多跳问答、近邻干扰和思考模式展示规则的整套题集中重新评估。 如果整改只是把 chunkSize 从 330 调到 470，却没有同步压测近邻错召回，那么结果仍不足以证明系统已经达到长期可用标准。 真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而不是只让某"
+        },
+        {
+          "rank": 3,
+          "documentName": "postmortem_INC-003-2.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "证据链分析\n\n复盘确认关键词召回与向量召回都拿到了相似文档，但 exact_code 排序不足。 复盘确认 second_layer_clause 由于被拆散到相邻 chunk，导致最小 RAG 更容易漏掉。 复盘确认高相似模板文档造成了数字阈值与制度天数混淆。 复盘明确要求后续评测必须同时看 answer_correctness 与 gold_recall_rate。"
+        },
+        {
+          "rank": 4,
+          "documentName": "postmortem_INC-003-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：INC-003-2_trial_a 命中同类文档但未命中目标制度，导致 answer_correctness 降低。 案例二：INC-003-2_trial_b 调整 chunkSize 与 overlap 后恢复 second_layer_clause 命中。 案例三：INC-003-2_trial_c 加入 exact_code rerank 后压制了相邻编号错召回。 案例四：INC-003-2_trial_d "
+        },
+        {
+          "rank": 5,
+          "documentName": "postmortem_INC-003-2.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "时间线补录\n\nINC-003-2 的事故时间线必须清楚记录旧切片配置 chunkSize=330、overlap=100 与新配置 chunkSize=470 的切换时间点，避免后续评测无法映射到具体实验。 如果 cleanup_deadline_clause 的缺失发生在切片重建前后交界时刻，复盘中还要补记旧索引残留时间和新索引生效时间。 高标准评测不是只看整改后答案变长，而是要确认在时间线上哪个步骤真正把 gold_document"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "事故复盘 INC-003-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+        "normalizedQuery": "事故复盘 INC-003-2 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "bm25Query": "事故复盘 INC-003-2 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少? INC-003-2 gold_recall_rate",
+        "vectorQuery": "事故复盘 INC-003-2 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "INC-003-2",
+          "gold_recall_rate"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "inc",
+          "chunksize",
+          "overlap",
+          "事故复盘",
+          "事故前",
+          "分别是多少",
+          "事故后",
+          "调整到多少",
+          "验收",
+          "目标是多少"
+        ],
+        "evidenceNumericTerms": [
+          "003",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 0.8333,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "degraded"
+      },
+      "totalTokens": 2662
+    },
+    {
+      "sample_index": 164,
+      "question_id": "full_165",
+      "difficulty": "full_doc_postmortem_exact",
+      "previous_answer_correctness": 0.970795473436376,
+      "previous_context_recall": 1.0,
+      "question": "事故复盘 INC-011-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference": "事故复盘 INC-011-2 的事故前 chunkSize 是 410，事故前 overlap 是 100；事故后 chunkSize 调整到 550；验收 gold_recall_rate 目标是 0.90。",
+      "answer": "- **事故前 chunkSize**：410  \n- **事故前 overlap**：100  \n- **事故后 chunkSize**：550（同时 overlap 调整至 120）  \n- **验收 gold_recall_rate 目标**：不低于 0.90",
+      "term_coverage": 0.875,
+      "matched_reference_terms": [
+        "chunkSize",
+        "410",
+        "overlap",
+        "100",
+        "550",
+        "gold_recall_rate",
+        "0.90"
+      ],
+      "missing_reference_terms": [
+        "INC-011-2"
+      ],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "postmortem_INC-011-2.md",
+          "score": 114.92,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "验收标准\n\n验收目标一：gold_recall_rate 不低于 0.90。 验收目标二：answer_correctness 必须高于上一轮最小 RAG 基线。 验收目标三：对于金融行业问答，引用数量与置信度标注必须一致。 验收目标四：所有复盘场景都要明确记录 expectedRecallDocCount 与 actualHitDocCount。"
+        },
+        {
+          "rank": 2,
+          "documentName": "postmortem_INC-011-2.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改后压测要求\n\nINC-011-2 整改完成后，不应只复测单一问题，而应在包含精确阈值、多跳问答、近邻干扰和思考模式展示规则的整套题集中重新评估。 如果整改只是把 chunkSize 从 410 调到 550，却没有同步压测近邻错召回，那么结果仍不足以证明系统已经达到长期可用标准。 真正达标的标志应是 gold_recall_rate、context_precision 和 answer_correctness 一起改善，而不是只让某"
+        },
+        {
+          "rank": 3,
+          "documentName": "postmortem_INC-011-2.md",
+          "score": 66.21,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "证据链分析\n\n复盘确认关键词召回与向量召回都拿到了相似文档，但 exact_code 排序不足。 复盘确认 second_layer_clause 由于被拆散到相邻 chunk，导致最小 RAG 更容易漏掉。 复盘确认高相似模板文档造成了数字阈值与制度天数混淆。 复盘明确要求后续评测必须同时看 answer_correctness 与 gold_recall_rate。"
+        },
+        {
+          "rank": 4,
+          "documentName": "postmortem_INC-011-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "演练案例\n\n案例一：INC-011-2_trial_a 命中同类文档但未命中目标制度，导致 answer_correctness 降低。 案例二：INC-011-2_trial_b 调整 chunkSize 与 overlap 后恢复 second_layer_clause 命中。 案例三：INC-011-2_trial_c 加入 exact_code rerank 后压制了相邻编号错召回。 案例四：INC-011-2_trial_d "
+        },
+        {
+          "rank": 5,
+          "documentName": "postmortem_INC-011-2.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "时间线补录\n\nINC-011-2 的事故时间线必须清楚记录旧切片配置 chunkSize=410、overlap=100 与新配置 chunkSize=550 的切换时间点，避免后续评测无法映射到具体实验。 如果 cleanup_deadline_clause 的缺失发生在切片重建前后交界时刻，复盘中还要补记旧索引残留时间和新索引生效时间。 高标准评测不是只看整改后答案变长，而是要确认在时间线上哪个步骤真正把 gold_document"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "事故复盘 INC-011-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+        "normalizedQuery": "事故复盘 INC-011-2 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "bm25Query": "事故复盘 INC-011-2 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少? INC-011-2 gold_recall_rate",
+        "vectorQuery": "事故复盘 INC-011-2 中,事故前 chunkSize 和 overlap 分别是多少,事故后 chunkSize 调整到多少,验收 gold_recall_rate 目标是多少?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "INC-011-2",
+          "gold_recall_rate"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "inc",
+          "chunksize",
+          "overlap",
+          "事故复盘",
+          "事故前",
+          "分别是多少",
+          "事故后",
+          "调整到多少",
+          "验收",
+          "目标是多少"
+        ],
+        "evidenceNumericTerms": [
+          "011",
+          "2"
+        ],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 0.8333,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "degraded"
+      },
+      "totalTokens": 2657
+    },
+    {
+      "sample_index": 225,
+      "question_id": "full_226",
+      "difficulty": "full_doc_cross_ref_strategy",
+      "previous_answer_correctness": 0.8142361457942289,
+      "previous_context_recall": 1.0,
+      "question": "Aurora 默认知识问答 topK 是多少，工作台链路常用 topK 是多少，最容易丢失哪类条款？",
+      "reference": "Aurora 默认知识问答 topK 是 5；工作台链路常用 topK 是 4；最容易丢失的是 second_layer_clause。",
+      "answer": "- Aurora 默认知识问答 topK 是 **5**。\n- 工作台链路为了控制上下文长度，常用 topK 是 **4**。\n- 最容易丢失的条款是 **second_layer_clause**。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "Aurora",
+        "topK",
+        "second_layer_clause"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "strategy_aurora.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "默认策略\n\nAurora 采用关键词召回与向量召回混合模式。 Aurora 的默认知识问答 topK 是 5。 工作台链路为了控制上下文长度，通常把 topK 降为 4。 Aurora 在多文档聚合场景最容易丢失 second_layer_clause。"
+        },
+        {
+          "rank": 2,
+          "documentName": "workspace_chain_overview.md",
+          "score": 96.12,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "链路摘要\n\nhandleSend 进入 sendMessage 后，会检查 activeConversation，不存在则创建会话。 知识问答层默认走 workspace/chat/stream 完成事件，Aurora 默认 topK 为 5。 工作台链路为了减少上下文长度，通常把知识检索 topK 固定为 4。 流式阶段的 visibleContent 与最终 content 在展示层必须严格区分。"
+        },
+        {
+          "rank": 3,
+          "documentName": "strategy_aurora.md",
+          "score": 49.19,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "高标准附录\n\nstrategy_aurora 在基准集中不只是概念说明，还承担 topK 与 exact_code 召回 的精确检索锚点，因此即使属于支撑文档，也不能只保留一段极短摘要。 如果系统只命中主题相近的主文档而没有命中 strategy_aurora，那么关于 second_layer_clause 的漏召回路径 的规则很容易被错误继承或被大模型自行补完。 升级版 RAG 需要依靠 exact_code、结构化字段和重排特征，"
+        },
+        {
+          "rank": 4,
+          "documentName": "strategy_aurora.md",
+          "score": 96.07,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "干扰样本\n\nstrategy_aurora 周边文档会共享 finance_strict_pack、second_layer_clause、visibleContent、recall_gap 等高频词，这会显著提升主题层面的相似度。 如果 topK 过小，系统可能只拿到概念定义，却拿不到 topK 与 exact_code 召回 对应的精确限制，从而让答案只剩泛化原则。 如果 overlap 过低，关于 second_layer_cla"
+        },
+        {
+          "rank": 5,
+          "documentName": "strategy_aurora.md",
+          "score": 48.41,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "评测说明\n\n如果问题依赖精确编号、阈值或处罚天数，Aurora 更容易被同族近邻文档干扰。 升级版 RAG 的核心目标不是回答更长，而是命中真正 gold_document。 因此高标准评测必须同时观察 gold_recall_rate、context_precision 与 answer_correctness。 Aurora 的表现通常足以回答原则问题，但精细阈值问题更容易失分。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "Aurora 默认知识问答 topK 是多少，工作台链路常用 topK 是多少，最容易丢失哪类条款？",
+        "normalizedQuery": "Aurora 默认知识问答 topK 是多少,工作台链路常用 topK 是多少,最容易丢失哪类条款?",
+        "bm25Query": "Aurora 默认知识问答 topK 是多少,工作台链路常用 topK 是多少,最容易丢失哪类条款?",
+        "vectorQuery": "Aurora 默认知识问答 topK 是多少,工作台链路常用 topK 是多少,最容易丢失哪类条款?",
+        "rewriteApplied": false,
+        "retrievalMode": "balanced",
+        "bm25Weight": 1,
+        "vectorWeight": 1,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "balanced",
+        "routeSource": "policy",
+        "routeConfidence": "low",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "aurora",
+          "topk",
+          "默认知识问答",
+          "是多少",
+          "工作",
+          "作台",
+          "台链",
+          "链路",
+          "路常",
+          "常用",
+          "工作台",
+          "作台链",
+          "台链路",
+          "链路常",
+          "路常用",
+          "工作台链",
+          "作台链路",
+          "台链路常",
+          "链路常用",
+          "最容",
+          "容易",
+          "易丢",
+          "丢失",
+          "失哪"
+        ],
+        "evidenceNumericTerms": [],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2153
+    },
+    {
+      "sample_index": 226,
+      "question_id": "full_227",
+      "difficulty": "full_doc_cross_ref_finance",
+      "previous_answer_correctness": 0.8332652357522028,
+      "previous_context_recall": 1.0,
+      "question": "金融行业问答在引用数不足、召回文档数不足一半、exact_code 未命中时分别应该如何处理？",
+      "reference": "金融行业问答引用数量不足产品文档规定的最低值时，只能标记 normal_confidence；召回文档数少于应召回文档总数一半时，必须记录 recall_gap；exact_code 未命中时，即使答案方向正确也不能视为 fully_grounded。",
+      "answer": "- 若引用数量不足产品文档规定的最低值，则只能标记`normal_confidence`。\n- 若召回文档数少于应召回文档总数的一半，则必须记录`recall_gap`。\n- 若`exact_code`未命中，即使答案方向正确也不能视为`fully_grounded`。知识片段未进一步说明具体的标记或回退动作，仅提供了约束条件。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "normal_confidence",
+        "recall_gap",
+        "exact_code",
+        "fully_grounded"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "finance_strict_pack.md",
+          "score": 74.98,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "行业附加约束\n\n金融行业问答必须同时满足最低引用数、普通置信度回退和召回缺口记录三项要求。 若引用数量不足产品文档规定的最低值，则只能标记 normal_confidence。 若召回文档数少于应召回文档总数的一半，则必须记录 recall_gap。 若 exact_code 未命中，即使答案方向正确也不能视为 fully_grounded。"
+        },
+        {
+          "rank": 2,
+          "documentName": "retrieval_tuning_playbook.md",
+          "score": 72.73,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "推荐动作\n\n若 second_layer_clause 经常丢失，应优先增大 chunkSize 并提高 overlap。 若 exact_code 召回经常错误，应增加编号特征 rerank。 若制度天数与阈值频繁混淆，应提取 structured_fact_extractor。 若同族近邻过强，应追加 family_level_hard_negative 训练样本。"
+        },
+        {
+          "rank": 3,
+          "documentName": "postmortem_INC-015-2.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改动作\n\n动作一：将 chunkSize 从 450 调整到 590。 动作二：将 overlap 提升到 120，减少条款被拆散的概率。 动作三：增加 exact_code rerank 特征，抑制同族近邻文档错误上浮。 动作四：对高混淆阈值字段增加 structured_fact_extractor。"
+        },
+        {
+          "rank": 4,
+          "documentName": "postmortem_INC-015-1.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改动作\n\n动作一：将 chunkSize 从 430 调整到 570。 动作二：将 overlap 提升到 100，减少条款被拆散的概率。 动作三：增加 exact_code rerank 特征，抑制同族近邻文档错误上浮。 动作四：对高混淆阈值字段增加 structured_fact_extractor。"
+        },
+        {
+          "rank": 5,
+          "documentName": "postmortem_INC-015-0.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "整改动作\n\n动作一：将 chunkSize 从 410 调整到 550。 动作二：将 overlap 提升到 80，减少条款被拆散的概率。 动作三：增加 exact_code rerank 特征，抑制同族近邻文档错误上浮。 动作四：对高混淆阈值字段增加 structured_fact_extractor。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "金融行业问答在引用数不足、召回文档数不足一半、exact_code 未命中时分别应该如何处理？",
+        "normalizedQuery": "金融行业问答在引用数不足 召回文档数不足一半 exact_code 未命中时分别应该如何处理?",
+        "bm25Query": "金融行业问答在引用数不足 召回文档数不足一半 exact_code 未命中时分别应该如何处理? exact_code",
+        "vectorQuery": "金融行业问答在引用数不足 召回文档数不足一半 exact_code 未命中时分别应该如何处理?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "exact_code"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "引用",
+          "召回文档",
+          "未命中",
+          "金融",
+          "融行",
+          "行业",
+          "业问",
+          "问答",
+          "答在",
+          "在引",
+          "用数",
+          "数不",
+          "不足",
+          "金融行",
+          "融行业",
+          "行业问",
+          "业问答",
+          "问答在",
+          "答在引",
+          "在引用",
+          "引用数",
+          "用数不",
+          "数不足",
+          "金融行业"
+        ],
+        "evidenceNumericTerms": [],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2202
+    },
+    {
+      "sample_index": 227,
+      "question_id": "full_228",
+      "difficulty": "full_doc_cross_ref_thinking",
+      "previous_answer_correctness": 0.9477899122931714,
+      "previous_context_recall": 1.0,
+      "question": "thinking mode 中 visibleContent 和 content 分别用于什么，混用会造成什么风险？",
+      "reference": "visibleContent 只用于实时展示推理过程，content 只用于持久化最终正式答案；如果前端把 visibleContent 当成 content 对外展示，会造成 final_answer_presentation_risk。",
+      "answer": "- **visibleContent** 只用于实时展示推理过程。  \n- **content** 只用于持久化最终正式答案。  \n- 若前端把 `visibleContent` 当成 `content` 对外展示，则会被认定为 **final_answer_presentation_risk**（最终答案展示风险）。  \n\n> 所有思考模式问答还需要补充审计日志关联字段，但这是额外要求，并非混用所直接导致的风险。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "visibleContent",
+        "content",
+        "final_answer_presentation_risk"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "thinking_mode_guideline.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "展示规范\n\nvisibleContent 只用于实时展示推理过程。 content 只用于持久化最终正式答案。 若前端把 visibleContent 当成 content 对外展示，则会造成 final_answer_presentation_risk。 所有思考模式问答都需要补充审计日志关联字段。"
+        },
+        {
+          "rank": 2,
+          "documentName": "thinking_mode_guideline.md",
+          "score": 49.19,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "高标准附录\n\nthinking_mode_guideline 在基准集中不只是概念说明，还承担 思考模式展示边界 的精确检索锚点，因此即使属于支撑文档，也不能只保留一段极短摘要。 如果系统只命中主题相近的主文档而没有命中 thinking_mode_guideline，那么关于 visibleContent 与 content 的职责切分 的规则很容易被错误继承或被大模型自行补完。 升级版 RAG 需要依靠 exact_code、结构化"
+        },
+        {
+          "rank": 3,
+          "documentName": "thinking_mode_guideline.md",
+          "score": 48.41,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "干扰样本\n\nthinking_mode_guideline 周边文档会共享 finance_strict_pack、second_layer_clause、visibleContent、recall_gap 等高频词，这会显著提升主题层面的相似度。 如果 topK 过小，系统可能只拿到概念定义，却拿不到 思考模式展示边界 对应的精确限制，从而让答案只剩泛化原则。 如果 overlap 过低，关于 visibleContent 与 con"
+        },
+        {
+          "rank": 4,
+          "documentName": "product_NX-015-1.md",
+          "score": 92.45,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "思考模式与审计\n\nvisibleContent 的实时展示日志保留 43 天，超过后仅保留汇总审计记录。 content 字段中的正式答案需要关联 citation_bundle_id 和 confidence_label。 若前端混用 visibleContent 与 content，则会被认定为 final_answer_presentation_risk。 任何演示环境样本不得混入正式知识库，迁移前必须执行 demo_cleanu"
+        },
+        {
+          "rank": 5,
+          "documentName": "product_NX-014-0.md",
+          "score": 91.86,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "思考模式与审计\n\nvisibleContent 的实时展示日志保留 32 天，超过后仅保留汇总审计记录。 content 字段中的正式答案需要关联 citation_bundle_id 和 confidence_label。 若前端混用 visibleContent 与 content，则会被认定为 final_answer_presentation_risk。 任何演示环境样本不得混入正式知识库，迁移前必须执行 demo_cleanu"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "thinking mode 中 visibleContent 和 content 分别用于什么，混用会造成什么风险？",
+        "normalizedQuery": "thinking mode 中 visibleContent 和 content 分别用于什么,混用会造成什么风险?",
+        "bm25Query": "thinking mode 中 visibleContent 和 content 分别用于什么,混用会造成什么风险?",
+        "vectorQuery": "thinking mode 中 visibleContent 和 content 分别用于什么,混用会造成什么风险?",
+        "rewriteApplied": false,
+        "retrievalMode": "balanced",
+        "bm25Weight": 1,
+        "vectorWeight": 1,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "balanced",
+        "routeSource": "policy",
+        "routeConfidence": "low",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "thinking",
+          "mode",
+          "visiblecontent",
+          "content",
+          "分别用于什么",
+          "混用",
+          "用会",
+          "会造",
+          "造成",
+          "成什",
+          "么风",
+          "风险",
+          "混用会",
+          "用会造",
+          "会造成",
+          "造成什",
+          "成什么",
+          "什么风",
+          "么风险",
+          "混用会造",
+          "用会造成",
+          "会造成什",
+          "造成什么",
+          "成什么风"
+        ],
+        "evidenceNumericTerms": [],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2278
+    },
+    {
+      "sample_index": 228,
+      "question_id": "full_229",
+      "difficulty": "full_doc_cross_ref_tuning",
+      "previous_answer_correctness": 0.7738601122209124,
+      "previous_context_recall": 1.0,
+      "question": "检索调优手册建议 second_layer_clause 丢失、exact_code 错召回、制度天数混淆时分别怎么处理？",
+      "reference": "second_layer_clause 经常丢失时，应优先增大 chunkSize 并提高 overlap；exact_code 召回经常错误时，应增加编号特征 rerank；制度天数与阈值频繁混淆时，应加入 structured_fact_extractor。",
+      "answer": "根据检索调优手册[1]中的建议：\n\n1.  **second_layer_clause 丢失**：应优先增大 chunkSize 并提高 overlap。\n2.  **exact_code 错召回**：应增加编号特征 rerank。\n3.  **制度天数混淆**：应提取 structured_fact_extractor。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "second_layer_clause",
+        "chunkSize",
+        "overlap",
+        "exact_code",
+        "rerank",
+        "structured_fact_extractor"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "retrieval_tuning_playbook.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "推荐动作\n\n若 second_layer_clause 经常丢失，应优先增大 chunkSize 并提高 overlap。 若 exact_code 召回经常错误，应增加编号特征 rerank。 若制度天数与阈值频繁混淆，应提取 structured_fact_extractor。 若同族近邻过强，应追加 family_level_hard_negative 训练样本。"
+        },
+        {
+          "rank": 2,
+          "documentName": "strategy_aurora.md",
+          "score": 71.55,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "默认策略\n\nAurora 采用关键词召回与向量召回混合模式。 Aurora 的默认知识问答 topK 是 5。 工作台链路为了控制上下文长度，通常把 topK 降为 4。 Aurora 在多文档聚合场景最容易丢失 second_layer_clause。"
+        },
+        {
+          "rank": 3,
+          "documentName": "ops_ORION-015-2.md",
+          "score": 70.42,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "复盘模板字段\n\n涉及召回不足的复盘模板必须记录 expectedRecallDocCount。 涉及召回不足的复盘模板必须记录 actualHitDocCount。 若发现答案方向正确但证据不足，还要补记 missingGoldDocumentNames。 若发现 second_layer_clause 丢失，还要补记 lostClauseStage 与 rollbackStrategy。"
+        },
+        {
+          "rank": 4,
+          "documentName": "ops_ORION-015-1.md",
+          "score": 69.32,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "复盘模板字段\n\n涉及召回不足的复盘模板必须记录 expectedRecallDocCount。 涉及召回不足的复盘模板必须记录 actualHitDocCount。 若发现答案方向正确但证据不足，还要补记 missingGoldDocumentNames。 若发现 second_layer_clause 丢失，还要补记 lostClauseStage 与 rollbackStrategy。"
+        },
+        {
+          "rank": 5,
+          "documentName": "ops_ORION-015-0.md",
+          "score": 68.25,
+          "matchedBy": [
+            "bm25"
+          ],
+          "preview": "复盘模板字段\n\n涉及召回不足的复盘模板必须记录 expectedRecallDocCount。 涉及召回不足的复盘模板必须记录 actualHitDocCount。 若发现答案方向正确但证据不足，还要补记 missingGoldDocumentNames。 若发现 second_layer_clause 丢失，还要补记 lostClauseStage 与 rollbackStrategy。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "检索调优手册建议 second_layer_clause 丢失、exact_code 错召回、制度天数混淆时分别怎么处理？",
+        "normalizedQuery": "检索调优手册建议 second_layer_clause 丢失 exact_code 错召回 制度天数混淆时分别怎么处理?",
+        "bm25Query": "检索调优手册建议 second_layer_clause 丢失 exact_code 错召回 制度天数混淆时分别怎么处理? second_layer_clause exact_code",
+        "vectorQuery": "检索调优手册建议 second_layer_clause 丢失 exact_code 错召回 制度天数混淆时分别怎么处理?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "second_layer_clause",
+          "exact_code"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "手册",
+          "检索",
+          "索调",
+          "调优",
+          "优手",
+          "册建",
+          "建议",
+          "检索调",
+          "索调优",
+          "调优手",
+          "优手册",
+          "手册建",
+          "册建议",
+          "检索调优",
+          "索调优手",
+          "调优手册",
+          "优手册建",
+          "手册建议",
+          "丢失",
+          "错召回",
+          "制度",
+          "度天",
+          "天数",
+          "数混"
+        ],
+        "evidenceNumericTerms": [],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 0.8,
+        "evidenceExpansionApplied": true,
+        "evidenceGateStatus": "degraded"
+      },
+      "totalTokens": 2325
+    },
+    {
+      "sample_index": 229,
+      "question_id": "full_230",
+      "difficulty": "full_doc_cross_ref_confidence",
+      "previous_answer_correctness": 0.7858568482929933,
+      "previous_context_recall": 1.0,
+      "question": "置信度标注标准中，引用不足、只命中相似文档未命中 gold_document、证据不完整时分别如何标注？",
+      "reference": "引用数量不足最低要求时不得使用 high_confidence；只命中相似文档但未命中 gold_document 时，最高只能标记 reviewed_but_not_grounded；引用与答案方向一致但证据不完整时，只能标记 normal_confidence。",
+      "answer": "根据《confidence_labelling_standard.md》及制度文档中的置信度规则：\n\n1. **引用不足**：若引用数量不足最低要求，则不得使用 high_confidence。\n2. **只命中相似文档未命中 gold_document**：最高只能标记 reviewed_but_not_grounded。\n3. **证据不完整**（引用与答案方向一致但证据不完整）：只能标记 normal_confidence。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "high_confidence",
+        "gold_document",
+        "reviewed_but_not_grounded",
+        "normal_confidence"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "policy_POL-014-1.md",
+          "score": 95.08,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "置信度规则\n\n若答案引用数不足最低要求，则不得标注 high_confidence。 本制度当前执行规则为 normal_confidence_only_under_finance_pack。 若金融行业客户命中引用不足，则只能标记 normal_confidence。 若引用正确但 gold_document 缺失，也不得向用户宣称 fully_grounded。"
+        },
+        {
+          "rank": 2,
+          "documentName": "policy_POL-015-1.md",
+          "score": 94.04,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "置信度规则\n\n若答案引用数不足最低要求，则不得标注 high_confidence。 本制度当前执行规则为 normal_confidence_only_under_finance_pack。 若金融行业客户命中引用不足，则只能标记 normal_confidence。 若引用正确但 gold_document 缺失，也不得向用户宣称 fully_grounded。"
+        },
+        {
+          "rank": 3,
+          "documentName": "policy_POL-015-2.md",
+          "score": 93.52,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "置信度规则\n\n若答案引用数不足最低要求，则不得标注 high_confidence。 本制度当前执行规则为 no_high_confidence_without_enough_citations。 若金融行业客户命中引用不足，则只能标记 normal_confidence。 若引用正确但 gold_document 缺失，也不得向用户宣称 fully_grounded。"
+        },
+        {
+          "rank": 4,
+          "documentName": "policy_POL-012-1.md",
+          "score": 88.89,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "置信度规则\n\n若答案引用数不足最低要求，则不得标注 high_confidence。 本制度当前执行规则为 normal_confidence_only_under_finance_pack。 若金融行业客户命中引用不足，则只能标记 normal_confidence。 若引用正确但 gold_document 缺失，也不得向用户宣称 fully_grounded。"
+        },
+        {
+          "rank": 5,
+          "documentName": "policy_POL-014-0.md",
+          "score": 87.51,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "置信度规则\n\n若答案引用数不足最低要求，则不得标注 high_confidence。 本制度当前执行规则为 no_high_confidence_without_enough_citations。 若金融行业客户命中引用不足，则只能标记 normal_confidence。 若引用正确但 gold_document 缺失，也不得向用户宣称 fully_grounded。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "置信度标注标准中，引用不足、只命中相似文档未命中 gold_document、证据不完整时分别如何标注？",
+        "normalizedQuery": "置信度标注标准中,引用不足 只命中相似文档未命中 gold_document 证据不完整时分别如何标注?",
+        "bm25Query": "置信度标注标准中,引用不足 只命中相似文档未命中 gold_document 证据不完整时分别如何标注? gold_document",
+        "vectorQuery": "置信度标注标准中,引用不足 只命中相似文档未命中 gold_document 证据不完整时分别如何标注?",
+        "rewriteApplied": false,
+        "retrievalMode": "exact_lookup",
+        "bm25Weight": 1.6,
+        "vectorWeight": 0.6,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "exact_lookup",
+        "routeSource": "rule",
+        "routeConfidence": "high",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [
+          "gold_document"
+        ],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "reference_required",
+        "evidenceTerms": [
+          "置信度",
+          "标注标准",
+          "引用不足",
+          "命中",
+          "相似文档",
+          "未命中",
+          "证据不完整",
+          "置信",
+          "信度",
+          "度标",
+          "标注",
+          "注标",
+          "标准",
+          "准中",
+          "信度标",
+          "度标注",
+          "标注标",
+          "注标准",
+          "标准中",
+          "置信度标",
+          "信度标注",
+          "度标注标",
+          "注标准中",
+          "只命"
+        ],
+        "evidenceNumericTerms": [],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": true,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2274
+    },
+    {
+      "sample_index": 230,
+      "question_id": "full_231",
+      "difficulty": "full_doc_cross_ref_workspace",
+      "previous_answer_correctness": 0.9488980599203463,
+      "previous_context_recall": 1.0,
+      "question": "工作台问答链路中没有 activeConversation 时会怎么处理，默认通过哪个接口完成知识问答，工作台 topK 通常是多少？",
+      "reference": "handleSend 进入 sendMessage 后会检查 activeConversation，不存在则创建会话；知识问答层默认走 workspace/chat/stream 完成事件；工作台链路通常把知识检索 topK 固定为 4。",
+      "answer": "1. **无 activeConversation 的处理**：handleSend 进入 sendMessage 后会检查 activeConversation，若不存在则创建新会话。  \n2. **默认知识问答接口**：默认为 `workspace/chat/stream` 完成知识问答。  \n3. **工作台 topK**：通常固定为 4。",
+      "term_coverage": 1.0,
+      "matched_reference_terms": [
+        "handleSend",
+        "sendMessage",
+        "activeConversation",
+        "workspace/chat/stream",
+        "topK"
+      ],
+      "missing_reference_terms": [],
+      "top_sources": [
+        {
+          "rank": 1,
+          "documentName": "workspace_chain_overview.md",
+          "score": 100,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "链路摘要\n\nhandleSend 进入 sendMessage 后，会检查 activeConversation，不存在则创建会话。 知识问答层默认走 workspace/chat/stream 完成事件，Aurora 默认 topK 为 5。 工作台链路为了减少上下文长度，通常把知识检索 topK 固定为 4。 流式阶段的 visibleContent 与最终 content 在展示层必须严格区分。"
+        },
+        {
+          "rank": 2,
+          "documentName": "strategy_aurora.md",
+          "score": 98.39,
+          "matchedBy": [
+            "bm25",
+            "vector"
+          ],
+          "preview": "默认策略\n\nAurora 采用关键词召回与向量召回混合模式。 Aurora 的默认知识问答 topK 是 5。 工作台链路为了控制上下文长度，通常把 topK 降为 4。 Aurora 在多文档聚合场景最容易丢失 second_layer_clause。"
+        },
+        {
+          "rank": 3,
+          "documentName": "product_NX-009-2.md",
+          "score": 46.11,
+          "matchedBy": [
+            "vector"
+          ],
+          "preview": "基本信息\n\n产品代号为 NX-009-2，产品线属于 enterprise_knowledge_assistant。 支持等级使用 flagship 档位，部署区域默认为 region_2。 默认问答链路优先走 mixed_recall_profile_2，再进入 answer_pipeline_4。 当前产品要求 visibleContent 仅展示推理草稿，正式答复必须回写到 content 字段。"
+        },
+        {
+          "rank": 4,
+          "documentName": "product_NX-013-2.md",
+          "score": 45.39,
+          "matchedBy": [
+            "vector"
+          ],
+          "preview": "基本信息\n\n产品代号为 NX-013-2，产品线属于 enterprise_knowledge_assistant。 支持等级使用 flagship 档位，部署区域默认为 region_2。 默认问答链路优先走 mixed_recall_profile_2，再进入 answer_pipeline_3。 当前产品要求 visibleContent 仅展示推理草稿，正式答复必须回写到 content 字段。"
+        },
+        {
+          "rank": 5,
+          "documentName": "product_NX-009-0.md",
+          "score": 44.69,
+          "matchedBy": [
+            "vector"
+          ],
+          "preview": "基本信息\n\n产品代号为 NX-009-0，产品线属于 enterprise_knowledge_assistant。 支持等级使用 standard 档位，部署区域默认为 region_2。 默认问答链路优先走 mixed_recall_profile_0，再进入 answer_pipeline_4。 当前产品要求 visibleContent 仅展示推理草稿，正式答复必须回写到 content 字段。"
+        }
+      ],
+      "retrievalDebug": {
+        "originalQuery": "工作台问答链路中没有 activeConversation 时会怎么处理，默认通过哪个接口完成知识问答，工作台 topK 通常是多少？",
+        "normalizedQuery": "工作台问答链路中没有 activeConversation 时会怎么处理,默认通过哪个接口完成知识问答,工作台 topK 通常是多少?",
+        "bm25Query": "工作台问答链路中没有 activeConversation 时会怎么处理,默认通过哪个接口完成知识问答,工作台 topK 通常是多少?",
+        "vectorQuery": "工作台问答链路中没有 activeConversation 时会怎么处理,默认通过哪个接口完成知识问答,工作台 topK 通常是多少?",
+        "rewriteApplied": false,
+        "retrievalMode": "procedure_heavy",
+        "bm25Weight": 1.1,
+        "vectorWeight": 1,
+        "bm25HitCount": 32,
+        "vectorHitCount": 32,
+        "routeType": "procedure_heavy",
+        "routeSource": "rule",
+        "routeConfidence": "medium",
+        "fallbackApplied": false,
+        "fallbackReason": null,
+        "exactEntityMiss": false,
+        "protectedTerms": [],
+        "excludedTerms": [],
+        "llmIntent": null,
+        "evidenceComplexity": "high_constraint",
+        "evidenceTerms": [
+          "activeconversation",
+          "topk",
+          "工作",
+          "作台",
+          "台问",
+          "问答",
+          "答链",
+          "链路",
+          "路中",
+          "中没",
+          "没有",
+          "工作台",
+          "作台问",
+          "台问答",
+          "问答链",
+          "答链路",
+          "链路中",
+          "路中没",
+          "中没有",
+          "工作台问",
+          "作台问答",
+          "台问答链",
+          "问答链路",
+          "答链路中"
+        ],
+        "evidenceNumericTerms": [],
+        "effectiveTopK": 8,
+        "evidenceCoverage": 1,
+        "evidenceExpansionApplied": false,
+        "evidenceGateStatus": "pass"
+      },
+      "totalTokens": 2054
+    }
+  ]
+}

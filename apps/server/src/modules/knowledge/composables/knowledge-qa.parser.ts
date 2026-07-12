@@ -12,7 +12,8 @@ export type KnowledgeQaSectionStreamState = {
 const THINKING_HEADER = '## Thinking'
 const ANSWER_HEADER = '## Answer'
 const SECTION_TAIL_SIZE = ANSWER_HEADER.length + 6
-const THINKING_HEADER_PATTERN = /^## Thinking[ \t]*\r?\n/
+const THINKING_HEADER_PATTERN = /^(?:[ \t]*\r?\n)*## Thinking[ \t]*(?:\r?\n|$)/
+const ANSWER_HEADER_PATTERN = /^(?:[ \t]*\r?\n)*## Answer[ \t]*(?:\r?\n|$)/
 
 export function createKnowledgeQaSectionStreamState(): KnowledgeQaSectionStreamState {
   return {
@@ -55,14 +56,21 @@ function consumeKnowledgeQaSectionStream(
   isFinal: boolean
 ): void {
   if (state.phase === 'seeking_thinking') {
-    const matched = state.buffer.match(THINKING_HEADER_PATTERN)
-    if (matched) {
-      state.buffer = state.buffer.slice(matched[0].length)
+    const thinkingHeader = state.buffer.match(THINKING_HEADER_PATTERN)
+    const answerHeader = state.buffer.match(ANSWER_HEADER_PATTERN)
+    if (thinkingHeader) {
+      state.buffer = state.buffer.slice(thinkingHeader[0].length)
       state.phase = 'thinking'
-    } else if (!isFinal && state.buffer.length <= THINKING_HEADER.length + 4) {
+    } else if (answerHeader) {
+      state.buffer = state.buffer.slice(answerHeader[0].length)
+      state.phase = 'answer'
+    } else if (!isFinal) {
       return
     } else {
-      state.phase = 'thinking'
+      pushKnowledgeQaStreamDeltaEvent(state, 'answer_delta', trimLeadingSectionBreaks(state.buffer))
+      state.buffer = ''
+      state.phase = 'answer'
+      return
     }
   }
 

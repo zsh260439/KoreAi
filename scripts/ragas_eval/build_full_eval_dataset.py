@@ -66,10 +66,10 @@ def build_question(document: dict[str, Any], index: int) -> dict[str, Any]:
   if doc_type == "postmortem":
     return {
       "question_id": question_id,
-      "question": f"事故复盘 {code} 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "question": f"事故复盘 {code} 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
       "reference_answer": (
-        f"事故复盘 {code} 将 chunkSize 从 {facts['old_chunk_size']} 调整到 {facts['new_chunk_size']}；"
-        f"overlap 是 {facts['overlap_size']}；"
+        f"事故复盘 {code} 的事故前 chunkSize 是 {facts['old_chunk_size']}，事故前 overlap 是 {facts['overlap_size']}；"
+        f"事故后 chunkSize 调整到 {facts['new_chunk_size']}；"
         f"验收 gold_recall_rate 目标是 {facts['acceptance_recall_target']}。"
       ),
       "gold_document_names": [document["name"]],

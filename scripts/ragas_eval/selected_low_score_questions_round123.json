@@ -1,0 +1,230 @@
+{
+  "selected_count": 15,
+  "questions": [
+    {
+      "source_report": "ragas_report.json",
+      "round": 1,
+      "sample_index": 16,
+      "question_id": null,
+      "question": "产品 NX-006-0 在 regulated_workspace 场景下要求记录哪两个召回计数字段，这个要求和哪类运维文档规则一致？",
+      "reference_answer": "产品 NX-006-0 在 regulated_workspace 场景下要求记录 expectedRecallDocCount 和 actualHitDocCount，这与运维手册中的召回不足复盘模板规则一致。",
+      "previous_scores": {
+        "faithfulness": 0.3,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.06604368581804228
+      },
+      "previous_avg": 0.0915
+    },
+    {
+      "source_report": "ragas_report.json",
+      "round": 1,
+      "sample_index": 26,
+      "question_id": null,
+      "question": "如果答案只命中相似文档而没有命中 gold_document，置信度标准允许标记为什么？",
+      "reference_answer": "如果答案只命中相似文档而没有命中 gold_document，最高只能标记为 reviewed_but_not_grounded。",
+      "previous_scores": {
+        "faithfulness": 0.2,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.3171339316371923
+      },
+      "previous_avg": 0.1293
+    },
+    {
+      "source_report": "ragas_report.json",
+      "round": 1,
+      "sample_index": 12,
+      "question_id": null,
+      "question": "产品 NX-014-0 的金融召回覆盖率阈值是多少，这个阈值和供应商 SUP-014-0 的续约阈值哪个更高？",
+      "reference_answer": "产品 NX-014-0 的金融召回覆盖率阈值是 0.85，供应商 SUP-014-0 的续约阈值是 0.87。两者相比，更高的是产品 NX-014-0 的阈值。",
+      "previous_scores": {
+        "faithfulness": 0.8,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.2713313147793761
+      },
+      "previous_avg": 0.2678
+    },
+    {
+      "source_report": "ragas_report.json",
+      "round": 1,
+      "sample_index": 9,
+      "question_id": null,
+      "question": "事故复盘 INC-011-2 的验收 gold_recall_rate 目标是多少，它又要求记录哪两个召回计数字段？",
+      "reference_answer": "事故复盘 INC-011-2 的验收 gold_recall_rate 目标是 0.90，同时要求记录 expectedRecallDocCount 和 actualHitDocCount。",
+      "previous_scores": {
+        "faithfulness": 0.75,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.35648223620147323
+      },
+      "previous_avg": 0.2766
+    },
+    {
+      "source_report": "ragas_report.json",
+      "round": 1,
+      "sample_index": 21,
+      "question_id": null,
+      "question": "产品 NX-015-2 的引用最低要求是多少，如果监管问答连续低于阈值要升级给谁？",
+      "reference_answer": "产品 NX-015-2 的引用最低要求是 4 条。如果监管问答连续低于阈值，则审批角色升级给 finance_reviewer。",
+      "previous_scores": {
+        "faithfulness": 0.2857142857142857,
+        "context_recall": 0.5,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.38251108713152066
+      },
+      "previous_avg": 0.2921
+    },
+    {
+      "source_report": "ragas_report_full.json",
+      "round": 2,
+      "sample_index": 226,
+      "question_id": null,
+      "question": "金融行业问答在引用数不足、召回文档数不足一半、exact_code 未命中时分别应该如何处理？",
+      "reference_answer": "金融行业问答引用数量不足产品文档规定的最低值时，只能标记 normal_confidence；召回文档数少于应召回文档总数一半时，必须记录 recall_gap；exact_code 未命中时，即使答案方向正确也不能视为 fully_grounded。",
+      "previous_scores": {
+        "faithfulness": 0.5,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.11194734035540471
+      },
+      "previous_avg": 0.153
+    },
+    {
+      "source_report": "ragas_report_full.json",
+      "round": 2,
+      "sample_index": 59,
+      "question_id": null,
+      "question": "事故复盘 INC-004-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-004-2 将 chunkSize 从 340 调整到 480；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "previous_scores": {
+        "faithfulness": 0.8,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.24671117486691102
+      },
+      "previous_avg": 0.2617
+    },
+    {
+      "source_report": "ragas_report_full.json",
+      "round": 2,
+      "sample_index": 74,
+      "question_id": null,
+      "question": "事故复盘 INC-005-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-005-2 将 chunkSize 从 350 调整到 490；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "previous_scores": {
+        "faithfulness": 0.4,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.499999999975,
+        "answer_correctness": 0.25732383146660265
+      },
+      "previous_avg": 0.2893
+    },
+    {
+      "source_report": "ragas_report_full.json",
+      "round": 2,
+      "sample_index": 220,
+      "question_id": null,
+      "question": "产品 NX-015-2 的金融最少引用数是多少，季度工单超过多少次需要升级审批，升级给谁？",
+      "reference_answer": "产品 NX-015-2 的金融最少引用数是 4 条；若季度工单超过 9 次，审批必须升级给 finance_reviewer。",
+      "previous_scores": {
+        "faithfulness": 0.8333333333333334,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.0,
+        "answer_correctness": 0.4619624776143684
+      },
+      "previous_avg": 0.3238
+    },
+    {
+      "source_report": "ragas_report_full.json",
+      "round": 2,
+      "sample_index": 179,
+      "question_id": null,
+      "question": "事故复盘 INC-012-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-012-2 将 chunkSize 从 420 调整到 560；overlap 是 100；验收 gold_recall_rate 目标是 0.91。",
+      "previous_scores": {
+        "faithfulness": 0.8,
+        "context_recall": 0.0,
+        "llm_context_precision_with_reference": 0.249999999975,
+        "answer_correctness": 0.26490666519896366
+      },
+      "previous_avg": 0.3287
+    },
+    {
+      "source_report": "ragas_report_full_round3.json",
+      "round": 3,
+      "sample_index": 222,
+      "question_id": null,
+      "question": "供应商 SUP-015-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-015-2 的召回覆盖率阈值是 0.90；合同金额位于 120 万至 205 万之间时，由 regional_owner 审批。",
+      "previous_scores": {
+        "faithfulness": 0.0,
+        "context_recall": 0.5,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "answer_correctness": 0.9347765815781364
+      },
+      "previous_avg": 0.442
+    },
+    {
+      "source_report": "ragas_report_full_round3.json",
+      "round": 3,
+      "sample_index": 37,
+      "question_id": null,
+      "question": "供应商 SUP-003-1 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-003-1 的召回覆盖率阈值是 0.83；合同金额位于 72 万至 145 万之间时，由 regional_owner 审批。",
+      "previous_scores": {
+        "faithfulness": 0.25,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "answer_correctness": 0.5052283211836665
+      },
+      "previous_avg": 0.5221
+    },
+    {
+      "source_report": "ragas_report_full_round3.json",
+      "round": 3,
+      "sample_index": 184,
+      "question_id": null,
+      "question": "事故复盘 INC-013-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-0 的事故前 chunkSize 是 390，事故前 overlap 是 60；事故后 chunkSize 调整到 530；验收 gold_recall_rate 目标是 0.89。",
+      "previous_scores": {
+        "faithfulness": 0.0,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.26666666665333333,
+        "answer_correctness": 0.8443290311411042
+      },
+      "previous_avg": 0.5277
+    },
+    {
+      "source_report": "ragas_report_full_round3.json",
+      "round": 3,
+      "sample_index": 147,
+      "question_id": null,
+      "question": "供应商 SUP-010-2 的召回覆盖率阈值是多少，合同金额在哪个区间由 regional_owner 审批？",
+      "reference_answer": "供应商 SUP-010-2 的召回覆盖率阈值是 0.87；合同金额位于 100 万至 180 万之间时，由 regional_owner 审批。",
+      "previous_scores": {
+        "faithfulness": 0.5,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "answer_correctness": 0.45499531871672994
+      },
+      "previous_avg": 0.5721
+    },
+    {
+      "source_report": "ragas_report_full_round3.json",
+      "round": 3,
+      "sample_index": 194,
+      "question_id": null,
+      "question": "事故复盘 INC-013-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-2 的事故前 chunkSize 是 430，事故前 overlap 是 100；事故后 chunkSize 调整到 570；验收 gold_recall_rate 目标是 0.91。",
+      "previous_scores": {
+        "faithfulness": 0.0,
+        "context_recall": 1.0,
+        "llm_context_precision_with_reference": 0.4499999999775,
+        "answer_correctness": 0.8439752674654573
+      },
+      "previous_avg": 0.5735
+    }
+  ]
+}

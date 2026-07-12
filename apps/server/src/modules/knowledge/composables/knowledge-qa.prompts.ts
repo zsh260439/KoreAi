@@ -1,4 +1,5 @@
 import type { KnowledgeSearchHit } from 'share-type'
+import type { KnowledgeEvidenceFact } from './knowledge-evidence-fact-extractor'
 
 //声明流式知识问答系统提示词构造器
 export function buildKnowledgeQaStreamingSystemPrompt(
@@ -12,6 +13,9 @@ export function buildKnowledgeQaStreamingSystemPrompt(
         'Do not supplement missing knowledge-base facts with general knowledge.',
         'If a required fact is not present in the excerpts, explicitly say that the evidence is missing.',
         'Every concrete number, identifier, role, threshold, rule, or conclusion must be grounded in the excerpts.',
+        'When a machine-readable identifier directly answers a requested item, copy it verbatim; a descriptive paraphrase does not replace the identifier.',
+        'Answer only the requested fields. Do not add neighboring values, source indexes, citations, or extra caveats unless the user asks for them.',
+        'For old/new or before/after configuration questions, each time scope and field name must match the user question exactly.',
         'Match the language of the user question.'
       ]
     : [
@@ -38,23 +42,38 @@ export function buildKnowledgeQaStreamingUserPrompt(
   evidence: {
     evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
     evidenceCoverage?: number
+    evidenceFacts?: KnowledgeEvidenceFact[]
   } = {}
 ): string {
-  const context = buildKnowledgeQaContext(hits) || '(no knowledge excerpts found)'
+  const evidenceFacts = buildKnowledgeEvidenceFactsContext(evidence.evidenceFacts ?? [])
+  const context = buildKnowledgeQaContext(hits, evidence.evidenceFacts ?? []) || '(no knowledge excerpts found)'
   const evidencePolicy = [
     `Evidence gate status: ${evidence.evidenceGateStatus ?? 'pass'}`,
     `Evidence coverage: ${typeof evidence.evidenceCoverage === 'number' ? evidence.evidenceCoverage : 'unknown'}`,
     'Answering rules:',
+    '- Treat verified evidence facts as the compact answer checklist extracted from the excerpts, not as optional commentary.',
+    '- Answer every requested item that has a matching verified fact before declaring any item missing.',
     '- Use only the knowledge excerpts above for factual claims.',
     '- If the excerpts do not contain a requested fact, say that the fact is not found in the retrieved evidence.',
     '- Do not infer exact numbers, dates, roles, thresholds, or identifiers from similar documents.',
+    '- When a verified fact contains an exact requested identifier, role, risk label, threshold, or number, copy that exact value instead of paraphrasing or replacing it with a broader description.',
+    '- Answer only the fields explicitly requested by the user; never add adjacent fields, even as parentheses, notes, caveats, or extra context.',
+    '- A final answer is invalid if it contains an unrequested concrete number, role, threshold, identifier, or configuration value.',
+    '- When the user asks for the purpose, meaning, or definition of a field, answer that direct purpose only. Do not add related storage requirements, linked fields, validation labels, or operational caveats unless asked.',
+    '- Do not cite excerpt indexes or source references unless the user explicitly asks for citations; never write patterns like "[1]", "from [1]", or "来自 [1]" in the final answer.',
+    '- For before/after or old/new questions, answer only the requested time scope and requested field names. Do not include unrequested neighboring fields.',
+    '- Preserve requested qualifiers that disambiguate the answer, such as the subject identifier, scenario, role, condition, status, or time scope. If the user asks for a range handled by a specific role, include that role with the range.',
+    '- Prefer one bullet per requested field for multi-fact questions so unrequested neighboring values are not merged into the answer.',
+    '- Treat tables, comparison sections, warnings, notes, and exception sections as valid evidence only when they explicitly bind the requested subject to the requested field or value.',
+    '- Do not reject evidence merely because it appears in a cautionary or comparative sentence. Reject it only when the text explicitly assigns the value to a different subject or says it is invalid.',
     '- For multi-fact questions, answer item by item and only include items that are supported by evidence.'
   ].join('\n')
 
   if (!includeReasoning) {
     return [
       `User question:\n${query}`,
-      `Knowledge excerpts:\n${context}`,
+      `Verified evidence facts:\n${evidenceFacts}`,
+      `Knowledge excerpts for verification:\n${context}`,
       evidencePolicy,
       'Return only the final answer.',
       'Do not include any extra wrapper markers.'
@@ -63,7 +82,8 @@ export function buildKnowledgeQaStreamingUserPrompt(
 
   return [
     `User question:\n${query}`,
-    `Knowledge excerpts:\n${context}`,
+    `Verified evidence facts:\n${evidenceFacts}`,
+    `Knowledge excerpts for verification:\n${context}`,
     evidencePolicy,
     'Return exactly two markdown sections in order.',
     'Section 1 heading must be exactly: ## Thinking',
@@ -84,8 +104,16 @@ export function buildKnowledgeQaStreamingUserPrompt(
 }
 
 //声明知识问答上下文文本构造器
-function buildKnowledgeQaContext(hits: KnowledgeSearchHit[]): string {
-  return hits
+function buildKnowledgeQaContext(
+  hits: KnowledgeSearchHit[],
+  facts: KnowledgeEvidenceFact[]
+): string {
+  const sourceIndexes = new Set(facts.slice(0, 4).map((fact) => fact.sourceIndex))
+  const relevantHits = sourceIndexes.size > 0
+    ? hits.filter((_, index) => sourceIndexes.has(index + 1))
+    : hits
+
+  return relevantHits
     .map(
       (item, index) => `[${index + 1}]
 documentId: ${item.documentId}
@@ -93,4 +121,17 @@ documentName: ${item.documentName}
 content: ${item.content}`
     )
     .join('\n\n')
+}
+
+function buildKnowledgeEvidenceFactsContext(facts: KnowledgeEvidenceFact[]): string {
+  if (facts.length === 0) {
+    return '(no verified evidence facts extracted)'
+  }
+
+  return facts
+    .map(
+      (fact) =>
+        `- [${fact.sourceIndex}] ${fact.documentName}: ${fact.text}\n  Query signals: ${fact.matchedTerms.join(', ') || '(none)'}\n  Exact values in fact: ${fact.exactValues.join(', ') || '(none)'}`
+    )
+    .join('\n')
 }

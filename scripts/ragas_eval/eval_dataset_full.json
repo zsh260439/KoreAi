@@ -3161,8 +3161,8 @@
     },
     {
       "question_id": "full_005",
-      "question": "事故复盘 INC-001-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-001-0 将 chunkSize 从 270 调整到 410；overlap 是 60；验收 gold_recall_rate 目标是 0.84。",
+      "question": "事故复盘 INC-001-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-001-0 的事故前 chunkSize 是 270，事故前 overlap 是 60；事故后 chunkSize 调整到 410；验收 gold_recall_rate 目标是 0.84。",
       "gold_document_names": [
         "postmortem_INC-001-0.md"
       ],
@@ -3206,8 +3206,8 @@
     },
     {
       "question_id": "full_010",
-      "question": "事故复盘 INC-001-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-001-1 将 chunkSize 从 290 调整到 430；overlap 是 80；验收 gold_recall_rate 目标是 0.85。",
+      "question": "事故复盘 INC-001-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-001-1 的事故前 chunkSize 是 290，事故前 overlap 是 80；事故后 chunkSize 调整到 430；验收 gold_recall_rate 目标是 0.85。",
       "gold_document_names": [
         "postmortem_INC-001-1.md"
       ],
@@ -3251,8 +3251,8 @@
     },
     {
       "question_id": "full_015",
-      "question": "事故复盘 INC-001-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-001-2 将 chunkSize 从 310 调整到 450；overlap 是 100；验收 gold_recall_rate 目标是 0.86。",
+      "question": "事故复盘 INC-001-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-001-2 的事故前 chunkSize 是 310，事故前 overlap 是 100；事故后 chunkSize 调整到 450；验收 gold_recall_rate 目标是 0.86。",
       "gold_document_names": [
         "postmortem_INC-001-2.md"
       ],
@@ -3296,8 +3296,8 @@
     },
     {
       "question_id": "full_020",
-      "question": "事故复盘 INC-002-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-002-0 将 chunkSize 从 280 调整到 420；overlap 是 60；验收 gold_recall_rate 目标是 0.85。",
+      "question": "事故复盘 INC-002-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-002-0 的事故前 chunkSize 是 280，事故前 overlap 是 60；事故后 chunkSize 调整到 420；验收 gold_recall_rate 目标是 0.85。",
       "gold_document_names": [
         "postmortem_INC-002-0.md"
       ],
@@ -3341,8 +3341,8 @@
     },
     {
       "question_id": "full_025",
-      "question": "事故复盘 INC-002-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-002-1 将 chunkSize 从 300 调整到 440；overlap 是 80；验收 gold_recall_rate 目标是 0.86。",
+      "question": "事故复盘 INC-002-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-002-1 的事故前 chunkSize 是 300，事故前 overlap 是 80；事故后 chunkSize 调整到 440；验收 gold_recall_rate 目标是 0.86。",
       "gold_document_names": [
         "postmortem_INC-002-1.md"
       ],
@@ -3386,8 +3386,8 @@
     },
     {
       "question_id": "full_030",
-      "question": "事故复盘 INC-002-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-002-2 将 chunkSize 从 320 调整到 460；overlap 是 100；验收 gold_recall_rate 目标是 0.87。",
+      "question": "事故复盘 INC-002-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-002-2 的事故前 chunkSize 是 320，事故前 overlap 是 100；事故后 chunkSize 调整到 460；验收 gold_recall_rate 目标是 0.87。",
       "gold_document_names": [
         "postmortem_INC-002-2.md"
       ],
@@ -3431,8 +3431,8 @@
     },
     {
       "question_id": "full_035",
-      "question": "事故复盘 INC-003-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-003-0 将 chunkSize 从 290 调整到 430；overlap 是 60；验收 gold_recall_rate 目标是 0.85。",
+      "question": "事故复盘 INC-003-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-003-0 的事故前 chunkSize 是 290，事故前 overlap 是 60；事故后 chunkSize 调整到 430；验收 gold_recall_rate 目标是 0.85。",
       "gold_document_names": [
         "postmortem_INC-003-0.md"
       ],
@@ -3476,8 +3476,8 @@
     },
     {
       "question_id": "full_040",
-      "question": "事故复盘 INC-003-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-003-1 将 chunkSize 从 310 调整到 450；overlap 是 80；验收 gold_recall_rate 目标是 0.86。",
+      "question": "事故复盘 INC-003-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-003-1 的事故前 chunkSize 是 310，事故前 overlap 是 80；事故后 chunkSize 调整到 450；验收 gold_recall_rate 目标是 0.86。",
       "gold_document_names": [
         "postmortem_INC-003-1.md"
       ],
@@ -3521,8 +3521,8 @@
     },
     {
       "question_id": "full_045",
-      "question": "事故复盘 INC-003-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-003-2 将 chunkSize 从 330 调整到 470；overlap 是 100；验收 gold_recall_rate 目标是 0.87。",
+      "question": "事故复盘 INC-003-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-003-2 的事故前 chunkSize 是 330，事故前 overlap 是 100；事故后 chunkSize 调整到 470；验收 gold_recall_rate 目标是 0.87。",
       "gold_document_names": [
         "postmortem_INC-003-2.md"
       ],
@@ -3566,8 +3566,8 @@
     },
     {
       "question_id": "full_050",
-      "question": "事故复盘 INC-004-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-004-0 将 chunkSize 从 300 调整到 440；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "question": "事故复盘 INC-004-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-004-0 的事故前 chunkSize 是 300，事故前 overlap 是 60；事故后 chunkSize 调整到 440；验收 gold_recall_rate 目标是 0.86。",
       "gold_document_names": [
         "postmortem_INC-004-0.md"
       ],
@@ -3611,8 +3611,8 @@
     },
     {
       "question_id": "full_055",
-      "question": "事故复盘 INC-004-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-004-1 将 chunkSize 从 320 调整到 460；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "question": "事故复盘 INC-004-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-004-1 的事故前 chunkSize 是 320，事故前 overlap 是 80；事故后 chunkSize 调整到 460；验收 gold_recall_rate 目标是 0.87。",
       "gold_document_names": [
         "postmortem_INC-004-1.md"
       ],
@@ -3656,8 +3656,8 @@
     },
     {
       "question_id": "full_060",
-      "question": "事故复盘 INC-004-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-004-2 将 chunkSize 从 340 调整到 480；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-004-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-004-2 的事故前 chunkSize 是 340，事故前 overlap 是 100；事故后 chunkSize 调整到 480；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-004-2.md"
       ],
@@ -3701,8 +3701,8 @@
     },
     {
       "question_id": "full_065",
-      "question": "事故复盘 INC-005-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-005-0 将 chunkSize 从 310 调整到 450；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "question": "事故复盘 INC-005-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-005-0 的事故前 chunkSize 是 310，事故前 overlap 是 60；事故后 chunkSize 调整到 450；验收 gold_recall_rate 目标是 0.86。",
       "gold_document_names": [
         "postmortem_INC-005-0.md"
       ],
@@ -3746,8 +3746,8 @@
     },
     {
       "question_id": "full_070",
-      "question": "事故复盘 INC-005-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-005-1 将 chunkSize 从 330 调整到 470；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "question": "事故复盘 INC-005-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-005-1 的事故前 chunkSize 是 330，事故前 overlap 是 80；事故后 chunkSize 调整到 470；验收 gold_recall_rate 目标是 0.87。",
       "gold_document_names": [
         "postmortem_INC-005-1.md"
       ],
@@ -3791,8 +3791,8 @@
     },
     {
       "question_id": "full_075",
-      "question": "事故复盘 INC-005-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-005-2 将 chunkSize 从 350 调整到 490；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-005-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-005-2 的事故前 chunkSize 是 350，事故前 overlap 是 100；事故后 chunkSize 调整到 490；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-005-2.md"
       ],
@@ -3836,8 +3836,8 @@
     },
     {
       "question_id": "full_080",
-      "question": "事故复盘 INC-006-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-006-0 将 chunkSize 从 320 调整到 460；overlap 是 60；验收 gold_recall_rate 目标是 0.86。",
+      "question": "事故复盘 INC-006-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-006-0 的事故前 chunkSize 是 320，事故前 overlap 是 60；事故后 chunkSize 调整到 460；验收 gold_recall_rate 目标是 0.86。",
       "gold_document_names": [
         "postmortem_INC-006-0.md"
       ],
@@ -3881,8 +3881,8 @@
     },
     {
       "question_id": "full_085",
-      "question": "事故复盘 INC-006-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-006-1 将 chunkSize 从 340 调整到 480；overlap 是 80；验收 gold_recall_rate 目标是 0.87。",
+      "question": "事故复盘 INC-006-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-006-1 的事故前 chunkSize 是 340，事故前 overlap 是 80；事故后 chunkSize 调整到 480；验收 gold_recall_rate 目标是 0.87。",
       "gold_document_names": [
         "postmortem_INC-006-1.md"
       ],
@@ -3926,8 +3926,8 @@
     },
     {
       "question_id": "full_090",
-      "question": "事故复盘 INC-006-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-006-2 将 chunkSize 从 360 调整到 500；overlap 是 100；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-006-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-006-2 的事故前 chunkSize 是 360，事故前 overlap 是 100；事故后 chunkSize 调整到 500；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-006-2.md"
       ],
@@ -3971,8 +3971,8 @@
     },
     {
       "question_id": "full_095",
-      "question": "事故复盘 INC-007-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-007-0 将 chunkSize 从 330 调整到 470；overlap 是 60；验收 gold_recall_rate 目标是 0.87。",
+      "question": "事故复盘 INC-007-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-007-0 的事故前 chunkSize 是 330，事故前 overlap 是 60；事故后 chunkSize 调整到 470；验收 gold_recall_rate 目标是 0.87。",
       "gold_document_names": [
         "postmortem_INC-007-0.md"
       ],
@@ -4016,8 +4016,8 @@
     },
     {
       "question_id": "full_100",
-      "question": "事故复盘 INC-007-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-007-1 将 chunkSize 从 350 调整到 490；overlap 是 80；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-007-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-007-1 的事故前 chunkSize 是 350，事故前 overlap 是 80；事故后 chunkSize 调整到 490；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-007-1.md"
       ],
@@ -4061,8 +4061,8 @@
     },
     {
       "question_id": "full_105",
-      "question": "事故复盘 INC-007-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-007-2 将 chunkSize 从 370 调整到 510；overlap 是 100；验收 gold_recall_rate 目标是 0.89。",
+      "question": "事故复盘 INC-007-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-007-2 的事故前 chunkSize 是 370，事故前 overlap 是 100；事故后 chunkSize 调整到 510；验收 gold_recall_rate 目标是 0.89。",
       "gold_document_names": [
         "postmortem_INC-007-2.md"
       ],
@@ -4106,8 +4106,8 @@
     },
     {
       "question_id": "full_110",
-      "question": "事故复盘 INC-008-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-008-0 将 chunkSize 从 340 调整到 480；overlap 是 60；验收 gold_recall_rate 目标是 0.87。",
+      "question": "事故复盘 INC-008-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-008-0 的事故前 chunkSize 是 340，事故前 overlap 是 60；事故后 chunkSize 调整到 480；验收 gold_recall_rate 目标是 0.87。",
       "gold_document_names": [
         "postmortem_INC-008-0.md"
       ],
@@ -4151,8 +4151,8 @@
     },
     {
       "question_id": "full_115",
-      "question": "事故复盘 INC-008-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-008-1 将 chunkSize 从 360 调整到 500；overlap 是 80；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-008-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-008-1 的事故前 chunkSize 是 360，事故前 overlap 是 80；事故后 chunkSize 调整到 500；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-008-1.md"
       ],
@@ -4196,8 +4196,8 @@
     },
     {
       "question_id": "full_120",
-      "question": "事故复盘 INC-008-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-008-2 将 chunkSize 从 380 调整到 520；overlap 是 100；验收 gold_recall_rate 目标是 0.89。",
+      "question": "事故复盘 INC-008-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-008-2 的事故前 chunkSize 是 380，事故前 overlap 是 100；事故后 chunkSize 调整到 520；验收 gold_recall_rate 目标是 0.89。",
       "gold_document_names": [
         "postmortem_INC-008-2.md"
       ],
@@ -4241,8 +4241,8 @@
     },
     {
       "question_id": "full_125",
-      "question": "事故复盘 INC-009-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-009-0 将 chunkSize 从 350 调整到 490；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-009-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-009-0 的事故前 chunkSize 是 350，事故前 overlap 是 60；事故后 chunkSize 调整到 490；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-009-0.md"
       ],
@@ -4286,8 +4286,8 @@
     },
     {
       "question_id": "full_130",
-      "question": "事故复盘 INC-009-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-009-1 将 chunkSize 从 370 调整到 510；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "question": "事故复盘 INC-009-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-009-1 的事故前 chunkSize 是 370，事故前 overlap 是 80；事故后 chunkSize 调整到 510；验收 gold_recall_rate 目标是 0.89。",
       "gold_document_names": [
         "postmortem_INC-009-1.md"
       ],
@@ -4331,8 +4331,8 @@
     },
     {
       "question_id": "full_135",
-      "question": "事故复盘 INC-009-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-009-2 将 chunkSize 从 390 调整到 530；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "question": "事故复盘 INC-009-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-009-2 的事故前 chunkSize 是 390，事故前 overlap 是 100；事故后 chunkSize 调整到 530；验收 gold_recall_rate 目标是 0.90。",
       "gold_document_names": [
         "postmortem_INC-009-2.md"
       ],
@@ -4376,8 +4376,8 @@
     },
     {
       "question_id": "full_140",
-      "question": "事故复盘 INC-010-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-010-0 将 chunkSize 从 360 调整到 500；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-010-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-010-0 的事故前 chunkSize 是 360，事故前 overlap 是 60；事故后 chunkSize 调整到 500；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-010-0.md"
       ],
@@ -4421,8 +4421,8 @@
     },
     {
       "question_id": "full_145",
-      "question": "事故复盘 INC-010-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-010-1 将 chunkSize 从 380 调整到 520；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "question": "事故复盘 INC-010-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-010-1 的事故前 chunkSize 是 380，事故前 overlap 是 80；事故后 chunkSize 调整到 520；验收 gold_recall_rate 目标是 0.89。",
       "gold_document_names": [
         "postmortem_INC-010-1.md"
       ],
@@ -4466,8 +4466,8 @@
     },
     {
       "question_id": "full_150",
-      "question": "事故复盘 INC-010-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-010-2 将 chunkSize 从 400 调整到 540；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "question": "事故复盘 INC-010-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-010-2 的事故前 chunkSize 是 400，事故前 overlap 是 100；事故后 chunkSize 调整到 540；验收 gold_recall_rate 目标是 0.90。",
       "gold_document_names": [
         "postmortem_INC-010-2.md"
       ],
@@ -4511,8 +4511,8 @@
     },
     {
       "question_id": "full_155",
-      "question": "事故复盘 INC-011-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-011-0 将 chunkSize 从 370 调整到 510；overlap 是 60；验收 gold_recall_rate 目标是 0.88。",
+      "question": "事故复盘 INC-011-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-011-0 的事故前 chunkSize 是 370，事故前 overlap 是 60；事故后 chunkSize 调整到 510；验收 gold_recall_rate 目标是 0.88。",
       "gold_document_names": [
         "postmortem_INC-011-0.md"
       ],
@@ -4556,8 +4556,8 @@
     },
     {
       "question_id": "full_160",
-      "question": "事故复盘 INC-011-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-011-1 将 chunkSize 从 390 调整到 530；overlap 是 80；验收 gold_recall_rate 目标是 0.89。",
+      "question": "事故复盘 INC-011-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-011-1 的事故前 chunkSize 是 390，事故前 overlap 是 80；事故后 chunkSize 调整到 530；验收 gold_recall_rate 目标是 0.89。",
       "gold_document_names": [
         "postmortem_INC-011-1.md"
       ],
@@ -4601,8 +4601,8 @@
     },
     {
       "question_id": "full_165",
-      "question": "事故复盘 INC-011-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-011-2 将 chunkSize 从 410 调整到 550；overlap 是 100；验收 gold_recall_rate 目标是 0.90。",
+      "question": "事故复盘 INC-011-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-011-2 的事故前 chunkSize 是 410，事故前 overlap 是 100；事故后 chunkSize 调整到 550；验收 gold_recall_rate 目标是 0.90。",
       "gold_document_names": [
         "postmortem_INC-011-2.md"
       ],
@@ -4646,8 +4646,8 @@
     },
     {
       "question_id": "full_170",
-      "question": "事故复盘 INC-012-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-012-0 将 chunkSize 从 380 调整到 520；overlap 是 60；验收 gold_recall_rate 目标是 0.89。",
+      "question": "事故复盘 INC-012-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-012-0 的事故前 chunkSize 是 380，事故前 overlap 是 60；事故后 chunkSize 调整到 520；验收 gold_recall_rate 目标是 0.89。",
       "gold_document_names": [
         "postmortem_INC-012-0.md"
       ],
@@ -4691,8 +4691,8 @@
     },
     {
       "question_id": "full_175",
-      "question": "事故复盘 INC-012-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-012-1 将 chunkSize 从 400 调整到 540；overlap 是 80；验收 gold_recall_rate 目标是 0.90。",
+      "question": "事故复盘 INC-012-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-012-1 的事故前 chunkSize 是 400，事故前 overlap 是 80；事故后 chunkSize 调整到 540；验收 gold_recall_rate 目标是 0.90。",
       "gold_document_names": [
         "postmortem_INC-012-1.md"
       ],
@@ -4736,8 +4736,8 @@
     },
     {
       "question_id": "full_180",
-      "question": "事故复盘 INC-012-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-012-2 将 chunkSize 从 420 调整到 560；overlap 是 100；验收 gold_recall_rate 目标是 0.91。",
+      "question": "事故复盘 INC-012-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-012-2 的事故前 chunkSize 是 420，事故前 overlap 是 100；事故后 chunkSize 调整到 560；验收 gold_recall_rate 目标是 0.91。",
       "gold_document_names": [
         "postmortem_INC-012-2.md"
       ],
@@ -4781,8 +4781,8 @@
     },
     {
       "question_id": "full_185",
-      "question": "事故复盘 INC-013-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-013-0 将 chunkSize 从 390 调整到 530；overlap 是 60；验收 gold_recall_rate 目标是 0.89。",
+      "question": "事故复盘 INC-013-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-0 的事故前 chunkSize 是 390，事故前 overlap 是 60；事故后 chunkSize 调整到 530；验收 gold_recall_rate 目标是 0.89。",
       "gold_document_names": [
         "postmortem_INC-013-0.md"
       ],
@@ -4826,8 +4826,8 @@
     },
     {
       "question_id": "full_190",
-      "question": "事故复盘 INC-013-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-013-1 将 chunkSize 从 410 调整到 550；overlap 是 80；验收 gold_recall_rate 目标是 0.90。",
+      "question": "事故复盘 INC-013-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-1 的事故前 chunkSize 是 410，事故前 overlap 是 80；事故后 chunkSize 调整到 550；验收 gold_recall_rate 目标是 0.90。",
       "gold_document_names": [
         "postmortem_INC-013-1.md"
       ],
@@ -4871,8 +4871,8 @@
     },
     {
       "question_id": "full_195",
-      "question": "事故复盘 INC-013-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-013-2 将 chunkSize 从 430 调整到 570；overlap 是 100；验收 gold_recall_rate 目标是 0.91。",
+      "question": "事故复盘 INC-013-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-013-2 的事故前 chunkSize 是 430，事故前 overlap 是 100；事故后 chunkSize 调整到 570；验收 gold_recall_rate 目标是 0.91。",
       "gold_document_names": [
         "postmortem_INC-013-2.md"
       ],
@@ -4916,8 +4916,8 @@
     },
     {
       "question_id": "full_200",
-      "question": "事故复盘 INC-014-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-014-0 将 chunkSize 从 400 调整到 540；overlap 是 60；验收 gold_recall_rate 目标是 0.90。",
+      "question": "事故复盘 INC-014-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-014-0 的事故前 chunkSize 是 400，事故前 overlap 是 60；事故后 chunkSize 调整到 540；验收 gold_recall_rate 目标是 0.90。",
       "gold_document_names": [
         "postmortem_INC-014-0.md"
       ],
@@ -4961,8 +4961,8 @@
     },
     {
       "question_id": "full_205",
-      "question": "事故复盘 INC-014-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-014-1 将 chunkSize 从 420 调整到 560；overlap 是 80；验收 gold_recall_rate 目标是 0.91。",
+      "question": "事故复盘 INC-014-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-014-1 的事故前 chunkSize 是 420，事故前 overlap 是 80；事故后 chunkSize 调整到 560；验收 gold_recall_rate 目标是 0.91。",
       "gold_document_names": [
         "postmortem_INC-014-1.md"
       ],
@@ -5006,8 +5006,8 @@
     },
     {
       "question_id": "full_210",
-      "question": "事故复盘 INC-014-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-014-2 将 chunkSize 从 440 调整到 580；overlap 是 100；验收 gold_recall_rate 目标是 0.92。",
+      "question": "事故复盘 INC-014-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-014-2 的事故前 chunkSize 是 440，事故前 overlap 是 100；事故后 chunkSize 调整到 580；验收 gold_recall_rate 目标是 0.92。",
       "gold_document_names": [
         "postmortem_INC-014-2.md"
       ],
@@ -5051,8 +5051,8 @@
     },
     {
       "question_id": "full_215",
-      "question": "事故复盘 INC-015-0 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-015-0 将 chunkSize 从 410 调整到 550；overlap 是 60；验收 gold_recall_rate 目标是 0.90。",
+      "question": "事故复盘 INC-015-0 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-015-0 的事故前 chunkSize 是 410，事故前 overlap 是 60；事故后 chunkSize 调整到 550；验收 gold_recall_rate 目标是 0.90。",
       "gold_document_names": [
         "postmortem_INC-015-0.md"
       ],
@@ -5096,8 +5096,8 @@
     },
     {
       "question_id": "full_220",
-      "question": "事故复盘 INC-015-1 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-015-1 将 chunkSize 从 430 调整到 570；overlap 是 80；验收 gold_recall_rate 目标是 0.91。",
+      "question": "事故复盘 INC-015-1 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-015-1 的事故前 chunkSize 是 430，事故前 overlap 是 80；事故后 chunkSize 调整到 570；验收 gold_recall_rate 目标是 0.91。",
       "gold_document_names": [
         "postmortem_INC-015-1.md"
       ],
@@ -5141,8 +5141,8 @@
     },
     {
       "question_id": "full_225",
-      "question": "事故复盘 INC-015-2 将 chunkSize 从多少调到多少，overlap 是多少，验收 gold_recall_rate 目标是多少？",
-      "reference_answer": "事故复盘 INC-015-2 将 chunkSize 从 450 调整到 590；overlap 是 100；验收 gold_recall_rate 目标是 0.92。",
+      "question": "事故复盘 INC-015-2 中，事故前 chunkSize 和 overlap 分别是多少，事故后 chunkSize 调整到多少，验收 gold_recall_rate 目标是多少？",
+      "reference_answer": "事故复盘 INC-015-2 的事故前 chunkSize 是 450，事故前 overlap 是 100；事故后 chunkSize 调整到 590；验收 gold_recall_rate 目标是 0.92。",
       "gold_document_names": [
         "postmortem_INC-015-2.md"
       ],
