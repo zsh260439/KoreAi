@@ -144,6 +144,7 @@ EMBEDDING_MODEL=your_embedding_model
 LLM_BASE_URL=https://your-provider/v1
 LLM_API_KEY=your_llm_api_key
 LLM_MODEL=your_chat_model
+RAGAS_LLM_MODEL=your_judge_model
 ```
 
 注意：

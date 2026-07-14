@@ -21,6 +21,10 @@ import type {
 } from './knowledge-query-plan.types'
 import type { KnowledgeRetrievalCandidate } from './knowledge-retrieval.types'
 import { KnowledgeVectorStoreService } from './knowledge-vector-store.service'
+import {
+  fetchCeRerankScores,
+  shouldApplyCeRerank
+} from './knowledge-rerank.service'
 
 @Injectable()
 export class KnowledgeRetrievalService {
@@ -84,6 +88,9 @@ export class KnowledgeRetrievalService {
       vectorWeight: finalResult.hints.vectorWeight,
       bm25HitCount: finalResult.bm25Candidates.length,
       vectorHitCount: finalResult.vectorCandidates.length,
+      candidateLimit: finalResult.candidateLimit,
+      ceCandidateCount: finalResult.ceCandidateCount,
+      candidateDocumentNames: finalResult.candidateDocumentNames,
       routeType: finalResult.hints.mode,
       routeSource: finalResult.hints.source,
       routeConfidence: finalResult.hints.confidence,
@@ -114,7 +121,8 @@ export class KnowledgeRetrievalService {
     hints: KnowledgeQueryRetrievalHints
   ): Promise<RetrievalExecutionResult> {
     const effectiveTopK = plan.evidencePlan.targetTopK
-    const candidateLimit = resolveCandidateLimit(effectiveTopK, hints)
+    const baseCandidateLimit = resolveCandidateLimit(effectiveTopK, hints)
+    const candidateLimit = resolveCeCandidateLimit(baseCandidateLimit, effectiveTopK, hints, plan)
 
     // 基础召回和 reference 轻量通道并行执行，避免规则/标准类文档被近邻业务文档盖掉。
     const [bm25Candidates, vectorCandidates, referenceCandidates] = await Promise.all([
@@ -126,13 +134,17 @@ export class KnowledgeRetrievalService {
     const mergedHits = mergeKnowledgeRetrievalCandidates(
       [...bm25Candidates, ...referenceCandidates],
       vectorCandidates,
-      Math.min(candidateLimit, plan.evidencePlan.maxTopK * 6),
+      resolveMergedCandidateLimit(candidateLimit, plan),
       {
         bm25Weight: hints.bm25Weight,
         vectorWeight: hints.vectorWeight
       }
     )
-    const rerankedHits = applyDeterministicRerank(mergedHits, plan)
+
+    const ceScoreMap = shouldApplyCeRerank(plan)
+      ? await fetchCeRerankScores(mergedHits, plan.originalQuery)
+      : null
+    const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
     const finalHits = await this.assembleEvidenceContext(rerankedHits, plan)
     const completedHits = includeReferenceEvidence(finalHits, referenceCandidates, plan)
     const evidenceCoverage = computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
@@ -143,6 +155,9 @@ export class KnowledgeRetrievalService {
       vectorCandidates,
       hits: completedHits,
       effectiveTopK,
+      candidateLimit,
+      ceCandidateCount: ceScoreMap?.size ?? 0,
+      candidateDocumentNames: rerankedHits.map((hit) => hit.documentName),
       evidenceCoverage,
       evidenceExpansionApplied:
         completedHits.some((hit) => hit.scoreDetail?.matchedBy.length === 0),
@@ -505,13 +520,14 @@ function selectBetterResult(
 // 这层只做“确定性的精确匹配重排”，不改分数定义，只改顺序。
 function applyDeterministicRerank(
   hits: KnowledgeSearchHit[],
-  plan: KnowledgeQueryPlan
+  plan: KnowledgeQueryPlan,
+  ceScoreMap: Map<string, number> | null = null
 ): KnowledgeSearchHit[] {
   if (hits.length <= 1) {
     return hits
   }
 
-  return hits.map((hit) => attachEvidenceScore(hit, plan)).sort((left, right) => {
+  return hits.map((hit) => attachRerankScores(hit, plan, ceScoreMap)).sort((left, right) => {
     const leftSignal = computeHitSignal(left, plan.protectedTerms, plan.excludedTerms)
     const rightSignal = computeHitSignal(right, plan.protectedTerms, plan.excludedTerms)
     const leftEvidenceScore = left.scoreDetail?.evidenceScore ?? 0
@@ -560,6 +576,12 @@ function applyDeterministicRerank(
       return rightEvidenceScore - leftEvidenceScore
     }
 
+    const rightCeScore = right.scoreDetail?.ceScore
+    const leftCeScore = left.scoreDetail?.ceScore
+    if (rightCeScore !== undefined && leftCeScore !== undefined && rightCeScore !== leftCeScore) {
+      return rightCeScore - leftCeScore
+    }
+
     const rightFusedScore = right.scoreDetail?.fusedScore ?? 0
     const leftFusedScore = left.scoreDetail?.fusedScore ?? 0
     if (rightFusedScore !== leftFusedScore) {
@@ -574,6 +596,26 @@ function applyDeterministicRerank(
 
     return right.score - left.score
   })
+}
+
+function attachRerankScores(
+  hit: KnowledgeSearchHit,
+  plan: KnowledgeQueryPlan,
+  ceScoreMap: Map<string, number> | null
+): KnowledgeSearchHit {
+  const scoredHit = attachEvidenceScore(hit, plan)
+  const ceScore = ceScoreMap?.get(hit.chunkId)
+  if (ceScore === undefined || !scoredHit.scoreDetail) {
+    return scoredHit
+  }
+
+  return {
+    ...scoredHit,
+    scoreDetail: {
+      ...scoredHit.scoreDetail,
+      ceScore
+    }
+  }
 }
 
 function computeHitSignal(
@@ -895,6 +937,28 @@ function resolveCandidateLimit(topK: number, hints: KnowledgeQueryRetrievalHints
   )
 }
 
+function resolveCeCandidateLimit(
+  baseCandidateLimit: number,
+  topK: number,
+  hints: KnowledgeQueryRetrievalHints,
+  plan: KnowledgeQueryPlan
+): number {
+  if (!shouldApplyCeRerank(plan)) {
+    return baseCandidateLimit
+  }
+
+  const expandedLimit = Math.max(baseCandidateLimit, topK * 10, 40)
+  return Math.min(expandedLimit, hints.maxCandidateLimit, 80)
+}
+
+function resolveMergedCandidateLimit(candidateLimit: number, plan: KnowledgeQueryPlan): number {
+  if (shouldApplyCeRerank(plan)) {
+    return Math.min(candidateLimit, 80)
+  }
+
+  return Math.min(candidateLimit, plan.evidencePlan.maxTopK * 6)
+}
+
 function normalizeForExactMatch(value: string): string {
   return value
     .normalize('NFKC')
@@ -1137,6 +1201,9 @@ type RetrievalExecutionResult = {
   vectorCandidates: KnowledgeRetrievalCandidate[]
   hits: KnowledgeSearchHit[]
   effectiveTopK: number
+  candidateLimit: number
+  ceCandidateCount: number
+  candidateDocumentNames: string[]
   evidenceCoverage: number
   evidenceExpansionApplied: boolean
   evidenceGateStatus: 'pass' | 'degraded' | 'blocked'

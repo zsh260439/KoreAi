@@ -46,12 +46,41 @@ export function extractKnowledgeEvidenceFacts(input: {
     return []
   }
 
-  const candidates = input.hits.flatMap((hit, hitIndex) =>
-    extractHitFactCandidates(hit, hitIndex, signalTerms)
-  )
+  const targetIdentifiers = extractMatches(input.query, STRUCTURED_IDENTIFIER_PATTERN)
+    .filter((identifier) => /\d/.test(identifier))
+  const candidates = input.hits.flatMap((hit, hitIndex) => {
+    if (!isHitCompatibleWithTargetIdentifiers(hit, targetIdentifiers)) {
+      return []
+    }
+
+    return extractHitFactCandidates(hit, hitIndex, signalTerms)
+  })
 
   return selectEvidenceFacts(dedupeFacts(candidates), MAX_FACTS)
     .map(({ score: _score, ...fact }) => fact)
+}
+
+function isHitCompatibleWithTargetIdentifiers(
+  hit: KnowledgeSearchHit,
+  targetIdentifiers: string[]
+): boolean {
+  if (targetIdentifiers.length === 0) {
+    return true
+  }
+
+  const metadata = compactText([
+    hit.documentName,
+    hit.primaryTitle,
+    hit.sectionPath
+  ].join(' '))
+  if (targetIdentifiers.some((identifier) =>
+    normalizeTerm(metadata).includes(normalizeTerm(identifier))
+  )) {
+    return true
+  }
+
+  return !extractMatches(metadata, STRUCTURED_IDENTIFIER_PATTERN)
+    .some((identifier) => /\d/.test(identifier))
 }
 
 function extractHitFactCandidates(

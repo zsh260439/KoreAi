@@ -316,6 +316,12 @@ export interface KnowledgeSearchDebugInfo {
   bm25HitCount: number
   /** 向量召回候选数量。 */
   vectorHitCount: number
+  /** 本次 BM25、向量与内存融合共同使用的候选上限。 */
+  candidateLimit?: number
+  /** 实际送入 Cross-Encoder 的候选数量。 */
+  ceCandidateCount?: number
+  /** CE 精排前候选文档顺序，用于离线计算 candidate recall。 */
+  candidateDocumentNames?: string[]
   /** 路由类型，通常与 retrievalMode 一致。 */
   routeType?: string
   /** 路由来源，例如 rule、llm、policy、fallback。 */
@@ -360,6 +366,8 @@ export interface KnowledgeSearchScoreDetail {
   vectorScore: number | null
   /** BM25 与向量融合后的内部排序分。 */
   fusedScore: number
+  /** Cross-Encoder 相关性分数；未触发或失败降级时为空。 */
+  ceScore?: number
   /** 本地证据感知重排分，用于解释为什么该 chunk 被前置。 */
   evidenceScore?: number
   /** 当前 chunk 覆盖的证据词。 */

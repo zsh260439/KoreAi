@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import math
 import os
 import subprocess
 import time
@@ -15,8 +16,8 @@ from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import (
   AnswerCorrectness,
+  ContextPrecision,
   Faithfulness,
-  LLMContextPrecisionWithReference,
   LLMContextRecall,
 )
 from ragas.run_config import RunConfig
@@ -405,25 +406,26 @@ def summarize_document_chunks(documents: list[dict[str, Any]]) -> dict[str, Any]
 def build_metrics(env: dict[str, str]) -> list[Any]:
   llm = LangchainLLMWrapper(
     ChatOpenAI(
-      model=env["LLM_MODEL"],
+      model=env.get("RAGAS_LLM_MODEL", env["LLM_MODEL"]),
       api_key=env["LLM_API_KEY"],
       base_url=normalize_base_url(env["LLM_BASE_URL"]),
-      temperature=0.2,
+      temperature=0,
     ),
-    bypass_n=True,
   )
   embeddings = LangchainEmbeddingsWrapper(
     OpenAIEmbeddings(
       model=env["EMBEDDING_MODEL"],
       api_key=env["EMBEDDING_API_KEY"],
       base_url=normalize_base_url(env["EMBEDDING_BASE_URL"]),
+      dimensions=1024,
+      encoding_format="float",
     )
   )
   run_config = RunConfig(timeout=420, max_retries=3, max_workers=1)
   metrics = [
     Faithfulness(llm=llm),
     LLMContextRecall(llm=llm),
-    LLMContextPrecisionWithReference(llm=llm),
+    ContextPrecision(llm=llm),
     AnswerCorrectness(llm=llm, embeddings=embeddings),
   ]
   for metric in metrics:
@@ -439,14 +441,22 @@ async def score_samples_async(
   existing_rows: dict[int, dict[str, Any]],
 ) -> list[dict[str, Any]]:
   #澹版槑杩斿洖鍗曟潯璇勫垎缁撴灉锛屽苟鍙戠敱涓婂眰缁熶竴鎺у埗
-  async def score_one_sample(index: int, sample: SingleTurnSample) -> dict[str, Any]:
+  async def score_one_sample(
+    index: int,
+    sample: SingleTurnSample,
+    existing_row: dict[str, Any] | None,
+  ) -> dict[str, Any]:
     row: dict[str, Any] = {
+      **(existing_row or {}),
       "sample_index": index,
       "user_input": sample.user_input,
       "response": sample.response,
       "reference": sample.reference,
     }
     for metric in metrics:
+      error_key = f"{metric.name}_error"
+      if metric.name in row and not row.get(error_key):
+        continue
       try:
         #声明为单指标增加协程级硬超时，避免单题永远卡住
         score = await asyncio.wait_for(
@@ -454,21 +464,38 @@ async def score_samples_async(
           timeout=METRIC_HARD_TIMEOUT_SECONDS,
         )
         row[metric.name] = score
+        row.pop(error_key, None)
       except Exception as error:
         row[metric.name] = None
-        row[f"{metric.name}_error"] = str(error)
+        row[error_key] = str(error)
     return row
 
   rows_by_index: dict[int, dict[str, Any]] = dict(existing_rows)
-  pending_samples = [(index, sample) for index, sample in enumerate(samples) if index not in rows_by_index]
+  pending_samples = [
+    (index, sample, rows_by_index.get(index))
+    for index, sample in enumerate(samples)
+    if index not in rows_by_index
+    or any(
+      metric.name not in rows_by_index[index]
+      or rows_by_index[index].get(f"{metric.name}_error")
+      for metric in metrics
+    )
+  ]
   semaphore = asyncio.Semaphore(get_score_concurrency())
 
   #澹版槑闄愬埗骞跺彂锛岄伩鍏嶈瘎娴婰LM/API 鎵撴弧
-  async def run_with_limit(index: int, sample: SingleTurnSample) -> dict[str, Any]:
+  async def run_with_limit(
+    index: int,
+    sample: SingleTurnSample,
+    existing_row: dict[str, Any] | None,
+  ) -> dict[str, Any]:
     async with semaphore:
-      return await score_one_sample(index, sample)
+      return await score_one_sample(index, sample, existing_row)
 
-  tasks = [asyncio.create_task(run_with_limit(index, sample)) for index, sample in pending_samples]
+  tasks = [
+    asyncio.create_task(run_with_limit(index, sample, existing_row))
+    for index, sample, existing_row in pending_samples
+  ]
   for task in asyncio.as_completed(tasks):
     row = await task
     rows_by_index[int(row["sample_index"])] = row
@@ -484,7 +511,11 @@ async def score_samples_async(
 def average_metric_rows(rows: list[dict[str, Any]], metrics: list[Any]) -> dict[str, float]:
   averages: dict[str, float] = {}
   for metric in metrics:
-    values = [float(row[metric.name]) for row in rows if row.get(metric.name) is not None]
+    values = [
+      float(row[metric.name])
+      for row in rows
+      if row.get(metric.name) is not None and math.isfinite(float(row[metric.name]))
+    ]
     averages[metric.name] = round(sum(values) / max(1, len(values)), 4) if values else 0.0
   return averages
 

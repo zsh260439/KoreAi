@@ -192,3 +192,62 @@
    - Query Engine 生效
    - Candidate Filter 生效
    - 最终 topK 稳定返回
+
+## 本轮实现补充：Gated CE 候选窗口
+
+### 目标
+- 为复杂 query 提供比最终 topK 更宽的 CE 候选窗口，但继续保留数据库、向量和内存合并上限。
+
+### 候选预算
+- 普通 query 继续使用 runtimeConfig 中的 candidateMultiplier/min/max。
+- 仅 `multi_fact`、`reference_required`、`high_constraint` 启用 CE 候选扩展。
+- CE 候选窗口下限为 `targetTopK * 10`，全局硬上限为 80，并且不得突破 runtimeConfig.maxCandidateLimit。
+- BM25、向量和 merge 都使用同一个有界候选预算；最终生成上下文仍由 targetTopK/maxTopK 控制。
+
+### 可观测性
+- debug 增加 `candidateLimit`、`ceCandidateCount` 和 `candidateDocumentNames`。
+- Gate 基于候选顺序计算 candidate gold recall@20/@40/@80，区分候选窗口不足和 CE 排序问题。
+
+### 边界
+- 不允许通过扩大无条件 SQL LIKE 范围、硬编码文档角色或编号族关系来通过评测集。
+- 最终必须通过 server build/lint 和 231 条免费 retrieval gate，且 irrelevant chunk rate 不高于 0.25。
+
+## 后续架构：Agentic Multi-hop Retrieval
+
+- 当前不实现运行时字段桥接式 multi-hop；该方案缺少独立子问题契约和知识源选择，容易随评测集词形过拟合。
+- 成熟实现应增加独立 query decomposition：LLM 只生成有 schema 约束的 focused subqueries，不直接控制召回权重。
+- 子查询并行执行现有 BM25/向量检索，每个子查询保留来源、耗时、候选数和失败状态。
+- 所有子查询结果统一去重、RRF 合并和 CE rerank，再进入 deterministic exact/evidence 保护与最终 topK。
+- 如果知识库存在真实父子文档或引用关系，应在入库时保存 `parentDocumentId`、`referencedDocumentIds` 或实体关系元数据，由过滤检索消费，而不是运行时通过 SQL LIKE 猜关系。
+- 可参考：Azure AI Search Agentic Retrieval 的 query planning/parallel subqueries/execution metadata、Elastic 的 semantic reranker rank window、Pinecone two-stage rerank，以及 Anthropic Contextual Retrieval 的入库时 chunk context。
+
+## Embedding Model Migration: Qwen3-Embedding-8B
+
+### Goal
+- Replace the current embedding provider with the configured OpenAI-compatible MaaS endpoint and model `xop3qwen8bembedding`.
+- Keep the existing `vector(1024)` column and cosine HNSW index unchanged.
+
+### Runtime Contract
+- `EMBEDDING_BASE_URL` points to the provider's `/v2/embeddings` endpoint; the client normalizes it to the OpenAI base URL.
+- `EMBEDDING_MODEL` selects the embedding model.
+- Embedding output is fixed to `1024` dimensions because `knowledge_chunks.embedding` is a `vector(1024)` column; changing it requires a database migration and full re-embedding.
+- The OpenAI-compatible client must explicitly request `encoding_format: float`; OpenAI Node SDK 6 defaults to Base64 and otherwise misdecodes providers that return float arrays.
+- `EMBEDDING_API_KEY` remains an environment secret and must not be stored in source control or documentation.
+
+### Data Migration
+- Model vectors must never be mixed in one index. Switching providers requires rebuilding every existing document chunk so all stored vectors come from one model.
+- Rebuilding uses the existing document chunk rebuild flow; no parallel migration path is introduced.
+- After rebuilding, verify that all non-null vectors have 1024 dimensions and that `knowledge_chunks_embedding_hnsw_idx` remains valid.
+
+### Acceptance Criteria
+1. `pnpm --filter server build` and lint pass.
+2. A query and a document batch both produce finite 1024-dimensional vectors.
+3. All existing documents are rebuilt successfully with the new model.
+4. The 231-sample Retrieval Gate does not regress from the current baseline: gold document recall `1.0`, top-1 gold rate `0.9957`, required/cross-reference/multi-fact coverage `1.0`, and average irrelevant chunk rate no higher than `0.2134`.
+5. If the gate regresses, restore the previous embedding configuration and rebuild all vectors again; do not retain a mixed-vector database.
+
+## Split Online and Evaluation Models
+
+- Online QA and query analysis continue to use `LLM_MODEL`; the current low-latency choice is `gpt-4.1-mini`.
+- RAGAS judging uses `RAGAS_LLM_MODEL` when configured and falls back to `LLM_MODEL`; the current validated judge is `gpt-4o-mini`.
+- Both clients continue to share `LLM_BASE_URL` and `LLM_API_KEY`. No provider-specific logic is added to business services.

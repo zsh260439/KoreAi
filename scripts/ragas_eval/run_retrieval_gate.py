@@ -14,6 +14,9 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 SERVER_DIR = ROOT_DIR / "apps" / "server"
 DATASET_PATH = Path(os.getenv("RAGAS_DATASET_PATH", Path(__file__).resolve().parent / "eval_dataset_full.json"))
 REPORT_PATH = Path(os.getenv("RETRIEVAL_GATE_REPORT_PATH", Path(__file__).resolve().parent / "retrieval_gate_report.json"))
+PROGRESS_PATH = Path(
+  os.getenv("RETRIEVAL_GATE_PROGRESS_PATH", Path(__file__).resolve().parent / "retrieval_gate_progress.json")
+)
 
 
 def load_env() -> dict[str, str]:
@@ -97,6 +100,15 @@ def compute_required_terms_coverage(terms: list[str], hits: list[dict[str, Any]]
   return round(matched / len(terms), 4)
 
 
+def compute_candidate_gold_recall(
+  candidate_names: list[str],
+  gold_names: list[str],
+  cutoff: int,
+) -> float:
+  selected_names = set(candidate_names[:cutoff])
+  return round(sum(1 for name in gold_names if name in selected_names) / max(1, len(gold_names)), 4)
+
+
 def normalize_text(value: str) -> str:
   return re.sub(r"\s+", " ", value.casefold()).strip()
 
@@ -111,6 +123,21 @@ def unique_terms(values: list[str]) -> list[str]:
     seen.add(normalized)
     result.append(value.strip())
   return result
+
+
+def write_progress(rows: list[dict[str, Any]]) -> None:
+  PROGRESS_PATH.write_text(
+    json.dumps(
+      {
+        "dataset_path": str(DATASET_PATH),
+        "completed_count": len(rows),
+        "rows": rows,
+      },
+      ensure_ascii=False,
+      indent=2,
+    ),
+    encoding="utf-8",
+  )
 
 
 def main() -> None:
@@ -137,6 +164,8 @@ def main() -> None:
       required_terms_coverage = compute_required_terms_coverage(required_terms, hits)
       top1_name = hits[0]["documentName"] if hits else None
       irrelevant_chunk_count = sum(1 for item in hits if item["documentName"] not in gold_names)
+      debug = result.get("debug") or {}
+      candidate_names = debug.get("candidateDocumentNames") or []
       rows.append(
         {
           "question_id": question["question_id"],
@@ -150,9 +179,13 @@ def main() -> None:
           "required_terms": required_terms,
           "required_terms_coverage": required_terms_coverage,
           "irrelevant_chunk_rate": round(irrelevant_chunk_count / max(1, len(hits)), 4),
-          "debug": result.get("debug"),
+          "candidate_gold_recall_at_20": compute_candidate_gold_recall(candidate_names, gold_names, 20),
+          "candidate_gold_recall_at_40": compute_candidate_gold_recall(candidate_names, gold_names, 40),
+          "candidate_gold_recall_at_80": compute_candidate_gold_recall(candidate_names, gold_names, 80),
+          "debug": debug,
         }
       )
+      write_progress(rows)
 
     question_count = len(rows)
     cross_rows = [row for row in rows if "cross_ref" in row["difficulty"] or "reference" in row["difficulty"]]
@@ -171,6 +204,9 @@ def main() -> None:
         "cross_reference_recall": round(sum(row["gold_document_recall"] for row in cross_rows) / max(1, len(cross_rows)), 4),
         "multi_fact_full_coverage": round(sum(1 for row in multi_fact_rows if row["required_terms_coverage"] >= 0.94) / max(1, len(multi_fact_rows)), 4),
         "avg_irrelevant_chunk_rate": round(sum(row["irrelevant_chunk_rate"] for row in rows) / max(1, question_count), 4),
+        "candidate_gold_recall_at_20": round(sum(row["candidate_gold_recall_at_20"] for row in rows) / max(1, question_count), 4),
+        "candidate_gold_recall_at_40": round(sum(row["candidate_gold_recall_at_40"] for row in rows) / max(1, question_count), 4),
+        "candidate_gold_recall_at_80": round(sum(row["candidate_gold_recall_at_80"] for row in rows) / max(1, question_count), 4),
       },
       "thresholds": {
         "gold_document_recall": 0.99,

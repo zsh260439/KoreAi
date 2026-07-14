@@ -1,6 +1,8 @@
 import { OpenAIEmbeddings } from '@langchain/openai'
 import { Injectable } from '@nestjs/common'
 
+const EMBEDDING_DIMENSIONS = 1024
+
 @Injectable()
 export class EmbeddingService {
   private readonly client: OpenAIEmbeddings
@@ -9,6 +11,8 @@ export class EmbeddingService {
     this.client = new OpenAIEmbeddings({
       apiKey: process.env.EMBEDDING_API_KEY,
       model: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
+      dimensions: EMBEDDING_DIMENSIONS,
+      encodingFormat: 'float',
       configuration: {
         baseURL: normalizeEmbeddingBaseUrl(process.env.EMBEDDING_BASE_URL)
       }
