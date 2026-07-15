@@ -53,19 +53,6 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: 'architecture',
-        name: 'admin-architecture',
-        component: () => import('@/views/admin/architecture/index.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '代码地图',
-          requiresAuth: false,
-          navGroup: '导航',
-          navKey: 'architecture',
-          breadcrumb: ['首页', '代码地图']
-        }
-      },
-      {
         path: 'knowledge-settings',
         name: 'admin-knowledge-settings',
         component: () => import('@/views/admin/knowledge/settings.vue'),
