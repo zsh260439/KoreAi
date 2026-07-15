@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { extname } from 'node:path'
+import { extname, posix as pathPosix } from 'node:path'
 import { DOMParser } from '@xmldom/xmldom'
 import JSZip from 'jszip'
 import { PDFParse } from 'pdf-parse'
@@ -23,9 +23,19 @@ export interface StructuredBlock {
 //声明文档解析统一结果结构。
 export interface ParsedDocument {
   fileType: string
-  sourceKind: 'text' | 'pdf-copyable' | 'pdf-complex' | 'pdf-visual'
+  sourceKind: 'text' | 'pdf-copyable' | 'pdf-complex' | 'pdf-visual' | 'pdf-ocr'
   blocks: StructuredBlock[]
   rawContent: string
+}
+
+export type DocumentOcrImageInput = {
+  buffer: Buffer
+  mimeType: string
+  sourceName: string
+}
+
+export type ParseKnowledgeDocumentOptions = {
+  ocrImage?: (image: DocumentOcrImageInput) => Promise<string | null>
 }
 
 //声明 docx 样式定义结构。
@@ -62,6 +72,7 @@ type DocxParseContext = {
   styles: Map<string, DocxStyleDefinition>
   numbering: DocxNumberingDefinition
   numberingState: DocxListState
+  processedImagePaths: Set<string>
 }
 
 //声明 docx 列表项信息结构。
@@ -73,7 +84,10 @@ type DocxListInfo = {
 }
 
 //声明文档解析统一入口。
-export async function parseKnowledgeDocument(storagePath: string): Promise<ParsedDocument> {
+export async function parseKnowledgeDocument(
+  storagePath: string,
+  options: ParseKnowledgeDocumentOptions = {}
+): Promise<ParsedDocument> {
   const fileType = extname(storagePath).toLowerCase().slice(1) || 'txt'
   const buffer = await readFile(storagePath)
 
@@ -86,11 +100,11 @@ export async function parseKnowledgeDocument(storagePath: string): Promise<Parse
   }
 
   if (fileType === 'docx') {
-    return parseDocxDocument(buffer)
+    return parseDocxDocument(buffer, options)
   }
 
   if (fileType === 'pdf') {
-    return parsePdfDocument(buffer)
+    return parsePdfDocument(buffer, options)
   }
 
   return parseTextDocument(buffer.toString('utf-8'))
@@ -242,7 +256,7 @@ async function parseTextDocument(content: string): Promise<ParsedDocument> {
 }
 
 //声明 docx 文档解析逻辑。
-async function parseDocxDocument(buffer: Buffer): Promise<ParsedDocument> {
+async function parseDocxDocument(buffer: Buffer, options: ParseKnowledgeDocumentOptions): Promise<ParsedDocument> {
   //声明 docx 按 OOXML 标准直接读取压缩包内部 XML。
   const zip = await JSZip.loadAsync(buffer)
   const documentXml = await loadDocxXml(zip, 'word/document.xml')
@@ -253,6 +267,8 @@ async function parseDocxDocument(buffer: Buffer): Promise<ParsedDocument> {
 
   const stylesXml = await loadDocxXml(zip, 'word/styles.xml')
   const numberingXml = await loadDocxXml(zip, 'word/numbering.xml')
+  const relationshipsXml = await loadDocxXml(zip, 'word/_rels/document.xml.rels')
+  const imageRelationships = parseDocxImageRelationships(relationshipsXml)
   const context: DocxParseContext = {
     blocks: [],
     rawParts: [],
@@ -260,7 +276,8 @@ async function parseDocxDocument(buffer: Buffer): Promise<ParsedDocument> {
     headingStack: [],
     styles: parseDocxStyles(stylesXml),
     numbering: parseDocxNumbering(numberingXml),
-    numberingState: new Map()
+    numberingState: new Map(),
+    processedImagePaths: new Set()
   }
 
   const body = findFirstChildElement(documentXml.documentElement, 'body')
@@ -277,13 +294,17 @@ async function parseDocxDocument(buffer: Buffer): Promise<ParsedDocument> {
   for (const child of getChildElements(body)) {
     if (matchesElementName(child, 'p')) {
       parseDocxParagraph(child, context)
+      await appendDocxImageOcrBlocks(child, zip, imageRelationships, context, options)
       continue
     }
 
     if (matchesElementName(child, 'tbl')) {
       parseDocxTable(child, context)
+      await appendDocxImageOcrBlocks(child, zip, imageRelationships, context, options)
     }
   }
+
+  await appendUnreferencedDocxImageOcrBlocks(zip, context, options)
 
   return {
     fileType: 'docx',
@@ -294,10 +315,9 @@ async function parseDocxDocument(buffer: Buffer): Promise<ParsedDocument> {
 }
 
 //声明 pdf 文档解析逻辑。
-async function parsePdfDocument(buffer: Buffer): Promise<ParsedDocument> {
+async function parsePdfDocument(buffer: Buffer, options: ParseKnowledgeDocumentOptions): Promise<ParsedDocument> {
   const parser = new PDFParse({ data: buffer })
   const textResult = await parser.getText()
-  await parser.destroy()
 
   const pages = textResult.pages
     .map((page) => ({
@@ -307,6 +327,26 @@ async function parsePdfDocument(buffer: Buffer): Promise<ParsedDocument> {
     .filter((page) => page.content.length > 0)
 
   if (!textResult.text.trim() || pages.length === 0) {
+    const ocrBlocks = await parsePdfPagesWithOcr(parser, options)
+    await parser.destroy()
+
+    if (ocrBlocks.length > 0) {
+      const blocks: StructuredBlock[] = []
+      const rawParts: string[] = []
+      let rawOffset = 0
+
+      for (const block of ocrBlocks) {
+        rawOffset = pushStructuredBlock(blocks, rawParts, rawOffset, block)
+      }
+
+      return {
+        fileType: 'pdf',
+        sourceKind: 'pdf-ocr',
+        rawContent: rawParts.join('\n\n').trim(),
+        blocks
+      }
+    }
+
     return {
       fileType: 'pdf',
       sourceKind: 'pdf-visual',
@@ -325,6 +365,8 @@ async function parsePdfDocument(buffer: Buffer): Promise<ParsedDocument> {
       rawOffset = pushStructuredBlock(blocks, rawParts, rawOffset, block)
     }
   }
+
+  await parser.destroy()
 
   return {
     fileType: 'pdf',
@@ -1049,4 +1091,195 @@ function getAttributeValue(element: Element | null, attributeName: string): stri
   }
 
   return null
+}
+
+async function parsePdfPagesWithOcr(
+  parser: PDFParse,
+  options: ParseKnowledgeDocumentOptions
+): Promise<StructuredBlock[]> {
+  if (!options.ocrImage) {
+    return []
+  }
+
+  const screenshotResult = await parser.getScreenshot({
+    desiredWidth: 1600,
+    imageBuffer: true,
+    imageDataUrl: false
+  })
+  const blocks: StructuredBlock[] = []
+
+  for (const page of screenshotResult.pages) {
+    const text = await options.ocrImage({
+      buffer: Buffer.from(page.data),
+      mimeType: 'image/png',
+      sourceName: `pdf page ${page.pageNumber}`
+    })
+
+    if (!text) {
+      continue
+    }
+
+    blocks.push({
+      blockType: 'ocr_page',
+      content: text,
+      pageNumber: page.pageNumber,
+      sectionPath: [`第 ${page.pageNumber} 页`],
+      metadata: {
+        ocr: true,
+        imageSource: 'pdf_page_screenshot',
+        width: page.width,
+        height: page.height,
+        scale: page.scale
+      }
+    })
+  }
+
+  return blocks
+}
+
+async function appendDocxImageOcrBlocks(
+  node: Node,
+  zip: JSZip,
+  imageRelationships: Map<string, string>,
+  context: DocxParseContext,
+  options: ParseKnowledgeDocumentOptions
+): Promise<void> {
+  if (!options.ocrImage) {
+    return
+  }
+
+  const relationshipIds = extractDocxImageRelationshipIds(node)
+  for (const relationshipId of relationshipIds) {
+    const imagePath = imageRelationships.get(relationshipId)
+    if (!imagePath || context.processedImagePaths.has(imagePath)) {
+      continue
+    }
+
+    await appendDocxImageOcrBlock(imagePath, zip, context, options)
+  }
+}
+
+async function appendUnreferencedDocxImageOcrBlocks(
+  zip: JSZip,
+  context: DocxParseContext,
+  options: ParseKnowledgeDocumentOptions
+): Promise<void> {
+  if (!options.ocrImage) {
+    return
+  }
+
+  for (const imagePath of Object.keys(zip.files).filter((item) => item.startsWith('word/media/'))) {
+    if (!context.processedImagePaths.has(imagePath)) {
+      await appendDocxImageOcrBlock(imagePath, zip, context, options)
+    }
+  }
+}
+
+async function appendDocxImageOcrBlock(
+  imagePath: string,
+  zip: JSZip,
+  context: DocxParseContext,
+  options: ParseKnowledgeDocumentOptions
+): Promise<void> {
+  const entry = zip.file(imagePath)
+  if (!entry || !options.ocrImage) {
+    return
+  }
+
+  context.processedImagePaths.add(imagePath)
+  const imageBuffer = await entry.async('nodebuffer')
+  const text = await options.ocrImage({
+    buffer: imageBuffer,
+    mimeType: resolveImageMimeType(imagePath),
+    sourceName: imagePath
+  })
+
+  if (!text) {
+    return
+  }
+
+  context.rawOffset = pushStructuredBlock(
+    context.blocks,
+    context.rawParts,
+    context.rawOffset,
+    {
+      blockType: 'ocr_image',
+      content: text,
+      sectionPath: context.headingStack.filter(Boolean),
+      metadata: {
+        ocr: true,
+        imageSource: 'docx_embedded_image',
+        imagePath
+      }
+    }
+  )
+}
+
+function parseDocxImageRelationships(relationshipsXml: Document | null): Map<string, string> {
+  const relationships = new Map<string, string>()
+  if (!relationshipsXml?.documentElement) {
+    return relationships
+  }
+
+  for (const relationship of findElementsByName(relationshipsXml.documentElement, 'Relationship')) {
+    const id = getAttributeValue(relationship, 'Id')
+    const target = getAttributeValue(relationship, 'Target')
+    const type = getAttributeValue(relationship, 'Type') || ''
+    if (!id || !target || !type.toLowerCase().includes('/image')) {
+      continue
+    }
+
+    relationships.set(id, normalizeDocxRelationshipTarget(target))
+  }
+
+  return relationships
+}
+
+function normalizeDocxRelationshipTarget(target: string): string {
+  if (target.startsWith('/')) {
+    return target.replace(/^\/+/, '')
+  }
+
+  return pathPosix.normalize(pathPosix.join('word', target))
+}
+
+function extractDocxImageRelationshipIds(node: Node): string[] {
+  const ids = new Set<string>()
+
+  for (const blip of findElementsByName(node, 'blip')) {
+    const embedId = getAttributeValue(blip, 'embed')
+    const linkId = getAttributeValue(blip, 'link')
+    if (embedId) {
+      ids.add(embedId)
+    }
+    if (linkId) {
+      ids.add(linkId)
+    }
+  }
+
+  for (const imageData of findElementsByName(node, 'imagedata')) {
+    const id = getAttributeValue(imageData, 'id')
+    if (id) {
+      ids.add(id)
+    }
+  }
+
+  return [...ids]
+}
+
+function resolveImageMimeType(imagePath: string): string {
+  const extension = extname(imagePath).toLowerCase()
+  if (extension === '.jpg' || extension === '.jpeg') {
+    return 'image/jpeg'
+  }
+
+  if (extension === '.gif') {
+    return 'image/gif'
+  }
+
+  if (extension === '.webp') {
+    return 'image/webp'
+  }
+
+  return 'image/png'
 }

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { EmbeddingService } from './composables/embedding.service'
 import { KnowledgeBm25Service } from './composables/knowledge-bm25.service'
 import { KnowledgeFileService } from './composables/knowledge-file.service'
+import { KnowledgeOcrService } from './composables/knowledge-ocr.service'
 import { KnowledgeQaService } from './composables/knowledge-qa.service'
 import { KnowledgeQueryAnalysisService } from './composables/knowledge-query-analysis.service'
 import { KnowledgeQueryEngineService } from './composables/knowledge-query-engine.service'
@@ -32,6 +33,7 @@ import { KnowledgeService } from './knowledge.service'
     KnowledgeQueryAnalysisService,
     KnowledgeQueryEngineService,
     KnowledgeRetrievalService,
+    KnowledgeOcrService,
     EmbeddingService,
     KnowledgeVectorStoreService,
     KnowledgeQaService
@@ -39,6 +41,7 @@ import { KnowledgeService } from './knowledge.service'
   exports: [
     KnowledgeService,
     KnowledgeQueryEngineService,
+    KnowledgeOcrService,
     EmbeddingService,
     KnowledgeVectorStoreService,
     KnowledgeQaService

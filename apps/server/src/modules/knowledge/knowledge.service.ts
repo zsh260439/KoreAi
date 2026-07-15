@@ -34,6 +34,7 @@ import {
   KnowledgeQaService,
   type KnowledgeQaStreamEvent,
 } from "./composables/knowledge-qa.service";
+import { KnowledgeOcrService } from "./composables/knowledge-ocr.service";
 import { KnowledgeVectorStoreService } from "./composables/knowledge-vector-store.service";
 import { CreateKnowledgeBaseDto } from "./dto/create-knowledge-base.dto";
 import { CreateKnowledgeDocumentDto } from "./dto/create-knowledge-document.dto";
@@ -98,6 +99,7 @@ export class KnowledgeService {
     private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
     private readonly knowledgeQaService: KnowledgeQaService,
     private readonly knowledgeRetrievalService: KnowledgeRetrievalService,
+    private readonly knowledgeOcrService: KnowledgeOcrService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -455,6 +457,7 @@ export class KnowledgeService {
       );
       const parsedDocument = await parseKnowledgeDocument(
         document.storagePath ?? "",
+        this.knowledgeOcrService.createParserOptions(),
       );
       const chunkDrafts = buildChunksFromBlocks(
         parsedDocument.blocks,
