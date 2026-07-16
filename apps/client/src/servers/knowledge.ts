@@ -79,7 +79,9 @@ export const findDocumentChunksAPI = (docId: string) => {
 
 // 根据当前文档配置重新分块。
 export const rebuildDocumentChunksAPI = (docId: string) => {
-  return request<KnowledgeChunk[]>(`knowledge/documents/${docId}/chunks/rebuild`, 'POST')
+  return request<KnowledgeChunk[]>(`knowledge/documents/${docId}/chunks/rebuild`, 'POST', undefined, {
+    timeout: 120000
+  })
 }
 
 // 更新文档信息。

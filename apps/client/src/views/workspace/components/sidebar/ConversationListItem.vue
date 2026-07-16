@@ -19,7 +19,7 @@ defineEmits<{
 <template>
   <div
     :class="[
-      'group flex w-full items-center gap-2 rounded-[12px] border py-3.5 pl-4 pr-3 transition-colors',
+      'conversation-list-item group flex w-full items-center gap-2 rounded-[12px] border py-3.5 pl-4 pr-3 transition-colors',
       active
         ? 'border-[#e5e7eb] bg-[#f8fafc]'
         : 'border-transparent bg-transparent hover:border-[#f3f4f6] hover:bg-[#fafafa]'
@@ -61,3 +61,10 @@ defineEmits<{
     </button>
   </div>
 </template>
+
+<style scoped>
+.conversation-list-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 72px;
+}
+</style>

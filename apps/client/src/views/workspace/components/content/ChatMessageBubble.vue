@@ -1413,19 +1413,14 @@ function renderThoughtBody(body: string) {
 }
 
 .evidence-drawer__header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin: -18px -20px 18px;
   border-bottom: 1px solid #dbe8e4;
-  background:
-    linear-gradient(180deg, rgba(246, 251, 251, 0.96) 0%, rgba(252, 254, 254, 0.96) 100%);
+  background: transparent;
   padding: 24px 20px 18px;
-  backdrop-filter: blur(12px);
 }
 
 .evidence-drawer__header strong {

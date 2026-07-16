@@ -89,6 +89,10 @@ const documentFacts = computed(() => [
   {
     label: 'Chunk 数',
     value: String(chunks.value.length)
+  },
+  {
+    label: '解析方式',
+    value: getDocumentParseLabel(chunks.value)
   }
 ])
 
@@ -103,11 +107,48 @@ const tableCaption = computed(() => {
 
 //声明重新分块处理
 const rebuildChunks = async () => {
-  await rebuildKnowledgeChunks(docId.value)
-  await loadKnowledgeDocument(docId.value)
-  await loadKnowledgeChunks(docId.value)
-  ElMessage.success('文档已重新分块')
-  await scrollToHighlightedChunk()
+  try {
+    const rebuiltChunks = await rebuildKnowledgeChunks(docId.value)
+    await loadKnowledgeDocument(docId.value)
+    await loadKnowledgeChunks(docId.value)
+    ElMessage.success(formatChunkResultMessage(rebuiltChunks))
+    await scrollToHighlightedChunk()
+  } catch (error) {
+    await loadKnowledgeDocument(docId.value)
+    ElMessage.error(error instanceof Error ? error.message : '文档分块失败')
+  }
+}
+
+function formatChunkResultMessage(items: KnowledgeChunk[]): string {
+  const ocrPageCount = getOcrPageNumbers(items).length
+  return ocrPageCount > 0
+    ? `文档已重新分块，OCR 识别 ${ocrPageCount} 页，共 ${items.length} 个分块`
+    : `文档已重新分块，共 ${items.length} 个分块`
+}
+
+function getDocumentParseLabel(items: KnowledgeChunk[]): string {
+  const sourceKinds = new Set(items.map((item) => item.metadata?.sourceKind).filter(Boolean))
+  const ocrPageCount = getOcrPageNumbers(items).length
+
+  if (ocrPageCount > 0 || sourceKinds.has('pdf-ocr')) {
+    return `OCR · ${ocrPageCount} 页`
+  }
+
+  if (sourceKinds.has('pdf-copyable') || sourceKinds.has('pdf-complex')) {
+    return 'PDF 文本'
+  }
+
+  return items.length > 0 ? '文档文本' : '-'
+}
+
+function getOcrPageNumbers(items: KnowledgeChunk[]): number[] {
+  return Array.from(new Set(
+    items.flatMap((item) =>
+      (item.metadata?.blocks ?? [])
+        .filter((block) => block.blockType === 'ocr_page' && typeof block.pageNumber === 'number')
+        .map((block) => block.pageNumber as number)
+    )
+  ))
 }
 
 //声明刷新处理

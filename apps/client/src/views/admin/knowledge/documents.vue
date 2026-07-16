@@ -221,6 +221,20 @@ const resolveUploadFileName = (value: string) => {
   return dotIndex > 0 ? value.slice(0, dotIndex) : value
 }
 
+const formatChunkResultMessage = (prefix: string, chunks: Awaited<ReturnType<typeof rebuildKnowledgeChunks>>) => {
+  const ocrPages = new Set(
+    chunks.flatMap((chunk) =>
+      (chunk.metadata?.blocks ?? [])
+        .filter((block) => block.blockType === 'ocr_page' && typeof block.pageNumber === 'number')
+        .map((block) => block.pageNumber as number)
+    )
+  )
+
+  return ocrPages.size > 0
+    ? `${prefix}，OCR 识别 ${ocrPages.size} 页，共 ${chunks.length} 个分块`
+    : `${prefix}，共 ${chunks.length} 个分块`
+}
+
 const validateUploadFile = (file: File) => {
   const extension = file.name.split('.').pop()?.toLowerCase() || ''
   const isSupportedType = ['txt', 'md', 'docx', 'pdf'].includes(extension)
@@ -357,16 +371,16 @@ const submitUpload = async () => {
       chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
     })
 
-    await rebuildKnowledgeChunks(created.id)
+    const chunks = await rebuildKnowledgeChunks(created.id)
     const refreshedDocument = await loadKnowledgeDocument(created.id)
     await loadKnowledgeDocuments(kbId.value)
     await loadKnowledgeBases()
 
-    if (refreshedDocument?.status === 'failed') {
-      ElMessage.warning('文档已上传，但自动切块失败，请检查文件内容后重试')
-    } else {
-      ElMessage.success('文档已上传，并已开始纳入知识库处理流程')
+    if (refreshedDocument?.status !== 'indexed') {
+      throw new Error('文档已上传，但未完成分块')
     }
+
+    ElMessage.success(formatChunkResultMessage('文档已上传', chunks))
 
     resetUploadDialog()
   } catch (error) {
@@ -417,10 +431,14 @@ const openChunkConfirm = (document: KnowledgeDocument) => {
 const submitChunkConfirm = async () => {
   if (!activeDocument.value) return
 
-  await rebuildKnowledgeChunks(activeDocument.value.id)
-  await loadKnowledgeDocuments(kbId.value)
-  chunkDialogOpen.value = false
-  ElMessage.success('已重新执行分块')
+  try {
+    const chunks = await rebuildKnowledgeChunks(activeDocument.value.id)
+    await loadKnowledgeDocuments(kbId.value)
+    chunkDialogOpen.value = false
+    ElMessage.success(formatChunkResultMessage('已完成分块', chunks))
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '文档分块失败')
+  }
 }
 
 // 打开删除确认框

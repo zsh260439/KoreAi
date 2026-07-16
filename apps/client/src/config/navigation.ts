@@ -1,4 +1,4 @@
-import { Database, Settings2 } from 'lucide-vue-next'
+import { Activity, Database, Settings2 } from 'lucide-vue-next'
 
 import type { AdminNavItem } from '@/types/navigation'
 
@@ -12,5 +12,10 @@ export const adminNavItems: AdminNavItem[] = [
     title: '检索参数',
     href: '/admin/knowledge-settings',
     icon: Settings2
+  },
+  {
+    title: 'Trace 链路',
+    href: '/admin/traces',
+    icon: Activity
   }
 ]

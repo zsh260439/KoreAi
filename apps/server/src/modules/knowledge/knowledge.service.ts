@@ -2,6 +2,7 @@
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { stat } from "node:fs/promises";
@@ -35,7 +36,6 @@ import {
   type KnowledgeQaStreamEvent,
 } from "./composables/knowledge-qa.service";
 import { KnowledgeOcrService } from "./composables/knowledge-ocr.service";
-import { KnowledgeVectorStoreService } from "./composables/knowledge-vector-store.service";
 import { CreateKnowledgeBaseDto } from "./dto/create-knowledge-base.dto";
 import { CreateKnowledgeDocumentDto } from "./dto/create-knowledge-document.dto";
 import { KnowledgeBaseEntity } from "./entity/knowledge-base.entity";
@@ -96,7 +96,6 @@ export class KnowledgeService {
     private readonly knowledgeRuntimeSettingsRepo: Repository<KnowledgeRuntimeSettingsEntity>,
     private readonly embeddingService: EmbeddingService,
     private readonly knowledgeFileService: KnowledgeFileService,
-    private readonly knowledgeVectorStoreService: KnowledgeVectorStoreService,
     private readonly knowledgeQaService: KnowledgeQaService,
     private readonly knowledgeRetrievalService: KnowledgeRetrievalService,
     private readonly knowledgeOcrService: KnowledgeOcrService,
@@ -458,11 +457,20 @@ export class KnowledgeService {
       const parsedDocument = await parseKnowledgeDocument(
         document.storagePath ?? "",
         this.knowledgeOcrService.createParserOptions(),
-      );
+      ).catch((error: unknown) => {
+        if (document.fileType === "pdf") {
+          throw new UnprocessableEntityException(
+            "PDF 文件结构无效或已损坏，无法解析或执行 OCR。",
+          );
+        }
+
+        throw error;
+      });
       const chunkDrafts = buildChunksFromBlocks(
         parsedDocument.blocks,
         chunkConfig,
       );
+      assertDocumentHasIndexableContent(parsedDocument, chunkDrafts.length);
       const embeddings = await this.embeddingService.embedChunks(
         chunkDrafts.map((item) => item.content),
       );
@@ -598,6 +606,52 @@ export class KnowledgeService {
     return items.map(toKnowledgeChunk);
   }
 }
+function assertDocumentHasIndexableContent(
+  document: {
+    fileType: string;
+    rawContent: string;
+    ocr?: {
+      status: "success" | "not_configured" | "failed" | "empty" | "limit_reached";
+      message?: string;
+    };
+  },
+  chunkCount: number,
+): void {
+  if (document.rawContent.trim() && chunkCount > 0) {
+    return;
+  }
+
+  if (document.fileType === "pdf") {
+    if (document.ocr?.status === "not_configured") {
+      throw new UnprocessableEntityException(document.ocr.message);
+    }
+
+    if (document.ocr?.status === "failed") {
+      throw new UnprocessableEntityException(
+        document.ocr.message ?? "PDF OCR 识别失败，请稍后重试。",
+      );
+    }
+
+    if (document.ocr?.status === "limit_reached") {
+      throw new UnprocessableEntityException(
+        "PDF 页数超过 OCR 处理上限，请调整 OCR_MAX_IMAGES_PER_DOCUMENT 后重试。",
+      );
+    }
+
+    if (document.ocr?.status === "empty") {
+      throw new UnprocessableEntityException("OCR 已执行，但没有识别到可索引文字。");
+    }
+
+    throw new UnprocessableEntityException(
+      "PDF 未提取到可索引文字；请上传可复制文本的 PDF，或配置 OCR 后重新分块。",
+    );
+  }
+
+  throw new UnprocessableEntityException(
+    "文档没有可索引内容，请检查文件是否为空或格式是否正确。",
+  );
+}
+
 //声明上传分块配置解析
 function parseUploadedChunkConfig(
   value?: string,

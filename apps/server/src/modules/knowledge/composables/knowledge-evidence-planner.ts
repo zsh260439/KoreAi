@@ -12,7 +12,6 @@ const NUMBER_PATTERN =
   /\b\d+(?:\.\d+)?\s*(?:%|天|次|条|个|小时|分钟|days?|times?|items?)?\b/gi
 
 const ASCII_TERM_PATTERN = /\b[a-z][a-z0-9_]{2,}\b/gi
-const CJK_SEGMENT_PATTERN = /[\u4e00-\u9fff]{2,}/g
 
 const CJK_REFERENCE_PHRASE_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|黄金文档|相似文档|未命中|命中|证据|引用|规则|标准|规范|指南|手册|策略|参考|合规|审计/g
@@ -46,24 +45,6 @@ const DOCUMENT_ROLE_PATTERNS: Array<{
   }
 ]
 
-const CJK_STOP_TERMS = new Set([
-  '如果',
-  '什么',
-  '多少',
-  '需要',
-  '以及',
-  '分别',
-  '如何',
-  '哪个',
-  '是否',
-  '查询',
-  '产品',
-  '文档',
-  '问题',
-  '根据',
-  '提供'
-])
-
 export type KnowledgeEvidenceScore = {
   score: number
   coverage: number
@@ -85,7 +66,9 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     ...extractPatternTerms(input.normalizedQuery, STRUCTURED_IDENTIFIER_PATTERN),
     ...input.protectedTerms.filter((term) => isStructuredIdentifier(term))
   ]).slice(0, 8)
+  const identifierFragments = extractIdentifierFragments(identifiers)
   const numericTerms = uniqueStrings(extractPatternTerms(input.normalizedQuery, NUMBER_PATTERN))
+    .filter((term) => !identifierFragments.has(normalizeTerm(term)))
     .slice(0, 8)
   const llmTerms = uniqueStrings([
     ...(input.analysis?.requiredTerms ?? []),
@@ -99,6 +82,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     ...llmTerms
   ])
     .filter((term) => !identifiers.some((identifier) => sameTerm(identifier, term)))
+    .filter((term) => !identifierFragments.has(normalizeTerm(term)))
     .filter((term) => !numericTerms.some((numericTerm) => sameTerm(numericTerm, term)))
     .slice(0, 24)
   const referenceTerms = evidenceTerms
@@ -288,38 +272,12 @@ function computeRoleScore(documentRole: string, plan: KnowledgeQueryEvidencePlan
 
 function extractEvidenceTerms(value: string): string[] {
   const asciiTerms = extractPatternTerms(value, ASCII_TERM_PATTERN)
-  const cjkTerms = extractCjkEvidenceTerms(value)
-  return uniqueStrings([...asciiTerms, ...cjkTerms])
+  const referenceTerms = extractCjkReferenceTerms(value)
+  return uniqueStrings([...asciiTerms, ...referenceTerms])
 }
 
-function extractCjkEvidenceTerms(value: string): string[] {
-  const result: string[] = []
-  result.push(...(value.match(CJK_REFERENCE_PHRASE_PATTERN) ?? []))
-
-  const segments = value.match(CJK_SEGMENT_PATTERN) ?? []
-  for (const segment of segments) {
-    const cleaned = segment.trim()
-    if (cleaned.length < 2) {
-      continue
-    }
-
-    if (cleaned.length <= 6 && !CJK_STOP_TERMS.has(cleaned)) {
-      result.push(cleaned)
-      continue
-    }
-
-    // 中文没有天然空格，这里用 2-4 字滑窗保留字段词线索，但只作为软排序信号。
-    for (let size = 2; size <= 4; size += 1) {
-      for (let index = 0; index <= cleaned.length - size; index += 1) {
-        const term = cleaned.slice(index, index + size)
-        if (!CJK_STOP_TERMS.has(term)) {
-          result.push(term)
-        }
-      }
-    }
-  }
-
-  return uniqueStrings(result)
+function extractCjkReferenceTerms(value: string): string[] {
+  return uniqueStrings(value.match(CJK_REFERENCE_PHRASE_PATTERN) ?? [])
 }
 
 function extractPatternTerms(value: string, pattern: RegExp): string[] {
@@ -370,6 +328,16 @@ function sameTerm(left: string, right: string): boolean {
 
 function isStructuredIdentifier(value: string): boolean {
   return /[a-z]/i.test(value) && /\d/.test(value)
+}
+
+function extractIdentifierFragments(identifiers: string[]): Set<string> {
+  return new Set(
+    identifiers.flatMap((identifier) =>
+      normalizeTerm(identifier)
+        .split(/[-_./:]+/)
+        .filter(Boolean)
+    )
+  )
 }
 
 function uniqueStrings(values: string[]): string[] {

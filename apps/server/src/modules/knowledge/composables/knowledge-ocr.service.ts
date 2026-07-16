@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 
 import type {
   DocumentOcrImageInput,
+  DocumentOcrResult,
   ParseKnowledgeDocumentOptions
 } from './knowledge-document.parser'
 
@@ -18,13 +20,15 @@ const DEFAULT_MAX_OCR_IMAGES_PER_DOCUMENT = 20
 
 @Injectable()
 export class KnowledgeOcrService {
+  constructor(private readonly configService: ConfigService) {}
+
   createParserOptions(): ParseKnowledgeDocumentOptions {
     let remainingImages = this.getMaxImagesPerDocument()
 
     return {
       ocrImage: async (image) => {
         if (remainingImages <= 0) {
-          return null
+          return { status: 'limit_reached' }
         }
 
         remainingImages -= 1
@@ -33,13 +37,23 @@ export class KnowledgeOcrService {
     }
   }
 
-  private async recognizeImage(image: DocumentOcrImageInput): Promise<string | null> {
-    const endpoint = normalizeChatCompletionEndpoint(process.env.OCR_BASE_URL)
-    const apiKey = process.env.OCR_API_KEY
-    const model = process.env.OCR_MODEL
+  private async recognizeImage(image: DocumentOcrImageInput): Promise<DocumentOcrResult> {
+    const baseUrl = this.configService.get<string>('OCR_BASE_URL')
+    const apiKey = this.configService.get<string>('OCR_API_KEY')
+    const model = this.configService.get<string>('OCR_MODEL')
+    const endpoint = normalizeChatCompletionEndpoint(baseUrl)
 
     if (!endpoint || !apiKey || !model) {
-      return null
+      const missingKeys = [
+        !endpoint && 'OCR_BASE_URL',
+        !apiKey && 'OCR_API_KEY',
+        !model && 'OCR_MODEL'
+      ].filter(Boolean).join('、')
+
+      return {
+        status: 'not_configured',
+        message: `OCR 配置未生效：${missingKeys}`
+      }
     }
 
     try {
@@ -79,27 +93,45 @@ export class KnowledgeOcrService {
             }
           ]
         }),
-        signal: AbortSignal.timeout(getOcrTimeoutMs())
+        signal: AbortSignal.timeout(this.getTimeoutMs())
       })
 
       if (!response.ok) {
         console.warn(`[KnowledgeOCR] HTTP ${response.status}`)
-        return null
+        return {
+          status: 'failed',
+          message: `OCR 服务返回 HTTP ${response.status}`
+        }
       }
 
       const payload = await response.json() as ChatCompletionResponse
-      return normalizeOcrText(payload.choices?.[0]?.message?.content)
+      const text = normalizeOcrText(payload.choices?.[0]?.message?.content)
+      return text
+        ? { status: 'success', text }
+        : { status: 'empty', message: 'OCR 未识别到文字' }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown error'
       console.warn(`[KnowledgeOCR] request failed: ${message}`)
-      return null
+      return {
+        status: 'failed',
+        message: 'OCR 服务调用失败或超时'
+      }
     }
   }
 
   private getMaxImagesPerDocument(): number {
-    const value = Number(process.env.OCR_MAX_IMAGES_PER_DOCUMENT)
+    const value = Number(this.configService.get<string>('OCR_MAX_IMAGES_PER_DOCUMENT'))
     if (!Number.isFinite(value) || value <= 0) {
       return DEFAULT_MAX_OCR_IMAGES_PER_DOCUMENT
+    }
+
+    return Math.floor(value)
+  }
+
+  private getTimeoutMs(): number {
+    const value = Number(this.configService.get<string>('OCR_TIMEOUT_MS'))
+    if (!Number.isFinite(value) || value <= 0) {
+      return DEFAULT_OCR_TIMEOUT_MS
     }
 
     return Math.floor(value)
@@ -117,15 +149,6 @@ function normalizeChatCompletionEndpoint(value?: string): string | null {
   }
 
   return `${trimmed}/chat/completions`
-}
-
-function getOcrTimeoutMs(): number {
-  const value = Number(process.env.OCR_TIMEOUT_MS)
-  if (!Number.isFinite(value) || value <= 0) {
-    return DEFAULT_OCR_TIMEOUT_MS
-  }
-
-  return Math.floor(value)
 }
 
 function normalizeOcrText(content: unknown): string | null {

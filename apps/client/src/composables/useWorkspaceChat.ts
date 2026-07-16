@@ -1,8 +1,6 @@
-import { computed, ref } from 'vue'
-import {
-  findWorkspaceConversationMessagesAPI,
-  requestWorkspaceChatStreamAPI
-} from '@/servers/workspace'
+import { computed, ref, shallowReactive } from 'vue'
+import { requestWorkspaceChatStreamAPI } from '@/servers/workspace'
+import { useWorkspaceCacheStore } from '@/stores/workspace-cache'
 import type { ChatMessage } from '@/types/chat/models'
 import {
   appendStreamingAnswerDelta,
@@ -35,10 +33,11 @@ type ActiveChatRequest = {
 }
 
 //声明消息列表缓存
-const contentListBySession = ref<Record<string, ChatMessage[]>>({})
+const contentListBySession = shallowReactive(new Map<string, ChatMessage[]>())
+const MAX_CACHED_CONVERSATIONS = 40
 
 //声明会话加载状态缓存
-const loadedConversationMap = ref<Record<string, boolean>>({})
+const loadedConversationIds = new Set<string>()
 
 //声明当前激活请求
 const activeRequest = ref<ActiveChatRequest | null>(null)
@@ -216,9 +215,10 @@ function applyStreamEventToAssistantMessage(
 
 export function useWorkspaceChat() {
   const conversationList = useConversationList()
+  const cache = useWorkspaceCacheStore()
 
   const activeContentList = computed(
-    () => contentListBySession.value[conversationList.activeConversationId.value] ?? []
+    () => contentListBySession.get(conversationList.activeConversationId.value) ?? []
   )
 
   const isLoadingMessages = computed(
@@ -235,15 +235,22 @@ export function useWorkspaceChat() {
 
   //声明设置会话消息逻辑
   const setConversationMessages = (conversationId: string, messages: ChatMessage[]) => {
-    contentListBySession.value = {
-      ...contentListBySession.value,
-      [conversationId]: messages
-    }
+    contentListBySession.delete(conversationId)
+    contentListBySession.set(conversationId, messages)
+    loadedConversationIds.add(conversationId)
 
-    loadedConversationMap.value = {
-      ...loadedConversationMap.value,
-      [conversationId]: true
+    if (contentListBySession.size > MAX_CACHED_CONVERSATIONS) {
+      const expiredConversationId = contentListBySession.keys().next().value
+      if (expiredConversationId) {
+        contentListBySession.delete(expiredConversationId)
+        loadedConversationIds.delete(expiredConversationId)
+      }
     }
+  }
+
+  const removeConversationMessages = (conversationId: string) => {
+    contentListBySession.delete(conversationId)
+    loadedConversationIds.delete(conversationId)
   }
 
   //声明更新最后一条助手消息逻辑
@@ -271,14 +278,14 @@ export function useWorkspaceChat() {
       return []
     }
 
-    if (!force && loadedConversationMap.value[conversationId]) {
-      return contentListBySession.value[conversationId] ?? []
+    if (!force && loadedConversationIds.has(conversationId)) {
+      return contentListBySession.get(conversationId) ?? []
     }
 
     try {
       loadingConversationId.value = conversationId
-      const response = await findWorkspaceConversationMessagesAPI(conversationId)
-      const messages = (response.data ?? []).map(toChatMessage)
+      const cachedMessages = await cache.loadConversationMessages(conversationId, force)
+      const messages = cachedMessages.map(toChatMessage)
       setConversationMessages(conversationId, messages)
       return messages
     } catch (caughtError) {
@@ -308,6 +315,29 @@ export function useWorkspaceChat() {
     }
 
     let sessionContentList = params.sessionContentList
+    let renderFrame: number | null = null
+    let pendingEvents: WorkspaceChatStreamEvent[] = []
+
+    const flushPendingEvents = () => {
+      renderFrame = null
+      const events = pendingEvents
+      pendingEvents = []
+
+      for (const event of events) {
+        sessionContentList = updateAssistantMessage(
+          params.conversationId,
+          sessionContentList,
+          (assistantMessage) => applyStreamEventToAssistantMessage(assistantMessage, event)
+        )
+      }
+    }
+
+    const scheduleStreamEvent = (event: WorkspaceChatStreamEvent) => {
+      pendingEvents.push(event)
+      if (renderFrame === null) {
+        renderFrame = requestAnimationFrame(flushPendingEvents)
+      }
+    }
 
     try {
       const result = await requestWorkspaceChatStreamAPI(
@@ -329,15 +359,16 @@ export function useWorkspaceChat() {
               event.type === 'sources' ||
               event.type === 'answer_delta'
             ) {
-              sessionContentList = updateAssistantMessage(
-                params.conversationId,
-                sessionContentList,
-                (assistantMessage) => applyStreamEventToAssistantMessage(assistantMessage, event)
-              )
+              scheduleStreamEvent(event)
             }
           }
         }
       )
+
+      if (renderFrame !== null) {
+        cancelAnimationFrame(renderFrame)
+      }
+      flushPendingEvents()
 
       sessionContentList = updateAssistantMessage(
         params.conversationId,
@@ -348,9 +379,15 @@ export function useWorkspaceChat() {
 
       conversationList.upsertConversation(result.conversation)
       conversationList.selectConversation(result.conversationId)
+      cache.setConversationMessages(result.conversationId, sessionContentList)
 
       return result.conversationId
     } catch (caughtError) {
+      if (renderFrame !== null) {
+        cancelAnimationFrame(renderFrame)
+        renderFrame = null
+      }
+      pendingEvents = []
       const stopped = controller.signal.aborted
       sessionContentList = updateAssistantMessage(
         params.conversationId,
@@ -386,7 +423,7 @@ export function useWorkspaceChat() {
       const normalizedCapabilities = normalizePromptCapabilities(promptCapabilities)
       const conversation =
         conversationList.activeConversation.value ?? (await conversationList.createConversation())
-      const sessionContentList = [...(contentListBySession.value[conversation.id] ?? [])]
+      const sessionContentList = [...(contentListBySession.get(conversation.id) ?? [])]
       const userMessage = toUserChatMessage(conversation.id, normalizedContent, normalizedCapabilities)
       const assistantMessage = toAssistantPlaceholderMessage(
         conversation.id,
@@ -425,7 +462,7 @@ export function useWorkspaceChat() {
       return
     }
 
-    const sessionContentList = contentListBySession.value[conversation.id] ?? []
+    const sessionContentList = contentListBySession.get(conversation.id) ?? []
     const lastUserContentIndex = findLastUserContentIndex(sessionContentList)
     const lastUserContent =
       lastUserContentIndex >= 0 ? sessionContentList[lastUserContentIndex] : null
@@ -475,7 +512,8 @@ export function useWorkspaceChat() {
     loadConversationMessages,
     sendMessage,
     stopStreaming,
-    regenerateLastAnswer
+    regenerateLastAnswer,
+    removeConversationMessages
   }
 }
 

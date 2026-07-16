@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { WorkspaceConversationSummary } from 'share-type'
 import ConversationListItem from './ConversationListItem.vue'
 
-defineProps<{
+const props = defineProps<{
   conversations: WorkspaceConversationSummary[]
   activeConversationId?: string
   loading?: boolean
@@ -14,6 +15,36 @@ defineEmits<{
   select: [conversationId: string]
   delete: [conversationId: string]
 }>()
+
+const PAGE_SIZE = 80
+const visibleCount = ref(PAGE_SIZE)
+const loadMoreRef = ref<HTMLDivElement>()
+const visibleConversations = computed(() => props.conversations.slice(0, visibleCount.value))
+let observer: IntersectionObserver | null = null
+
+const observeLoadMore = async () => {
+  await nextTick()
+  observer?.disconnect()
+
+  if (!loadMoreRef.value || visibleCount.value >= props.conversations.length) {
+    return
+  }
+
+  observer = new IntersectionObserver(([entry]) => {
+    if (entry?.isIntersecting) {
+      visibleCount.value = Math.min(visibleCount.value + PAGE_SIZE, props.conversations.length)
+    }
+  })
+  observer.observe(loadMoreRef.value)
+}
+
+watch(() => props.conversations.length, (length) => {
+  visibleCount.value = Math.min(Math.max(visibleCount.value, PAGE_SIZE), length || PAGE_SIZE)
+  void observeLoadMore()
+})
+watch(visibleCount, observeLoadMore)
+onMounted(observeLoadMore)
+onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
@@ -27,7 +58,7 @@ defineEmits<{
     </template>
     <template v-else-if="conversations.length">
       <ConversationListItem
-        v-for="conversation in conversations"
+        v-for="conversation in visibleConversations"
         :key="conversation.id"
         :conversation="conversation"
         :active="conversation.id === activeConversationId"
@@ -36,6 +67,7 @@ defineEmits<{
         @delete="$emit('delete', $event)"
         @select="$emit('select', $event)"
       />
+      <div v-if="visibleCount < conversations.length" ref="loadMoreRef" class="h-px" />
     </template>
     <div
       v-else

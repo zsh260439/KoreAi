@@ -36,7 +36,6 @@ const promptBoxRef = ref<InstanceType<typeof WorkspacePromptBox> | null>(null)
 const autoScroll = useAutoScroll()
 const {
   stickToBottom,
-  forceStickToBottom,
   startForceStickToBottom,
   stopForceStickToBottom,
   updateStickToBottom,
@@ -46,9 +45,6 @@ const {
 const activeConversation = conversationList.activeConversation
 const activeContentList = workspaceChat.activeContentList
 const hasContent = computed(() => activeContentList.value.length > 0)
-const showConversationHydrating = computed(
-  () => hasContent.value && forceStickToBottom.value && !messagesLoading.value
-)
 const activeConversationId = conversationList.activeConversationId
 const conversationListLoading = conversationList.isLoading
 const conversationListError = conversationList.error
@@ -100,14 +96,6 @@ const isConversationStreaming = (conversationId: string) =>
   workspaceChat.isConversationStreaming(conversationId)
 
 watch(
-  activeContentList,
-  async () => {
-    await scrollMessagesToBottom()
-  },
-  { deep: true }
-)
-
-watch(
   rewriteEnabled,
   (value) => {
     if (currentPromptCapabilities.value.rewrite === value) {
@@ -135,12 +123,14 @@ watch(
 )
 
 const handleConversationSelect = async (conversationId: string) => {
+  if (conversationId === activeConversationId.value) {
+    return
+  }
+
   conversationList.selectConversation(conversationId)
   startForceStickToBottom()
-  await workspaceChat.loadConversationMessages(conversationId)
   composerValue.value = ''
   await router.push(`/workspace/${conversationId}`)
-  await scrollMessagesToBottom(true)
 }
 
 const handleConversationDelete = async (conversationId: string) => {
@@ -150,6 +140,7 @@ const handleConversationDelete = async (conversationId: string) => {
 
   const deletingActiveConversation = conversationId === activeConversationId.value
   await conversationList.deleteConversation(conversationId)
+  workspaceChat.removeConversationMessages(conversationId)
 
   if (deletingActiveConversation) {
     composerValue.value = ''
@@ -162,7 +153,6 @@ const handleCreateConversation = async () => {
   const conversation = await conversationList.createConversation()
   composerValue.value = ''
   await router.push(`/workspace/${conversation.id}`)
-  await scrollMessagesToBottom(true)
 }
 
 const handleSend = async (payload: {
@@ -303,7 +293,7 @@ onMounted(async () => {
             class="h-full overflow-y-auto bg-white"
             @scroll="updateStickToBottom"
           >
-            <div class="mx-auto w-full max-w-[920px] px-6 py-8">
+            <div :ref="autoScroll.contentRef" class="mx-auto w-full max-w-[920px] px-6 py-8">
               <template v-if="conversationListLoading || messagesLoading">
                 <div class="space-y-8">
                   <div v-for="item in 6" :key="item" class="space-y-4">
@@ -333,33 +323,12 @@ onMounted(async () => {
               </template>
 
               <template v-else-if="hasContent">
-                <div class="relative">
-                  <div :class="showConversationHydrating ? 'invisible' : ''">
-                    <ContentList
-                      :content-list="activeContentList"
-                      :regenerating="regenerating"
-                      @edit="handleEditMessage"
-                      @regenerate="handleRegenerate"
-                    />
-                  </div>
-
-                  <div
-                    class="absolute inset-0 bg-white transition-opacity duration-200"
-                    :class="showConversationHydrating ? 'opacity-100' : 'pointer-events-none opacity-0'"
-                  >
-                    <div class="space-y-8">
-                      <div v-for="item in 6" :key="item" class="space-y-4">
-                        <div class="h-5 w-5 rounded-full bg-[#f3f4f6]" />
-                        <div class="space-y-2">
-                          <div class="h-4 w-full rounded bg-[#f3f4f6]" />
-                          <div class="h-4 w-[92%] rounded bg-[#f3f4f6]" />
-                          <div class="h-4 w-[74%] rounded bg-[#f3f4f6]" />
-                          <div class="h-4 w-[58%] rounded bg-[#f8fafc]" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ContentList
+                  :content-list="activeContentList"
+                  :regenerating="regenerating"
+                  @edit="handleEditMessage"
+                  @regenerate="handleRegenerate"
+                />
               </template>
 
               <template v-else>

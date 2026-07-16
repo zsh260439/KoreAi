@@ -36,6 +36,14 @@ docs/
 .venv-ragas/
 apps/server/tsconfig.tsbuildinfo
 scripts/ragas_eval/*
+scripts/document_ingestion_eval/generated_complex_corpus/
+scripts/document_ingestion_eval/*_report.json
+scripts/document_ingestion_eval/*_progress.json
+scripts/document_ingestion_eval/*.py
+scripts/document_ingestion_eval/__pycache__/
+apps/server/storage/knowledge-documents/
 AGENTS.md
 MEMORY.md
 PRODUCT.md
+PRD.md
+Tech-Spec.md

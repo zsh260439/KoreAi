@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { resolve } from 'node:path'
 
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
@@ -11,7 +12,10 @@ import { WorkspaceModule } from './modules/workspace/workspace.module'
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env']
+      envFilePath: [
+        resolve(__dirname, '../.env.local'),
+        resolve(__dirname, '../.env')
+      ]
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',

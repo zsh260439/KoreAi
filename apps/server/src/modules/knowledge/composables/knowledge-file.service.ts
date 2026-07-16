@@ -35,6 +35,14 @@ export class KnowledgeFileService {
     if (!SUPPORTED_KNOWLEDGE_DOCUMENT_TYPES.has(fileType)) {
       throw new BadRequestException('Only txt, md, docx and pdf files are supported')
     }
+
+    if (fileType === 'pdf' && !file.buffer.subarray(0, 5).equals(Buffer.from('%PDF-'))) {
+      throw new BadRequestException('文件内容不是有效的 PDF，请检查文件格式或扩展名')
+    }
+
+    if (fileType === 'docx' && !file.buffer.subarray(0, 2).equals(Buffer.from('PK'))) {
+      throw new BadRequestException('文件内容不是有效的 DOCX，请检查文件格式或扩展名')
+    }
   }
 
   //声明上传文件落盘

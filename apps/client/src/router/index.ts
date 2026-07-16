@@ -66,6 +66,19 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
+        path: 'traces',
+        name: 'admin-traces',
+        component: () => import('@/views/admin/traces/index.vue'),
+        meta: {
+          appShell: 'admin',
+          title: 'Trace 链路',
+          requiresAuth: false,
+          navGroup: '导航',
+          navKey: 'traces',
+          breadcrumb: ['首页', 'Trace 链路']
+        }
+      },
+      {
         path: 'knowledge/:kbId',
         name: 'admin-knowledge-documents',
         component: () => import('@/views/admin/knowledge/documents.vue'),

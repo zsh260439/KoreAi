@@ -26,6 +26,7 @@ export interface ParsedDocument {
   sourceKind: 'text' | 'pdf-copyable' | 'pdf-complex' | 'pdf-visual' | 'pdf-ocr'
   blocks: StructuredBlock[]
   rawContent: string
+  ocr?: DocumentOcrSummary
 }
 
 export type DocumentOcrImageInput = {
@@ -34,8 +35,21 @@ export type DocumentOcrImageInput = {
   sourceName: string
 }
 
+export type DocumentOcrResult = {
+  status: 'success' | 'not_configured' | 'failed' | 'empty' | 'limit_reached'
+  text?: string
+  message?: string
+}
+
+export type DocumentOcrSummary = {
+  status: DocumentOcrResult['status']
+  attemptedPages: number
+  recognizedPages: number
+  message?: string
+}
+
 export type ParseKnowledgeDocumentOptions = {
-  ocrImage?: (image: DocumentOcrImageInput) => Promise<string | null>
+  ocrImage?: (image: DocumentOcrImageInput) => Promise<DocumentOcrResult>
 }
 
 //声明 docx 样式定义结构。
@@ -317,63 +331,57 @@ async function parseDocxDocument(buffer: Buffer, options: ParseKnowledgeDocument
 //声明 pdf 文档解析逻辑。
 async function parsePdfDocument(buffer: Buffer, options: ParseKnowledgeDocumentOptions): Promise<ParsedDocument> {
   const parser = new PDFParse({ data: buffer })
-  const textResult = await parser.getText()
-
-  const pages = textResult.pages
-    .map((page) => ({
+  try {
+    const textResult = await parser.getText()
+    const pages = textResult.pages.map((page) => ({
       pageNumber: page.num,
       content: String(page.text || '').trim()
     }))
-    .filter((page) => page.content.length > 0)
+    const textPages = pages.filter((page) => hasPdfPageText(page.content))
+    const emptyPageNumbers = pages
+      .filter((page) => !hasPdfPageText(page.content))
+      .map((page) => page.pageNumber)
+    const ocrResult = await parsePdfPagesWithOcr(parser, options, emptyPageNumbers)
+    const pageBlocks = new Map<number, StructuredBlock[]>()
 
-  if (!textResult.text.trim() || pages.length === 0) {
-    const ocrBlocks = await parsePdfPagesWithOcr(parser, options)
-    await parser.destroy()
+    for (const page of textPages) {
+      pageBlocks.set(page.pageNumber, splitPdfPageToBlocks(page.content, page.pageNumber))
+    }
 
-    if (ocrBlocks.length > 0) {
-      const blocks: StructuredBlock[] = []
-      const rawParts: string[] = []
-      let rawOffset = 0
-
-      for (const block of ocrBlocks) {
-        rawOffset = pushStructuredBlock(blocks, rawParts, rawOffset, block)
+    for (const block of ocrResult.blocks) {
+      if (typeof block.pageNumber === 'number') {
+        pageBlocks.set(block.pageNumber, [block])
       }
+    }
 
-      return {
-        fileType: 'pdf',
-        sourceKind: 'pdf-ocr',
-        rawContent: rawParts.join('\n\n').trim(),
-        blocks
+    const blocks: StructuredBlock[] = []
+    const rawParts: string[] = []
+    let rawOffset = 0
+
+    for (const page of pages) {
+      for (const block of pageBlocks.get(page.pageNumber) ?? []) {
+        rawOffset = pushStructuredBlock(blocks, rawParts, rawOffset, block)
       }
     }
 
     return {
       fileType: 'pdf',
-      sourceKind: 'pdf-visual',
-      rawContent: '',
-      blocks: []
+      sourceKind: ocrResult.summary.recognizedPages > 0
+        ? 'pdf-ocr'
+        : textPages.length > 0
+          ? detectPdfSourceKind(textPages.map((page) => page.content))
+          : 'pdf-visual',
+      rawContent: rawParts.join('\n\n').trim(),
+      blocks,
+      ocr: emptyPageNumbers.length > 0 ? ocrResult.summary : undefined
     }
+  } finally {
+    await parser.destroy()
   }
+}
 
-  const sourceKind = detectPdfSourceKind(pages.map((page) => page.content))
-  const blocks: StructuredBlock[] = []
-  const rawParts: string[] = []
-  let rawOffset = 0
-
-  for (const page of pages) {
-    for (const block of splitPdfPageToBlocks(page.content, page.pageNumber)) {
-      rawOffset = pushStructuredBlock(blocks, rawParts, rawOffset, block)
-    }
-  }
-
-  await parser.destroy()
-
-  return {
-    fileType: 'pdf',
-    sourceKind,
-    rawContent: rawParts.join('\n\n').trim(),
-    blocks
-  }
+function hasPdfPageText(content: string): boolean {
+  return content.replace(/\s+/g, '').length > 0
 }
 
 //声明 Markdown 文本提取逻辑。
@@ -1095,33 +1103,50 @@ function getAttributeValue(element: Element | null, attributeName: string): stri
 
 async function parsePdfPagesWithOcr(
   parser: PDFParse,
-  options: ParseKnowledgeDocumentOptions
-): Promise<StructuredBlock[]> {
+  options: ParseKnowledgeDocumentOptions,
+  pageNumbers: number[]
+): Promise<{ blocks: StructuredBlock[]; summary: DocumentOcrSummary }> {
+  if (pageNumbers.length === 0) {
+    return {
+      blocks: [],
+      summary: { status: 'empty', attemptedPages: 0, recognizedPages: 0 }
+    }
+  }
+
   if (!options.ocrImage) {
-    return []
+    return {
+      blocks: [],
+      summary: { status: 'not_configured', attemptedPages: 0, recognizedPages: 0 }
+    }
   }
 
   const screenshotResult = await parser.getScreenshot({
+    partial: pageNumbers,
     desiredWidth: 1600,
     imageBuffer: true,
     imageDataUrl: false
   })
   const blocks: StructuredBlock[] = []
+  const results: DocumentOcrResult[] = []
 
   for (const page of screenshotResult.pages) {
-    const text = await options.ocrImage({
+    const result = await options.ocrImage({
       buffer: Buffer.from(page.data),
       mimeType: 'image/png',
       sourceName: `pdf page ${page.pageNumber}`
     })
+    results.push(result)
 
-    if (!text) {
+    if (result.status !== 'success' || !result.text) {
+      if (result.status === 'not_configured' || result.status === 'limit_reached') {
+        break
+      }
       continue
     }
 
     blocks.push({
       blockType: 'ocr_page',
-      content: text,
+      content: result.text,
       pageNumber: page.pageNumber,
       sectionPath: [`第 ${page.pageNumber} 页`],
       metadata: {
@@ -1134,7 +1159,16 @@ async function parsePdfPagesWithOcr(
     })
   }
 
-  return blocks
+  const failedResult = results.find((result) => result.status !== 'success')
+  return {
+    blocks,
+    summary: {
+      status: blocks.length > 0 ? 'success' : failedResult?.status ?? 'empty',
+      attemptedPages: results.length,
+      recognizedPages: blocks.length,
+      message: failedResult?.message
+    }
+  }
 }
 
 async function appendDocxImageOcrBlocks(
@@ -1188,13 +1222,13 @@ async function appendDocxImageOcrBlock(
 
   context.processedImagePaths.add(imagePath)
   const imageBuffer = await entry.async('nodebuffer')
-  const text = await options.ocrImage({
+  const result = await options.ocrImage({
     buffer: imageBuffer,
     mimeType: resolveImageMimeType(imagePath),
     sourceName: imagePath
   })
 
-  if (!text) {
+  if (result.status !== 'success' || !result.text) {
     return
   }
 
@@ -1204,7 +1238,7 @@ async function appendDocxImageOcrBlock(
     context.rawOffset,
     {
       blockType: 'ocr_image',
-      content: text,
+      content: result.text,
       sectionPath: context.headingStack.filter(Boolean),
       metadata: {
         ocr: true,

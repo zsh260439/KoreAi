@@ -8,6 +8,7 @@ import { adminNavItems } from '@/config/navigation'
 
 const route = useRoute()
 const router = useRouter()
+const isTraceRoute = computed(() => route.path === '/admin/traces')
 
 type BreadcrumbItem = {
   label: string
@@ -18,7 +19,8 @@ type BreadcrumbItem = {
 const breadcrumbPathMap: Record<string, string> = {
   首页: '/admin/knowledge',
   知识库管理: '/admin/knowledge',
-  检索参数: '/admin/knowledge-settings'
+  检索参数: '/admin/knowledge-settings',
+  'Trace 链路': '/admin/traces'
 }
 
 //声明文档管理页路径生成
@@ -63,10 +65,16 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
         :items="adminNavItems"
       />
 
-      <div class="admin-layout__content flex min-h-screen flex-1 flex-col">
+      <div
+        class="admin-layout__content flex min-h-screen flex-1 flex-col"
+        :class="{ 'admin-layout__content--trace': isTraceRoute }"
+      >
         <AdminTopbar @open-chat="router.push('/workspace')" />
 
-        <div class="admin-layout__body mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
+        <div
+          class="admin-layout__body mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8"
+          :class="{ 'admin-layout__body--trace': isTraceRoute }"
+        >
           <nav class="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500" aria-label="面包屑">
             <span
               v-for="(item, index) in breadcrumbs"
@@ -106,5 +114,25 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
   background:
     radial-gradient(circle at 10% 4%, rgba(15, 118, 110, 0.05), transparent 24%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+}
+
+@media (min-width: 761px) {
+  .admin-layout__content--trace {
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: hidden;
+  }
+
+  .admin-layout__body--trace {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .admin-layout__body--trace :deep(.trace-page) {
+    min-height: 0;
+    flex: 1;
+  }
 }
 </style>

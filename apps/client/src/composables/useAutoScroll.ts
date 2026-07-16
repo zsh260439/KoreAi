@@ -4,16 +4,14 @@ const FORCE_STICK_SETTLE_MS = 100
 
 export const useAutoScroll = (threshold = 32) => {
   const messagesRef = ref<HTMLDivElement>()
+  const contentRef = ref<HTMLDivElement>()
   const stickToBottom = ref(true)
   const forceStickToBottom = ref(false)
 
-  let observer: MutationObserver | null = null
   let resizeObserver: ResizeObserver | null = null
   let settleTimer: number | null = null
 
   const stopObserveContainer = () => {
-    observer?.disconnect()
-    observer = null
     resizeObserver?.disconnect()
     resizeObserver = null
   }
@@ -63,33 +61,17 @@ export const useAutoScroll = (threshold = 32) => {
     })
   }
 
-  const observeContainer = (container?: HTMLDivElement) => {
+  const observeContent = (content?: HTMLDivElement) => {
     stopObserveContainer()
 
-    if (!container) {
+    if (!content) {
       return
     }
-
-    observer = new MutationObserver(() => {
-      syncFollowPosition()
-    })
-
-    observer.observe(container, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    })
 
     resizeObserver = new ResizeObserver(() => {
       syncFollowPosition()
     })
-
-    resizeObserver.observe(container)
-
-    const contentElement = container.firstElementChild
-    if (contentElement) {
-      resizeObserver.observe(contentElement)
-    }
+    resizeObserver.observe(content)
   }
 
   const updateStickToBottom = () => {
@@ -137,8 +119,8 @@ export const useAutoScroll = (threshold = 32) => {
     stopSettleTimer()
   }
 
-  watch(messagesRef, (container) => {
-    observeContainer(container)
+  watch(contentRef, (content) => {
+    observeContent(content)
   })
 
   onBeforeUnmount(() => {
@@ -148,6 +130,7 @@ export const useAutoScroll = (threshold = 32) => {
 
   return {
     messagesRef,
+    contentRef,
     stickToBottom,
     forceStickToBottom,
     startForceStickToBottom,

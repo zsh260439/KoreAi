@@ -1,28 +1,27 @@
+import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
 import {
   createWorkspaceConversationAPI,
-  deleteWorkspaceConversationAPI,
-  findWorkspaceConversationsAPI
+  deleteWorkspaceConversationAPI
 } from '@/servers/workspace'
 import type { WorkspaceConversationSummary } from 'share-type'
+import { useWorkspaceCacheStore } from '@/stores/workspace-cache'
 
-const conversations = ref<WorkspaceConversationSummary[]>([])
 const activeConversationId = ref('')
-const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 export function useConversationList() {
+  const cache = useWorkspaceCacheStore()
+  const { conversations, conversationsLoading: isLoading } = storeToRefs(cache)
   const activeConversation = computed(
     () => conversations.value.find((item) => item.id === activeConversationId.value) ?? null
   )
 
   const loadConversationList = async () => {
-    isLoading.value = true
     error.value = null
 
     try {
-      const response = await findWorkspaceConversationsAPI()
-      conversations.value = response.data
+      await cache.loadConversations()
 
       if (
         activeConversationId.value &&
@@ -34,10 +33,7 @@ export function useConversationList() {
       return conversations.value
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '加载会话列表失败'
-      conversations.value = []
-      return []
-    } finally {
-      isLoading.value = false
+      return conversations.value
     }
   }
 
@@ -48,21 +44,19 @@ export function useConversationList() {
   const createConversation = async (title = '新对话') => {
     const response = await createWorkspaceConversationAPI({ title })
     const conversation = response.data
-    upsertConversation(conversation)
+    cache.upsertConversation(conversation)
+    cache.setConversationMessages(conversation.id, [])
     activeConversationId.value = conversation.id
     return conversation
   }
 
   const upsertConversation = (conversation: WorkspaceConversationSummary) => {
-    conversations.value = [
-      conversation,
-      ...conversations.value.filter((item) => item.id !== conversation.id)
-    ]
+    cache.upsertConversation(conversation)
   }
 
   const deleteConversation = async (conversationId: string) => {
     await deleteWorkspaceConversationAPI(conversationId)
-    conversations.value = conversations.value.filter((item) => item.id !== conversationId)
+    cache.removeConversation(conversationId)
 
     if (activeConversationId.value === conversationId) {
       activeConversationId.value = ''
