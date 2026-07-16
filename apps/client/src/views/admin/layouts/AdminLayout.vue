@@ -15,7 +15,6 @@ type BreadcrumbItem = {
   to?: string
 }
 
-//声明面包屑固定跳转映射
 const breadcrumbPathMap: Record<string, string> = {
   首页: '/admin/knowledge',
   知识库管理: '/admin/knowledge',
@@ -23,13 +22,11 @@ const breadcrumbPathMap: Record<string, string> = {
   'Trace 链路': '/admin/traces'
 }
 
-//声明文档管理页路径生成
 const getKnowledgeDocumentsPath = () => {
   const kbId = typeof route.params.kbId === 'string' ? route.params.kbId : ''
   return kbId ? `/admin/knowledge/${kbId}` : '/admin/knowledge'
 }
 
-//声明面包屑跳转路径解析
 const resolveBreadcrumbPath = (label: string, isLast: boolean) => {
   if (isLast) {
     return undefined
@@ -42,7 +39,6 @@ const resolveBreadcrumbPath = (label: string, isLast: boolean) => {
   return breadcrumbPathMap[label]
 }
 
-//声明面包屑列表生成
 const breadcrumbs = computed<BreadcrumbItem[]>(() => {
   const labels =
     Array.isArray(route.meta.breadcrumb) && route.meta.breadcrumb.length

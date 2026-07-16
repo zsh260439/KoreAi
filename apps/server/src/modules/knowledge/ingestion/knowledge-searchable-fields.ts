@@ -1,4 +1,4 @@
-import type {KnowledgeDocumentEntity} from '../entity/knowledge-document.entity'
+import type { KnowledgeDocumentEntity } from '../entity/knowledge-document.entity'
 import type { ParsedDocument, StructuredBlock } from './knowledge-document.parser'
 
 export type KnowledgeChunkSearchableFields = {

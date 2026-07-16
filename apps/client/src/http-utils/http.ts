@@ -23,7 +23,7 @@ const httpInstance = axios.create({
 httpInstance.interceptors.response.use(
   (response) => response.data,
   (error: unknown) => {
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<{ message?: unknown }>(error)) {
       const responseMessage = error.response?.data?.message
       if (typeof responseMessage === 'string' && responseMessage.trim()) {
         return Promise.reject(new Error(responseMessage))
@@ -43,7 +43,7 @@ const baseRequest = <T>(
   submitData?: SubmitData,
   config?: AxiosRequestConfig
 ) => {
-  return http.request<any, ApiResponse<T>>({
+  return http.request<ApiResponse<T>, ApiResponse<T>>({
     ...config,
     url,
     method,

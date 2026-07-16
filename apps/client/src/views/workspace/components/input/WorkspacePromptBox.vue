@@ -7,7 +7,6 @@ import type { WorkspacePromptCapabilities } from 'share-type'
 
 const ALL_KNOWLEDGE_BASES_VALUE = '__all__'
 
-// 声明输入框提交载荷
 type PromptSubmitPayload = {
   message: string
   capabilities: WorkspacePromptCapabilities

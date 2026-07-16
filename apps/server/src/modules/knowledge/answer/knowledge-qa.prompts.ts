@@ -1,7 +1,6 @@
 import type { KnowledgeSearchHit } from 'share-type'
-import type { KnowledgeEvidenceFact } from './knowledge-evidence-fact-extractor'
+import type { KnowledgeEvidenceFact } from '../evidence/knowledge-evidence-fact-extractor'
 
-//声明流式知识问答系统提示词构造器
 export function buildKnowledgeQaStreamingSystemPrompt(
   hasKnowledge: boolean,
   evidenceGateStatus: 'pass' | 'degraded' | 'blocked' = 'pass'
@@ -34,7 +33,6 @@ export function buildKnowledgeQaStreamingSystemPrompt(
   return baseInstructions.join('\n')
 }
 
-//声明流式知识问答用户提示词构造器
 export function buildKnowledgeQaStreamingUserPrompt(
   query: string,
   hits: KnowledgeSearchHit[],
@@ -103,7 +101,6 @@ export function buildKnowledgeQaStreamingUserPrompt(
   ].join('\n\n')
 }
 
-//声明知识问答上下文文本构造器
 function buildKnowledgeQaContext(
   hits: KnowledgeSearchHit[],
   facts: KnowledgeEvidenceFact[]

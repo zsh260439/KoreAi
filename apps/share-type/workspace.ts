@@ -19,7 +19,6 @@ export interface WorkspaceConversationSummary {
   model: string | null
 }
 
-// 声明工作台消息结构，召回命中与召回调试信息分开保存，避免把同一份 debug 重复塞进每条 hit。
 export interface WorkspaceMessage {
   id: string
   conversationId: string
@@ -48,7 +47,6 @@ export interface WorkspaceChatInput {
   regenerate?: boolean
 }
 
-// 声明工作台问答结果结构，前端完成态和历史回放都复用这一份返回体。
 export interface WorkspaceChatResult {
   answer: string
   sources: KnowledgeSearchHit[]
@@ -69,7 +67,6 @@ export interface WorkspaceRunStage {
   status: 'running' | 'done'
 }
 
-// 声明工作台流式事件结构，sources 事件同时携带命中结果与本次检索 debug，便于聊天页做可解释展示。
 export type WorkspaceChatStreamEvent =
   | {
       type: 'stage_started'

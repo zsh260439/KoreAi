@@ -35,6 +35,7 @@ docs/
 # local evaluation artifacts
 .venv-ragas/
 apps/server/tsconfig.tsbuildinfo
+*.tsbuildinfo
 scripts/ragas_eval/*
 scripts/document_ingestion_eval/generated_complex_corpus/
 scripts/document_ingestion_eval/*_report.json
@@ -42,6 +43,8 @@ scripts/document_ingestion_eval/*_progress.json
 scripts/document_ingestion_eval/*.py
 scripts/document_ingestion_eval/__pycache__/
 apps/server/storage/knowledge-documents/
+apps/server/storage/mineru-debug/
+storage/mineru-debug/
 AGENTS.md
 MEMORY.md
 PRODUCT.md

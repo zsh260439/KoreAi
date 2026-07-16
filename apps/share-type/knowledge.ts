@@ -31,6 +31,13 @@ export interface StructureAwareChunkConfig {
   overlapChars: number
 }
 
+export const DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG: StructureAwareChunkConfig = {
+  targetChars: 1400,
+  maxChars: 1800,
+  minChars: 600,
+  overlapChars: 0
+}
+
 export type KnowledgeQaDeltaEvent =
   | {
       /** 推理过程增量，用于 workspace 思考面板流式展示。 */
@@ -45,7 +52,6 @@ export type KnowledgeQaDeltaEvent =
       delta: string
     }
 
-// 声明知识库级召回运行配置，所有影响召回行为的关键参数统一收口在这里。
 export interface KnowledgeBaseRetrievalRuntimeConfig {
   /** Admin 命中测试默认返回的 chunk 数。 */
   previewTopK: number
@@ -67,13 +73,11 @@ export interface KnowledgeBaseRetrievalRuntimeConfig {
   queryAnalysisTemperature: number
 }
 
-// 声明回答阶段运行配置，当前先暴露最关键的 temperature。
 export interface KnowledgeBaseAnswerRuntimeConfig {
   /** 回答模型温度，控制最终答案生成的发散程度。 */
   temperature: number
 }
 
-// 声明完整运行配置，前后端都以它作为单一事实来源。
 export interface KnowledgeBaseRuntimeConfig {
   /** 召回阶段运行配置。 */
   retrieval: KnowledgeBaseRetrievalRuntimeConfig
@@ -81,15 +85,12 @@ export interface KnowledgeBaseRuntimeConfig {
   answer: KnowledgeBaseAnswerRuntimeConfig
 }
 
-// 声明召回配置补丁，允许 admin 按字段局部更新。
 export interface KnowledgeBaseRetrievalRuntimeConfigPatch
   extends Partial<KnowledgeBaseRetrievalRuntimeConfig> {}
 
-// 声明回答配置补丁，便于只更新单个生成参数。
 export interface KnowledgeBaseAnswerRuntimeConfigPatch
   extends Partial<KnowledgeBaseAnswerRuntimeConfig> {}
 
-// 声明运行配置补丁，作为更新接口的真实输入契约。
 export interface KnowledgeBaseRuntimeConfigPatch {
   /** 局部更新召回配置；未传字段保持原值。 */
   retrieval?: KnowledgeBaseRetrievalRuntimeConfigPatch
@@ -106,7 +107,6 @@ export interface KnowledgeGlobalRuntimeSettings {
   updatedAt: string | null
 }
 
-// 声明共享默认配置，前后端恢复默认值都复用它，避免各自维护常量。
 export const DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG: KnowledgeBaseRuntimeConfig = {
   retrieval: {
     previewTopK: 20,
@@ -123,6 +123,18 @@ export const DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG: KnowledgeBaseRuntimeConfig =
     temperature: 0
   }
 }
+
+export const KNOWLEDGE_RUNTIME_CONFIG_LIMITS = {
+  previewTopK: { min: 1, max: 50 },
+  workspaceTopK: { min: 1, max: 12 },
+  candidateMultiplier: { min: 1, max: 12 },
+  minCandidateLimit: { min: 1, max: 200 },
+  maxCandidateLimit: { min: 1, max: 400 },
+  bm25Weight: { min: 0.2, max: 3 },
+  vectorWeight: { min: 0.2, max: 3 },
+  queryAnalysisTemperature: { min: 0, max: 2 },
+  answerTemperature: { min: 0, max: 2 }
+} as const
 
 export interface CreateKnowledgeBaseInput {
   /** 知识库名称。 */
@@ -197,7 +209,6 @@ export interface KnowledgeDocument {
   updatedAt: string
 }
 
-// 声明分块内部 block 结构，便于调试和详情页按块展示。
 export interface KnowledgeChunkBlock {
   /** 原始内容块类型，例如标题、段落、表格等。 */
   blockType: string
@@ -219,7 +230,6 @@ export interface KnowledgeChunkBlock {
   metadata?: Record<string, unknown> | null
 }
 
-// 声明分块元数据结构，承接分块详情和检索调试信息。
 export interface KnowledgeChunkMetadata {
   /** 所属知识库 ID。 */
   knowledgeBaseId: string
@@ -231,6 +241,10 @@ export interface KnowledgeChunkMetadata {
   fileType?: string
   /** 内容来源类型或解析来源。 */
   sourceKind?: string
+  parser?: {
+    engine: 'native' | 'mineru'
+    reasons: string[]
+  }
   /** chunk 内包含的 block 类型集合。 */
   blockTypes?: string[]
   /** chunk 覆盖的页码集合。 */
@@ -294,7 +308,6 @@ export type KnowledgeRetrievalSource =
   /** 命中来自向量语义召回。 */
   | 'vector'
 
-// 声明单次检索调试快照，前端据此展示 rewrite 和双路召回细节。
 export interface KnowledgeSearchDebugInfo {
   /** 用户输入的原始 query。 */
   originalQuery: string
@@ -356,7 +369,6 @@ export interface KnowledgeSearchDebugInfo {
   evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
 }
 
-// 声明单条命中的分数细节，避免 UI 只能看到最终融合分。
 export interface KnowledgeSearchScoreDetail {
   /** 该 chunk 由哪些召回通道命中。 */
   matchedBy: KnowledgeRetrievalSource[]
@@ -399,7 +411,6 @@ export interface KnowledgeSearchHit {
   primaryTitle?: string | null
 }
 
-// 声明搜索接口返回结构，把命中列表与调试信息拆开。
 export interface KnowledgeSearchResponse {
   /** 最终返回的命中 chunk 列表。 */
   hits: KnowledgeSearchHit[]
@@ -419,7 +430,6 @@ export type KnowledgeReasoningStepKey =
   /** Web 搜索阶段。 */
   | 'web_search'
 
-// 声明知识推理步骤结构，用于 workspace 思考面板展示。
 export interface KnowledgeReasoningStep {
   /** 推理阶段标识。 */
   stageKey: KnowledgeReasoningStepKey

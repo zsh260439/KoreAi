@@ -1,4 +1,4 @@
-import type { KnowledgeEvidenceFact } from './knowledge-evidence-fact-extractor'
+import type { KnowledgeEvidenceFact } from '../evidence/knowledge-evidence-fact-extractor'
 
 export function hasPotentialKnowledgeAnswerGap(
   query: string,

@@ -3,7 +3,7 @@ import type { KnowledgeSearchHit } from 'share-type'
 import type {
   KnowledgeQueryAnalysis,
   KnowledgeQueryEvidencePlan
-} from './knowledge-query-plan.types'
+} from '../query/knowledge-query-plan.types'
 
 const STRUCTURED_IDENTIFIER_PATTERN =
   /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,12}[-_]?\d{2,})\b/gi

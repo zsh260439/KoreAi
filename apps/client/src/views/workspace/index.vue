@@ -2,22 +2,17 @@
 import { ArrowDown, Plus, Settings2 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAutoScroll } from '@/composables/useAutoScroll'
-import { useConversationList } from '@/composables/useConversationList'
-import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
-import { useRetrievalRewritePreference } from '@/composables/useRetrievalRewritePreference'
-import { useWorkspaceChat } from '@/composables/useWorkspaceChat'
-import type { ChatMessage } from '@/types/chat/models'
+import { useKnowledgeBases } from '@/composables/knowledge/useKnowledgeBases'
+import { useRetrievalRewritePreference } from '@/composables/knowledge/useRetrievalRewritePreference'
+import { useAutoScroll } from '@/composables/workspace/useAutoScroll'
+import { useConversationList } from '@/composables/workspace/useConversationList'
+import { useWorkspaceChat } from '@/composables/workspace/useWorkspaceChat'
+import type { EditableUserMessage } from '@/types/chat/models'
 import type { WorkspacePromptCapabilities } from 'share-type'
 import ContentList from './components/content/ContentList.vue'
 import WorkspacePromptBox from './components/input/WorkspacePromptBox.vue'
 import MessageList from './components/sidebar/MessageList.vue'
 import WorkspaceSidebarBrand from './components/sidebar/WorkspaceSidebarBrand.vue'
-
-type EditableUserMessage = {
-  message: ChatMessage
-  promptCapabilities: WorkspacePromptCapabilities
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -331,9 +326,6 @@ onMounted(async () => {
                 />
               </template>
 
-              <template v-else>
-                这里以后会引入新的样式，目前占位
-              </template>
             </div>
           </div>
 

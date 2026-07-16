@@ -113,8 +113,6 @@ export const router = createRouter({
   routes
 })
 
-router.beforeEach(() => true)
-
 router.afterEach((to) => {
   const title = to.meta.title ?? 'AI Console'
   const shell = to.meta.appShell

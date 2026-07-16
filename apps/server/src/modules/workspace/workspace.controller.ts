@@ -1,46 +1,51 @@
 import { Body, Controller, Delete, Get, Param, Post, Req, Res } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type {
+  ApiResponse,
   WorkspaceChatStreamEvent,
   WorkspaceConversationSummary,
   WorkspaceMessage
 } from 'share-type'
-import { ApiResponse } from '../../common/api-response'
+import { successResponse } from '../../common/api-response'
+import { WorkspaceChatService } from './chat/workspace-chat.service'
+import { WorkspaceConversationService } from './conversation/workspace-conversation.service'
 import { CreateWorkspaceConversationDto, WorkspaceChatDto } from './dto/workspace.dto'
-import { WorkspaceService } from './workspace.service'
 
 @Controller('workspace')
 export class WorkspaceController {
-  constructor(private readonly workspaceService: WorkspaceService) {}
+  constructor(
+    private readonly conversationService: WorkspaceConversationService,
+    private readonly chatService: WorkspaceChatService
+  ) {}
 
   @Get('conversations')
   async findConversations(): Promise<ApiResponse<WorkspaceConversationSummary[]>> {
-    const data = await this.workspaceService.findConversations()
-    return ApiResponse.success(0, '\u67e5\u8be2\u6210\u529f', data)
+    const data = await this.conversationService.findConversations()
+    return successResponse(data, '查询成功')
   }
 
   @Post('conversations')
   async createConversation(
     @Body() dto: CreateWorkspaceConversationDto
   ): Promise<ApiResponse<WorkspaceConversationSummary>> {
-    const data = await this.workspaceService.createConversation(dto)
-    return ApiResponse.success(0, '\u521b\u5efa\u6210\u529f', data)
+    const data = await this.conversationService.createConversation(dto)
+    return successResponse(data, '创建成功')
   }
 
   @Get('conversations/:conversationId/messages')
   async findConversationMessages(
     @Param('conversationId') conversationId: string
   ): Promise<ApiResponse<WorkspaceMessage[]>> {
-    const data = await this.workspaceService.findConversationMessages(conversationId)
-    return ApiResponse.success(0, '\u67e5\u8be2\u6210\u529f', data)
+    const data = await this.conversationService.findConversationMessages(conversationId)
+    return successResponse(data, '查询成功')
   }
 
   @Delete('conversations/:conversationId')
   async deleteConversation(
     @Param('conversationId') conversationId: string
   ): Promise<ApiResponse<WorkspaceConversationSummary>> {
-    const data = await this.workspaceService.deleteConversation(conversationId)
-    return ApiResponse.success(0, '\u5220\u9664\u6210\u529f', data)
+    const data = await this.conversationService.deleteConversation(conversationId)
+    return successResponse(data, '删除成功')
   }
 
   @Post('chat/stream')
@@ -56,7 +61,6 @@ export class WorkspaceController {
       }
     })
 
-    //声明原生响应状态码设置
     response.statusCode = 200
     response.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8')
     response.setHeader('Cache-Control', 'no-cache, no-transform')
@@ -64,7 +68,7 @@ export class WorkspaceController {
     response.flushHeaders()
 
     try {
-      for await (const event of this.workspaceService.chatStream(dto, {
+      for await (const event of this.chatService.chatStream(dto, {
         signal: abortController.signal
       })) {
         if (abortController.signal.aborted) {

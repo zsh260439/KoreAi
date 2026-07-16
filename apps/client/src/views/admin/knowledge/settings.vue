@@ -4,10 +4,11 @@ import { RefreshCw, Save } from 'lucide-vue-next'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
+import { useKnowledgeBases } from '@/composables/knowledge/useKnowledgeBases'
 import { findGlobalRuntimeConfigAPI, updateGlobalRuntimeConfigAPI } from '@/servers/knowledge'
 import {
   DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
+  KNOWLEDGE_RUNTIME_CONFIG_LIMITS,
   type KnowledgeBaseRuntimeConfig,
   type KnowledgeGlobalRuntimeSettings
 } from 'share-type'
@@ -29,26 +30,46 @@ type RuntimeFieldRule = {
 
 const ALL_KNOWLEDGE_BASES_VALUE = '__all__'
 
-// 这里直接对齐后端 normalize 的真实范围，避免前后端各说各话。
 const runtimeFieldRules = {
-  previewTopK: { min: 1, max: 50, hint: '范围 1 - 50，控制管理台检索预览返回数量' },
-  workspaceTopK: { min: 1, max: 12, hint: '范围 1 - 12，控制问答默认参与回答与展示的 chunk 数' },
-  candidateMultiplier: { min: 1, max: 12, hint: '范围 1 - 12，按 TopK 放大候选集' },
-  minCandidateLimit: { min: 1, max: 200, hint: '范围 1 - 200，候选集最小保底数量' },
-  maxCandidateLimit: { min: 1, max: 400, hint: '范围 1 - 400，候选集最大上限数量' },
-  bm25Weight: { min: 0.2, max: 3, step: 0.1, hint: '范围 0.2 - 3.0，控制 BM25 融合权重' },
-  vectorWeight: { min: 0.2, max: 3, step: 0.1, hint: '范围 0.2 - 3.0，控制向量召回融合权重' },
-  queryAnalysisTemperature: {
-    min: 0,
-    max: 2,
+  previewTopK: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.previewTopK,
+    hint: '控制管理台检索预览返回数量'
+  },
+  workspaceTopK: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.workspaceTopK,
+    hint: '控制问答默认参与回答与展示的 chunk 数'
+  },
+  candidateMultiplier: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.candidateMultiplier,
+    hint: '按 TopK 放大候选集'
+  },
+  minCandidateLimit: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.minCandidateLimit,
+    hint: '候选集最小数量'
+  },
+  maxCandidateLimit: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.maxCandidateLimit,
+    hint: '候选集最大数量'
+  },
+  bm25Weight: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.bm25Weight,
     step: 0.1,
-    hint: '范围 0.0 - 2.0，控制 Query Analysis 温度'
+    hint: '控制 BM25 融合权重'
+  },
+  vectorWeight: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.vectorWeight,
+    step: 0.1,
+    hint: '控制向量召回融合权重'
+  },
+  queryAnalysisTemperature: {
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryAnalysisTemperature,
+    step: 0.1,
+    hint: '控制 Query Analysis 温度'
   },
   answerTemperature: {
-    min: 0,
-    max: 2,
+    ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.answerTemperature,
     step: 0.1,
-    hint: '范围 0.0 - 2.0，控制回答生成温度'
+    hint: '控制回答生成温度'
   }
 } satisfies Record<string, RuntimeFieldRule>
 
@@ -60,7 +81,6 @@ const globalRuntimeSettings = ref<KnowledgeGlobalRuntimeSettings | null>(null)
 const selectedKnowledgeBaseId = ref('')
 const saving = ref(false)
 
-// 表单只维护当前编辑态，避免直接改动列表里的响应式对象。
 const form = reactive(createRuntimeConfigState())
 
 const preferredKnowledgeBaseId = computed(() =>
@@ -84,8 +104,7 @@ const selectedSummary = computed<RuntimeScopeSummary | null>(() => {
       targetLabel: '全部知识库',
       documentCount: knowledgeBases.value.reduce((total, item) => total + item.documentCount, 0),
       updatedAt: formatDateTime(globalRuntimeSettings.value?.updatedAt),
-      description:
-        '这里维护全库搜索的默认运行参数。只有在聊天或检索中明确切到单库搜索时，才会改用单库自己的覆盖配置。'
+      description: '全库检索的默认参数。'
     }
   }
 
@@ -102,7 +121,6 @@ const selectedSummary = computed<RuntimeScopeSummary | null>(() => {
   }
 })
 
-// 根据当前选择同步表单，避免切换作用域后继续编辑旧值。
 const syncFormFromSelection = () => {
   if (isGlobalScope.value) {
     applyRuntimeConfigToForm(globalRuntimeSettings.value?.runtimeConfig)
@@ -112,65 +130,13 @@ const syncFormFromSelection = () => {
   applyRuntimeConfigToForm(selectedKnowledgeBase.value?.runtimeConfig)
 }
 
-// 恢复默认值时统一回到共享默认配置，避免前后端维护两套常量。
 const handleReset = () => {
   applyRuntimeConfigToForm(DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG)
-}
-
-// 保存前先把输入值收敛到合法区间，避免 UI 输入越界后还要靠后端兜底。
-const normalizeFormValues = () => {
-  form.retrieval.previewTopK = normalizeInteger(
-    form.retrieval.previewTopK,
-    runtimeFieldRules.previewTopK
-  )
-  form.retrieval.workspaceTopK = normalizeInteger(
-    form.retrieval.workspaceTopK,
-    runtimeFieldRules.workspaceTopK
-  )
-  form.retrieval.candidateMultiplier = normalizeInteger(
-    form.retrieval.candidateMultiplier,
-    runtimeFieldRules.candidateMultiplier
-  )
-  form.retrieval.minCandidateLimit = normalizeInteger(
-    form.retrieval.minCandidateLimit,
-    runtimeFieldRules.minCandidateLimit
-  )
-  form.retrieval.maxCandidateLimit = normalizeInteger(
-    form.retrieval.maxCandidateLimit,
-    runtimeFieldRules.maxCandidateLimit
-  )
-  form.retrieval.bm25Weight = normalizeFloat(
-    form.retrieval.bm25Weight,
-    runtimeFieldRules.bm25Weight
-  )
-  form.retrieval.vectorWeight = normalizeFloat(
-    form.retrieval.vectorWeight,
-    runtimeFieldRules.vectorWeight
-  )
-  form.retrieval.queryAnalysisTemperature = normalizeFloat(
-    form.retrieval.queryAnalysisTemperature,
-    runtimeFieldRules.queryAnalysisTemperature
-  )
-  form.answer.temperature = normalizeFloat(
-    form.answer.temperature,
-    runtimeFieldRules.answerTemperature
-  )
-
-  // 候选集上下限必须保持有效关系，否则会出现最小值大于最大值的无效配置。
-  form.retrieval.minCandidateLimit = Math.min(
-    form.retrieval.minCandidateLimit,
-    form.retrieval.maxCandidateLimit
-  )
-  form.retrieval.maxCandidateLimit = Math.max(
-    form.retrieval.maxCandidateLimit,
-    form.retrieval.minCandidateLimit
-  )
 }
 
 // 作用域切换只更新表单，不自动保存，避免刷新进入页面就隐式提交。
 const handleSave = async () => {
   saving.value = true
-  normalizeFormValues()
 
   try {
     if (isGlobalScope.value) {
@@ -301,13 +267,6 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   }
 }
 
-function normalizeInteger(value: number, rule: RuntimeFieldRule): number {
-  return Math.min(Math.max(Math.round(value), rule.min), rule.max)
-}
-
-function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
-  return Math.min(Math.max(value, rule.min), rule.max)
-}
 </script>
 
 <template>
@@ -317,9 +276,7 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
         <div>
           <p class="settings-stage__eyebrow">KNOWLEDGE RUNTIME</p>
           <h1 class="settings-stage__title">检索与问答参数</h1>
-          <p class="settings-stage__subtitle">
-            这里配置知识检索与问答链路的运行参数。全库搜索使用全局默认配置；只有明确切到单库搜索时，才会使用该知识库自己的覆盖配置。
-          </p>
+          <p class="settings-stage__subtitle">调整检索范围、候选数量与回答参数。</p>
         </div>
 
         <div class="settings-stage__actions">
@@ -425,7 +382,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 type="number"
                 :min="runtimeFieldRules.previewTopK.min"
                 :max="runtimeFieldRules.previewTopK.max"
-                @blur="form.retrieval.previewTopK = normalizeInteger(form.retrieval.previewTopK, runtimeFieldRules.previewTopK)"
               />
             </div>
             <div class="settings-field">
@@ -438,7 +394,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 type="number"
                 :min="runtimeFieldRules.workspaceTopK.min"
                 :max="runtimeFieldRules.workspaceTopK.max"
-                @blur="form.retrieval.workspaceTopK = normalizeInteger(form.retrieval.workspaceTopK, runtimeFieldRules.workspaceTopK)"
               />
             </div>
             <div class="settings-field">
@@ -451,7 +406,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 type="number"
                 :min="runtimeFieldRules.candidateMultiplier.min"
                 :max="runtimeFieldRules.candidateMultiplier.max"
-                @blur="form.retrieval.candidateMultiplier = normalizeInteger(form.retrieval.candidateMultiplier, runtimeFieldRules.candidateMultiplier)"
               />
             </div>
             <div class="settings-field">
@@ -464,7 +418,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 type="number"
                 :min="runtimeFieldRules.minCandidateLimit.min"
                 :max="runtimeFieldRules.minCandidateLimit.max"
-                @blur="form.retrieval.minCandidateLimit = normalizeInteger(form.retrieval.minCandidateLimit, runtimeFieldRules.minCandidateLimit)"
               />
             </div>
             <div class="settings-field">
@@ -477,7 +430,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 type="number"
                 :min="runtimeFieldRules.maxCandidateLimit.min"
                 :max="runtimeFieldRules.maxCandidateLimit.max"
-                @blur="form.retrieval.maxCandidateLimit = normalizeInteger(form.retrieval.maxCandidateLimit, runtimeFieldRules.maxCandidateLimit)"
               />
             </div>
             <div class="settings-field settings-field--switch">
@@ -498,7 +450,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 :min="runtimeFieldRules.bm25Weight.min"
                 :max="runtimeFieldRules.bm25Weight.max"
                 :step="runtimeFieldRules.bm25Weight.step"
-                @blur="form.retrieval.bm25Weight = normalizeFloat(form.retrieval.bm25Weight, runtimeFieldRules.bm25Weight)"
               />
             </div>
             <div class="settings-field">
@@ -512,7 +463,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 :min="runtimeFieldRules.vectorWeight.min"
                 :max="runtimeFieldRules.vectorWeight.max"
                 :step="runtimeFieldRules.vectorWeight.step"
-                @blur="form.retrieval.vectorWeight = normalizeFloat(form.retrieval.vectorWeight, runtimeFieldRules.vectorWeight)"
               />
             </div>
             <div class="settings-field">
@@ -526,7 +476,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 :min="runtimeFieldRules.queryAnalysisTemperature.min"
                 :max="runtimeFieldRules.queryAnalysisTemperature.max"
                 :step="runtimeFieldRules.queryAnalysisTemperature.step"
-                @blur="form.retrieval.queryAnalysisTemperature = normalizeFloat(form.retrieval.queryAnalysisTemperature, runtimeFieldRules.queryAnalysisTemperature)"
               />
             </div>
           </div>
@@ -552,7 +501,6 @@ function normalizeFloat(value: number, rule: RuntimeFieldRule): number {
                 :min="runtimeFieldRules.answerTemperature.min"
                 :max="runtimeFieldRules.answerTemperature.max"
                 :step="runtimeFieldRules.answerTemperature.step"
-                @blur="form.answer.temperature = normalizeFloat(form.answer.temperature, runtimeFieldRules.answerTemperature)"
               />
             </div>
           </div>

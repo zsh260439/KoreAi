@@ -1,7 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import type { KnowledgeQaDeltaEvent, KnowledgeSearchDebugInfo, KnowledgeSearchHit } from 'share-type'
-import { extractKnowledgeEvidenceFacts } from './knowledge-evidence-fact-extractor'
+import { extractKnowledgeEvidenceFacts } from '../evidence/knowledge-evidence-fact-extractor'
 import {
   hasPotentialKnowledgeAnswerGap,
   selectMoreCompleteKnowledgeAnswer

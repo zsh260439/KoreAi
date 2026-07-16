@@ -4,8 +4,8 @@ import { ChevronLeft, RefreshCw } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
-import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
+import { useKnowledgeChunks } from '@/composables/knowledge/useKnowledgeChunks'
+import { useKnowledgeDocuments } from '@/composables/knowledge/useKnowledgeDocuments'
 import type { KnowledgeChunk, KnowledgeChunkBlock, KnowledgeChunkMetadata } from 'share-type'
 
 const route = useRoute()
@@ -14,19 +14,15 @@ const router = useRouter()
 const { currentDocument, loadKnowledgeDocument } = useKnowledgeDocuments()
 const { chunks, loadKnowledgeChunks, rebuildKnowledgeChunks } = useKnowledgeChunks()
 
-//声明知识库标识读取
 const kbId = computed(() => String(route.params.kbId || ''))
 
-//声明文档标识读取
 const docId = computed(() => String(route.params.docId || ''))
 
-//声明命中分块标识读取
 const highlightedChunkId = computed(() => {
   const value = route.query.chunkId
   return typeof value === 'string' ? value : ''
 })
 
-//声明搜索文本读取
 const searchText = computed(() => {
   const value = route.query.text
   return typeof value === 'string' ? value.trim() : ''
@@ -35,13 +31,10 @@ const searchText = computed(() => {
 const contentDialogOpen = ref(false)
 const activeChunk = ref<KnowledgeChunk | null>(null)
 
-//声明当前弹窗分块结构块列表
 const activeChunkBlocks = computed(() => getChunkBlocks(activeChunk.value))
 
-//声明当前弹窗是否存在结构块
 const activeChunkHasBlocks = computed(() => activeChunkBlocks.value.length > 0)
 
-//声明当前弹窗审阅提示文案
 const activeChunkReviewHint = computed(() => {
   if (activeChunkHasBlocks.value) {
     return '当前 chunk 包含结构化 block，适合直接检查切分边界、章节路径和附加元数据。'
@@ -50,7 +43,6 @@ const activeChunkReviewHint = computed(() => {
   return '当前 chunk 没有结构化 block 数据，页面只展示基础 chunk 信息。'
 })
 
-//声明当前弹窗概览信息
 const activeChunkFacts = computed(() => {
   if (!activeChunk.value) {
     return []
@@ -76,7 +68,6 @@ const activeChunkFacts = computed(() => {
   ]
 })
 
-//声明页面顶部文档概览信息
 const documentFacts = computed(() => [
   {
     label: '文档状态',
@@ -96,7 +87,6 @@ const documentFacts = computed(() => [
   }
 ])
 
-//声明表格说明文案
 const tableCaption = computed(() => {
   if (highlightedChunkId.value) {
     return '当前列表已自动定位到搜索命中的 chunk，便于直接检查召回质量和结构切分结果。'
@@ -105,7 +95,6 @@ const tableCaption = computed(() => {
   return '列表按 chunk 顺序展示，重点保留结构路径、偏移范围、页码和 block 类型，方便逐条 review。'
 })
 
-//声明重新分块处理
 const rebuildChunks = async () => {
   try {
     const rebuiltChunks = await rebuildKnowledgeChunks(docId.value)
@@ -130,6 +119,10 @@ function getDocumentParseLabel(items: KnowledgeChunk[]): string {
   const sourceKinds = new Set(items.map((item) => item.metadata?.sourceKind).filter(Boolean))
   const ocrPageCount = getOcrPageNumbers(items).length
 
+  if (sourceKinds.has('pdf-mineru')) {
+    return 'MinerU'
+  }
+
   if (ocrPageCount > 0 || sourceKinds.has('pdf-ocr')) {
     return `OCR · ${ocrPageCount} 页`
   }
@@ -151,17 +144,14 @@ function getOcrPageNumbers(items: KnowledgeChunk[]): number[] {
   ))
 }
 
-//声明刷新处理
 const handleRefresh = async () => {
   await loadKnowledgeDocument(docId.value)
   await loadKnowledgeChunks(docId.value)
   await scrollToHighlightedChunk()
 }
 
-//声明命中分块高亮判断
 const isHighlightedChunk = (chunkId: string) => chunkId === highlightedChunkId.value
 
-//声明分块摘要裁剪
 const getChunkPreview = (content: string, limit = 180) => {
   const normalized = content.replace(/\s+/g, ' ').trim()
   if (normalized.length <= limit) {
@@ -171,17 +161,14 @@ const getChunkPreview = (content: string, limit = 180) => {
   return `${normalized.slice(0, limit)}...`
 }
 
-//声明分块内容弹窗打开
 const openChunkContent = (chunk: KnowledgeChunk) => {
   activeChunk.value = chunk
   contentDialogOpen.value = true
 }
 
-//声明分块表格行样式
 const getChunkRowClassName = ({ row }: { row: KnowledgeChunk }) =>
   (isHighlightedChunk(row.id) ? 'chunk-row--active' : '')
 
-//声明命中分块滚动定位
 const scrollToHighlightedChunk = async () => {
   if (!highlightedChunkId.value) {
     return
@@ -200,7 +187,6 @@ const scrollToHighlightedChunk = async () => {
   })
 }
 
-//声明文档状态文案映射
 function getDocumentStatusLabel(status?: string | null): string {
   if (status === 'indexed') {
     return '已完成'
@@ -221,7 +207,6 @@ function getDocumentStatusLabel(status?: string | null): string {
   return '-'
 }
 
-//声明文档类型文案格式化
 function formatDocumentFileType(fileType?: string | null): string {
   if (!fileType) {
     return '-'
@@ -230,22 +215,18 @@ function formatDocumentFileType(fileType?: string | null): string {
   return fileType.toUpperCase()
 }
 
-//声明分块元数据读取
 function getChunkMetadata(chunk: KnowledgeChunk | null | undefined): KnowledgeChunkMetadata | null {
   return chunk?.metadata ?? null
 }
 
-//声明分块结构块列表读取
 function getChunkBlocks(chunk: KnowledgeChunk | null | undefined): KnowledgeChunkBlock[] {
   return getChunkMetadata(chunk)?.blocks ?? []
 }
 
-//声明分块结构块数量读取
 function getChunkBlockCount(chunk: KnowledgeChunk | null | undefined): number {
   return getChunkBlocks(chunk).length
 }
 
-//声明分块主章节路径读取
 function getChunkPrimaryPath(chunk: KnowledgeChunk | null | undefined): string {
   const blocks = getChunkBlocks(chunk)
   const firstPath = blocks.find((item) => item.sectionPath.length > 0)?.sectionPath ?? []
@@ -258,13 +239,11 @@ function getChunkPrimaryPath(chunk: KnowledgeChunk | null | undefined): string {
   return formatSectionPath(metadataPath)
 }
 
-//声明分块结构类型标签读取
 function getChunkTypeLabels(chunk: KnowledgeChunk | null | undefined): string[] {
   const types = getChunkBlocks(chunk).map((item) => item.blockType)
   return Array.from(new Set(types)).slice(0, 4)
 }
 
-//声明分块结构状态文案读取
 function getChunkStructureStatus(chunk: KnowledgeChunk | null | undefined): string {
   const count = getChunkBlockCount(chunk)
   if (count > 0) {
@@ -274,12 +253,10 @@ function getChunkStructureStatus(chunk: KnowledgeChunk | null | undefined): stri
   return '无结构块元数据'
 }
 
-//声明分块查看按钮文案读取
 function getChunkInspectButtonLabel(chunk: KnowledgeChunk | null | undefined): string {
   return getChunkBlockCount(chunk) > 0 ? '查看结构' : '查看详情'
 }
 
-//声明分块偏移范围读取
 function getChunkOffsetRange(chunk: KnowledgeChunk | null | undefined): string {
   const blocks = getChunkBlocks(chunk)
   const startOffset = blocks.find((item) => typeof item.startOffset === 'number')?.startOffset
@@ -292,7 +269,6 @@ function getChunkOffsetRange(chunk: KnowledgeChunk | null | undefined): string {
   return '-'
 }
 
-//声明分块页码摘要读取
 function getChunkPageSummary(chunk: KnowledgeChunk | null | undefined): string {
   const pageNumbers = getChunkMetadata(chunk)?.pageNumbers ?? []
   if (!pageNumbers.length) {
@@ -302,7 +278,6 @@ function getChunkPageSummary(chunk: KnowledgeChunk | null | undefined): string {
   return pageNumbers.join(', ')
 }
 
-//声明结构块路径格式化
 function formatSectionPath(path: string[] | undefined): string {
   if (!path?.length) {
     return ''
@@ -311,7 +286,6 @@ function formatSectionPath(path: string[] | undefined): string {
   return path.join(' / ')
 }
 
-//声明结构块偏移范围格式化
 function formatBlockOffsetRange(block: KnowledgeChunkBlock): string {
   if (typeof block.startOffset === 'number' && typeof block.endOffset === 'number') {
     return `${block.startOffset} - ${block.endOffset}`
@@ -320,7 +294,6 @@ function formatBlockOffsetRange(block: KnowledgeChunkBlock): string {
   return '-'
 }
 
-//声明结构块附加摘要格式化
 function getBlockMetaSummary(block: KnowledgeChunkBlock): string {
   const metadata = block.metadata ?? {}
   const parts: string[] = []
@@ -348,7 +321,6 @@ function getBlockMetaSummary(block: KnowledgeChunkBlock): string {
   return parts.join(' / ')
 }
 
-//声明命中分块监听
 watch(
   () => [highlightedChunkId.value, chunks.value.length],
   async () => {
@@ -356,7 +328,6 @@ watch(
   }
 )
 
-//声明页面初始化加载
 onMounted(async () => {
   await loadKnowledgeDocument(docId.value)
   await loadKnowledgeChunks(docId.value)

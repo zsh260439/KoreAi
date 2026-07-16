@@ -9,7 +9,6 @@ export type KnowledgeQaSectionStreamState = {
   pendingEvents: KnowledgeQaDeltaEvent[]
 }
 
-const THINKING_HEADER = '## Thinking'
 const ANSWER_HEADER = '## Answer'
 const SECTION_TAIL_SIZE = ANSWER_HEADER.length + 6
 const THINKING_HEADER_PATTERN = /^(?:[ \t]*\r?\n)*## Thinking[ \t]*(?:\r?\n|$)/

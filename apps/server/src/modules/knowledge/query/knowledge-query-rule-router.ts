@@ -6,17 +6,13 @@ import type {
   KnowledgeRetrievalMode
 } from './knowledge-query-plan.types'
 
-// 通用的“标识符形态”识别：包含字母数字，并带有连接符。
-// 这里不针对任何具体前缀，只识别结构化 token 的形态。
+// 规则只识别通用结构，不绑定业务前缀或评测集词汇。
 const IDENTIFIER_LIKE_PATTERN =
   /\b[a-z0-9]+(?:[-_./:][a-z0-9]+)+\b/gi
 
-// 通用错误码形态：字母 + 可选连接符 + 至少 3 位数字。
-// 仍然不绑定具体业务前缀，只看“像错误码”的结构。
 const ERROR_CODE_LIKE_PATTERN =
   /\b[a-z]{1,8}[-_]?\d{3,}\b/gi
 
-// 通用流程/排障问法识别，不绑定领域词。
 const PROCEDURE_PATTERN =
   /\b(how to|steps?|procedure|process|troubleshoot(?:ing)?|debug|fix|resolve|why)\b|如何|怎么|步骤|流程|排查|处理方法|修复|原因/iu
 

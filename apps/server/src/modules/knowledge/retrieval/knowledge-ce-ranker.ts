@@ -3,7 +3,7 @@ import type { KnowledgeSearchHit } from 'share-type'
 import type {
   KnowledgeQueryComplexity,
   KnowledgeQueryPlan
-} from './knowledge-query-plan.types'
+} from '../query/knowledge-query-plan.types'
 
 type CeRerankResponse = {
   results?: Array<{

@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import type {
+  ApiResponse,
   KnowledgeBase,
   KnowledgeChunk,
   KnowledgeDocument,
@@ -8,95 +9,93 @@ import type {
   KnowledgeSearchResponse
 } from 'share-type'
 
-import { ApiResponse } from '../../common/api-response'
-import type { UploadedKnowledgeDocumentFile } from './composables/knowledge-file.service'
+import { successResponse } from '../../common/api-response'
+import { KnowledgeConfigService } from './config/knowledge-config.service'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto'
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto'
 import { UpdateKnowledgeDocumentDto } from './dto/update-knowledge-document.dto'
 import { UpdateKnowledgeGlobalRuntimeConfigDto } from './dto/update-knowledge-global-runtime-config.dto'
-import { KnowledgeService } from './knowledge.service'
-
-type UploadKnowledgeDocumentBody = {
-  name?: string
-  chunkConfig?: string
-}
+import {
+  KnowledgeDocumentService,
+  type KnowledgeDocumentUploadFields
+} from './ingestion/knowledge-document.service'
+import type { UploadedKnowledgeDocumentFile } from './ingestion/knowledge-file.service'
+import { KnowledgeBaseService } from './management/knowledge-base.service'
+import { KnowledgeQueryService } from './query/knowledge-query.service'
 
 @Controller('knowledge')
 export class KnowledgeController {
-  constructor(private readonly knowledgeService: KnowledgeService) {}
+  constructor(
+    private readonly queryService: KnowledgeQueryService,
+    private readonly configService: KnowledgeConfigService,
+    private readonly baseService: KnowledgeBaseService,
+    private readonly documentService: KnowledgeDocumentService
+  ) {}
 
-  // 声明知识库命中测试接口，返回命中列表和本次检索调试信息。
   @Post('search')
   async searchKnowledge(@Body() dto: SearchKnowledgeDto): Promise<ApiResponse<KnowledgeSearchResponse>> {
-    const data = await this.knowledgeService.searchKnowledge(dto)
-    return ApiResponse.success(0, '搜索成功', data)
+    const data = await this.queryService.searchKnowledge(dto)
+    return successResponse(data, '搜索成功')
   }
 
-  // 声明知识库列表查询接口。
   @Get('bases')
   async findKnowledgeBases(): Promise<ApiResponse<KnowledgeBase[]>> {
-    const data = await this.knowledgeService.findKnowledgeBases()
-    return ApiResponse.success(0, '查询成功', data)
+    const data = await this.baseService.findKnowledgeBases()
+    return successResponse(data, '查询成功')
   }
 
   @Get('runtime-config/global')
   async findGlobalRuntimeConfig(): Promise<ApiResponse<KnowledgeGlobalRuntimeSettings>> {
-    const data = await this.knowledgeService.findGlobalRuntimeConfig()
-    return ApiResponse.success(0, '查询成功', data)
+    const data = await this.configService.findGlobalRuntimeConfig()
+    return successResponse(data, '查询成功')
   }
 
   @Patch('runtime-config/global')
   async updateGlobalRuntimeConfig(
     @Body() dto: UpdateKnowledgeGlobalRuntimeConfigDto
   ): Promise<ApiResponse<KnowledgeGlobalRuntimeSettings>> {
-    const data = await this.knowledgeService.updateGlobalRuntimeConfig(dto)
-    return ApiResponse.success(0, '更新成功', data)
+    const data = await this.configService.updateGlobalRuntimeConfig(dto)
+    return successResponse(data, '更新成功')
   }
 
-  // 声明知识库创建接口。
   @Post('bases')
   async createKnowledgeBase(@Body() dto: CreateKnowledgeBaseDto): Promise<ApiResponse<KnowledgeBase>> {
-    const data = await this.knowledgeService.createKnowledgeBase(dto)
-    return ApiResponse.success(0, '创建成功', data)
+    const data = await this.baseService.createKnowledgeBase(dto)
+    return successResponse(data, '创建成功')
   }
 
-  // 声明知识库更新接口。
   @Patch('bases/:kbId')
   async updateKnowledgeBase(
     @Param('kbId') kbId: string,
     @Body() dto: UpdateKnowledgeBaseDto
   ): Promise<ApiResponse<KnowledgeBase>> {
-    const data = await this.knowledgeService.updateKnowledgeBase(kbId, dto)
-    return ApiResponse.success(0, '更新成功', data)
+    const data = await this.baseService.updateKnowledgeBase(kbId, dto)
+    return successResponse(data, '更新成功')
   }
 
-  // 声明知识库文档列表查询接口。
   @Get('bases/:kbId/documents')
   async findKnowledgeDocuments(@Param('kbId') kbId: string): Promise<ApiResponse<KnowledgeDocument[]>> {
-    const data = await this.knowledgeService.findKnowledgeDocuments(kbId)
-    return ApiResponse.success(0, '查询成功', data)
+    const data = await this.documentService.findKnowledgeDocuments(kbId)
+    return successResponse(data, '查询成功')
   }
 
-  // 声明单个文档详情接口。
   @Get('documents/:docId')
   async findKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
-    const data = await this.knowledgeService.findKnowledgeDocument(docId)
-    return ApiResponse.success(0, '查询成功', data)
+    const data = await this.documentService.findKnowledgeDocument(docId)
+    return successResponse(data, '查询成功')
   }
 
-  // 声明知识库文档创建接口。
   @Post('bases/:kbId/documents')
   async createKnowledgeDocument(
     @Param('kbId') kbId: string,
     @Body() dto: CreateKnowledgeDocumentDto
   ): Promise<ApiResponse<KnowledgeDocument>> {
-    const data = await this.knowledgeService.createKnowledgeDocument(kbId, dto)
-    return ApiResponse.success(0, '创建成功', data)
+    const data = await this.documentService.createKnowledgeDocument(kbId, dto)
+    return successResponse(data, '创建成功')
   }
 
-  // 声明知识库文档上传接口。
   @Post('bases/:kbId/documents/upload')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -107,48 +106,43 @@ export class KnowledgeController {
   )
   async uploadKnowledgeDocument(
     @Param('kbId') kbId: string,
-    @Body() body: UploadKnowledgeDocumentBody,
+    @Body() body: KnowledgeDocumentUploadFields,
     @UploadedFile() file?: UploadedKnowledgeDocumentFile
   ): Promise<ApiResponse<KnowledgeDocument>> {
-    const data = await this.knowledgeService.uploadKnowledgeDocument(kbId, body, file)
-    return ApiResponse.success(0, '上传成功', data)
+    const data = await this.documentService.uploadKnowledgeDocument(kbId, body, file)
+    return successResponse(data, '上传成功')
   }
 
-  // 声明文档 chunk 列表查询接口。
   @Get('documents/:docId/chunks')
   async findDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
-    const data = await this.knowledgeService.findDocumentChunks(docId)
-    return ApiResponse.success(0, '查询成功', data)
+    const data = await this.documentService.findDocumentChunks(docId)
+    return successResponse(data, '查询成功')
   }
 
-  // 声明文档 chunk 重建接口。
   @Post('documents/:docId/chunks/rebuild')
   async rebuildDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
-    const data = await this.knowledgeService.rebuildDocumentChunks(docId)
-    return ApiResponse.success(0, '重新切分成功', data)
+    const data = await this.documentService.rebuildDocumentChunks(docId)
+    return successResponse(data, '重新切分成功')
   }
 
-  // 声明单文档删除接口。
   @Delete('documents/:docId')
   async deleteKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
-    const data = await this.knowledgeService.deleteKnowledgeDocument(docId)
-    return ApiResponse.success(0, '删除成功', data)
+    const data = await this.documentService.deleteKnowledgeDocument(docId)
+    return successResponse(data, '删除成功')
   }
 
-  // 声明知识库删除接口。
   @Delete('bases/:kbId')
   async deleteKnowledgeBase(@Param('kbId') kbId: string): Promise<ApiResponse<KnowledgeBase>> {
-    const data = await this.knowledgeService.deleteKnowledgeBase(kbId)
-    return ApiResponse.success(0, '删除成功', data)
+    const data = await this.baseService.deleteKnowledgeBase(kbId)
+    return successResponse(data, '删除成功')
   }
 
-  // 声明文档配置更新接口。
   @Patch('documents/:docId')
   async updateKnowledgeDocument(
     @Param('docId') docId: string,
     @Body() dto: UpdateKnowledgeDocumentDto
   ): Promise<ApiResponse<KnowledgeDocument>> {
-    const data = await this.knowledgeService.updateKnowledgeDocument(docId, dto)
-    return ApiResponse.success(0, '更新成功', data)
+    const data = await this.documentService.updateKnowledgeDocument(docId, dto)
+    return successResponse(data, '更新成功')
   }
 }

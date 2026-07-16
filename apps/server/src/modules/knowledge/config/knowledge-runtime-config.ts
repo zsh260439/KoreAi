@@ -5,6 +5,7 @@ import type {
 } from 'share-type'
 import {
   DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
+  KNOWLEDGE_RUNTIME_CONFIG_LIMITS,
   type KnowledgeBaseRuntimeConfig
 } from 'share-type'
 
@@ -21,44 +22,44 @@ export function normalizeKnowledgeBaseRuntimeConfig(
     previewTopK: normalizeInteger(
       retrievalSource.previewTopK,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.previewTopK,
-      1,
-      50
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.previewTopK.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.previewTopK.max
     ),
     workspaceTopK: normalizeInteger(
       retrievalSource.workspaceTopK,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.workspaceTopK,
-      1,
-      12
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.workspaceTopK.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.workspaceTopK.max
     ),
     candidateMultiplier: normalizeInteger(
       retrievalSource.candidateMultiplier,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.candidateMultiplier,
-      1,
-      12
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.candidateMultiplier.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.candidateMultiplier.max
     ),
     minCandidateLimit: normalizeInteger(
       retrievalSource.minCandidateLimit,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.minCandidateLimit,
-      1,
-      200
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.minCandidateLimit.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.minCandidateLimit.max
     ),
     maxCandidateLimit: normalizeInteger(
       retrievalSource.maxCandidateLimit,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.maxCandidateLimit,
-      1,
-      400
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.maxCandidateLimit.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.maxCandidateLimit.max
     ),
     bm25Weight: normalizeFloat(
       retrievalSource.bm25Weight,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.bm25Weight,
-      0.2,
-      3
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.bm25Weight.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.bm25Weight.max
     ),
     vectorWeight: normalizeFloat(
       retrievalSource.vectorWeight,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.vectorWeight,
-      0.2,
-      3
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.vectorWeight.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.vectorWeight.max
     ),
     queryAnalysisEnabled: normalizeBoolean(
       retrievalSource.queryAnalysisEnabled,
@@ -67,21 +68,20 @@ export function normalizeKnowledgeBaseRuntimeConfig(
     queryAnalysisTemperature: normalizeFloat(
       retrievalSource.queryAnalysisTemperature,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.queryAnalysisTemperature,
-      0,
-      2
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryAnalysisTemperature.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryAnalysisTemperature.max
     )
   }
 
   // 保证候选集上下限关系稳定，避免保存出 min 比 max 还大的非法配置。
   retrieval.minCandidateLimit = Math.min(retrieval.minCandidateLimit, retrieval.maxCandidateLimit)
-  retrieval.maxCandidateLimit = Math.max(retrieval.maxCandidateLimit, retrieval.minCandidateLimit)
 
   const answer: KnowledgeBaseAnswerRuntimeConfig = {
     temperature: normalizeFloat(
       answerSource.temperature,
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.answer.temperature,
-      0,
-      2
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.answerTemperature.min,
+      KNOWLEDGE_RUNTIME_CONFIG_LIMITS.answerTemperature.max
     )
   }
 
@@ -131,21 +131,7 @@ function normalizeFloat(value: unknown, fallback: number, min: number, max: numb
 }
 
 function normalizeBoolean(value: unknown, fallback: boolean): boolean {
-  if (typeof value === 'boolean') {
-    return value
-  }
-
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase()
-    if (['true', '1', 'yes', 'on'].includes(normalized)) {
-      return true
-    }
-    if (['false', '0', 'no', 'off'].includes(normalized)) {
-      return false
-    }
-  }
-
-  return fallback
+  return typeof value === 'boolean' ? value : fallback
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

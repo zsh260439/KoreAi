@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import type { KnowledgeBaseRuntimeConfig } from 'share-type'
 
 import { KnowledgeQueryAnalysisService } from './knowledge-query-analysis.service'
-import { buildKnowledgeQueryEvidencePlan } from './knowledge-evidence-planner'
+import { buildKnowledgeQueryEvidencePlan } from '../evidence/knowledge-evidence-planner'
 import {
   createRouteDecision,
   detectKnowledgeQueryRuleSignal

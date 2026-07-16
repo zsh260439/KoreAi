@@ -7,7 +7,6 @@ import { unified } from 'unified'
 import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 
-//声明结构化块标准结构。
 export interface StructuredBlock {
   blockType: string
   content: string
@@ -20,13 +19,16 @@ export interface StructuredBlock {
   metadata?: Record<string, unknown>
 }
 
-//声明文档解析统一结果结构。
 export interface ParsedDocument {
   fileType: string
-  sourceKind: 'text' | 'pdf-copyable' | 'pdf-complex' | 'pdf-visual' | 'pdf-ocr'
+  sourceKind: 'text' | 'pdf-copyable' | 'pdf-complex' | 'pdf-visual' | 'pdf-ocr' | 'pdf-mineru'
   blocks: StructuredBlock[]
   rawContent: string
   ocr?: DocumentOcrSummary
+  parser?: {
+    engine: 'native' | 'mineru'
+    reasons: string[]
+  }
 }
 
 export type DocumentOcrImageInput = {
@@ -50,9 +52,9 @@ export type DocumentOcrSummary = {
 
 export type ParseKnowledgeDocumentOptions = {
   ocrImage?: (image: DocumentOcrImageInput) => Promise<DocumentOcrResult>
+  parsePdf?: (buffer: Buffer) => Promise<ParsedDocument>
 }
 
-//声明 docx 样式定义结构。
 type DocxStyleDefinition = {
   styleId: string
   name: string
@@ -60,7 +62,6 @@ type DocxStyleDefinition = {
   headingLevel?: number
 }
 
-//声明 docx 编号级别定义结构。
 type DocxNumberLevelDefinition = {
   level: number
   format: string
@@ -68,16 +69,13 @@ type DocxNumberLevelDefinition = {
   start: number
 }
 
-//声明 docx 编号定义结构。
 type DocxNumberingDefinition = {
   abstractLevels: Map<string, Map<number, DocxNumberLevelDefinition>>
   numToAbstract: Map<string, string>
 }
 
-//声明 docx 列表状态结构。
 type DocxListState = Map<string, number[]>
 
-//声明 docx 解析上下文结构。
 type DocxParseContext = {
   blocks: StructuredBlock[]
   rawParts: string[]
@@ -89,7 +87,6 @@ type DocxParseContext = {
   processedImagePaths: Set<string>
 }
 
-//声明 docx 列表项信息结构。
 type DocxListInfo = {
   numId: string
   ilvl: number
@@ -97,7 +94,6 @@ type DocxListInfo = {
   listType: 'ordered' | 'bullet'
 }
 
-//声明文档解析统一入口。
 export async function parseKnowledgeDocument(
   storagePath: string,
   options: ParseKnowledgeDocumentOptions = {}
@@ -118,14 +114,13 @@ export async function parseKnowledgeDocument(
   }
 
   if (fileType === 'pdf') {
-    return parsePdfDocument(buffer, options)
+    return options.parsePdf?.(buffer) ?? parsePdfDocument(buffer, options)
   }
 
   return parseTextDocument(buffer.toString('utf-8'))
 }
 
-//声明 Markdown 文档解析逻辑。
-async function parseMarkdownDocument(content: string): Promise<ParsedDocument> {
+export async function parseMarkdownDocument(content: string): Promise<ParsedDocument> {
   const tree = unified().use(remarkParse).use(remarkGfm).parse(content) as unknown as {
     children?: Array<Record<string, unknown>>
   }
@@ -203,7 +198,6 @@ async function parseMarkdownDocument(content: string): Promise<ParsedDocument> {
   }
 }
 
-//声明纯文本文档解析逻辑。
 async function parseTextDocument(content: string): Promise<ParsedDocument> {
   const blocks: StructuredBlock[] = []
   const rawParts: string[] = []
@@ -269,9 +263,8 @@ async function parseTextDocument(content: string): Promise<ParsedDocument> {
   }
 }
 
-//声明 docx 文档解析逻辑。
 async function parseDocxDocument(buffer: Buffer, options: ParseKnowledgeDocumentOptions): Promise<ParsedDocument> {
-  //声明 docx 按 OOXML 标准直接读取压缩包内部 XML。
+  // 直接读取 OOXML，正文结构与嵌入图片才能进入同一条入库链路。
   const zip = await JSZip.loadAsync(buffer)
   const documentXml = await loadDocxXml(zip, 'word/document.xml')
 
@@ -304,7 +297,6 @@ async function parseDocxDocument(buffer: Buffer, options: ParseKnowledgeDocument
     }
   }
 
-  //声明 docx 主体按段落和表格逐块解析。
   for (const child of getChildElements(body)) {
     if (matchesElementName(child, 'p')) {
       parseDocxParagraph(child, context)
@@ -328,8 +320,10 @@ async function parseDocxDocument(buffer: Buffer, options: ParseKnowledgeDocument
   }
 }
 
-//声明 pdf 文档解析逻辑。
-async function parsePdfDocument(buffer: Buffer, options: ParseKnowledgeDocumentOptions): Promise<ParsedDocument> {
+export async function parsePdfDocument(
+  buffer: Buffer,
+  options: ParseKnowledgeDocumentOptions
+): Promise<ParsedDocument> {
   const parser = new PDFParse({ data: buffer })
   try {
     const textResult = await parser.getText()
@@ -341,6 +335,7 @@ async function parsePdfDocument(buffer: Buffer, options: ParseKnowledgeDocumentO
     const emptyPageNumbers = pages
       .filter((page) => !hasPdfPageText(page.content))
       .map((page) => page.pageNumber)
+    // 只 OCR 没有可复制文本的页面，避免重复识别并保留原始页序。
     const ocrResult = await parsePdfPagesWithOcr(parser, options, emptyPageNumbers)
     const pageBlocks = new Map<number, StructuredBlock[]>()
 
@@ -384,7 +379,6 @@ function hasPdfPageText(content: string): boolean {
   return content.replace(/\s+/g, '').length > 0
 }
 
-//声明 Markdown 文本提取逻辑。
 function collectMarkdownText(node: unknown): string {
   if (!node || typeof node !== 'object') {
     return ''
@@ -407,7 +401,6 @@ function collectMarkdownText(node: unknown): string {
     .trim()
 }
 
-//声明纯文本标题识别逻辑。
 function resolvePlainTextTitle(paragraph: string): string | null {
   const singleLine = paragraph
     .split('\n')
@@ -434,7 +427,6 @@ function resolvePlainTextTitle(paragraph: string): string | null {
   return null
 }
 
-//声明 pdf 来源类型判断逻辑。
 function detectPdfSourceKind(pageContents: string[]): ParsedDocument['sourceKind'] {
   const averageLineCount =
     pageContents.reduce((total, page) => total + page.split('\n').filter(Boolean).length, 0) /
@@ -449,7 +441,6 @@ function detectPdfSourceKind(pageContents: string[]): ParsedDocument['sourceKind
   return 'pdf-copyable'
 }
 
-//声明 pdf 页面转结构块逻辑。
 function splitPdfPageToBlocks(pageContent: string, pageNumber: number): StructuredBlock[] {
   const paragraphs = pageContent
     .split(/\n\s*\n/)
@@ -475,7 +466,6 @@ function splitPdfPageToBlocks(pageContent: string, pageNumber: number): Structur
   }))
 }
 
-//声明 docx XML 文件读取逻辑。
 async function loadDocxXml(zip: JSZip, entryPath: string): Promise<Document | null> {
   const entry = zip.file(entryPath)
   if (!entry) {
@@ -486,7 +476,6 @@ async function loadDocxXml(zip: JSZip, entryPath: string): Promise<Document | nu
   return new DOMParser().parseFromString(xmlText, 'text/xml')
 }
 
-//声明 docx 样式表解析逻辑。
 function parseDocxStyles(stylesXml: Document | null): Map<string, DocxStyleDefinition> {
   const styles = new Map<string, DocxStyleDefinition>()
 
@@ -520,7 +509,6 @@ function parseDocxStyles(stylesXml: Document | null): Map<string, DocxStyleDefin
   return styles
 }
 
-//声明 docx 编号定义解析逻辑。
 function parseDocxNumbering(numberingXml: Document | null): DocxNumberingDefinition {
   const definition: DocxNumberingDefinition = {
     abstractLevels: new Map(),
@@ -565,7 +553,6 @@ function parseDocxNumbering(numberingXml: Document | null): DocxNumberingDefinit
   return definition
 }
 
-//声明 docx 段落解析逻辑。
 function parseDocxParagraph(paragraphElement: Element, context: DocxParseContext): void {
   const text = extractDocxParagraphText(paragraphElement)
   if (!text) {
@@ -577,7 +564,6 @@ function parseDocxParagraph(paragraphElement: Element, context: DocxParseContext
   const listInfo = resolveDocxParagraphListInfo(paragraphElement, context.numbering, context.numberingState)
 
   if (headingLevel) {
-    //声明标题块直接维护章节路径栈。
     context.headingStack.splice(Math.max(headingLevel - 1, 0))
     context.headingStack[headingLevel - 1] = text
     context.rawOffset = pushStructuredBlock(
@@ -636,7 +622,6 @@ function parseDocxParagraph(paragraphElement: Element, context: DocxParseContext
   )
 }
 
-//声明 docx 表格解析逻辑。
 function parseDocxTable(tableElement: Element, context: DocxParseContext): void {
   const rows: Array<Array<{ text: string; colSpan: number; vMerge: string | null }>> = []
   let maxColumns = 0
@@ -701,7 +686,6 @@ function parseDocxTable(tableElement: Element, context: DocxParseContext): void 
   )
 }
 
-//声明结构化块入栈逻辑。
 function pushStructuredBlock(
   blocks: StructuredBlock[],
   rawParts: string[],
@@ -726,7 +710,6 @@ function pushStructuredBlock(
   return endOffset
 }
 
-//声明 docx 标题级别推断逻辑。
 function resolveHeadingLevelFromStyle(styleId: string, styleName: string, outlineElement: Element | null): number | undefined {
   const outlineValue = getAttributeValue(outlineElement, 'val')
   if (outlineValue !== null) {
@@ -746,14 +729,12 @@ function resolveHeadingLevelFromStyle(styleId: string, styleName: string, outlin
   return undefined
 }
 
-//声明 docx 段落样式获取逻辑。
 function resolveDocxParagraphStyleId(paragraphElement: Element): string | undefined {
   const paragraphProperties = findFirstChildElement(paragraphElement, 'pPr')
   const styleElement = findFirstChildElement(paragraphProperties, 'pStyle')
   return getAttributeValue(styleElement, 'val') || undefined
 }
 
-//声明 docx 段落标题级别解析逻辑。
 function resolveDocxParagraphHeadingLevel(
   paragraphElement: Element,
   styleId: string | undefined,
@@ -769,7 +750,6 @@ function resolveDocxParagraphHeadingLevel(
   return styleId ? resolveInheritedDocxHeadingLevel(styleId, styles, new Set()) : undefined
 }
 
-//声明 docx 样式继承标题级别解析逻辑。
 function resolveInheritedDocxHeadingLevel(
   styleId: string,
   styles: Map<string, DocxStyleDefinition>,
@@ -792,7 +772,6 @@ function resolveInheritedDocxHeadingLevel(
   return style.basedOnId ? resolveInheritedDocxHeadingLevel(style.basedOnId, styles, visited) : undefined
 }
 
-//声明 docx 段落列表信息解析逻辑。
 function resolveDocxParagraphListInfo(
   paragraphElement: Element,
   numbering: DocxNumberingDefinition,
@@ -836,7 +815,6 @@ function resolveDocxParagraphListInfo(
   }
 }
 
-//声明有序列表标记生成逻辑。
 function buildOrderedListMarker(
   numId: string,
   ilvl: number,
@@ -874,7 +852,6 @@ function buildOrderedListMarker(
   })
 }
 
-//声明列表序号格式化逻辑。
 function formatListCounterValue(value: number, format: string): string {
   if (format === 'lowerLetter') {
     return formatAlphabetCounter(value, false)
@@ -895,7 +872,6 @@ function formatListCounterValue(value: number, format: string): string {
   return String(value)
 }
 
-//声明字母序号格式化逻辑。
 function formatAlphabetCounter(value: number, uppercase: boolean): string {
   let current = Math.max(value, 1)
   let result = ''
@@ -909,7 +885,6 @@ function formatAlphabetCounter(value: number, uppercase: boolean): string {
   return uppercase ? result : result.toLowerCase()
 }
 
-//声明罗马序号格式化逻辑。
 function formatRomanCounter(value: number): string {
   const symbols: Array<[number, string]> = [
     [1000, 'M'],
@@ -939,14 +914,12 @@ function formatRomanCounter(value: number): string {
   return result
 }
 
-//声明 docx 段落文本提取逻辑。
 function extractDocxParagraphText(paragraphElement: Element): string {
   const parts: string[] = []
   collectDocxInlineText(paragraphElement, parts)
   return normalizeDocxText(parts.join(''))
 }
 
-//声明 docx 表格单元格文本提取逻辑。
 function extractDocxTableCellText(cellElement: Element): string {
   const parts: string[] = []
 
@@ -980,7 +953,6 @@ function extractDocxTableCellText(cellElement: Element): string {
   return normalizeDocxText(parts.join('\n'))
 }
 
-//声明 docx 行内文本递归提取逻辑。
 function collectDocxInlineText(node: Node, parts: string[]): void {
   if (node.nodeType === 3) {
     parts.push(node.nodeValue || '')
@@ -1018,7 +990,6 @@ function collectDocxInlineText(node: Node, parts: string[]): void {
   }
 }
 
-//声明 docx 文本清洗逻辑。
 function normalizeDocxText(value: string): string {
   return value
     .replace(/\r/g, '')
@@ -1029,7 +1000,6 @@ function normalizeDocxText(value: string): string {
     .trim()
 }
 
-//声明 XML 子元素提取逻辑。
 function getChildElements(node: Node | null): Element[] {
   if (!node) {
     return []
@@ -1046,12 +1016,10 @@ function getChildElements(node: Node | null): Element[] {
   return elements
 }
 
-//声明 XML 直接子元素查找逻辑。
 function findFirstChildElement(node: Node | null, localName: string): Element | null {
   return getChildElements(node).find((child) => matchesElementName(child, localName)) || null
 }
 
-//声明 XML 深度元素查找逻辑。
 function findElementsByName(node: Node | null, localName: string): Element[] {
   if (!node) {
     return []
@@ -1068,7 +1036,6 @@ function findElementsByName(node: Node | null, localName: string): Element[] {
   return matches
 }
 
-//声明 XML 元素名匹配逻辑。
 function matchesElementName(element: Element, localName: string): boolean {
   return (
     element.localName === localName ||
@@ -1077,7 +1044,6 @@ function matchesElementName(element: Element, localName: string): boolean {
   )
 }
 
-//声明 XML 属性值提取逻辑。
 function getAttributeValue(element: Element | null, attributeName: string): string | null {
   if (!element?.attributes) {
     return null

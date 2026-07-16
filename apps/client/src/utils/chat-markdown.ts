@@ -1,9 +1,6 @@
 import MarkdownIt from 'markdown-it'
-import {
-  bundledLanguages,
-  getSingletonHighlighter,
-  type BundledLanguage
-} from 'shiki'
+import { createHighlighterCore, type HighlighterCore } from 'shiki/core'
+import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 
 const CHAT_CODE_THEME = 'ayu-light'
 const COPY_LABEL = '\u590d\u5236'
@@ -18,8 +15,43 @@ const DISPLAY_LANGUAGE_MAP: Record<string, string> = {
   md: 'markdown'
 }
 
-let highlighterPromise: ReturnType<typeof getSingletonHighlighter> | null = null
-let highlighter: Awaited<ReturnType<typeof getSingletonHighlighter>> | null = null
+const LANGUAGE_LOADERS = {
+  bash: () => import('shiki/langs/bash.mjs'),
+  css: () => import('shiki/langs/css.mjs'),
+  html: () => import('shiki/langs/html.mjs'),
+  java: () => import('shiki/langs/java.mjs'),
+  javascript: () => import('shiki/langs/javascript.mjs'),
+  json: () => import('shiki/langs/json.mjs'),
+  markdown: () => import('shiki/langs/markdown.mjs'),
+  python: () => import('shiki/langs/python.mjs'),
+  sql: () => import('shiki/langs/sql.mjs'),
+  typescript: () => import('shiki/langs/typescript.mjs'),
+  vue: () => import('shiki/langs/vue.mjs')
+} as const
+
+type SupportedLanguage = keyof typeof LANGUAGE_LOADERS
+
+const LANGUAGE_ALIASES: Record<string, SupportedLanguage> = {
+  bash: 'bash',
+  css: 'css',
+  html: 'html',
+  java: 'java',
+  javascript: 'javascript',
+  js: 'javascript',
+  json: 'json',
+  markdown: 'markdown',
+  md: 'markdown',
+  py: 'python',
+  python: 'python',
+  sh: 'bash',
+  sql: 'sql',
+  ts: 'typescript',
+  typescript: 'typescript',
+  vue: 'vue'
+}
+
+let highlighterPromise: Promise<HighlighterCore> | null = null
+let highlighter: HighlighterCore | null = null
 
 const markdown = new MarkdownIt({
   html: false,
@@ -48,13 +80,9 @@ function getLanguageKey(language: string): string {
   return language.trim().split(/\s+/, 1)[0]?.toLowerCase() ?? ''
 }
 
-function normalizeLanguage(language: string): BundledLanguage | null {
+function normalizeLanguage(language: string): SupportedLanguage | null {
   const normalized = getLanguageKey(language)
-  if (!normalized || !(normalized in bundledLanguages)) {
-    return null
-  }
-
-  return normalized as BundledLanguage
+  return LANGUAGE_ALIASES[normalized] ?? null
 }
 
 function getLanguageLabel(language: string): string {
@@ -150,8 +178,10 @@ function renderCodeBlock(code: string, language: string): string {
 
 async function getHighlighter() {
   if (!highlighterPromise) {
-    highlighterPromise = getSingletonHighlighter({
-      themes: [CHAT_CODE_THEME]
+    highlighterPromise = createHighlighterCore({
+      themes: [import('shiki/themes/ayu-light.mjs')],
+      langs: [],
+      engine: createJavaScriptRegexEngine()
     }).then((instance) => {
       highlighter = instance
       return instance
@@ -173,15 +203,18 @@ export async function renderMessageMarkdown(content: string): Promise<string> {
   )
 
   if (languagesToLoad.length) {
-    await Promise.all(languagesToLoad.map((language) => shiki.loadLanguage(language)))
+    const registrations = await Promise.all(
+      languagesToLoad.map((language) => LANGUAGE_LOADERS[language]())
+    )
+    await shiki.loadLanguage(...registrations.flatMap(({ default: language }) => language))
   }
 
   highlighter = shiki
   return markdown.render(content)
 }
 
-function extractFenceLanguages(content: string): BundledLanguage[] {
-  const languages = new Set<BundledLanguage>()
+function extractFenceLanguages(content: string): SupportedLanguage[] {
+  const languages = new Set<SupportedLanguage>()
   let match: RegExpExecArray | null
 
   while ((match = FENCE_LANGUAGE_REGEX.exec(content)) !== null) {

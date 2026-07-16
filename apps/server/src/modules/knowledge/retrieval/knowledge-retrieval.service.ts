@@ -12,19 +12,19 @@ import {
   computeKnowledgeEvidenceCoverage,
   computeKnowledgeEvidenceScore,
   resolveEvidenceGateStatus
-} from './knowledge-evidence-planner'
+} from '../evidence/knowledge-evidence-planner'
 import { mergeKnowledgeRetrievalCandidates } from './knowledge-hybrid-ranker'
-import { KnowledgeQueryEngineService } from './knowledge-query-engine.service'
+import { KnowledgeQueryEngineService } from '../query/knowledge-query-engine.service'
 import type {
   KnowledgeQueryPlan,
   KnowledgeQueryRetrievalHints
-} from './knowledge-query-plan.types'
+} from '../query/knowledge-query-plan.types'
 import type { KnowledgeRetrievalCandidate } from './knowledge-retrieval.types'
 import { KnowledgeVectorStoreService } from './knowledge-vector-store.service'
 import {
   fetchCeRerankScores,
   shouldApplyCeRerank
-} from './knowledge-rerank.service'
+} from './knowledge-ce-ranker'
 
 @Injectable()
 export class KnowledgeRetrievalService {

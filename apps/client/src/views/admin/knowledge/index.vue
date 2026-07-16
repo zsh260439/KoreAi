@@ -15,7 +15,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
-import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
+import { useKnowledgeBases } from '@/composables/knowledge/useKnowledgeBases'
 
 const router = useRouter()
 const { knowledgeBases, isLoading, loadKnowledgeBases, createKnowledgeBase, updateKnowledgeBase, removeKnowledgeBase } =

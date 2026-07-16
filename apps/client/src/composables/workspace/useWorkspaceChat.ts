@@ -20,41 +20,31 @@ import type {
 } from 'share-type'
 import { useConversationList } from './useConversationList'
 
-//声明默认输入能力
 const DEFAULT_PROMPT_CAPABILITIES: WorkspacePromptCapabilities = {
   think: false,
   rewrite: true
 }
 
-//声明激活中的聊天请求结构
 type ActiveChatRequest = {
   conversationId: string
   controller: AbortController
 }
 
-//声明消息列表缓存
 const contentListBySession = shallowReactive(new Map<string, ChatMessage[]>())
 const MAX_CACHED_CONVERSATIONS = 40
 
-//声明会话加载状态缓存
 const loadedConversationIds = new Set<string>()
 
-//声明当前激活请求
 const activeRequest = ref<ActiveChatRequest | null>(null)
 
-//声明发送中的同步提交锁
 const sending = ref(false)
 
-//声明当前加载中的会话标识
 const loadingConversationId = ref('')
 
-//声明错误消息
 const error = ref<string | null>(null)
 
-//声明重新生成状态
 const regenerating = ref(false)
 
-//声明输入能力标准化逻辑
 const normalizePromptCapabilities = (
   promptCapabilities?: WorkspacePromptCapabilities | null
 ): WorkspacePromptCapabilities => ({
@@ -62,7 +52,6 @@ const normalizePromptCapabilities = (
   rewrite: promptCapabilities?.rewrite !== false
 })
 
-//声明查找最后一条用户消息下标
 const findLastUserContentIndex = (contentList: ChatMessage[]) => {
   for (let index = contentList.length - 1; index >= 0; index -= 1) {
     if (contentList[index]?.role === 'user') {
@@ -73,7 +62,6 @@ const findLastUserContentIndex = (contentList: ChatMessage[]) => {
   return -1
 }
 
-//声明用户消息构造逻辑
 const toUserChatMessage = (
   conversationId: string,
   content: string,
@@ -94,7 +82,6 @@ const toUserChatMessage = (
   status: 'done'
 })
 
-//声明助手占位消息构造逻辑
 const toAssistantPlaceholderMessage = (
   conversationId: string,
   model: string | null,
@@ -116,7 +103,6 @@ const toAssistantPlaceholderMessage = (
   responseFlow: promptCapabilities.think ? createThinkingPlaceholderFlow() : undefined
 })
 
-//声明历史消息转聊天消息逻辑
 const toChatMessage = (message: WorkspaceMessage): ChatMessage => {
   const chatMessage: ChatMessage = {
     ...message,
@@ -130,7 +116,6 @@ const toChatMessage = (message: WorkspaceMessage): ChatMessage => {
   return chatMessage
 }
 
-//声明流式错误消息构造逻辑
 function createStreamingErrorMessage(assistantMessage: ChatMessage, stopped: boolean): ChatMessage {
   return {
     ...assistantMessage,
@@ -140,7 +125,6 @@ function createStreamingErrorMessage(assistantMessage: ChatMessage, stopped: boo
   }
 }
 
-//声明流式事件应用逻辑
 function applyStreamEventToAssistantMessage(
   assistantMessage: ChatMessage,
   event: WorkspaceChatStreamEvent
@@ -227,13 +211,11 @@ export function useWorkspaceChat() {
       loadingConversationId.value === conversationList.activeConversationId.value
   )
 
-  //声明界面流式状态包含预提交阶段
   const isStreaming = computed(() => activeRequest.value !== null || sending.value)
 
   const isConversationStreaming = (conversationId: string) =>
     activeRequest.value?.conversationId === conversationId
 
-  //声明设置会话消息逻辑
   const setConversationMessages = (conversationId: string, messages: ChatMessage[]) => {
     contentListBySession.delete(conversationId)
     contentListBySession.set(conversationId, messages)
@@ -253,7 +235,6 @@ export function useWorkspaceChat() {
     loadedConversationIds.delete(conversationId)
   }
 
-  //声明更新最后一条助手消息逻辑
   const updateAssistantMessage = (
     conversationId: string,
     messages: ChatMessage[],
@@ -272,7 +253,6 @@ export function useWorkspaceChat() {
     return nextMessages
   }
 
-  //声明加载会话消息逻辑
   const loadConversationMessages = async (conversationId: string, force = false) => {
     if (!conversationId) {
       return []
@@ -299,7 +279,6 @@ export function useWorkspaceChat() {
     }
   }
 
-  //声明流式传输助手响应
   const streamAssistantResponse = async (params: {
     conversationId: string
     query: string
@@ -334,6 +313,7 @@ export function useWorkspaceChat() {
 
     const scheduleStreamEvent = (event: WorkspaceChatStreamEvent) => {
       pendingEvents.push(event)
+      // 同一帧合并流事件，避免每个 token 都触发一次组件树更新。
       if (renderFrame === null) {
         renderFrame = requestAnimationFrame(flushPendingEvents)
       }
@@ -406,7 +386,6 @@ export function useWorkspaceChat() {
     }
   }
 
-  //声明发送消息逻辑
   const sendMessage = async (
     content: string,
     promptCapabilities?: WorkspacePromptCapabilities,
@@ -447,12 +426,10 @@ export function useWorkspaceChat() {
     }
   }
 
-  //声明停止流式输出逻辑
   const stopStreaming = () => {
     activeRequest.value?.controller.abort()
   }
 
-  //声明重新生成上一条回答逻辑
   const regenerateLastAnswer = async (
     knowledgeBaseId?: string,
     promptCapabilities?: WorkspacePromptCapabilities
@@ -517,7 +494,6 @@ export function useWorkspaceChat() {
   }
 }
 
-//声明最终助手消息收口逻辑
 function finalizeAssistantMessage(
   assistantMessage: ChatMessage,
   result: WorkspaceChatResult,

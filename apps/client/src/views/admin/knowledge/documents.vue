@@ -4,13 +4,17 @@ import { ChevronLeft, FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Setting
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { useKnowledgeBases } from '@/composables/useKnowledgeBases'
-import { useKnowledgeChunks } from '@/composables/useKnowledgeChunks'
-import { useKnowledgeDocuments } from '@/composables/useKnowledgeDocuments'
-import { useKnowledgeSearch } from '@/composables/useKnowledgeSearch'
-import { useRetrievalRewritePreference } from '@/composables/useRetrievalRewritePreference'
+import { useKnowledgeBases } from '@/composables/knowledge/useKnowledgeBases'
+import { useKnowledgeChunks } from '@/composables/knowledge/useKnowledgeChunks'
+import { useKnowledgeDocuments } from '@/composables/knowledge/useKnowledgeDocuments'
+import { useKnowledgeSearch } from '@/composables/knowledge/useKnowledgeSearch'
+import { useRetrievalRewritePreference } from '@/composables/knowledge/useRetrievalRewritePreference'
 import RetrievalRewriteToggle from '@/components/ui/RetrievalRewriteToggle.vue'
-import type { KnowledgeDocument, StructureAwareChunkConfig } from 'share-type'
+import {
+  DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG,
+  type KnowledgeDocument,
+  type StructureAwareChunkConfig
+} from 'share-type'
 
 type KnowledgeDocumentUploadForm = {
   name: string
@@ -66,10 +70,10 @@ const uploadDropRef = ref<{ clearFiles: () => void } | null>(null)
 const selectedUploadFile = ref<File | null>(null)
 const isSubmittingUpload = ref(false)
 const uploadName = ref('')
-const uploadTargetChars = ref('1400')
-const uploadMaxChars = ref('1800') 
-const uploadMinChars = ref('600')
-const uploadOverlapChars = ref('0')
+const uploadTargetChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars))
+const uploadMaxChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars))
+const uploadMinChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.minChars))
+const uploadOverlapChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.overlapChars))
 
 const uploadAccept = '.txt,.md,.docx,.pdf'
 const maxUploadFileSizeMb = 20
@@ -77,10 +81,10 @@ const maxUploadFileSizeMb = 20
 const editDialogOpen = ref(false)
 const activeDocumentId = ref('')
 const editName = ref('')
-const editTargetChars = ref('1400')
-const editMaxChars = ref('1800')
-const editMinChars = ref('600')
-const editOverlapChars = ref('0')
+const editTargetChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars))
+const editMaxChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars))
+const editMinChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.minChars))
+const editOverlapChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.overlapChars))
 
 const chunkDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
@@ -102,7 +106,6 @@ const currentKnowledgeBaseCode = computed(() => {
 const activeDocument = computed(() => documents.value.find((item) => item.id === activeDocumentId.value) ?? null)
 const activeDocumentName = computed(() => activeDocument.value?.name || '-')
 
-// 数据库查询文档列表
 const filteredDocuments = computed(() => {
   const normalized = keyword.value.trim().toLowerCase()
   const list = documents.value.filter((item) => {
@@ -124,7 +127,6 @@ const filteredDocuments = computed(() => {
   }
 })
 
-// 搜索结果补充展示字段，把支路命中和原始分数整理成更容易 review 的展示文本
 const previewResults = computed(() => {
   return searchResults.value.map((item) => ({
     ...item,
@@ -136,7 +138,6 @@ const previewResults = computed(() => {
   }))
 })
 
-// 调试面板直接消费这份结构，避免模板里到处写判空和格式转换
 const previewDebugSummary = computed(() => {
   if (!searchDebug.value) {
     return null
@@ -149,7 +150,6 @@ const previewDebugSummary = computed(() => {
   }
 })
 
-// 解析分块配置
 const parseChunkConfig = (
   value?: string | StructureAwareChunkConfig | Record<string, unknown> | null
 ) => {
@@ -166,7 +166,6 @@ const parseChunkConfig = (
   return value as Record<string, number>
 }
 
-// 构建上传分块配置文本
 const buildChunkConfigText = () => {
   return JSON.stringify({
     targetChars: Number(uploadTargetChars.value),
@@ -176,7 +175,6 @@ const buildChunkConfigText = () => {
   })
 }
 
-// 构建编辑分块配置文本
 const buildEditChunkConfigText = () => {
   return JSON.stringify({
     targetChars: Number(editTargetChars.value),
@@ -186,13 +184,11 @@ const buildEditChunkConfigText = () => {
   })
 }
 
-// 格式化文档来源标签
 const formatSourceLabel = (value?: string | null) => {
   if (!value) return '-'
   return value.toLowerCase() === 'url' ? '远程 URL' : '本地文件'
 }
 
-// 格式化文档大小
 const formatSize = (value?: number | null) => {
   if (value === undefined || value === null) return '-'
   if (value < 1024) return `${value} B`
@@ -276,13 +272,11 @@ const handleUploadExceed = () => {
   ElMessage.warning('一次只能选择一个文件，请先移除当前文件')
 }
 
-// 处理文档名称搜索
 const handleSearch = () => {
   current.value = 1
   keyword.value = searchInput.value.trim()
 }
 
-// 处理知识库内容搜索
 const handleContentSearch = async () => {
   const query = contentSearchInput.value.trim()
   if (!query) {
@@ -310,7 +304,6 @@ const handleContentSearch = async () => {
   })
 }
 
-// 清除内容搜索结果
 const handleClearContentSearch = () => {
   contentSearchInput.value = ''
   hasSearchedContent.value = false
@@ -325,26 +318,23 @@ const handleClearContentSearch = () => {
   })
 }
 
-// 刷新文档列表
 const handleRefresh = async () => {
   current.value = 1
   await loadKnowledgeDocuments(kbId.value)
 }
 
-// 重置上传对话框
 const resetUploadDialog = () => {
   uploadDialogOpen.value = false
   selectedUploadFile.value = null
   isSubmittingUpload.value = false
   uploadName.value = ''
-  uploadTargetChars.value = '1400'
-  uploadMaxChars.value = '1800'
-  uploadMinChars.value = '600'
-  uploadOverlapChars.value = '0'
+  uploadTargetChars.value = String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars)
+  uploadMaxChars.value = String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars)
+  uploadMinChars.value = String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.minChars)
+  uploadOverlapChars.value = String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.overlapChars)
   uploadDropRef.value?.clearFiles()
 }
 
-// 提交上传文档
 const submitUpload = async () => {
   if (!selectedUploadFile.value) {
     ElMessage.warning('请先拖拽或选择一个文档文件')
@@ -390,20 +380,22 @@ const submitUpload = async () => {
   }
 }
 
-// 打开编辑对话框
 const openEdit = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   editName.value = document.name
 
   const config = parseChunkConfig(document.chunkConfig)
-  editTargetChars.value = String(config.targetChars ?? 1400)
-  editMaxChars.value = String(config.maxChars ?? 1800)
-  editMinChars.value = String(config.minChars ?? 600)
-  editOverlapChars.value = String(config.overlapChars ?? 0)
+  editTargetChars.value = String(
+    config.targetChars ?? DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars
+  )
+  editMaxChars.value = String(config.maxChars ?? DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars)
+  editMinChars.value = String(config.minChars ?? DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.minChars)
+  editOverlapChars.value = String(
+    config.overlapChars ?? DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.overlapChars
+  )
   editDialogOpen.value = true
 }
 
-// 提交编辑文档
 const submitEdit = async () => {
   if (!activeDocument.value) return
 
@@ -421,13 +413,11 @@ const submitEdit = async () => {
   ElMessage.success('文档配置已更新')
 }
 
-// 打开重建分块确认框
 const openChunkConfirm = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   chunkDialogOpen.value = true
 }
 
-// 提交重建分块
 const submitChunkConfirm = async () => {
   if (!activeDocument.value) return
 
@@ -441,13 +431,11 @@ const submitChunkConfirm = async () => {
   }
 }
 
-// 打开删除确认框
 const openDeleteConfirm = (document: KnowledgeDocument) => {
   activeDocumentId.value = document.id
   deleteDialogOpen.value = true
 }
 
-// 提交删除确认
 const submitDeleteConfirm = async () => {
   if (!activeDocument.value) return
 
@@ -457,12 +445,10 @@ const submitDeleteConfirm = async () => {
   ElMessage.success('文档已删除')
 }
 
-// 打开分块详情页
 const openChunkLog = (document: KnowledgeDocument) => {
   router.push(`/admin/knowledge/${kbId.value}/docs/${document.id}`)
 }
 
-// 打开搜索命中文档
 const openSearchHitDocument = (documentId: string, chunkId: string) => {
   router.push({
     path: `/admin/knowledge/${kbId.value}/docs/${documentId}`,
@@ -489,7 +475,6 @@ const getPreviewScoreTone = (score: number) => {
   return 'info'
 }
 
-// 命中支路直接做成人类可读标签，减少看 matchedBy 数组的心智负担
 const formatMatchedBy = (matchedBy?: string[]) => {
   if (!matchedBy?.length) return '未标记'
   return matchedBy
@@ -501,7 +486,6 @@ const formatMatchedBy = (matchedBy?: string[]) => {
     .join(' + ')
 }
 
-// 原始分数可能为空；这里统一转成短横线，避免 UI 上出现一堆 null
 const formatNullableScore = (value?: number | null) => {
   return typeof value === 'number' ? value.toFixed(4) : '-'
 }
