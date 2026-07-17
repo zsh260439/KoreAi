@@ -1,6 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import type { KnowledgeQaDeltaEvent, KnowledgeSearchDebugInfo, KnowledgeSearchHit } from 'share-type'
+import { KnowledgeConfigService } from '../config/knowledge-config.service'
 import { extractKnowledgeEvidenceFacts } from '../evidence/knowledge-evidence-fact-extractor'
 import {
   hasPotentialKnowledgeAnswerGap,
@@ -12,7 +13,6 @@ import {
 } from './knowledge-qa.prompts'
 import {
   createKnowledgeQaSectionStreamState,
-  extractStreamingTextDelta,
   flushKnowledgeQaSectionedDelta,
   parseKnowledgeQaSectionedDelta
 } from './knowledge-qa.parser'
@@ -33,6 +33,8 @@ const QA_STREAM_MAX_ATTEMPTS = 2
 
 @Injectable()
 export class KnowledgeQaService {
+  constructor(private readonly configService: KnowledgeConfigService) {}
+
   async streamAnswerQuestion(
     query: string,
     hits: KnowledgeSearchHit[],
@@ -71,13 +73,14 @@ export class KnowledgeQaService {
       }
     ]
 
+    const provider = await this.configService.findProviderSettings()
     let resolveTotalTokens: (value: number | null) => void = () => {}
     let totalTokensResolved = false
     const totalTokens = new Promise<number | null>((resolve) => {
       resolveTotalTokens = resolve
     })
     const createQaStream = () =>
-      this.createClient(options.temperature).streamV2(
+      this.createClient(provider.runtimeConfig.llm, options.temperature).streamV2(
         messages,
         { signal: options.signal } as never
       )
@@ -87,7 +90,7 @@ export class KnowledgeQaService {
       }
 
       try {
-        const message = await this.createClient(options.temperature).invoke([
+        const message = await this.createClient(provider.runtimeConfig.llm, options.temperature).invoke([
           {
             role: 'system',
             content: [
@@ -125,18 +128,18 @@ export class KnowledgeQaService {
         for (let attempt = 1; attempt <= QA_STREAM_MAX_ATTEMPTS; attempt += 1) {
           const stream = createQaStream()
           const sectionStreamState = includeReasoning ? createKnowledgeQaSectionStreamState() : null
-          const bufferedEvents: KnowledgeQaStreamEvent[] = []
+          const answerEvents: KnowledgeQaStreamEvent[] = []
           let hasAnswerDelta = false
 
-          for await (const event of stream) {
-            const delta = extractStreamingTextDelta(event)
+          // text 子流直接对应模型的文本增量，避免从通用事件流再次聚合后才下发。
+          for await (const delta of stream.text) {
             if (!delta) {
               continue
             }
 
             if (!sectionStreamState) {
               hasAnswerDelta = true
-              bufferedEvents.push({
+              answerEvents.push({
                 type: 'answer_delta',
                 delta
               })
@@ -146,8 +149,11 @@ export class KnowledgeQaService {
             for (const sectionEvent of parseKnowledgeQaSectionedDelta(sectionStreamState, delta)) {
               if (sectionEvent.type === 'answer_delta') {
                 hasAnswerDelta = true
+                answerEvents.push(sectionEvent)
+              } else {
+                // 思考摘要只做展示，不参与答案修补；解析到后立即下发，避免检索结束后的空档。
+                yield sectionEvent
               }
-              bufferedEvents.push(sectionEvent)
             }
           }
 
@@ -155,8 +161,10 @@ export class KnowledgeQaService {
             for (const sectionEvent of flushKnowledgeQaSectionedDelta(sectionStreamState)) {
               if (sectionEvent.type === 'answer_delta') {
                 hasAnswerDelta = true
+                answerEvents.push(sectionEvent)
+              } else {
+                yield sectionEvent
               }
-              bufferedEvents.push(sectionEvent)
             }
           }
 
@@ -165,17 +173,12 @@ export class KnowledgeQaService {
             .catch(() => latestTotalTokens)
 
           if (hasAnswerDelta || options.signal?.aborted || attempt >= QA_STREAM_MAX_ATTEMPTS) {
-            const answerText = bufferedEvents
+            const answerText = answerEvents
               .filter((event): event is Extract<KnowledgeQaStreamEvent, { type: 'answer_delta' }> => event.type === 'answer_delta')
               .map((event) => event.delta)
               .join('')
             const repairedAnswer = await repairAnswerWithLlm(answerText)
 
-            for (const event of bufferedEvents) {
-              if (event.type !== 'answer_delta') {
-                yield event
-              }
-            }
             if (repairedAnswer) {
               yield {
                 type: 'answer_delta',
@@ -199,14 +202,18 @@ export class KnowledgeQaService {
     }
   }
 
-  getModelName(): string | null {
-    return process.env.LLM_MODEL ?? null
+  async getModelName(): Promise<string | null> {
+    const provider = await this.configService.findProviderSettings()
+    return provider.runtimeConfig.llm.model
   }
 
   // QA temperature 允许按知识库显式覆盖，因此这里按请求创建 client，避免缓存脏参数。
-  private createClient(temperature?: number): ChatOpenAI {
+  private createClient(
+    provider: { baseUrl: string | null; model: string | null },
+    temperature?: number
+  ): ChatOpenAI {
     const apiKey = process.env.LLM_API_KEY
-    const model = process.env.LLM_MODEL
+    const model = provider.model
     if (!apiKey || !model) {
       throw new InternalServerErrorException('LLM API key or model not set')
     }
@@ -216,7 +223,7 @@ export class KnowledgeQaService {
       model,
       temperature: resolveQaTemperature(temperature),
       configuration: {
-        baseURL: normalizeLlmBaseUrl(process.env.LLM_BASE_URL)
+        baseURL: normalizeLlmBaseUrl(provider.baseUrl ?? undefined)
       }
     })
   }

@@ -1,374 +1,617 @@
 <script setup lang="ts">
-import { ArrowDown, Plus, Settings2 } from 'lucide-vue-next'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useKnowledgeBases } from '@/composables/knowledge/useKnowledgeBases'
-import { useRetrievalRewritePreference } from '@/composables/knowledge/useRetrievalRewritePreference'
-import { useAutoScroll } from '@/composables/workspace/useAutoScroll'
-import { useConversationList } from '@/composables/workspace/useConversationList'
-import { useWorkspaceChat } from '@/composables/workspace/useWorkspaceChat'
-import type { EditableUserMessage } from '@/types/chat/models'
-import type { WorkspacePromptCapabilities } from 'share-type'
-import ContentList from './components/content/ContentList.vue'
-import WorkspacePromptBox from './components/input/WorkspacePromptBox.vue'
-import MessageList from './components/sidebar/MessageList.vue'
-import WorkspaceSidebarBrand from './components/sidebar/WorkspaceSidebarBrand.vue'
+import { ArrowDown, Plus, Search } from "lucide-vue-next";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useKnowledgeBases } from "@/composables/knowledge/useKnowledgeBases";
+import { useRetrievalRewritePreference } from "@/composables/knowledge/useRetrievalRewritePreference";
+import { useAutoScroll } from "@/composables/workspace/useAutoScroll";
+import { useConversationList } from "@/composables/workspace/useConversationList";
+import { useWorkspaceChat } from "@/composables/workspace/useWorkspaceChat";
+import type { EditableUserMessage } from "@/types/chat/models";
+import type { WorkspacePromptCapabilities } from "share-type";
+import ContentList from "./components/content/ContentList.vue";
+import WorkspaceWelcome from "./components/content/WorkspaceWelcome.vue";
+import WorkspacePromptBox from "./components/input/WorkspacePromptBox.vue";
+import MessageList from "./components/sidebar/MessageList.vue";
+import AppSidebar from "@/components/shell/AppSidebar.vue";
 
-const route = useRoute()
-const router = useRouter()
-const conversationList = useConversationList()
-const workspaceChat = useWorkspaceChat()
-const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
-const { rewriteEnabled, setRewriteEnabled } = useRetrievalRewritePreference()
+const route = useRoute();
+const router = useRouter();
+const conversationList = useConversationList();
+const workspaceChat = useWorkspaceChat();
+const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases();
+const { rewriteEnabled, setRewriteEnabled } = useRetrievalRewritePreference();
 
-const composerValue = ref('')
-const selectedKnowledgeBaseId = ref('')
+const composerValue = ref("");
+const conversationSearch = ref("");
+const sidebarCollapsed = ref(false);
+const selectedKnowledgeBaseId = ref("");
 const currentPromptCapabilities = ref<WorkspacePromptCapabilities>({
   think: false,
-  rewrite: rewriteEnabled.value
-})
-const promptBoxRef = ref<InstanceType<typeof WorkspacePromptBox> | null>(null)
-const autoScroll = useAutoScroll()
+  rewrite: rewriteEnabled.value,
+});
+const promptBoxRef = ref<InstanceType<typeof WorkspacePromptBox> | null>(null);
+const autoScroll = useAutoScroll();
 const {
   stickToBottom,
   startForceStickToBottom,
   stopForceStickToBottom,
   updateStickToBottom,
-  scrollMessagesToBottom
-} = autoScroll
+  scrollMessagesToBottom,
+} = autoScroll;
 
-const activeConversation = conversationList.activeConversation
-const activeContentList = workspaceChat.activeContentList
-const hasContent = computed(() => activeContentList.value.length > 0)
-const activeConversationId = conversationList.activeConversationId
-const conversationListLoading = conversationList.isLoading
-const conversationListError = conversationList.error
-const messagesLoading = workspaceChat.isLoadingMessages
-const isStreaming = workspaceChat.isStreaming
-const regenerating = workspaceChat.regenerating
+const activeConversation = conversationList.activeConversation;
+const activeContentList = workspaceChat.activeContentList;
+const hasContent = computed(() => activeContentList.value.length > 0);
+const activeConversationId = conversationList.activeConversationId;
+const conversationListLoading = conversationList.isLoading;
+const conversationListError = conversationList.error;
+const conversationDeleteError = ref("");
+const filteredConversations = computed(() => {
+  const query = conversationSearch.value.trim().toLocaleLowerCase();
+  return query
+    ? conversationList.conversations.value.filter((item) =>
+        item.title.toLocaleLowerCase().includes(query),
+      )
+    : conversationList.conversations.value;
+});
+const messagesLoading = workspaceChat.isLoadingMessages;
+const isStreaming = workspaceChat.isStreaming;
+const regenerating = workspaceChat.regenerating;
 const formatConversationTime = (value: string) => {
-  const date = new Date(value)
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return value
+    return value;
   }
 
-  const now = new Date()
-  const sameYear = date.getFullYear() === now.getFullYear()
-  const sameMonth = date.getMonth() === now.getMonth()
-  const sameDay = date.getDate() === now.getDate()
+  const now = new Date();
+  const sameYear = date.getFullYear() === now.getFullYear();
+  const sameMonth = date.getMonth() === now.getMonth();
+  const sameDay = date.getDate() === now.getDate();
 
   if (sameYear && sameMonth && sameDay) {
-    return '今天'
+    return "今天";
   }
 
-  const yesterday = new Date(now)
-  yesterday.setDate(now.getDate() - 1)
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
   const isYesterday =
     date.getFullYear() === yesterday.getFullYear() &&
     date.getMonth() === yesterday.getMonth() &&
-    date.getDate() === yesterday.getDate()
+    date.getDate() === yesterday.getDate();
 
   if (isYesterday) {
-    return '昨天'
+    return "昨天";
   }
 
   return date.toLocaleDateString(
-    'zh-CN',
+    "zh-CN",
     sameYear
       ? {
-          month: '2-digit',
-          day: 'numeric'
+          month: "2-digit",
+          day: "numeric",
         }
       : {
-          year: 'numeric',
-          month: '2-digit',
-          day: 'numeric'
-        }
-  )
-}
+          year: "numeric",
+          month: "2-digit",
+          day: "numeric",
+        },
+  );
+};
 
 const isConversationStreaming = (conversationId: string) =>
-  workspaceChat.isConversationStreaming(conversationId)
+  workspaceChat.isConversationStreaming(conversationId);
 
 watch(
   rewriteEnabled,
   (value) => {
     if (currentPromptCapabilities.value.rewrite === value) {
-      return
+      return;
     }
 
     currentPromptCapabilities.value = {
       ...currentPromptCapabilities.value,
-      rewrite: value
-    }
+      rewrite: value,
+    };
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 watch(
   () => currentPromptCapabilities.value.rewrite,
   (value) => {
-    const normalizedValue = value !== false
+    const normalizedValue = value !== false;
     if (rewriteEnabled.value === normalizedValue) {
-      return
+      return;
     }
 
-    setRewriteEnabled(normalizedValue)
-  }
-)
+    setRewriteEnabled(normalizedValue);
+  },
+);
 
 const handleConversationSelect = async (conversationId: string) => {
   if (conversationId === activeConversationId.value) {
-    return
+    return;
   }
 
-  conversationList.selectConversation(conversationId)
-  startForceStickToBottom()
-  composerValue.value = ''
-  await router.push(`/workspace/${conversationId}`)
-}
+  conversationList.selectConversation(conversationId);
+  startForceStickToBottom();
+  composerValue.value = "";
+  await router.push(`/workspace/${conversationId}`);
+};
 
 const handleConversationDelete = async (conversationId: string) => {
-  if (!window.confirm('确认删除这个会话吗？')) {
-    return
+  if (!window.confirm("确认删除这个会话吗？")) {
+    return;
   }
 
-  const deletingActiveConversation = conversationId === activeConversationId.value
-  await conversationList.deleteConversation(conversationId)
-  workspaceChat.removeConversationMessages(conversationId)
+  const deletingActiveConversation =
+    conversationId === activeConversationId.value;
+  conversationDeleteError.value = "";
+
+  try {
+    await conversationList.deleteConversation(conversationId);
+    workspaceChat.removeConversationMessages(conversationId);
+  } catch (error) {
+    conversationDeleteError.value =
+      error instanceof Error ? error.message : "删除会话失败";
+    return;
+  }
 
   if (deletingActiveConversation) {
-    composerValue.value = ''
-    await router.push('/workspace')
+    composerValue.value = "";
+    await router.push("/workspace");
   }
-}
+};
 
 const handleCreateConversation = async () => {
-  stopForceStickToBottom()
-  const conversation = await conversationList.createConversation()
-  composerValue.value = ''
-  await router.push(`/workspace/${conversation.id}`)
-}
+  stopForceStickToBottom();
+  const conversation = await conversationList.createConversation();
+  composerValue.value = "";
+  await router.push(`/workspace/${conversation.id}`);
+};
 
 const handleSend = async (payload: {
-  message: string
-  capabilities: WorkspacePromptCapabilities
-  knowledgeBaseId?: string
+  message: string;
+  capabilities: WorkspacePromptCapabilities;
+  knowledgeBaseId?: string;
 }) => {
-  composerValue.value = ''
+  composerValue.value = "";
   const conversationId = await workspaceChat.sendMessage(
     payload.message,
     payload.capabilities,
-    payload.knowledgeBaseId
-  )
+    payload.knowledgeBaseId,
+  );
 
   if (
     conversationId &&
     conversationId !==
-      (typeof route.params.conversationId === 'string' ? route.params.conversationId : '')
+      (typeof route.params.conversationId === "string"
+        ? route.params.conversationId
+        : "")
   ) {
-    await router.push(`/workspace/${conversationId}`)
+    await router.push(`/workspace/${conversationId}`);
   }
-}
-
-const openAdmin = () => {
-  void router.push('/admin/knowledge')
-}
+};
 
 const handleScrollToBottom = () => {
-  void scrollMessagesToBottom(true)
-}
+  void scrollMessagesToBottom(true);
+};
 
 watch(
   () => route.params.conversationId,
   async (conversationId) => {
-    if (typeof conversationId === 'string' && conversationId) {
-      conversationList.selectConversation(conversationId)
-      startForceStickToBottom()
-      await workspaceChat.loadConversationMessages(conversationId)
-      await scrollMessagesToBottom(true)
+    if (typeof conversationId === "string" && conversationId) {
+      conversationList.selectConversation(conversationId);
+      startForceStickToBottom();
+      await workspaceChat.loadConversationMessages(conversationId);
+      await scrollMessagesToBottom(true);
     }
-  }
-)
+  },
+);
 
 const handleRegenerate = () => {
   void workspaceChat.regenerateLastAnswer(
     selectedKnowledgeBaseId.value || undefined,
-    currentPromptCapabilities.value
-  )
-}
+    currentPromptCapabilities.value,
+  );
+};
+
+const handleWelcomePrompt = async (value: string) => {
+  composerValue.value = value;
+  await nextTick();
+  promptBoxRef.value?.focusComposer();
+};
 
 const handleEditMessage = async (payload: EditableUserMessage) => {
-  composerValue.value = payload.message.content
-  currentPromptCapabilities.value = payload.promptCapabilities
+  composerValue.value = payload.message.content;
+  currentPromptCapabilities.value = payload.promptCapabilities;
 
-  await nextTick()
-  promptBoxRef.value?.focusComposer()
-}
+  await nextTick();
+  promptBoxRef.value?.focusComposer();
+};
 
 onMounted(async () => {
   const conversationId =
-    typeof route.params.conversationId === 'string' ? route.params.conversationId : undefined
+    typeof route.params.conversationId === "string"
+      ? route.params.conversationId
+      : undefined;
 
-  await Promise.all([conversationList.loadConversationList(), loadKnowledgeBases()])
+  await Promise.all([
+    conversationList.loadConversationList(),
+    loadKnowledgeBases(),
+  ]);
 
   if (conversationId) {
-    conversationList.selectConversation(conversationId)
-    startForceStickToBottom()
-    await workspaceChat.loadConversationMessages(conversationId)
+    conversationList.selectConversation(conversationId);
+    startForceStickToBottom();
+    await workspaceChat.loadConversationMessages(conversationId);
   }
 
-  await scrollMessagesToBottom(true)
-})
+  await scrollMessagesToBottom(true);
+});
 </script>
 
 <template>
-  <main class="h-screen bg-white text-[#111827]">
-    <div class="grid h-screen grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside class="hidden h-screen w-full shrink-0 flex-col border-r border-r-[#f3f4f6] bg-white xl:flex">
-        <div class="px-7 pt-10">
-          <WorkspaceSidebarBrand />
-        </div>
-
-        <div class="px-7 pt-8">
-          <button
-            type="button"
-            class="flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white text-[14px] font-semibold text-[#111827] transition hover:border-[#d1d5db] hover:bg-[#fafafa]"
-            @click="handleCreateConversation"
-          >
-            <Plus class="size-4" />
-            <span>新建对话</span>
-          </button>
-        </div>
-
-        <div class="mt-6 min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-          <MessageList
-            :conversations="conversationList.conversations.value"
-            :active-conversation-id="activeConversationId"
-            :loading="conversationListLoading"
-            :get-conversation-time-label="formatConversationTime"
-            :is-conversation-streaming="isConversationStreaming"
-            @delete="handleConversationDelete"
-            @select="handleConversationSelect"
+  <main class="workspace-shell">
+    <AppSidebar v-model:collapsed="sidebarCollapsed">
+      <div class="workspace-sidebar-context">
+        <button
+          type="button"
+          class="new-chat-button"
+          @click="handleCreateConversation"
+        >
+          <Plus class="size-4" />
+          <span>新建对话</span>
+        </button>
+        <label class="conversation-search">
+          <Search :size="15" />
+          <input
+            v-model="conversationSearch"
+            type="search"
+            placeholder="筛选对话"
           />
+        </label>
+      </div>
+
+      <div class="conversation-scroll">
+        <MessageList
+          :conversations="filteredConversations"
+          :active-conversation-id="activeConversationId"
+          :loading="conversationListLoading"
+          :get-conversation-time-label="formatConversationTime"
+          :is-conversation-streaming="isConversationStreaming"
+          @delete="handleConversationDelete"
+          @select="handleConversationSelect"
+        />
+        <p v-if="conversationDeleteError" class="conversation-delete-error">
+          {{ conversationDeleteError }}
+        </p>
+      </div>
+    </AppSidebar>
+
+    <section class="workspace-main">
+      <header class="workspace-header">
+        <div class="workspace-header__title">
+          <h1>
+            {{ activeConversation?.title || "新对话" }}
+          </h1>
+          <span>
+            {{
+              hasContent ? `共 ${activeContentList.length} 条消息` : "对话界面"
+            }}
+          </span>
         </div>
+      </header>
 
-        <div class="border-t border-t-[#f3f4f6] px-5 py-4">
-          <button
-            type="button"
-            class="flex w-full items-center justify-between rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-3 text-left transition hover:border-[#d1d5db] hover:bg-[#fafafa]"
-            @click="openAdmin"
-          >
-            <div>
-              <p class="text-[14px] font-medium text-[#111827]">进入后台</p>
-              <p class="mt-1 text-[12px] text-[#9ca3af]">知识库管理</p>
-            </div>
-            <Settings2 class="size-4 shrink-0 text-[#9ca3af]" />
-          </button>
-        </div>
-      </aside>
-
-      <section class="flex min-w-0 flex-col overflow-hidden bg-white">
-        <header class="border-b border-b-[#f3f4f6] bg-white px-4 py-4 xl:px-8">
-          <div class="flex items-center gap-3">
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-[14px] font-medium text-[#111827]">
-                {{ activeConversation?.title || '新对话' }}
-              </p>
-              <p class="truncate text-[12px] text-[#9ca3af]">
-                {{ hasContent ? `共 ${activeContentList.length} 条消息` : '对话界面' }}
-              </p>
-            </div>
-          </div>
-        </header>
-
-        <div class="relative min-h-0 flex-1 bg-white">
+      <div class="message-stage">
           <div
             :ref="autoScroll.messagesRef"
-            class="h-full overflow-y-auto bg-white"
+            class="message-scroll"
+            :class="{ 'message-scroll--welcome': !hasContent }"
             @scroll="updateStickToBottom"
           >
-            <div :ref="autoScroll.contentRef" class="mx-auto w-full max-w-[920px] px-6 py-8">
-              <template v-if="conversationListLoading || messagesLoading">
-                <div class="space-y-8">
-                  <div v-for="item in 6" :key="item" class="space-y-4">
-                    <div class="h-5 w-5 rounded-full bg-[#f3f4f6]" />
-                    <div class="space-y-2">
-                      <div class="h-4 w-full rounded bg-[#f3f4f6]" />
-                      <div class="h-4 w-[92%] rounded bg-[#f3f4f6]" />
-                      <div class="h-4 w-[74%] rounded bg-[#f3f4f6]" />
-                      <div class="h-4 w-[58%] rounded bg-[#f8fafc]" />
-                    </div>
-                  </div>
-                </div>
-              </template>
-
-              <template v-else-if="conversationListError">
-                <div class="rounded-xl border border-red-200 bg-red-50 p-5">
-                  <p class="text-sm font-medium text-red-700">工作台加载失败</p>
-                  <p class="mt-2 text-sm text-red-600">{{ conversationListError }}</p>
-                  <button
-                    type="button"
-                    class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                    @click="conversationList.loadConversationList()"
-                  >
-                    重试
-                  </button>
-                </div>
-              </template>
-
-              <template v-else-if="hasContent">
-                <ContentList
-                  :content-list="activeContentList"
-                  :regenerating="regenerating"
-                  @edit="handleEditMessage"
-                  @regenerate="handleRegenerate"
-                />
-              </template>
-
-            </div>
-          </div>
-
-        </div>
-
-        <footer class="relative border-t border-t-[#f3f4f6] bg-white">
-          <Transition
-            enter-active-class="transition duration-180 ease-out"
-            leave-active-class="transition duration-150 ease-in"
-            leave-from-class="-translate-y-1/2 opacity-100"
-            leave-to-class="translate-y-2 opacity-0"
+          <div
+            :ref="autoScroll.contentRef"
+            class="message-column"
+            :class="{ 'message-column--welcome': !hasContent }"
           >
-            <div
-              v-if="hasContent && !stickToBottom"
-              class="pointer-events-none absolute left-1/2 top-[-2rem] z-30 flex -translate-x-1/2 -translate-y-1/2 justify-center"
-            >
-              <button
-                type="button"
-                aria-label="跳转到底部"
-                class="pointer-events-auto flex size-12 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111827] shadow-[0_12px_28px_rgba(15,23,42,0.16)] transition hover:bg-[#fafafa]"
-                @click="handleScrollToBottom"
-              >
-                <ArrowDown class="size-5" />
-              </button>
-            </div>
-          </Transition>
+            <template v-if="conversationListLoading || messagesLoading">
+              <div class="conversation-loading" aria-label="正在加载对话">
+                <span />
+                <span />
+                <span />
+              </div>
+            </template>
 
-          <div class="mx-auto max-w-[920px] px-6 py-4">
-            <WorkspacePromptBox
-              ref="promptBoxRef"
-              v-model="composerValue"
-              :capabilities="currentPromptCapabilities"
-              v-model:selected-knowledge-base-id="selectedKnowledgeBaseId"
-              :disabled="isStreaming"
+            <template v-else-if="conversationListError">
+              <div class="conversation-error">
+                <strong>对话加载失败</strong>
+                <p>{{ conversationListError }}</p>
+                <button
+                  type="button"
+                  @click="conversationList.loadConversationList()"
+                >
+                  重试
+                </button>
+              </div>
+            </template>
+
+            <template v-else-if="hasContent">
+              <ContentList
+                :content-list="activeContentList"
+                :regenerating="regenerating"
+                @edit="handleEditMessage"
+                @regenerate="handleRegenerate"
+              />
+            </template>
+
+            <WorkspaceWelcome
+              v-else
               :knowledge-bases="knowledgeBases"
-              :streaming="isStreaming"
-              @update:capabilities="currentPromptCapabilities = $event"
-              @submit="handleSend"
-              @stop="workspaceChat.stopStreaming"
+              @prompt="handleWelcomePrompt"
             />
           </div>
-        </footer>
-      </section>
-    </div>
+        </div>
+      </div>
+
+      <footer class="composer-area">
+        <Transition
+          enter-active-class="transition duration-180 ease-out"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="-translate-y-1/2 opacity-100"
+          leave-to-class="translate-y-2 opacity-0"
+        >
+          <div v-if="hasContent && !stickToBottom" class="scroll-bottom-wrap">
+            <button
+              type="button"
+              aria-label="跳转到底部"
+              class="scroll-bottom-button"
+              @click="handleScrollToBottom"
+            >
+              <ArrowDown class="size-5" />
+            </button>
+          </div>
+        </Transition>
+
+        <div class="composer-wrap">
+          <WorkspacePromptBox
+            ref="promptBoxRef"
+            v-model="composerValue"
+            :capabilities="currentPromptCapabilities"
+            v-model:selected-knowledge-base-id="selectedKnowledgeBaseId"
+            :disabled="isStreaming"
+            :knowledge-bases="knowledgeBases"
+            :streaming="isStreaming"
+            @update:capabilities="currentPromptCapabilities = $event"
+            @submit="handleSend"
+            @stop="workspaceChat.stopStreaming"
+          />
+        </div>
+      </footer>
+    </section>
   </main>
 </template>
+
+<style scoped>
+.workspace-shell {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: #fafaf7;
+  color: #191918;
+}
+.workspace-sidebar-context {
+  display: grid;
+  gap: 10px;
+  padding: 18px 13px 0;
+}
+.conversation-delete-error {
+  margin: 8px 8px 0;
+  color: #a23f3f;
+  font-size: 12px;
+}
+.new-chat-button {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid #d8d8d1;
+  border-radius: 9px;
+  background: #fff;
+  color: #191918;
+  font:
+    14px ui-serif,
+    Georgia,
+    "Songti SC",
+    serif;
+  cursor: pointer;
+}
+.new-chat-button:hover {
+  background: #efefea;
+}
+.conversation-search {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-bottom: 1px solid #e8e8e2;
+  color: #8a8a83;
+}
+.conversation-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  color: #44443f;
+  font-size: 12px;
+}
+.conversation-search input::placeholder {
+  color: #aaa9a2;
+}
+.conversation-scroll {
+  height: calc(100dvh - 282px);
+  overflow-y: auto;
+  padding: 17px 9px 0;
+  overscroll-behavior: contain;
+}
+.workspace-main {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  grid-template-rows: 70px minmax(0, 1fr) auto;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 55% 5%,
+      rgba(91, 91, 247, 0.035),
+      transparent 27%
+    ),
+    #fafaf7;
+}
+.workspace-header {
+  display: flex;
+  align-items: center;
+  padding: 0 25px;
+  border-bottom: 1px solid #e8e8e2;
+  background: rgba(250, 250, 247, 0.94);
+}
+.workspace-header__title {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.workspace-header h1 {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    600 16px ui-serif,
+    Georgia,
+    "Songti SC",
+    serif;
+}
+.workspace-header span {
+  color: #777770;
+  font-size: 12px;
+}
+.message-stage {
+  position: relative;
+  min-height: 0;
+}
+.message-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.message-scroll--welcome {
+  overflow: hidden;
+}
+.message-column {
+  width: min(820px, calc(100% - 48px));
+  margin: auto;
+  padding: 44px 0 90px;
+}
+.message-column--welcome {
+  padding-block: 0;
+}
+.conversation-loading {
+  display: grid;
+  width: 100%;
+  gap: 12px;
+  padding-top: 42px;
+}
+.conversation-loading span {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #efefea 25%, #f7f7f4 50%, #efefea 75%);
+  background-size: 200% 100%;
+  animation: conversation-loading 1.4s infinite;
+}
+.conversation-loading span:nth-child(2) {
+  width: 84%;
+}
+.conversation-loading span:nth-child(3) {
+  width: 62%;
+}
+.conversation-error {
+  padding: 20px 0;
+  border-top: 1px solid #e8e8e2;
+  border-bottom: 1px solid #e8e8e2;
+}
+.conversation-error strong {
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+}
+.conversation-error p {
+  color: #777770;
+  font-size: 13px;
+}
+.conversation-error button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #5b5bf7;
+  cursor: pointer;
+}
+.composer-area {
+  position: relative;
+  padding: 20px 24px 18px;
+  background: linear-gradient(transparent, #fafaf7 26%);
+}
+.composer-wrap {
+  width: min(820px, calc(100% - 48px));
+  margin: auto;
+}
+.scroll-bottom-wrap {
+  position: absolute;
+  top: -2rem;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.scroll-bottom-button {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+.scroll-bottom-button:hover {
+  background: #fafafa;
+}
+@keyframes conversation-loading {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (max-width: 800px) {
+  .message-column,
+  .composer-wrap {
+    width: calc(100% - 28px);
+  }
+  .workspace-header {
+    padding-inline: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .conversation-loading span {
+    animation: none;
+  }
+}
+</style>

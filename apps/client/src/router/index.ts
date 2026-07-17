@@ -28,6 +28,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/studio-demo',
+    name: 'studio-demo',
+    component: () => import('@/views/studio-demo/index.vue'),
+    meta: {
+      appShell: 'studio',
+      title: 'Kore Studio Demo',
+      requiresAuth: false
+    }
+  },
+  {
     path: '/admin',
     component: () => import('@/views/admin/layouts/AdminLayout.vue'),
     meta: {
@@ -54,16 +64,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'knowledge-settings',
-        name: 'admin-knowledge-settings',
-        component: () => import('@/views/admin/knowledge/settings.vue'),
-        meta: {
-          appShell: 'admin',
-          title: '检索参数',
-          requiresAuth: false,
-          navGroup: '导航',
-          navKey: 'knowledge-settings',
-          breadcrumb: ['首页', '检索参数']
-        }
+        redirect: '/admin/knowledge'
       },
       {
         path: 'traces',

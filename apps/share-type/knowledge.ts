@@ -107,6 +107,35 @@ export interface KnowledgeGlobalRuntimeSettings {
   updatedAt: string | null
 }
 
+/** 仅保存可公开的供应商运行覆盖项；密钥始终只从本地环境读取。 */
+export interface KnowledgeProviderRuntimeConfig {
+  llm: {
+    baseUrl: string | null
+    model: string | null
+  }
+  ocr: {
+    enabled: boolean
+    baseUrl: string | null
+    model: string | null
+  }
+}
+
+export interface KnowledgeProviderRuntimeConfigPatch {
+  llmBaseUrl?: string | null
+  llmModel?: string | null
+  ocrEnabled?: boolean
+  ocrBaseUrl?: string | null
+  ocrModel?: string | null
+}
+
+export interface KnowledgeProviderSettings {
+  runtimeConfig: KnowledgeProviderRuntimeConfig
+  llmApiKeyConfigured: boolean
+  ocrApiKeyConfigured: boolean
+  llmSource: 'env' | 'saved' | 'none'
+  ocrSource: 'env' | 'saved' | 'local'
+}
+
 export const DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG: KnowledgeBaseRuntimeConfig = {
   retrieval: {
     previewTopK: 20,

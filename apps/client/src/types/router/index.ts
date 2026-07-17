@@ -1,6 +1,6 @@
 declare module 'vue-router' {
   interface RouteMeta {
-    appShell: 'marketing' | 'auth' | 'workspace' | 'admin'
+    appShell: 'marketing' | 'auth' | 'workspace' | 'admin' | 'studio'
     title?: string
     requiresAuth?: boolean
     breadcrumb?: string[]

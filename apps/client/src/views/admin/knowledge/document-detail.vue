@@ -95,7 +95,12 @@ const tableCaption = computed(() => {
   return '列表按 chunk 顺序展示，重点保留结构路径、偏移范围、页码和 block 类型，方便逐条 review。'
 })
 
+const isRebuildingChunks = ref(false)
+
 const rebuildChunks = async () => {
+  if (isRebuildingChunks.value) return
+
+  isRebuildingChunks.value = true
   try {
     const rebuiltChunks = await rebuildKnowledgeChunks(docId.value)
     await loadKnowledgeDocument(docId.value)
@@ -105,6 +110,8 @@ const rebuildChunks = async () => {
   } catch (error) {
     await loadKnowledgeDocument(docId.value)
     ElMessage.error(error instanceof Error ? error.message : '文档分块失败')
+  } finally {
+    isRebuildingChunks.value = false
   }
 }
 
@@ -363,7 +370,7 @@ onMounted(async () => {
           <RefreshCw class="h-4 w-4" />
           刷新
         </el-button>
-        <el-button type="primary" @click="rebuildChunks">重新分块</el-button>
+        <el-button type="primary" :loading="isRebuildingChunks" @click="rebuildChunks">重新分块</el-button>
       </div>
     </div>
 
@@ -575,8 +582,9 @@ onMounted(async () => {
 <style scoped>
 .chunk-stage {
   margin: 0 auto;
-  max-width: 1400px;
-  padding: 8px 0 24px;
+  max-width: 1280px;
+  padding: 4px 0 32px;
+  color: #252522;
 }
 
 .chunk-stage__topbar {
@@ -584,8 +592,8 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  border-bottom: 1px solid #d9e2ec;
-  padding-bottom: 18px;
+  border-bottom: 1px solid #e3e3dd;
+  padding-bottom: 16px;
 }
 
 .chunk-stage__path {
@@ -594,7 +602,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #52606d;
+  color: #777770;
 }
 
 .chunk-stage__back {
@@ -604,12 +612,12 @@ onMounted(async () => {
   border: 0;
   background: transparent;
   padding: 0;
-  color: #0f766e;
+  color: #4f4fd8;
   cursor: pointer;
 }
 
 .chunk-stage__divider {
-  color: #9aa5b1;
+  color: #b0b0a9;
 }
 
 .chunk-stage__actions {
@@ -622,8 +630,8 @@ onMounted(async () => {
 .chunk-stage__intro {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 24px;
-  padding: 24px 0 20px;
+  gap: 40px;
+  padding: 38px 0 32px;
 }
 
 .chunk-stage__copy {
@@ -631,76 +639,72 @@ onMounted(async () => {
 }
 
 .chunk-stage__title {
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.1;
+  margin: 0;
+  font: 600 30px / 1.2 ui-serif, Georgia, "Songti SC", serif;
   letter-spacing: -0.03em;
-  color: #102a43;
+  color: #20201d;
 }
 
 .chunk-stage__subtitle {
   margin-top: 10px;
   font-size: 14px;
   line-height: 1.8;
-  color: #52606d;
+  color: #66665f;
 }
 
 .chunk-stage__facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  overflow: hidden;
-  border: 1px solid #d9e2ec;
-  border-radius: 18px;
-  background: #ffffff;
+  border-top: 1px solid #deded8;
+  border-bottom: 1px solid #deded8;
 }
 
 .chunk-stage__fact {
-  padding: 16px 18px;
+  padding: 16px;
 }
 
 .chunk-stage__fact:nth-child(odd) {
-  border-right: 1px solid #e5edf5;
+  border-right: 1px solid #e7e7e1;
 }
 
 .chunk-stage__fact:nth-child(-n + 2) {
-  border-bottom: 1px solid #e5edf5;
+  border-bottom: 1px solid #e7e7e1;
 }
 
 .chunk-stage__fact dt {
   font-size: 12px;
-  color: #7b8794;
+  color: #85857e;
 }
 
 .chunk-stage__fact dd {
   margin-top: 6px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #102a43;
+  font: 600 18px ui-serif, Georgia, "Songti SC", serif;
+  color: #292925;
 }
 
 .chunk-stage__notice {
   margin-bottom: 18px;
-  border-left: 3px solid #0f766e;
-  background: #f0fdfa;
+  border-left: 2px solid #6767ed;
+  background: #f4f3ff;
   padding: 14px 16px;
   font-size: 14px;
-  color: #115e59;
+  color: #4f4f99;
 }
 
 .chunk-stage__table-shell {
   overflow: hidden;
-  border: 1px solid #d9e2ec;
-  border-radius: 18px;
-  background: #ffffff;
+  border-top: 1px solid #deded8;
+  border-bottom: 1px solid #deded8;
+  background: #fafaf7;
 }
 
 .chunk-stage__table-caption {
-  border-bottom: 1px solid #e5edf5;
-  padding: 14px 18px;
+  border-bottom: 1px solid #e7e7e1;
+  padding: 13px 4px;
   font-size: 13px;
   line-height: 1.7;
-  color: #52606d;
+  color: #777770;
 }
 
 .chunk-table {
@@ -708,8 +712,8 @@ onMounted(async () => {
 }
 
 .chunk-sequence {
-  font-weight: 700;
-  color: #102a43;
+  font: 600 14px ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #5b5bf7;
 }
 
 .chunk-preview {
@@ -717,7 +721,7 @@ onMounted(async () => {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  color: #334155;
+  color: #3d3d38;
   line-height: 1.75;
 }
 
@@ -729,18 +733,18 @@ onMounted(async () => {
 .chunk-structure__status {
   font-size: 13px;
   font-weight: 600;
-  color: #102a43;
+  color: #292925;
 }
 
 .chunk-structure__path {
   font-size: 13px;
   line-height: 1.6;
-  color: #0f172a;
+  color: #3d3d38;
 }
 
 .chunk-structure__empty {
   font-size: 13px;
-  color: #7b8794;
+  color: #888881;
 }
 
 .chunk-structure__meta {
@@ -748,7 +752,7 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 10px;
   font-size: 12px;
-  color: #64748b;
+  color: #85857e;
 }
 
 .chunk-structure__tags {
@@ -760,24 +764,26 @@ onMounted(async () => {
 .chunk-tag {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  background: #f0fdfa;
-  padding: 4px 10px;
+  border: 1px solid #deded8;
+  border-radius: 5px;
+  background: #f7f7f3;
+  padding: 3px 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #0f766e;
+  color: #62625c;
 }
 
 .chunk-tag--strong {
-  background: #f1f5f9;
-  color: #0f172a;
+  border-color: #d8d6ff;
+  background: #f4f3ff;
+  color: #5555c7;
 }
 
 .chunk-footer {
   display: flex;
   justify-content: flex-end;
   padding: 14px 4px 0;
-  color: #64748b;
+  color: #85857e;
   font-size: 14px;
 }
 
@@ -788,9 +794,8 @@ onMounted(async () => {
 }
 
 .chunk-dialog__title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #102a43;
+  font: 600 20px ui-serif, Georgia, "Songti SC", serif;
+  color: #252522;
 }
 
 .chunk-dialog__meta {
@@ -798,7 +803,7 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 14px;
   font-size: 13px;
-  color: #667085;
+  color: #7c7c75;
 }
 
 .chunk-dialog__content {
@@ -816,9 +821,9 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 16px;
-  border: 1px solid #d9e2ec;
-  border-radius: 16px;
-  background: #ffffff;
+  border-top: 1px solid #e2e2dc;
+  border-bottom: 1px solid #e2e2dc;
+  background: transparent;
   padding: 16px 18px;
 }
 
@@ -831,17 +836,15 @@ onMounted(async () => {
 .chunk-dialog__hint {
   font-size: 13px;
   line-height: 1.75;
-  color: #52606d;
+  color: #66665f;
 }
 
 .chunk-dialog__facts-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  overflow: hidden;
-  border: 1px solid #e5edf5;
-  border-radius: 14px;
-  background: #f8fafc;
+  border-top: 1px solid #e7e7e1;
+  border-bottom: 1px solid #e7e7e1;
 }
 
 .chunk-dialog__fact-card {
@@ -849,34 +852,34 @@ onMounted(async () => {
 }
 
 .chunk-dialog__fact-card:nth-child(odd) {
-  border-right: 1px solid #e5edf5;
+  border-right: 1px solid #e7e7e1;
 }
 
 .chunk-dialog__fact-card:nth-child(-n + 2) {
-  border-bottom: 1px solid #e5edf5;
+  border-bottom: 1px solid #e7e7e1;
 }
 
 .chunk-dialog__fact-card dt {
   font-size: 12px;
-  color: #7b8794;
+  color: #85857e;
 }
 
 .chunk-dialog__fact-card dd {
   margin-top: 6px;
   line-height: 1.7;
-  color: #102a43;
+  color: #292925;
 }
 
 .chunk-dialog__section {
-  border: 1px solid #d9e2ec;
-  border-radius: 16px;
-  background: #ffffff;
+  border-top: 1px solid #e2e2dc;
+  border-bottom: 1px solid #e2e2dc;
+  background: transparent;
   padding: 16px 18px;
 }
 
 .chunk-dialog__section--table {
   border: 0;
-  border-top: 1px solid #e5edf5;
+  border-top: 1px solid #e7e7e1;
   border-radius: 0;
   background: transparent;
   min-height: 0;
@@ -885,7 +888,7 @@ onMounted(async () => {
 }
 
 .chunk-dialog__section--empty {
-  background: #f8fafc;
+  background: #f7f7f3;
 }
 
 .chunk-dialog__section-head {
@@ -897,34 +900,33 @@ onMounted(async () => {
 }
 
 .chunk-dialog__section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #102a43;
+  font: 600 15px ui-serif, Georgia, "Songti SC", serif;
+  color: #292925;
 }
 
 .chunk-dialog__section-caption {
   font-size: 12px;
-  color: #7b8794;
+  color: #85857e;
 }
 
 .chunk-dialog__empty-text {
   font-size: 14px;
   font-weight: 600;
-  color: #102a43;
+  color: #292925;
 }
 
 .chunk-dialog__empty-subtitle {
   margin-top: 8px;
   font-size: 13px;
   line-height: 1.75;
-  color: #52606d;
+  color: #66665f;
 }
 
 .block-path,
 .block-extra,
 .block-preview {
   line-height: 1.65;
-  color: #334155;
+  color: #4a4a44;
 }
 
 .block-path {
@@ -949,8 +951,8 @@ onMounted(async () => {
 
 .chunk-dialog__details {
   min-height: 0;
-  border-top: 1px solid #e5edf5;
-  background: #ffffff;
+  border-top: 1px solid #e7e7e1;
+  background: transparent;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
@@ -961,8 +963,8 @@ onMounted(async () => {
   cursor: pointer;
   list-style: none;
   font-size: 14px;
-  font-weight: 700;
-  color: #102a43;
+  font: 600 15px ui-serif, Georgia, "Songti SC", serif;
+  color: #292925;
 }
 
 .chunk-dialog__details-summary::-webkit-details-marker {
@@ -974,11 +976,11 @@ onMounted(async () => {
   height: 100%;
   min-height: 0;
   overflow: auto;
-  border-radius: 14px;
-  background: #f8fafc;
+  border-left: 2px solid #d8d6ff;
+  background: #f7f7f3;
   padding: 16px;
   line-height: 1.85;
-  color: #334155;
+  color: #3d3d38;
   white-space: pre-wrap;
 }
 
@@ -1002,9 +1004,9 @@ onMounted(async () => {
 
 :deep(.chunk-table .el-table__header th.el-table__cell),
 :deep(.chunk-blocks__table .el-table__header th.el-table__cell) {
-  background: #f8fafc;
-  color: #475467;
-  font-weight: 700;
+  background: #f4f4f0;
+  color: #686861;
+  font-weight: 600;
 }
 
 :deep(.chunk-table .el-table__body td.el-table__cell),
@@ -1015,7 +1017,21 @@ onMounted(async () => {
 }
 
 :deep(.chunk-table .el-table__row.chunk-row--active > td.el-table__cell) {
-  background: #f0fdfa;
+  background: #f2f1ff;
+}
+
+:deep(.chunk-table),
+:deep(.chunk-blocks__table) {
+  --el-table-bg-color: #fafaf7;
+  --el-table-tr-bg-color: #fafaf7;
+  --el-table-row-hover-bg-color: #f4f4f0;
+  --el-table-border-color: #e7e7e1;
+  --el-table-text-color: #3d3d38;
+}
+
+:deep(.chunk-dialog) {
+  border-radius: 12px;
+  background: #fafaf7;
 }
 
 @media (max-width: 1080px) {

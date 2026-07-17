@@ -79,6 +79,7 @@ const uploadAccept = '.txt,.md,.docx,.pdf'
 const maxUploadFileSizeMb = 20
 
 const editDialogOpen = ref(false)
+const isUpdatingDocument = ref(false)
 const activeDocumentId = ref('')
 const editName = ref('')
 const editTargetChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars))
@@ -87,7 +88,9 @@ const editMinChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.minChars))
 const editOverlapChars = ref(String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.overlapChars))
 
 const chunkDialogOpen = ref(false)
+const isRebuildingChunks = ref(false)
 const deleteDialogOpen = ref(false)
+const isDeletingDocument = ref(false)
 
 const statusOptions = [
   { value: 'all', label: '全部状态' },
@@ -326,7 +329,6 @@ const handleRefresh = async () => {
 const resetUploadDialog = () => {
   uploadDialogOpen.value = false
   selectedUploadFile.value = null
-  isSubmittingUpload.value = false
   uploadName.value = ''
   uploadTargetChars.value = String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.targetChars)
   uploadMaxChars.value = String(DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG.maxChars)
@@ -336,6 +338,8 @@ const resetUploadDialog = () => {
 }
 
 const submitUpload = async () => {
+  if (isSubmittingUpload.value) return
+
   if (!selectedUploadFile.value) {
     ElMessage.warning('请先拖拽或选择一个文档文件')
     return
@@ -397,20 +401,26 @@ const openEdit = (document: KnowledgeDocument) => {
 }
 
 const submitEdit = async () => {
-  if (!activeDocument.value) return
+  if (!activeDocument.value || isUpdatingDocument.value) return
 
   const payload: KnowledgeDocumentEditForm = {
     name: editName.value.trim(),
     chunkConfig: buildEditChunkConfigText()
   }
 
-  await updateKnowledgeDocument(activeDocument.value.id, {
-    name: payload.name,
-    chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
-  })
-
-  editDialogOpen.value = false
-  ElMessage.success('文档配置已更新')
+  isUpdatingDocument.value = true
+  try {
+    await updateKnowledgeDocument(activeDocument.value.id, {
+      name: payload.name,
+      chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
+    })
+    editDialogOpen.value = false
+    ElMessage.success('文档配置已更新')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '文档更新失败')
+  } finally {
+    isUpdatingDocument.value = false
+  }
 }
 
 const openChunkConfirm = (document: KnowledgeDocument) => {
@@ -419,15 +429,18 @@ const openChunkConfirm = (document: KnowledgeDocument) => {
 }
 
 const submitChunkConfirm = async () => {
-  if (!activeDocument.value) return
+  if (!activeDocument.value || isRebuildingChunks.value) return
 
+  isRebuildingChunks.value = true
   try {
     const chunks = await rebuildKnowledgeChunks(activeDocument.value.id)
-    await loadKnowledgeDocuments(kbId.value)
     chunkDialogOpen.value = false
+    await loadKnowledgeDocuments(kbId.value)
     ElMessage.success(formatChunkResultMessage('已完成分块', chunks))
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '文档分块失败')
+  } finally {
+    isRebuildingChunks.value = false
   }
 }
 
@@ -437,12 +450,19 @@ const openDeleteConfirm = (document: KnowledgeDocument) => {
 }
 
 const submitDeleteConfirm = async () => {
-  if (!activeDocument.value) return
+  if (!activeDocument.value || isDeletingDocument.value) return
 
-  await removeKnowledgeDocument(activeDocument.value.id)
-  await loadKnowledgeBases()
-  deleteDialogOpen.value = false
-  ElMessage.success('文档已删除')
+  isDeletingDocument.value = true
+  try {
+    await removeKnowledgeDocument(activeDocument.value.id)
+    await loadKnowledgeBases()
+    deleteDialogOpen.value = false
+    ElMessage.success('文档已删除')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '文档删除失败')
+  } finally {
+    isDeletingDocument.value = false
+  }
 }
 
 const openChunkLog = (document: KnowledgeDocument) => {
@@ -592,14 +612,14 @@ onMounted(async () => {
               @keydown.ctrl.enter.prevent="handleContentSearch"
             />
             <div class="preview-query__actions">
-              <button
+              <el-button
                 class="preview-query__button"
-                type="button"
-                :disabled="isSearching"
+                type="primary"
+                :loading="isSearching"
                 @click="handleContentSearch"
               >
                 {{ isSearching ? '检索中' : '检索' }}
-              </button>
+              </el-button>
               <button
                 v-if="contentSearchInput || hasSearchedContent"
                 class="preview-query__clear"
@@ -775,7 +795,7 @@ onMounted(async () => {
               <template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
             </el-table-column>
 
-            <el-table-column label="操作" width="230" align="right">
+            <el-table-column label="操作" width="160" align="right">
               <template #default="{ row }">
                 <div class="flex items-center justify-end gap-1">
                   <el-button link @click="openEdit(row)" title="编辑">
@@ -913,7 +933,7 @@ onMounted(async () => {
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="editDialogOpen = false">关闭</el-button>
-          <el-button type="primary" :disabled="!editName.trim()" @click="submitEdit">保存</el-button>
+          <el-button type="primary" :loading="isUpdatingDocument" :disabled="!editName.trim()" @click="submitEdit">保存</el-button>
         </div>
       </template>
     </el-dialog>
@@ -921,12 +941,12 @@ onMounted(async () => {
     <el-dialog v-model="chunkDialogOpen" title="重新分块" width="460px" destroy-on-close>
       <div class="space-y-2 text-sm">
         <p>文档 [{{ activeDocumentName }}] 当前已有 {{ activeDocument?.chunkCount ?? 0 }} 条分块记录。</p>
-        <p class="text-[#f59e0b]">重新分块会清空旧 chunk，再按当前 storagePath 和分块配置重新生成。</p>
+        <p class="text-[#f59e0b]">重新分块会清空旧 chunk，再按当前分块配置重新生成。</p>
       </div>
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="chunkDialogOpen = false">取消</el-button>
-          <el-button type="primary" @click="submitChunkConfirm">确认</el-button>
+          <el-button type="primary" :loading="isRebuildingChunks" @click="submitChunkConfirm">确认</el-button>
         </div>
       </template>
     </el-dialog>
@@ -936,7 +956,7 @@ onMounted(async () => {
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="deleteDialogOpen = false">取消</el-button>
-          <el-button type="danger" @click="submitDeleteConfirm">删除</el-button>
+          <el-button type="danger" :loading="isDeletingDocument" @click="submitDeleteConfirm">删除</el-button>
         </div>
       </template>
     </el-dialog>
@@ -946,29 +966,29 @@ onMounted(async () => {
 <style scoped>
 .doc-stage {
   position: relative;
-  padding: 8px 0 28px;
+  width: 100%;
+  overflow-x: clip;
+  padding: 4px 0 32px;
   isolation: isolate;
+  color: #252522;
 }
 
 .doc-stage::before {
   content: '';
   position: absolute;
-  inset: 0 -72px -28px -180px;
+  inset: 0;
   z-index: -1;
   background:
-    radial-gradient(circle at 12% 18%, rgba(15, 118, 110, 0.08), transparent 30%),
-    radial-gradient(circle at 52% 10%, rgba(148, 163, 184, 0.06), transparent 24%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.025) 0, transparent 38%);
-  border-radius: 0;
+    radial-gradient(circle at 16% 10%, rgba(91, 91, 247, 0.055), transparent 28%),
+    radial-gradient(circle at 62% 4%, rgba(91, 91, 247, 0.025), transparent 22%);
 }
 
 .doc-stage__canvas {
   margin: 0 auto;
-  max-width: 1480px;
+  width: 100%;
+  max-width: 1320px;
   min-height: calc(100vh - 190px);
-  border-radius: 0;
-  background: transparent;
-  padding: 34px 36px 38px;
+  padding: 24px 28px 36px;
 }
 
 .doc-stage__toolbar {
@@ -976,6 +996,8 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
+  border-bottom: 1px solid #e3e3dd;
+  padding-bottom: 16px;
 }
 
 .doc-stage__path {
@@ -984,7 +1006,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #667085;
+  color: #777770;
 }
 
 .doc-stage__back {
@@ -994,7 +1016,7 @@ onMounted(async () => {
   border: 0;
   background: transparent;
   padding: 0;
-  color: #0f766e;
+  color: #4f4fd8;
   cursor: pointer;
 }
 
@@ -1010,42 +1032,43 @@ onMounted(async () => {
 }
 
 .doc-stage__headline {
-  margin-top: 22px;
+  margin-top: 32px;
 }
 
 .doc-stage__title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #111827;
+  margin: 0;
+  font: 600 32px / 1.2 ui-serif, Georgia, "Songti SC", serif;
+  letter-spacing: -0.03em;
+  color: #20201d;
 }
 
 .doc-stage__subtitle {
   margin-top: 8px;
   font-size: 14px;
-  color: #6b7280;
+  color: #777770;
 }
 
 .doc-tabs {
-  margin-top: 26px;
+  margin-top: 30px;
   display: flex;
   flex-wrap: wrap;
-  gap: 28px;
+  gap: 26px;
+  border-bottom: 1px solid #e3e3dd;
 }
 
 .doc-tab {
   position: relative;
   border: 0;
   background: transparent;
-  padding: 0 0 12px;
-  font-size: 16px;
-  font-weight: 500;
-  color: #475467;
+  padding: 0 0 11px;
+  font: 500 15px ui-serif, Georgia, "Songti SC", serif;
+  color: #686861;
   cursor: pointer;
 }
 
 .doc-tab--active {
-  color: #0f766e;
-  font-weight: 700;
+  color: #4f4fd8;
+  font-weight: 600;
 }
 
 .doc-tab--active::after {
@@ -1054,13 +1077,13 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 3px;
-  background: #0f766e;
+  height: 2px;
+  background: #5b5bf7;
 }
 
 .preview-panel,
 .doc-panel {
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
 .preview-panel {
@@ -1417,10 +1440,10 @@ onMounted(async () => {
 
 
 .doc-panel {
-  border: 1px solid var(--border-default);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  min-width: 0;
+  border-top: 1px solid #deded8;
+  border-bottom: 1px solid #deded8;
+  background: #fafaf7;
   overflow: hidden;
 }
 
@@ -1428,42 +1451,69 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid #edf2f7;
+  gap: 32px;
+  padding: 20px 4px 18px;
+  border-bottom: 1px solid #e7e7e1;
 }
 
 .doc-panel__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
+  margin: 0;
+  font: 600 17px ui-serif, Georgia, "Songti SC", serif;
+  color: #292925;
 }
 
 .doc-panel__desc {
+  max-width: 70ch;
   margin-top: 4px;
-  font-size: 14px;
-  color: #64748b;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #777770;
 }
 
 .doc-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
 }
 
 .doc-panel__body {
-  padding: 0 16px 18px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 0 16px;
 }
 
 .doc-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 12px 0;
-  color: #64748b;
-  font-size: 14px;
+  padding: 16px 4px 0;
+  color: #777770;
+  font-size: 13px;
+}
+
+:deep(.doc-panel .el-table) {
+  --el-table-bg-color: #fafaf7;
+  --el-table-tr-bg-color: #fafaf7;
+  --el-table-row-hover-bg-color: #f3f3ef;
+  --el-table-border-color: #e7e7e1;
+  --el-table-text-color: #3d3d38;
+  --el-table-header-text-color: #686861;
+}
+
+:deep(.doc-panel .el-table__header th.el-table__cell) {
+  background: #f4f4f0;
+  font-weight: 600;
+}
+
+:deep(.doc-panel .el-table__inner-wrapper::before) {
+  display: none;
+}
+
+:deep(.doc-panel .el-button.is-link) {
+  color: #5555d8;
 }
 
 .upload-dropzone :deep(.el-upload) {
@@ -1535,7 +1585,7 @@ onMounted(async () => {
 }
 
 .status-dot--indexed {
-  background: var(--brand-primary);
+  background: #5f9c72;
 }
 
 .status-dot--processing {
@@ -1561,6 +1611,10 @@ onMounted(async () => {
     justify-content: flex-start;
   }
 
+  .doc-toolbar {
+    flex-wrap: wrap;
+  }
+
   .preview-workbench {
     grid-template-columns: 1fr;
   }
@@ -1573,8 +1627,7 @@ onMounted(async () => {
 
 @media (max-width: 768px) {
   .doc-stage__canvas {
-    padding: 22px 16px 24px;
-    border-radius: 20px;
+    padding: 20px 16px 28px;
   }
 
   .doc-tabs {

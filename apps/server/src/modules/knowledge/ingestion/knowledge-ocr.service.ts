@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { KnowledgeConfigService } from '../config/knowledge-config.service'
 
 import type {
   DocumentOcrImageInput,
@@ -20,10 +21,14 @@ const DEFAULT_MAX_OCR_IMAGES_PER_DOCUMENT = 20
 
 @Injectable()
 export class KnowledgeOcrService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly knowledgeConfigService: KnowledgeConfigService
+  ) {}
 
   createParserOptions(): ParseKnowledgeDocumentOptions {
     let remainingImages = this.getMaxImagesPerDocument()
+    const providerSettings = this.knowledgeConfigService.findProviderSettings()
 
     return {
       ocrImage: async (image) => {
@@ -32,19 +37,22 @@ export class KnowledgeOcrService {
         }
 
         remainingImages -= 1
-        return this.recognizeImage(image)
+        return this.recognizeImage(image, await providerSettings)
       }
     }
   }
 
-  private async recognizeImage(image: DocumentOcrImageInput): Promise<DocumentOcrResult> {
-    const baseUrl = this.configService.get<string>('OCR_BASE_URL')
+  private async recognizeImage(
+    image: DocumentOcrImageInput,
+    providerSettings: Awaited<ReturnType<KnowledgeConfigService['findProviderSettings']>>
+  ): Promise<DocumentOcrResult> {
+    const { enabled, baseUrl, model } = providerSettings.runtimeConfig.ocr
     const apiKey = this.configService.get<string>('OCR_API_KEY')
-    const model = this.configService.get<string>('OCR_MODEL')
     const endpoint = normalizeChatCompletionEndpoint(baseUrl)
 
-    if (!endpoint || !apiKey || !model) {
+    if (!enabled || !endpoint || !apiKey || !model) {
       const missingKeys = [
+        !enabled && 'OCR_ENABLED',
         !endpoint && 'OCR_BASE_URL',
         !apiKey && 'OCR_API_KEY',
         !model && 'OCR_MODEL'
@@ -138,7 +146,7 @@ export class KnowledgeOcrService {
   }
 }
 
-function normalizeChatCompletionEndpoint(value?: string): string | null {
+function normalizeChatCompletionEndpoint(value?: string | null): string | null {
   const trimmed = value?.trim().replace(/\/+$/, '')
   if (!trimmed) {
     return null

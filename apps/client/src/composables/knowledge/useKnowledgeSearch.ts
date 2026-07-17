@@ -14,6 +14,8 @@ export function useKnowledgeSearch() {
     query: string,
     rewrite = true
   ) => {
+    if (isSearching.value) return []
+
     isSearching.value = true
     error.value = null
 

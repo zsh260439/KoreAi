@@ -7,6 +7,8 @@ import type {
   KnowledgeChunk,
   KnowledgeDocument,
   KnowledgeGlobalRuntimeSettings,
+  KnowledgeProviderRuntimeConfigPatch,
+  KnowledgeProviderSettings,
   KnowledgeSearchInput,
   KnowledgeSearchResponse,
   StructureAwareChunkConfig,
@@ -28,6 +30,14 @@ export const findGlobalRuntimeConfigAPI = () => {
 
 export const updateGlobalRuntimeConfigAPI = (dto: KnowledgeBaseRuntimeConfigPatch) => {
   return request<KnowledgeGlobalRuntimeSettings>('knowledge/runtime-config/global', 'PATCH', dto)
+}
+
+export const findProviderSettingsAPI = () => {
+  return request<KnowledgeProviderSettings>('knowledge/provider-settings')
+}
+
+export const updateProviderSettingsAPI = (dto: KnowledgeProviderRuntimeConfigPatch) => {
+  return request<KnowledgeProviderSettings>('knowledge/provider-settings', 'PATCH', dto)
 }
 
 export const updateKnowledgeBaseAPI = (kbId: string, dto: UpdateKnowledgeBaseInput) => {

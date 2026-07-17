@@ -1,294 +1,493 @@
 <script setup lang="ts">
-import { ArrowUp, Brain, Square } from 'lucide-vue-next'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import {
+  ArrowUp,
+  BookOpen,
+  Brain,
+  Check,
+  ChevronDown,
+  Sparkles,
+  Square,
+} from "lucide-vue-next";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import RetrievalRewriteToggle from '@/components/ui/RetrievalRewriteToggle.vue'
-import type { WorkspacePromptCapabilities } from 'share-type'
+import type { WorkspacePromptCapabilities } from "share-type";
 
-const ALL_KNOWLEDGE_BASES_VALUE = '__all__'
+const ALL_KNOWLEDGE_BASES_VALUE = "__all__";
 
 type PromptSubmitPayload = {
-  message: string
-  capabilities: WorkspacePromptCapabilities
-  knowledgeBaseId?: string
-}
+  message: string;
+  capabilities: WorkspacePromptCapabilities;
+  knowledgeBaseId?: string;
+};
 
 const props = withDefaults(
   defineProps<{
-    capabilities?: WorkspacePromptCapabilities
-    disabled?: boolean
+    capabilities?: WorkspacePromptCapabilities;
+    disabled?: boolean;
     knowledgeBases?: {
-      id: string
-      name: string
-    }[]
-    selectedKnowledgeBaseId?: string
-    modelValue: string
-    streaming?: boolean
+      id: string;
+      name: string;
+    }[];
+    selectedKnowledgeBaseId?: string;
+    modelValue: string;
+    streaming?: boolean;
   }>(),
   {
     capabilities: () => ({
       think: false,
-      rewrite: true
+      rewrite: true,
     }),
     disabled: false,
     knowledgeBases: () => [],
-    selectedKnowledgeBaseId: '',
-    streaming: false
-  }
-)
+    selectedKnowledgeBaseId: "",
+    streaming: false,
+  },
+);
 
 const emit = defineEmits<{
-  submit: [payload: PromptSubmitPayload]
-  stop: []
-  'update:capabilities': [value: WorkspacePromptCapabilities]
-  'update:selectedKnowledgeBaseId': [value: string]
-  'update:modelValue': [value: string]
-}>()
+  submit: [payload: PromptSubmitPayload];
+  stop: [];
+  "update:capabilities": [value: WorkspacePromptCapabilities];
+  "update:selectedKnowledgeBaseId": [value: string];
+  "update:modelValue": [value: string];
+}>();
 
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const thinkEnabled = ref(false)
-const rewriteEnabled = ref(true)
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const scopeMenuRef = ref<HTMLDivElement | null>(null);
+const thinkEnabled = ref(false);
+const rewriteEnabled = ref(true);
+const scopeOpen = ref(false);
 
 // 统一从本地状态导出能力开关，避免父子状态分叉
 const promptCapabilities = computed<WorkspacePromptCapabilities>(() => ({
   think: thinkEnabled.value,
-  rewrite: rewriteEnabled.value
-}))
+  rewrite: rewriteEnabled.value,
+}));
 const selectedKnowledgeBaseSelectValue = computed({
   get: () => props.selectedKnowledgeBaseId || ALL_KNOWLEDGE_BASES_VALUE,
   set: (value: string) => {
-    emit('update:selectedKnowledgeBaseId', value === ALL_KNOWLEDGE_BASES_VALUE ? '' : value)
-  }
-})
+    emit(
+      "update:selectedKnowledgeBaseId",
+      value === ALL_KNOWLEDGE_BASES_VALUE ? "" : value,
+    );
+  },
+});
 
-const hasContent = computed(() => props.modelValue.trim().length > 0)
+const selectedScopeLabel = computed(() => {
+  if (!props.selectedKnowledgeBaseId) {
+    return "全库搜索";
+  }
+
+  return (
+    props.knowledgeBases.find(
+      (base) => base.id === props.selectedKnowledgeBaseId,
+    )?.name ?? "全库搜索"
+  );
+});
+
+const hasContent = computed(() => props.modelValue.trim().length > 0);
 
 const currentPlaceholder = computed(() => {
   if (thinkEnabled.value) {
-    return '请输入需要深度思考的问题'
+    return "请输入需要深度思考的问题";
   }
 
-  return '输入问题，直接开始对话'
-})
+  return "输入问题，直接开始对话";
+});
 
 const resizeTextarea = async () => {
-  await nextTick()
+  await nextTick();
 
   if (!textareaRef.value) {
-    return
+    return;
   }
 
-  textareaRef.value.style.height = '0px'
-  textareaRef.value.style.height = `${Math.min(Math.max(textareaRef.value.scrollHeight, 40), 128)}px`
-}
+  textareaRef.value.style.height = "0px";
+  textareaRef.value.style.height = `${Math.min(Math.max(textareaRef.value.scrollHeight, 40), 128)}px`;
+};
 
 const updateValue = (event: Event) => {
-  const target = event.target as HTMLTextAreaElement
-  emit('update:modelValue', target.value)
-}
+  const target = event.target as HTMLTextAreaElement;
+  emit("update:modelValue", target.value);
+};
 
 const toggleThinkMode = () => {
-  thinkEnabled.value = !thinkEnabled.value
-}
+  thinkEnabled.value = !thinkEnabled.value;
+};
 
 const updateRewriteEnabled = (value: boolean) => {
-  rewriteEnabled.value = value
-}
+  rewriteEnabled.value = value;
+};
+
+const selectKnowledgeScope = (value: string) => {
+  selectedKnowledgeBaseSelectValue.value = value;
+  scopeOpen.value = false;
+};
+
+const closeScopeOnOutsideClick = (event: PointerEvent) => {
+  if (!scopeMenuRef.value?.contains(event.target as Node)) {
+    scopeOpen.value = false;
+  }
+};
 
 const focusComposer = async () => {
-  await nextTick()
+  await nextTick();
 
   if (!textareaRef.value) {
-    return
+    return;
   }
 
-  const length = textareaRef.value.value.length
-  textareaRef.value.focus()
-  textareaRef.value.setSelectionRange(length, length)
-}
+  const length = textareaRef.value.value.length;
+  textareaRef.value.focus();
+  textareaRef.value.setSelectionRange(length, length);
+};
 
 const submit = () => {
   if (props.streaming) {
-    emit('stop')
-    return
+    emit("stop");
+    return;
   }
 
   if (props.disabled || !hasContent.value) {
-    return
+    return;
   }
 
-  emit('submit', {
+  emit("submit", {
     message: props.modelValue.trim(),
     capabilities: promptCapabilities.value,
-    knowledgeBaseId: props.selectedKnowledgeBaseId || undefined
-  })
-}
+    knowledgeBaseId: props.selectedKnowledgeBaseId || undefined,
+  });
+};
 
 const handleKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault()
-    submit()
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    submit();
   }
-}
+};
 
-watch(() => props.modelValue, resizeTextarea, { immediate: true })
+watch(() => props.modelValue, resizeTextarea, { immediate: true });
 
 watch(
   () => props.capabilities,
   (value) => {
-    thinkEnabled.value = Boolean(value?.think)
-    rewriteEnabled.value = value?.rewrite !== false
+    thinkEnabled.value = Boolean(value?.think);
+    rewriteEnabled.value = value?.rewrite !== false;
   },
-  { immediate: true, deep: true }
-)
+  { immediate: true, deep: true },
+);
 
 watch(
   promptCapabilities,
   (value) => {
-    emit('update:capabilities', value)
+    emit("update:capabilities", value);
   },
-  { immediate: true, deep: true }
-)
+  { immediate: true, deep: true },
+);
 
 onMounted(() => {
-  void resizeTextarea()
-})
+  void resizeTextarea();
+  document.addEventListener("pointerdown", closeScopeOnOutsideClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", closeScopeOnOutsideClick);
+});
 
 defineExpose({
-  focusComposer
-})
+  focusComposer,
+});
 </script>
 
 <template>
-  <div class="w-full">
-    <div
-      class="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white/80 shadow-[0_20px_48px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition-all duration-300"
-      :class="
-        streaming
-          ? 'border-[#dbe7ff] shadow-[0_22px_52px_rgba(37,99,235,0.10)]'
-          : 'hover:border-[#e6edf7] hover:shadow-[0_28px_64px_rgba(15,23,42,0.12)] focus-within:border-[#cfdcff] focus-within:shadow-[0_28px_64px_rgba(59,130,246,0.10)]'
-      "
-    >
-      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,#eef4ff_0%,transparent_48%)] opacity-80" />
-      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.72),rgba(255,255,255,0.18))]" />
-
-      <div class="relative z-10 px-3 py-3">
-        <div class="flex items-end gap-2">
-          <div class="min-w-0 flex-1">
-            <textarea
-              ref="textareaRef"
-              :value="modelValue"
-              :disabled="disabled || streaming"
-              :placeholder="currentPlaceholder"
-              class="block min-h-[40px] w-full resize-none border-0 bg-transparent px-2 py-[7px] text-[15px] leading-7 text-[#111827] outline-none placeholder:text-[#8a94a6]"
-              @input="updateValue"
-              @keydown="handleKeydown"
-            />
-          </div>
-
-          <button
-            type="button"
-            class="flex size-10 shrink-0 items-center justify-center rounded-full border-0 bg-[#0a1217] text-white transition hover:shadow-[0_12px_28px_rgba(15,23,42,0.18)] disabled:cursor-not-allowed disabled:bg-[#c7ced8] disabled:text-white/70"
-            :aria-label="streaming ? '停止生成' : '发送消息'"
-            :disabled="!streaming && !hasContent"
-            @click="submit"
-          >
-            <Square v-if="streaming" class="size-[15px]" />
-            <ArrowUp v-else class="size-[17px]" />
-          </button>
-        </div>
+  <div class="prompt-shell" :class="{ 'is-streaming': streaming }">
+    <div class="prompt-input-row">
+      <div class="prompt-textarea">
+        <textarea
+          ref="textareaRef"
+          :value="modelValue"
+          :disabled="disabled || streaming"
+          :placeholder="currentPlaceholder"
+          class="prompt-input"
+          @input="updateValue"
+          @keydown="handleKeydown"
+        />
       </div>
     </div>
 
-    <div class="mt-3 flex flex-wrap items-center gap-2 px-1">
-      <div class="relative">
-        <el-select
-          v-model="selectedKnowledgeBaseSelectValue"
+    <div class="prompt-footer">
+      <div class="prompt-tools">
+        <button
+          type="button"
+          class="prompt-tool"
+          :class="{ 'is-on': thinkEnabled }"
           :disabled="disabled || streaming"
-          class="workspace-kb-select"
-          popper-class="knowledge-scope-select-popper"
+          @click="toggleThinkMode"
         >
-          <el-option label="全库搜索（默认）" :value="ALL_KNOWLEDGE_BASES_VALUE" />
-          <el-option
-            v-for="base in knowledgeBases"
-            :key="base.id"
-            :label="base.name"
-            :value="base.id"
-          />
-        </el-select>
+          <Brain :size="17" />
+          <span>深度思考</span>
+        </button>
+
+        <div ref="scopeMenuRef" class="prompt-scope">
+          <button
+            type="button"
+            class="prompt-tool prompt-scope__trigger"
+            :disabled="disabled || streaming"
+            :aria-expanded="scopeOpen"
+            aria-haspopup="listbox"
+            aria-label="选择检索范围"
+            @click.stop="scopeOpen = !scopeOpen"
+          >
+            <BookOpen :size="17" />
+            <span class="book-open-back">{{ selectedScopeLabel }}</span>
+            <ChevronDown :size="14" :class="{ 'is-open': scopeOpen }" />
+          </button>
+          <select
+            v-model="selectedKnowledgeBaseSelectValue"
+            :disabled="disabled || streaming"
+            aria-label="检索知识库"
+          >
+            <option :value="ALL_KNOWLEDGE_BASES_VALUE">全库检索</option>
+            <option
+              v-for="base in knowledgeBases"
+              :key="base.id"
+              :value="base.id"
+            >
+              {{ base.name }}
+            </option>
+          </select>
+          <div v-if="scopeOpen" class="prompt-scope__menu" role="listbox">
+            <button
+              type="button"
+              role="option"
+              :aria-selected="!selectedKnowledgeBaseId"
+              @click="selectKnowledgeScope(ALL_KNOWLEDGE_BASES_VALUE)"
+            >
+              <span>
+                <strong>全库搜索</strong>
+                <small>搜索全部知识库</small>
+              </span>
+              <Check v-if="!selectedKnowledgeBaseId" :size="15" />
+            </button>
+            <button
+              v-for="base in knowledgeBases"
+              :key="base.id"
+              type="button"
+              role="option"
+              :aria-selected="selectedKnowledgeBaseId === base.id"
+              @click="selectKnowledgeScope(base.id)"
+            >
+              <span>
+                <strong>{{ base.name }}</strong>
+                <small>仅搜索此知识库</small>
+              </span>
+              <Check v-if="selectedKnowledgeBaseId === base.id" :size="15" />
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="prompt-tool"
+          :class="{ 'is-on': rewriteEnabled }"
+          :disabled="disabled || streaming"
+          @click="updateRewriteEnabled(!rewriteEnabled)"
+        >
+          <Sparkles :size="16" />
+          <span>查询改写</span>
+        </button>
       </div>
 
       <button
         type="button"
-        class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45"
-        :class="
-          thinkEnabled
-            ? 'border-[#dbe6ff] bg-[#eef4ff] text-[#23416e]'
-            : 'border-[#e6ebf2] bg-white text-[#475467] hover:border-[#d9e2ef] hover:bg-[#f8fafc] hover:text-[#111827]'
-        "
-        :disabled="disabled || streaming"
-        @click="toggleThinkMode"
+        class="prompt-submit"
+        :aria-label="streaming ? '停止生成' : '发送消息'"
+        :disabled="!streaming && !hasContent"
+        @click="submit"
       >
-        <Brain class="size-4 shrink-0" />
-        <span>深度思考</span>
+        <Square v-if="streaming" :size="15" />
+        <ArrowUp v-else :size="18" />
       </button>
-
-      <RetrievalRewriteToggle
-        :model-value="rewriteEnabled"
-        :disabled="disabled || streaming"
-        compact
-        label="LLM Rewrite"
-        hint="Rewrite retrieval query"
-        @update:model-value="updateRewriteEnabled"
-      />
     </div>
   </div>
 </template>
 
 <style scoped>
-.workspace-kb-select {
-  width: 180px;
+.prompt-shell {
+  padding: 13px 15px 11px;
+  border: 1px solid #d8d8d1;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 7px 8px rgba(30, 30, 25, 0.06);
 }
-
-.workspace-kb-select :deep(.el-select__wrapper) {
-  min-height: 34px;
-  border-radius: 999px;
-  box-shadow: 0 0 0 1px #e6ebf2 inset;
+.prompt-input-row {
+  display: flex;
+  align-items: flex-end;
 }
-
-.workspace-kb-select :deep(.el-select__wrapper.is-hovering),
-.workspace-kb-select :deep(.el-select__wrapper.is-focused) {
-  box-shadow: 0 0 0 1px #d9e2ef inset;
+.prompt-textarea {
+  min-width: 0;
+  flex: 1;
 }
-
-.workspace-kb-select :deep(.el-select__selected-item) {
-  color: #475467;
-  font-size: 14px;
+.prompt-input {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  resize: none;
+  border: 0;
+  background: transparent;
+  padding: 4px 5px;
+  color: #191918;
+  font:
+    15px/1.7 ui-serif,
+    Georgia,
+    "Songti SC",
+    serif;
+  outline: 0;
 }
-
-:global(.knowledge-scope-select-popper) {
+.prompt-input::placeholder {
+  color: #9a9a93;
+}
+.prompt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.prompt-tools {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+.prompt-tool {
+  display: flex;
+  height: 31px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #696963;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.prompt-tool:hover {
+  background: #efefea;
+  color: #191918;
+}
+.prompt-tool.is-on {
+  background: #f0efff;
+  color: #4d4dd1;
+}
+.prompt-tool:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.prompt-scope select {
+  display: none;
+}
+.prompt-scope {
+  position: relative;
+}
+.prompt-scope__trigger {
+  max-width: 180px;
+}
+.prompt-scope__trigger svg:last-child {
+  color: #999991;
+  transition: transform 160ms ease-out;
+}
+.prompt-scope__trigger svg:last-child.is-open {
+  transform: rotate(180deg);
+}
+.prompt-scope__menu {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  bottom: calc(100% + 9px);
+  width: 224px;
+  padding: 5px;
+  border: 1px solid #d8d8d1;
   border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(25, 25, 24, 0.12);
 }
-
-:global(.knowledge-scope-select-popper .el-select-dropdown__wrap) {
-  max-height: 248px;
+.prompt-scope__menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #30302c;
+  text-align: left;
+  cursor: pointer;
 }
-
-:global(.knowledge-scope-select-popper .el-select-dropdown__item) {
+.prompt-scope__menu button:hover,
+.prompt-scope__menu button[aria-selected="true"] {
+  background: #f2f1ff;
+  color: #4d4dd1;
+}
+.prompt-scope__menu button > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.prompt-scope__menu strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+.prompt-scope__menu small {
+  color: #8a8a83;
+  font-size: 10px;
+}
+.prompt-scope__menu button[aria-selected="true"] small {
+  color: #7777d9;
+}
+.prompt-submit {
+  display: grid;
+  width: 34px;
   height: 34px;
-  padding: 0 12px;
-  color: #334155;
-  font-size: 13px;
-  line-height: 34px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #e8e8e3;
+  color: #777770;
+  cursor: pointer;
 }
-
-:global(.knowledge-scope-select-popper .el-select-dropdown__item.is-hovering) {
-  background: #f1f5f9;
+.prompt-submit:not(:disabled):hover {
+  background: #5b5bf7;
+  color: #fff;
 }
-
-:global(.knowledge-scope-select-popper .el-select-dropdown__item.is-selected) {
-  background: #ecfdf5;
-  color: #0f766e;
-  font-weight: 700;
+.prompt-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
+@media (max-width: 620px) {
+  .prompt-tool span {
+    display: none;
+  }
+  .prompt-scope__trigger {
+    max-width: 118px;
+  }
+  .prompt-scope__menu {
+    right: -36px;
+  }
+  .prompt-tools {
+    gap: 1px;
+  }
+}
+ .book-open-back {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+ }
 </style>

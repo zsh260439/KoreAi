@@ -6,6 +6,7 @@ import type {
   KnowledgeChunk,
   KnowledgeDocument,
   KnowledgeGlobalRuntimeSettings,
+  KnowledgeProviderSettings,
   KnowledgeSearchResponse
 } from 'share-type'
 
@@ -17,6 +18,7 @@ import { SearchKnowledgeDto } from './dto/search-knowledge.dto'
 import { UpdateKnowledgeBaseDto } from './dto/update-knowledge-base.dto'
 import { UpdateKnowledgeDocumentDto } from './dto/update-knowledge-document.dto'
 import { UpdateKnowledgeGlobalRuntimeConfigDto } from './dto/update-knowledge-global-runtime-config.dto'
+import { UpdateKnowledgeProviderSettingsDto } from './dto/update-knowledge-provider-settings.dto'
 import {
   KnowledgeDocumentService,
   type KnowledgeDocumentUploadFields
@@ -57,6 +59,20 @@ export class KnowledgeController {
     @Body() dto: UpdateKnowledgeGlobalRuntimeConfigDto
   ): Promise<ApiResponse<KnowledgeGlobalRuntimeSettings>> {
     const data = await this.configService.updateGlobalRuntimeConfig(dto)
+    return successResponse(data, '更新成功')
+  }
+
+  @Get('provider-settings')
+  async findProviderSettings(): Promise<ApiResponse<KnowledgeProviderSettings>> {
+    const data = await this.configService.findProviderSettings()
+    return successResponse(data, '查询成功')
+  }
+
+  @Patch('provider-settings')
+  async updateProviderSettings(
+    @Body() dto: UpdateKnowledgeProviderSettingsDto
+  ): Promise<ApiResponse<KnowledgeProviderSettings>> {
+    const data = await this.configService.updateProviderSettings(dto)
     return successResponse(data, '更新成功')
   }
 

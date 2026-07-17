@@ -1,585 +1,804 @@
 <script setup lang="ts">
 import {
   Check,
-  CheckCircle2,
   ChevronRight,
   Copy,
+  FileText,
   LoaderCircle,
   PencilLine,
   RefreshCw,
-  X
-} from 'lucide-vue-next'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+  X,
+} from "lucide-vue-next";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
-import ShiningText from '@/components/ui/ShiningText.vue'
-import { useTypewriter } from '@/composables/useTypewriter'
-import type {
-  AssistantRenderStatus,
-  AssistantThinkingStage
-} from '@/types/chat/flow'
-import type { ChatMessage } from '@/types/chat/models'
-import type { KnowledgeSearchDebugInfo, KnowledgeSearchHit } from 'share-type'
-import ChatMarkdownContent from './ChatMarkdownContent.vue'
-import WorkspaceMark from './WorkspaceMark.vue'
+import ShiningText from "@/components/ui/ShiningText.vue";
+import { useTypewriter } from "@/composables/useTypewriter";
+import type { AssistantRenderStatus, AssistantThinkingStage } from "@/types/chat/flow";
+import type { ChatMessage } from "@/types/chat/models";
+import type { KnowledgeSearchDebugInfo, KnowledgeSearchHit } from "share-type";
+import ChatMarkdownContent from "./ChatMarkdownContent.vue";
+import WorkspaceMark from "./WorkspaceMark.vue";
 
-type ThoughtEntryKind = 'retrieval' | 'reasoning' | 'generic'
+type ThoughtEntryKind = "retrieval" | "reasoning" | "generic";
+type DrawerTab = "evidence" | "query" | "run";
 
 // 统一描述召回调试字段，避免模板里重复拼 label 和取值逻辑。
 type RetrievalDebugField = {
-  label: string
-  value: string
-  multiline?: boolean
-}
+  label: string;
+  value: string;
+  multiline?: boolean;
+};
 
 type ThoughtTimelineEntry = {
-  id: string
-  title: string
-  body: string
-  note?: string
-  status: AssistantRenderStatus
-  kind: ThoughtEntryKind
-  sourceLink?: boolean
-}
+  id: string;
+  title: string;
+  body: string;
+  note?: string;
+  status: AssistantRenderStatus;
+  kind: ThoughtEntryKind;
+  sourceLink?: boolean;
+};
+
+type RunProcessItem = {
+  id: string;
+  title: string;
+  summary: string;
+  body?: string;
+  status: AssistantRenderStatus;
+};
 
 const props = defineProps<{
-  message: ChatMessage
-  showMeta?: boolean
-  regenerating?: boolean
-  retrievalQuery?: string
-}>()
+  message: ChatMessage;
+  showMeta?: boolean;
+  regenerating?: boolean;
+  retrievalQuery?: string;
+}>();
 
 const emit = defineEmits<{
-  edit: [message: ChatMessage]
-  regenerate: []
-}>()
+  edit: [message: ChatMessage];
+  regenerate: [];
+}>();
 
-const createdAtFallbackMs = Date.now()
-const thinkingHeaderText = 'KoreAI 正在思考'
+const createdAtFallbackMs = Date.now();
+const thinkingHeaderText = "KoreAI 正在思考";
 
-const processExpanded = ref(false)
-const evidenceDrawerOpen = ref(false)
-const copied = ref(false)
-const userCopied = ref(false)
-const liveNowMs = ref(Date.now())
+const processExpanded = ref(false);
+const evidenceDrawerOpen = ref(false);
+const drawerTab = ref<DrawerTab>("evidence");
+const selectedSourceIndex = ref(0);
+const copied = ref(false);
+const userCopied = ref(false);
+const liveNowMs = ref(Date.now());
 
-const responseFlow = computed(() => props.message.responseFlow)
+const responseFlow = computed(() => props.message.responseFlow);
 const promptCapabilities = computed(
-  () => props.message.promptCapabilities ?? { think: false }
-)
-const processStages = computed(() => responseFlow.value?.thinking ?? [])
+  () => props.message.promptCapabilities ?? { think: false },
+);
+const processStages = computed(() => responseFlow.value?.thinking ?? []);
 
 const sources = computed<KnowledgeSearchHit[]>(() => {
-  const flowSources = responseFlow.value?.sources ?? []
+  const flowSources = responseFlow.value?.sources ?? [];
   if (flowSources.length > 0) {
-    return flowSources
+    return flowSources;
   }
 
-  return props.message.citations ?? []
-})
+  return props.message.citations ?? [];
+});
 
-const visibleSources = computed(() => sources.value)
-const hasSources = computed(() => visibleSources.value.length > 0)
+const visibleSources = computed(() => sources.value);
+const hasSources = computed(() => visibleSources.value.length > 0);
 const isStreamingMessage = computed(
-  () => props.message.role === 'assistant' && props.message.status === 'streaming'
-)
+  () =>
+    props.message.role === "assistant" && props.message.status === "streaming",
+);
+const answerTypewriterActivated = ref(isStreamingMessage.value);
+
+watch(
+  isStreamingMessage,
+  (streaming) => {
+    if (streaming) {
+      answerTypewriterActivated.value = true;
+    }
+  },
+  { immediate: true },
+);
 
 const visibleThinkingStages = computed(() =>
   processStages.value.filter((stage) => {
-    if (stage.stageKey === 'answer_synthesis' || stage.id === 'answer-synthesis') {
-      return false
+    if (
+      stage.stageKey === "answer_synthesis" ||
+      stage.id === "answer-synthesis"
+    ) {
+      return false;
     }
 
     if (isKnowledgeRecallStage(stage)) {
-      return stage.status !== 'pending' || hasSources.value || Boolean(stage.subtitle)
+      return (
+        stage.status !== "pending" ||
+        hasSources.value ||
+        Boolean(stage.subtitle)
+      );
     }
 
-    return stage.status !== 'pending' || Boolean(stage.visibleContent || stage.content)
-  })
-)
+    return (
+      stage.status !== "pending" ||
+      Boolean(stage.visibleContent || stage.content)
+    );
+  }),
+);
 
 const thinkingTimelineEntries = computed(() =>
-  buildTimelineEntries(visibleThinkingStages.value, visibleSources.value.length)
-)
+  buildTimelineEntries(
+    visibleThinkingStages.value,
+    visibleSources.value.length,
+  ),
+);
 
 const normalizeAnswerLeadingBlankLines = (content: string) =>
-  content.replace(/^(?:[ \t\u3000]*\r?\n)+/, '')
+  content.replace(/^(?:[ \t\u3000]*\r?\n)+/, "");
 
 const streamedAnswerContent = computed(() => {
   if (!responseFlow.value) {
-    return normalizeAnswerLeadingBlankLines(props.message.content || '')
+    return normalizeAnswerLeadingBlankLines(props.message.content || "");
   }
 
   return normalizeAnswerLeadingBlankLines(
-    responseFlow.value.answer.content || props.message.content || ''
-  )
-})
+    responseFlow.value.answer.content || props.message.content || "",
+  );
+});
 
 const displayedAnswerContent = useTypewriter(streamedAnswerContent, {
-  enabled: isStreamingMessage,
-  intervalMs: 16,
-  step: 2
-})
+  enabled: answerTypewriterActivated,
+  intervalMs: 24,
+  step: 1,
+});
+const isTypingAnswer = computed(
+  () =>
+    answerTypewriterActivated.value &&
+    displayedAnswerContent.value.length < streamedAnswerContent.value.length,
+);
 
 const showProcessSection = computed(
   () =>
     promptCapabilities.value.think &&
-    (thinkingTimelineEntries.value.length > 0 || hasSources.value || isStreamingMessage.value)
-)
+    (thinkingTimelineEntries.value.length > 0 ||
+      hasSources.value ||
+      isStreamingMessage.value),
+);
 
 const isThinkingActive = computed(() =>
-  thinkingTimelineEntries.value.some((entry) => entry.status === 'running')
-)
+  thinkingTimelineEntries.value.some((entry) => entry.status === "running"),
+);
 
 const showThinkingHeader = computed(
   () =>
     showProcessSection.value &&
-    isStreamingMessage.value &&
-    (isThinkingActive.value || !streamedAnswerContent.value.trim())
-)
+    (isThinkingActive.value ||
+      (isStreamingMessage.value && !streamedAnswerContent.value.trim())),
+);
 
-const answerHasContent = computed(() => Boolean(displayedAnswerContent.value.trim()))
+const answerHasContent = computed(() =>
+  Boolean(displayedAnswerContent.value.trim()),
+);
 
 const isAssistantWorking = computed(
-  () => isStreamingMessage.value || isThinkingActive.value
-)
+  () =>
+    isStreamingMessage.value ||
+    isThinkingActive.value ||
+    isTypingAnswer.value,
+);
 
 const createdAtMs = computed(() => {
-  const parsed = Date.parse(props.message.createdAt)
-  return Number.isFinite(parsed) ? parsed : createdAtFallbackMs
-})
+  const parsed = Date.parse(props.message.createdAt);
+  return Number.isFinite(parsed) ? parsed : createdAtFallbackMs;
+});
 
-const liveDurationMs = computed(() => Math.max(0, liveNowMs.value - createdAtMs.value))
+const liveDurationMs = computed(() =>
+  Math.max(0, liveNowMs.value - createdAtMs.value),
+);
 
 const resolvedDurationMs = computed(() => {
   if (isStreamingMessage.value) {
-    return liveDurationMs.value
+    return liveDurationMs.value;
   }
 
-  return responseFlow.value?.totalDurationMs ?? props.message.latencyMs ?? 0
-})
+  return responseFlow.value?.totalDurationMs ?? props.message.latencyMs ?? 0;
+});
 
 const processDurationLabel = computed(() => {
   if (!resolvedDurationMs.value) {
-    return ''
+    return "";
   }
 
-  return `用时：${formatLatency(resolvedDurationMs.value)}`
-})
+  return `用时：${formatLatency(resolvedDurationMs.value)}`;
+});
 
-const finalTokenCount = computed(() => props.message.totalTokens)
+const finalTokenCount = computed(() => props.message.totalTokens);
 const hasFinalTokenCount = computed(
-  () => finalTokenCount.value !== null && finalTokenCount.value > 0
-)
+  () => finalTokenCount.value !== null && finalTokenCount.value > 0,
+);
 
 const canToggleProcessDetails = computed(
-  () => !showThinkingHeader.value && thinkingTimelineEntries.value.length > 0
-)
+  () => !showThinkingHeader.value && thinkingTimelineEntries.value.length > 0,
+);
 
 const showProcessDetails = computed(
-  () => showThinkingHeader.value || processExpanded.value
-)
-
-const showThoughtCompletion = computed(
-  () => showProcessSection.value && !showThinkingHeader.value
-)
-
-const showThoughtDivider = computed(
-  () => showProcessSection.value && !showThinkingHeader.value
-)
-
-const showReplySummary = computed(
-  () =>
-    !showProcessSection.value &&
-    (isStreamingMessage.value || resolvedDurationMs.value > 0 || hasFinalTokenCount.value)
-)
-
-const showReplyDuration = computed(
-  () => !showProcessSection.value && (isStreamingMessage.value || resolvedDurationMs.value > 0)
-)
-
-const showReplyTokenCount = computed(
-  () => !showProcessSection.value && !isStreamingMessage.value && hasFinalTokenCount.value
-)
-
-// 普通模式没有思考时间线，因此单独补一个召回入口，避免 chunk 只能在 think 模式下查看。
-const showStandaloneRecallEntry = computed(
-  () => !showProcessSection.value && hasSources.value
-)
+  () => showThinkingHeader.value || processExpanded.value,
+);
 
 const showAnswerSection = computed(() => {
-  if (showProcessSection.value) {
-    return true
-  }
-
-  return isStreamingMessage.value || answerHasContent.value || Boolean(streamedAnswerContent.value.trim())
-})
-
-const canShowBufferedAnswer = computed(
-  () =>
-    !showProcessSection.value ||
-    !showThinkingHeader.value ||
-    Boolean(streamedAnswerContent.value.trim()) ||
-    !isStreamingMessage.value
-)
+  return (
+    isStreamingMessage.value ||
+    answerHasContent.value ||
+    Boolean(streamedAnswerContent.value.trim())
+  );
+});
 
 const showAnswerActions = computed(
   () =>
     props.showMeta &&
     Boolean(responseFlow.value?.showActions) &&
     !isStreamingMessage.value &&
-    answerHasContent.value
-)
+    !isTypingAnswer.value &&
+    answerHasContent.value,
+);
 
-const evidencePanelVisible = computed(() => evidenceDrawerOpen.value && hasSources.value)
+const evidencePanelVisible = computed(
+  () => evidenceDrawerOpen.value && hasSources.value,
+);
 // 优先读取 responseFlow 里的流式态 debug，刷新历史消息时再退回持久化消息字段。
 const retrievalDebug = computed<KnowledgeSearchDebugInfo | null>(
-  () => responseFlow.value?.retrievalDebug ?? props.message.retrievalDebug ?? null
-)
+  () =>
+    responseFlow.value?.retrievalDebug ?? props.message.retrievalDebug ?? null,
+);
 
 const recallScore = computed(() => {
   if (!visibleSources.value.length) {
-    return '-'
+    return "-";
   }
 
-  const bestScore = Math.max(...visibleSources.value.map((source) => source.score))
-  return Number.isFinite(bestScore) ? bestScore.toFixed(1) : '-'
-})
+  const bestScore = Math.max(
+    ...visibleSources.value.map((source) => source.score),
+  );
+  return Number.isFinite(bestScore) ? bestScore.toFixed(1) : "-";
+});
 
 const retrievalQueryText = computed(() => {
-  const query = retrievalDebug.value?.originalQuery?.trim() || props.retrievalQuery?.trim()
-  return query || '正在根据当前用户问题生成检索式。'
-})
+  const query =
+    retrievalDebug.value?.originalQuery?.trim() || props.retrievalQuery?.trim();
+  return query || "正在根据当前用户问题生成检索式。";
+});
 
 // 摘要指标单独成组，方便聊天页和 admin preview 保持一致口径。
 const retrievalMetricItems = computed<RetrievalDebugField[]>(() => {
   if (!retrievalDebug.value) {
-    return []
+    return [];
   }
 
   return [
     {
-      label: '重写状态',
-      value: retrievalDebug.value.rewriteApplied ? '已生效' : '未生效'
+      label: "重写状态",
+      value: retrievalDebug.value.rewriteApplied ? "已生效" : "未生效",
     },
     {
-      label: '融合权重',
-      value: `${formatDebugScore(retrievalDebug.value.bm25Weight)} : ${formatDebugScore(retrievalDebug.value.vectorWeight)}`
+      label: "融合权重",
+      value: [
+        formatWeight(retrievalDebug.value.bm25Weight),
+        formatWeight(retrievalDebug.value.vectorWeight),
+      ].join(" : "),
     },
     {
-      label: 'BM25 命中数',
-      value: String(retrievalDebug.value.bm25HitCount)
+      label: "BM25 命中数",
+      value: String(retrievalDebug.value.bm25HitCount),
     },
     {
-      label: '向量命中数',
-      value: String(retrievalDebug.value.vectorHitCount)
+      label: "向量命中数",
+      value: String(retrievalDebug.value.vectorHitCount),
     },
     {
-      label: '检索模式',
-      value: formatRetrievalMode(retrievalDebug.value.retrievalMode)
-    }
-  ]
-})
+      label: "检索模式",
+      value: formatRetrievalMode(retrievalDebug.value.retrievalMode),
+    },
+  ];
+});
 
 // 长文本查询单独成组展示，避免把检索词塞进一行导致可读性下降。
 const retrievalQueryItems = computed<RetrievalDebugField[]>(() => {
   if (!retrievalDebug.value) {
-    return []
+    return [];
   }
 
   return [
     {
-      label: '原始问题',
-      value: retrievalDebug.value.originalQuery
+      label: "原始问题",
+      value: retrievalDebug.value.originalQuery,
     },
     {
-      label: '归一化问题',
-      value: retrievalDebug.value.normalizedQuery
+      label: "归一化问题",
+      value: retrievalDebug.value.normalizedQuery,
     },
     {
-      label: 'BM25 检索词',
+      label: "BM25 检索词",
       value: retrievalDebug.value.bm25Query,
-      multiline: true
+      multiline: true,
     },
     {
-      label: '向量检索词',
+      label: "向量检索词",
       value: retrievalDebug.value.vectorQuery,
-      multiline: true
-    }
-  ]
-})
+      multiline: true,
+    },
+  ];
+});
 
-let liveTimer: number | null = null
-let copiedTimer: number | null = null
-let userCopiedTimer: number | null = null
-let autoCollapseTimer: number | null = null
+const activeSource = computed(
+  () => visibleSources.value[selectedSourceIndex.value] ?? null,
+);
+
+const sourceFeatureItems = computed<RetrievalDebugField[]>(() => {
+  const source = activeSource.value;
+  if (!source) {
+    return [];
+  }
+
+  return [
+    { label: "matchedBy", value: formatMatchedBy(source) },
+    {
+      label: "bm25Score",
+      value: formatDebugScore(source.scoreDetail?.bm25Score),
+    },
+    {
+      label: "vectorScore",
+      value: formatDebugScore(source.scoreDetail?.vectorScore),
+    },
+    {
+      label: "fusedScore",
+      value: formatDebugScore(source.scoreDetail?.fusedScore),
+    },
+    {
+      label: "ceScore",
+      value: formatDebugScore(source.scoreDetail?.ceScore),
+    },
+    {
+      label: "evidenceScore",
+      value: formatDebugScore(source.scoreDetail?.evidenceScore),
+    },
+    { label: "chunkId", value: source.chunkId || "-" },
+    { label: "documentId", value: source.documentId || "-" },
+    { label: "sequence", value: formatOptionalValue(source.sequence) },
+    { label: "primaryTitle", value: source.primaryTitle || "-" },
+    { label: "sectionPath", value: source.sectionPath || "-" },
+    {
+      label: "matchedEvidenceTerms",
+      value: formatList(source.scoreDetail?.matchedEvidenceTerms),
+    },
+    {
+      label: "matchedNumericTerms",
+      value: formatList(source.scoreDetail?.matchedNumericTerms),
+    },
+    {
+      label: "documentRole",
+      value: source.scoreDetail?.documentRole || "-",
+    },
+  ];
+});
+
+const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
+  const debug = retrievalDebug.value;
+  if (!debug) {
+    return [];
+  }
+
+  return [
+    { label: "rewriteApplied", value: formatBoolean(debug.rewriteApplied) },
+    { label: "retrievalMode", value: debug.retrievalMode || "-" },
+    { label: "routeType", value: debug.routeType || "-" },
+    { label: "routeSource", value: debug.routeSource || "-" },
+    { label: "routeConfidence", value: debug.routeConfidence || "-" },
+    { label: "llmIntent", value: debug.llmIntent || "-" },
+    { label: "bm25Weight", value: formatWeight(debug.bm25Weight) },
+    { label: "vectorWeight", value: formatWeight(debug.vectorWeight) },
+    { label: "bm25HitCount", value: String(debug.bm25HitCount) },
+    { label: "vectorHitCount", value: String(debug.vectorHitCount) },
+    {
+      label: "candidateLimit",
+      value: formatOptionalValue(debug.candidateLimit),
+    },
+    {
+      label: "ceCandidateCount",
+      value: formatOptionalValue(debug.ceCandidateCount),
+    },
+    { label: "effectiveTopK", value: formatOptionalValue(debug.effectiveTopK) },
+    { label: "fallbackApplied", value: formatBoolean(debug.fallbackApplied) },
+    { label: "fallbackReason", value: debug.fallbackReason || "-" },
+    { label: "exactEntityMiss", value: formatBoolean(debug.exactEntityMiss) },
+    { label: "protectedTerms", value: formatList(debug.protectedTerms) },
+    { label: "excludedTerms", value: formatList(debug.excludedTerms) },
+    { label: "evidenceComplexity", value: debug.evidenceComplexity || "-" },
+    { label: "evidenceTerms", value: formatList(debug.evidenceTerms) },
+    {
+      label: "evidenceNumericTerms",
+      value: formatList(debug.evidenceNumericTerms),
+    },
+    {
+      label: "evidenceExpansionApplied",
+      value: formatBoolean(debug.evidenceExpansionApplied),
+    },
+    {
+      label: "evidenceCoverage",
+      value: formatPercent(debug.evidenceCoverage),
+    },
+    { label: "evidenceGateStatus", value: debug.evidenceGateStatus || "-" },
+  ];
+});
+
+const runProcessItems = computed<RunProcessItem[]>(() => {
+  const items: RunProcessItem[] = [
+    {
+      id: "request",
+      title: "接收问题",
+      summary: `${promptCapabilities.value.think ? "深度思考" : "普通回答"} · ${promptCapabilities.value.rewrite === false ? "不改写查询" : "允许查询改写"}`,
+      body: retrievalQueryText.value,
+      status: "done",
+    },
+  ];
+
+  if (retrievalDebug.value) {
+    items.push({
+      id: "query",
+      title: "确定检索方式",
+      summary: `${retrievalDebug.value.retrievalMode} · ${retrievalDebug.value.routeConfidence || "置信度未记录"}`,
+      body: retrievalDebug.value.normalizedQuery,
+      status: "done",
+    });
+  }
+
+  if (hasSources.value || isStreamingMessage.value) {
+    items.push({
+      id: "retrieval",
+      title: "检索并筛选证据",
+      summary: hasSources.value
+        ? `${visibleSources.value.length} 个 chunk 进入回答依据`
+        : "正在检索知识库",
+      status: hasSources.value ? "done" : "running",
+    });
+  }
+
+  if (promptCapabilities.value.think) {
+    for (const stage of thinkingTimelineEntries.value) {
+      if (stage.kind === "retrieval") {
+        continue;
+      }
+
+      items.push({
+        id: stage.id,
+        title: stage.title,
+        summary: stage.note || "整理与核对已找到的依据",
+        body: stage.body || undefined,
+        status: stage.status,
+      });
+    }
+  }
+
+  items.push({
+    id: "answer",
+    title: "生成回答",
+    summary: isTypingAnswer.value
+      ? "正在逐字输出最终回答"
+      : answerHasContent.value
+        ? "最终回答已完成"
+        : "等待生成回答",
+    status: isTypingAnswer.value
+      ? "running"
+      : answerHasContent.value
+        ? "done"
+        : "pending",
+  });
+
+  return items;
+});
+
+let liveTimer: number | null = null;
+let copiedTimer: number | null = null;
+let userCopiedTimer: number | null = null;
 
 const stopLiveTimer = () => {
   if (liveTimer !== null) {
-    window.clearInterval(liveTimer)
-    liveTimer = null
+    window.clearInterval(liveTimer);
+    liveTimer = null;
   }
-}
+};
 
 const stopCopiedTimer = () => {
   if (copiedTimer !== null) {
-    window.clearTimeout(copiedTimer)
-    copiedTimer = null
+    window.clearTimeout(copiedTimer);
+    copiedTimer = null;
   }
-}
+};
 
 const stopUserCopiedTimer = () => {
   if (userCopiedTimer !== null) {
-    window.clearTimeout(userCopiedTimer)
-    userCopiedTimer = null
+    window.clearTimeout(userCopiedTimer);
+    userCopiedTimer = null;
   }
-}
-
-const stopAutoCollapseTimer = () => {
-  if (autoCollapseTimer !== null) {
-    window.clearTimeout(autoCollapseTimer)
-    autoCollapseTimer = null
-  }
-}
+};
 
 const syncLiveTimer = () => {
-  stopLiveTimer()
+  stopLiveTimer();
 
   if (!isStreamingMessage.value) {
-    return
+    return;
   }
 
-  liveNowMs.value = Date.now()
+  liveNowMs.value = Date.now();
   liveTimer = window.setInterval(() => {
-    liveNowMs.value = Date.now()
-  }, 100)
-}
+    liveNowMs.value = Date.now();
+  }, 100);
+};
 
 const resetVisualSequence = () => {
-  stopAutoCollapseTimer()
-  stopCopiedTimer()
-  stopUserCopiedTimer()
-  copied.value = false
-  userCopied.value = false
-  evidenceDrawerOpen.value = false
-  processExpanded.value = Boolean(showProcessSection.value && isStreamingMessage.value)
-}
+  stopCopiedTimer();
+  stopUserCopiedTimer();
+  answerTypewriterActivated.value = isStreamingMessage.value;
+  copied.value = false;
+  userCopied.value = false;
+  evidenceDrawerOpen.value = false;
+  processExpanded.value = Boolean(
+    showProcessSection.value && isStreamingMessage.value,
+  );
+};
 
 watch(
-  () => [props.message.id, props.message.role] as const,
+  () => props.message.id,
   () => {
-    resetVisualSequence()
+    resetVisualSequence();
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 watch(
   () => props.message.status,
   () => {
-    syncLiveTimer()
+    syncLiveTimer();
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 watch(
   () => [showProcessSection.value, showThinkingHeader.value] as const,
-  ([hasThoughtProcess, thinkingHeader], previousValue) => {
-    const previousThinkingHeader = previousValue?.[1]
-
-    if (!hasThoughtProcess) {
-      processExpanded.value = false
-      stopAutoCollapseTimer()
-      return
+  ([hasThoughtProcess, thinkingHeader]) => {
+    if (!hasThoughtProcess || !thinkingHeader) {
+      processExpanded.value = false;
+      return;
     }
 
-    if (thinkingHeader) {
-      stopAutoCollapseTimer()
-      processExpanded.value = true
-      return
-    }
-
-    if (!previousThinkingHeader) {
-      return
-    }
-
-    stopAutoCollapseTimer()
-    autoCollapseTimer = window.setTimeout(() => {
-      processExpanded.value = false
-      autoCollapseTimer = null
-    }, 500)
-  }
-)
+    processExpanded.value = true;
+  },
+);
 
 watch(hasSources, (value) => {
   if (!value) {
-    evidenceDrawerOpen.value = false
+    evidenceDrawerOpen.value = false;
+    selectedSourceIndex.value = 0;
+    return;
   }
-})
+
+  if (selectedSourceIndex.value >= visibleSources.value.length) {
+    selectedSourceIndex.value = visibleSources.value.length - 1;
+  }
+});
 
 onBeforeUnmount(() => {
-  stopLiveTimer()
-  stopCopiedTimer()
-  stopUserCopiedTimer()
-  stopAutoCollapseTimer()
-})
+  stopLiveTimer();
+  stopCopiedTimer();
+  stopUserCopiedTimer();
+});
 
 const toggleProcessDetails = () => {
   if (!canToggleProcessDetails.value) {
-    return
+    return;
   }
 
-  processExpanded.value = !processExpanded.value
-}
+  processExpanded.value = !processExpanded.value;
+};
 
 const openEvidenceDrawer = () => {
   if (!hasSources.value) {
-    return
+    return;
   }
 
-  evidenceDrawerOpen.value = true
-}
+  drawerTab.value = "evidence";
+  evidenceDrawerOpen.value = true;
+};
+
+const openSourceDrawer = (index: number) => {
+  selectedSourceIndex.value = index;
+  openEvidenceDrawer();
+};
+
+const openRunDrawer = () => {
+  drawerTab.value = "run";
+  evidenceDrawerOpen.value = true;
+};
 
 const closeEvidenceDrawer = () => {
-  evidenceDrawerOpen.value = false
-}
+  evidenceDrawerOpen.value = false;
+};
 
 const copyAnswer = async () => {
   if (!displayedAnswerContent.value.trim()) {
-    return
+    return;
   }
 
   try {
-    await navigator.clipboard.writeText(displayedAnswerContent.value)
-    copied.value = true
-    stopCopiedTimer()
+    await navigator.clipboard.writeText(displayedAnswerContent.value);
+    copied.value = true;
+    stopCopiedTimer();
     copiedTimer = window.setTimeout(() => {
-      copied.value = false
-      copiedTimer = null
-    }, 1600)
+      copied.value = false;
+      copiedTimer = null;
+    }, 1600);
   } catch (error) {
-    console.error('Failed to copy answer.', error)
+    console.error("Failed to copy answer.", error);
   }
-}
+};
 
 const copyUserMessage = async () => {
   if (!props.message.content.trim()) {
-    return
+    return;
   }
 
   try {
-    await navigator.clipboard.writeText(props.message.content)
-    userCopied.value = true
-    stopUserCopiedTimer()
+    await navigator.clipboard.writeText(props.message.content);
+    userCopied.value = true;
+    stopUserCopiedTimer();
     userCopiedTimer = window.setTimeout(() => {
-      userCopied.value = false
-      userCopiedTimer = null
-    }, 1600)
+      userCopied.value = false;
+      userCopiedTimer = null;
+    }, 1600);
   } catch (error) {
-    console.error('Failed to copy user message.', error)
+    console.error("Failed to copy user message.", error);
   }
-}
+};
 
 function isKnowledgeRecallStage(stage: AssistantThinkingStage) {
-  return stage.stageKey === 'knowledge_recall' || stage.id === 'knowledge-recall'
+  return (
+    stage.stageKey === "knowledge_recall" || stage.id === "knowledge-recall"
+  );
 }
 
 function formatLatency(latencyMs?: number | null) {
-  return `${((latencyMs || 0) / 1000).toFixed(1)} 秒`
+  return `${((latencyMs || 0) / 1000).toFixed(1)} 秒`;
 }
 
 function formatChunkRank(index: number) {
-  return `#${String(index + 1).padStart(2, '0')}`
+  return `#${String(index + 1).padStart(2, "0")}`;
 }
 
 function formatChunkScore(score: number) {
-  return Number.isFinite(score) ? score.toFixed(1) : '-'
+  return Number.isFinite(score) ? score.toFixed(1) : "-";
 }
 
 function formatDebugScore(score: number | null | undefined) {
-  return typeof score === 'number' && Number.isFinite(score) ? score.toFixed(1) : '-'
+  return typeof score === "number" && Number.isFinite(score)
+    ? String(Number(score.toFixed(3)))
+    : "-";
 }
+
+function formatWeight(weight: number | null | undefined) {
+  return typeof weight === "number" && Number.isFinite(weight)
+    ? weight.toFixed(1)
+    : "-";
+}
+
+function formatOptionalValue(value: number | string | null | undefined) {
+  return value === null || value === undefined || value === ""
+    ? "-"
+    : String(value);
+}
+
+function formatBoolean(value: boolean | null | undefined) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  return value ? "是" : "否";
+}
+
+function formatList(value: string[] | null | undefined) {
+  return value?.length ? value.join(" · ") : "-";
+}
+
+const formatPercent = (value?: number | null) =>
+  typeof value === "number" ? `${Math.round(value * 100)}%` : "-";
 
 function formatRetrievalMode(mode: string | null | undefined) {
   switch (mode) {
-    case 'keyword_first':
-      return '关键词优先'
-    case 'semantic_first':
-      return '语义优先'
-    case 'balanced':
-      return '均衡'
+    case "keyword_first":
+      return "关键词优先";
+    case "semantic_first":
+      return "语义优先";
+    case "balanced":
+      return "均衡";
     default:
-      return mode?.trim() || '-'
+      return mode?.trim() || "-";
   }
 }
 
-function formatChunkPreview(content: string) {
-  const normalized = content.replace(/\s+/g, ' ').trim()
-  return normalized.length > 112 ? `${normalized.slice(0, 112)}...` : normalized
-}
-
-function formatChunkToken(source: KnowledgeSearchHit, index: number) {
-  const compactId = source.chunkId ? source.chunkId.slice(0, 6) : String(index + 1)
-  return `chunk ${compactId}`
-}
-
 function formatMatchedBy(source: KnowledgeSearchHit) {
-  const matchedBy = source.scoreDetail?.matchedBy ?? []
+  const matchedBy = source.scoreDetail?.matchedBy ?? [];
   if (!matchedBy.length) {
-    return '未知'
+    return "未知";
   }
 
   return matchedBy
     .map((item) => {
-      if (item === 'bm25') {
-        return 'BM25'
+      if (item === "bm25") {
+        return "BM25";
       }
 
-      if (item === 'vector') {
-        return '向量'
+      if (item === "vector") {
+        return "向量";
       }
 
-      return item
+      return item;
     })
-    .join(' + ')
+    .join(" + ");
 }
 
 function getStageNote(stage: AssistantThinkingStage, sourceCount: number) {
   if (stage.subtitle) {
-    return stage.subtitle
+    return stage.subtitle;
   }
 
   if (isKnowledgeRecallStage(stage)) {
-    return sourceCount ? `已命中 ${sourceCount} 个 chunk` : '正在检索相关 chunk'
+    return sourceCount
+      ? `已命中 ${sourceCount} 个 chunk`
+      : "正在检索相关 chunk";
   }
 
-  return stage.status === 'running' ? '正在整理当前思路' : ''
+  return stage.status === "running" ? "正在整理当前思路" : "";
 }
 
 function buildTimelineEntries(
   stages: AssistantThinkingStage[],
-  sourceCount: number
+  sourceCount: number,
 ): ThoughtTimelineEntry[] {
   return stages.reduce<ThoughtTimelineEntry[]>((entries, stage) => {
-    if (stage.stageKey === 'answer_synthesis' || stage.id === 'answer-synthesis') {
-      return entries
+    if (
+      stage.stageKey === "answer_synthesis" ||
+      stage.id === "answer-synthesis"
+    ) {
+      return entries;
     }
 
     if (isKnowledgeRecallStage(stage)) {
       entries.push({
         id: stage.id,
         title: stage.title,
-        body: '',
+        body: "",
         note: getStageNote(stage, sourceCount),
         status: stage.status,
-        kind: 'retrieval',
-        sourceLink: sourceCount > 0
-      })
-      return entries
+        kind: "retrieval",
+        sourceLink: sourceCount > 0,
+      });
+      return entries;
     }
 
-    if (stage.stageKey === 'llm_reasoning') {
+    if (stage.stageKey === "llm_reasoning") {
+      if (stage.status === "running") {
+        entries.push({
+          id: `${stage.id}-streaming`,
+          title: stage.title,
+          body: stage.visibleContent || stage.content,
+          status: stage.status,
+          kind: "reasoning",
+        });
+        return entries;
+      }
+
       const parsedEntries = parseReasoningEntriesForTimeline(
-        stage.visibleContent || stage.content
-      )
+        stage.visibleContent || stage.content,
+      );
       if (parsedEntries.length > 0) {
         entries.push(
           ...parsedEntries.map((entry, index) => ({
@@ -587,11 +806,11 @@ function buildTimelineEntries(
             title: entry.title,
             body: entry.body,
             note: undefined,
-            status: index === parsedEntries.length - 1 ? stage.status : 'done',
-            kind: 'reasoning' as const
-          }))
-        )
-        return entries
+            status: index === parsedEntries.length - 1 ? stage.status : "done",
+            kind: "reasoning" as const,
+          })),
+        );
+        return entries;
       }
     }
 
@@ -603,114 +822,116 @@ function buildTimelineEntries(
         ? getStageNote(stage, sourceCount)
         : undefined,
       status: stage.status,
-      kind: 'generic'
-    })
+      kind: "generic",
+    });
 
-    return entries
-  }, [])
+    return entries;
+  }, []);
 }
 
 function parseReasoningEntriesForTimeline(
-  content: string
+  content: string,
 ): Array<{ title: string; body: string }> {
-  const normalized = content.replace(/\r\n/g, '\n').trim()
+  const normalized = content.replace(/\r\n/g, "\n").trim();
   if (!normalized) {
-    return []
+    return [];
   }
 
   const normalizedWithInlineHeadings = normalized
-    .replace(/([。！？；])\s*([^:\n：]{1,32}[:：])/g, '$1\n$2')
-    .replace(/\n{3,}/g, '\n\n')
+    .replace(/([。！？；])\s*([^:\n：]{1,32}[:：])/g, "$1\n$2")
+    .replace(/\n{3,}/g, "\n\n");
 
-  const lines = normalizedWithInlineHeadings.split('\n')
-  const headingOnlyPattern = /^([^:\n：]{1,32})([:：])\s*$/
-  const headingWithBodyPattern = /^([^:\n：]{1,32})([:：])\s*(.+)$/
-  const entries: Array<{ title: string; body: string }> = []
+  const lines = normalizedWithInlineHeadings.split("\n");
+  const headingOnlyPattern = /^([^:\n：]{1,32})([:：])\s*$/;
+  const headingWithBodyPattern = /^([^:\n：]{1,32})([:：])\s*(.+)$/;
+  const entries: Array<{ title: string; body: string }> = [];
 
-  let currentTitle = ''
-  let currentBodyLines: string[] = []
-  const fallbackLines: string[] = []
+  let currentTitle = "";
+  let currentBodyLines: string[] = [];
+  const fallbackLines: string[] = [];
 
   const pushCurrent = () => {
     if (!currentTitle) {
-      return
+      return;
     }
 
     entries.push({
       title: currentTitle,
-      body: currentBodyLines.join('\n').trim()
-    })
+      body: currentBodyLines.join("\n").trim(),
+    });
 
-    currentTitle = ''
-    currentBodyLines = []
-  }
+    currentTitle = "";
+    currentBodyLines = [];
+  };
 
   for (const rawLine of lines) {
-    const line = rawLine.trim()
+    const line = rawLine.trim();
 
-    const headingOnlyMatch = line.match(headingOnlyPattern)
+    const headingOnlyMatch = line.match(headingOnlyPattern);
     if (headingOnlyMatch) {
-      pushCurrent()
-      currentTitle = `${headingOnlyMatch[1]}${headingOnlyMatch[2]}`
-      currentBodyLines = []
-      continue
+      pushCurrent();
+      currentTitle = `${headingOnlyMatch[1]}${headingOnlyMatch[2]}`;
+      currentBodyLines = [];
+      continue;
     }
 
-    const headingWithBodyMatch = line.match(headingWithBodyPattern)
+    const headingWithBodyMatch = line.match(headingWithBodyPattern);
     if (headingWithBodyMatch) {
-      pushCurrent()
-      currentTitle = `${headingWithBodyMatch[1]}${headingWithBodyMatch[2]}`
-      currentBodyLines = [headingWithBodyMatch[3]]
-      continue
+      pushCurrent();
+      currentTitle = `${headingWithBodyMatch[1]}${headingWithBodyMatch[2]}`;
+      currentBodyLines = [headingWithBodyMatch[3]];
+      continue;
     }
 
     if (currentTitle) {
-      currentBodyLines.push(rawLine)
-      continue
+      currentBodyLines.push(rawLine);
+      continue;
     }
 
-    fallbackLines.push(rawLine)
+    fallbackLines.push(rawLine);
   }
 
-  pushCurrent()
+  pushCurrent();
 
   if (entries.length > 0) {
-    return entries
+    return entries;
   }
 
-  const fallbackBody = fallbackLines.join('\n').trim()
+  const fallbackBody = fallbackLines.join("\n").trim();
   if (!fallbackBody) {
-    return []
+    return [];
   }
 
-  return [{
-    title: '分析结论：',
-    body: fallbackBody
-  }]
+  return [
+    {
+      title: "分析结论：",
+      body: fallbackBody,
+    },
+  ];
 }
 
 function renderThoughtBody(body: string) {
-  const escaped = body
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
+  const escaped = body.trimStart()
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 
   return escaped
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br />')
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br />");
 }
+
 </script>
 
 <template>
-  <div v-if="message.role === 'user'" class="flex items-start justify-end gap-3">
+  <article v-if="message.role === 'user'" class="user-message">
     <div class="user-message-shell">
-      <div
-        class="max-w-[360px] rounded-[18px] bg-[#f3f5f8] px-5 py-4 text-[15px] leading-8 text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
-      >
-        <div class="whitespace-pre-wrap">{{ message.content || '...' }}</div>
+      <div class="user-message__body">
+        <span>你</span>
+        <p>{{ message.content || "..." }}</p>
       </div>
 
       <div class="user-actions">
@@ -734,20 +955,20 @@ function renderThoughtBody(body: string) {
         </button>
       </div>
     </div>
+  </article>
 
-    <div
-      class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f97316] text-[12px] font-semibold tracking-[0.02em] text-white shadow-[0_10px_18px_rgba(249,115,22,0.28)]"
-    >
-      你
-    </div>
-  </div>
+  <article v-else class="assistant-message">
+    <header class="assistant-message__header">
+      <WorkspaceMark :size="38" :active="isAssistantWorking" />
+      <strong>Kore</strong>
+      <span>{{
+        isAssistantWorking
+          ? "正在回答"
+          : `回答完成${resolvedDurationMs ? ` · ${formatLatency(resolvedDurationMs)}` : ""}`
+      }}</span>
+    </header>
 
-  <div v-else class="flex items-start gap-4">
-    <div class="mt-0.5 flex size-11 shrink-0 items-center justify-center">
-      <WorkspaceMark :size="50" :active="isAssistantWorking" />
-    </div>
-
-    <div class="min-w-0 flex-1">
+    <div class="assistant-message__content">
       <section v-if="showProcessSection" class="thinking-shell">
         <button
           type="button"
@@ -767,7 +988,10 @@ function renderThoughtBody(body: string) {
             </span>
           </div>
 
-          <div v-if="hasFinalTokenCount || canToggleProcessDetails" class="thinking-header__right">
+          <div
+            v-if="hasFinalTokenCount || canToggleProcessDetails"
+            class="thinking-header__right"
+          >
             <span v-if="hasFinalTokenCount" class="thinking-header__meta">
               Token:{{ finalTokenCount }}
             </span>
@@ -798,7 +1022,9 @@ function renderThoughtBody(body: string) {
                       :text="stage.title"
                       class="thought-entry__title thought-entry__title--active"
                     />
-                    <strong v-else class="thought-entry__title">{{ stage.title }}</strong>
+                    <strong v-else class="thought-entry__title">{{
+                      stage.title
+                    }}</strong>
                   </div>
 
                   <button
@@ -824,71 +1050,80 @@ function renderThoughtBody(body: string) {
               </article>
             </div>
 
-            <div class="thinking-footer">
-              <div
-                class="thinking-footer__completion"
-                :class="{ 'thinking-footer__completion--visible': showThoughtCompletion }"
-              >
-                <span class="thinking-footer__badge">
-                  <CheckCircle2 class="size-4" />
-                </span>
-                <span>已完成</span>
-              </div>
-              <div
-                class="thinking-footer__divider"
-                :class="{ 'thinking-footer__divider--visible': showThoughtDivider }"
-              />
-            </div>
           </div>
         </transition>
       </section>
 
-      <section v-if="showReplySummary" class="px-1">
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-medium text-[#98a2b3]">
-          <span v-if="showReplyDuration">用时：{{ formatLatency(resolvedDurationMs) }}</span>
-          <span v-if="showReplyTokenCount">Token:{{ finalTokenCount }}</span>
-        </div>
-      </section>
-
-      <section v-if="showStandaloneRecallEntry" class="recall-entry-shell">
-        <button
-          type="button"
-          class="recall-entry-button"
-          aria-label="打开召回命中详情"
-          @click="openEvidenceDrawer"
-        >
-          <span class="recall-entry-button__label">召回命中</span>
-          <strong class="recall-entry-button__count">已命中 {{ visibleSources.length }} 个 chunk</strong>
-          <span class="recall-entry-button__meta">点击查看检索词、原始分与命中文档</span>
-          <span class="recall-entry-button__arrow">&gt;</span>
-        </button>
-      </section>
-
-      <section
-        v-if="showAnswerSection"
-        class="answer-shell"
-        :class="{
-          'answer-shell--divided': showThoughtDivider && showProcessDetails,
-          'answer-shell--blank': showProcessSection && !canShowBufferedAnswer
-        }"
-      >
-        <template v-if="canShowBufferedAnswer && answerHasContent">
+      <section v-if="showAnswerSection" class="answer-shell">
+        <template v-if="answerHasContent">
           <ChatMarkdownContent
             :content="displayedAnswerContent"
-            :show-cursor="isStreamingMessage && canShowBufferedAnswer"
+            :show-cursor="isStreamingMessage || isTypingAnswer"
           />
         </template>
-
-        <div
-          v-else-if="showProcessSection"
-          class="answer-shell__placeholder"
-          aria-hidden="true"
-        />
-
         <div v-else class="flex items-center gap-2 text-sm text-slate-500">
           <LoaderCircle class="size-4 animate-spin" />
           正在生成回答...
         </div>
+      </section>
+
+      <div
+        v-if="
+          !isStreamingMessage &&
+          !isTypingAnswer &&
+          answerHasContent &&
+          hasSources
+        "
+        class="citations"
+      >
+        <span>参考来源 · {{ visibleSources.length }}</span>
+        <button
+          v-for="(_, index) in visibleSources"
+          :key="index"
+          type="button"
+          @click="openSourceDrawer(index)"
+        >
+          {{ String(index + 1).padStart(2, "0") }}
+        </button>
+      </div>
+
+      <section
+        v-if="
+          !isStreamingMessage &&
+          !isTypingAnswer &&
+          answerHasContent &&
+          hasSources
+        "
+        class="run-summary-panel"
+      >
+        <header>
+          <strong>本次运行</strong
+          ><button type="button" @click="openRunDrawer">查看过程</button>
+        </header>
+        <dl>
+          <div>
+            <dt>
+              {{
+                retrievalDebug?.candidateLimit ??
+                retrievalDebug?.vectorHitCount ??
+                0
+              }}
+            </dt>
+            <dd>候选片段</dd>
+          </div>
+          <div>
+            <dt>{{ visibleSources.length }}</dt>
+            <dd>召回证据</dd>
+          </div>
+          <div>
+            <dt>{{ formatPercent(retrievalDebug?.evidenceCoverage) }}</dt>
+            <dd>证据覆盖</dd>
+          </div>
+          <div>
+            <dt>{{ formatLatency(resolvedDurationMs) }}</dt>
+            <dd>总耗时</dd>
+          </div>
+        </dl>
       </section>
 
       <div v-if="showAnswerActions" class="answer-actions">
@@ -927,8 +1162,8 @@ function renderThoughtBody(body: string) {
           <aside class="evidence-drawer" @click.stop>
             <header class="evidence-drawer__header">
               <div>
-                <strong>召回命中详情</strong>
-                <span>已命中 {{ visibleSources.length }} 个 chunk</span>
+                <span>回答依据</span>
+                <strong>本次检索详情</strong>
               </div>
               <button
                 type="button"
@@ -940,9 +1175,21 @@ function renderThoughtBody(body: string) {
               </button>
             </header>
 
-            <div class="evidence-panel__top">
+            <nav class="evidence-drawer__tabs" aria-label="检索详情分类">
+              <button
+                v-for="tab in ['evidence', 'query', 'run'] as DrawerTab[]"
+                :key="tab"
+                type="button"
+                :class="{ 'is-active': drawerTab === tab }"
+                @click="drawerTab = tab"
+              >
+                {{ { evidence: "证据", query: "查询", run: "运行过程" }[tab] }}
+              </button>
+            </nav>
+
+            <div v-if="drawerTab === 'query'" class="evidence-panel__top">
               <div class="evidence-summary evidence-summary--query">
-                <span class="evidence-label">当前检索问题</span>
+                <span class="evidence-label">前检索问题</span>
                 <p>{{ retrievalQueryText }}</p>
               </div>
               <div class="evidence-summary evidence-summary--score">
@@ -952,10 +1199,15 @@ function renderThoughtBody(body: string) {
               </div>
             </div>
 
-            <section v-if="retrievalDebug" class="retrieval-debug-panel">
+            <section
+              v-if="drawerTab === 'query' && retrievalDebug"
+              class="retrieval-debug-panel"
+            >
               <header class="retrieval-debug-panel__header">
                 <strong>召回调试信息</strong>
-                <span>{{ retrievalDebug.rewriteApplied ? '已生效' : '未生效' }}</span>
+                <span>{{
+                  retrievalDebug.rewriteApplied ? "已生效" : "未生效"
+                }}</span>
               </header>
 
               <div class="retrieval-debug-metrics">
@@ -976,55 +1228,255 @@ function renderThoughtBody(body: string) {
                   class="retrieval-query-card"
                 >
                   <span class="evidence-label">{{ item.label }}</span>
-                  <p :class="{ 'retrieval-query-card__content--multiline': item.multiline }">
-                    {{ item.value || '-' }}
+                  <p
+                    :class="{
+                      'retrieval-query-card__content--multiline':
+                        item.multiline,
+                    }"
+                  >
+                    {{ item.value || "-" }}
                   </p>
                 </article>
               </div>
+
+              <section class="retrieval-decision">
+                <h3>检索决策</h3>
+                <dl class="detail-field-grid">
+                  <div v-for="item in retrievalDecisionItems" :key="item.label">
+                    <dt>{{ item.label }}</dt>
+                    <dd
+                      :class="{
+                        'is-pass':
+                          item.label === 'evidenceGateStatus' &&
+                          item.value === 'pass',
+                      }"
+                    >
+                      {{ item.value }}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
             </section>
 
-            <div class="chunk-hit-list">
+            <div v-if="drawerTab === 'evidence'" class="chunk-hit-list">
+              <p class="drawer-result-count">
+                完整召回 {{ visibleSources.length }} 个 chunk
+              </p>
+              <div class="source-index">
+                <button
+                  v-for="(_, index) in visibleSources"
+                  :key="index"
+                  type="button"
+                  :class="{ 'is-active': selectedSourceIndex === index }"
+                  @click="selectedSourceIndex = index"
+                >
+                  {{ String(index + 1).padStart(2, "0") }}
+                </button>
+              </div>
               <article
                 v-for="(source, index) in visibleSources"
                 :key="source.chunkId || `${source.documentId}-${index}`"
+                v-show="selectedSourceIndex === index"
                 class="chunk-hit-card"
                 :style="{ '--chunk-index': index }"
               >
-                <div class="chunk-hit-card__rank">{{ formatChunkRank(index) }}</div>
+                <div class="chunk-hit-card__rank">
+                  {{ formatChunkRank(index) }}
+                </div>
                 <div class="chunk-hit-card__main">
                   <div class="chunk-hit-card__head">
-                    <h4>{{ source.documentName || '未命名文档' }}</h4>
+                    <FileText :size="19" />
+                    <div>
+                      <h4>{{ source.documentName || "未命名文档" }}</h4>
+                      <span>{{
+                        source.primaryTitle || source.sectionPath || "文档片段"
+                      }}</span>
+                    </div>
                     <strong>{{ formatChunkScore(source.score) }}</strong>
                   </div>
-                  <p>{{ formatChunkPreview(source.content) }}</p>
-                  <div class="chunk-hit-card__scores">
-                    <span>命中方式：{{ formatMatchedBy(source) }}</span>
-                    <span>BM25 原始分：{{ formatDebugScore(source.scoreDetail?.bm25Score) }}</span>
-                    <span>向量原始分：{{ formatDebugScore(source.scoreDetail?.vectorScore) }}</span>
-                    <span>RRF 原始分：{{ formatDebugScore(source.scoreDetail?.fusedScore) }}</span>
-                  </div>
-                  <div class="chunk-hit-card__tags">
-                    <span>文档：{{ source.documentName || source.documentId }}</span>
-                    <span>{{ formatChunkToken(source, index) }}</span>
-                    <span>命中片段</span>
-                  </div>
+                  <blockquote>{{ source.content }}</blockquote>
+                  <dl class="detail-field-grid source-feature-grid">
+                    <div v-for="item in sourceFeatureItems" :key="item.label">
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ item.value }}</dd>
+                    </div>
+                  </dl>
                 </div>
               </article>
             </div>
+
+            <ol v-else-if="drawerTab === 'run'" class="run-process-list">
+              <li v-for="(stage, index) in runProcessItems" :key="stage.id">
+                <span class="run-process-list__index">
+                  {{ String(index + 1).padStart(2, "0") }}
+                </span>
+                <div>
+                  <header>
+                    <strong>{{ stage.title }}</strong>
+                    <span :class="`is-${stage.status}`">{{
+                      stage.status
+                    }}</span>
+                  </header>
+                  <p>{{ stage.summary }}</p>
+                  <div v-if="stage.body" class="run-process-list__body">
+                    {{ stage.body }}
+                  </div>
+                </div>
+              </li>
+            </ol>
           </aside>
         </div>
       </transition>
     </Teleport>
-  </div>
+  </article>
 </template>
 
 <style scoped>
+.user-message {
+  display: flex;
+  justify-content: flex-end;
+}
 .user-message-shell {
   display: flex;
-  max-width: 360px;
+  width: min(550px, 82%);
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
+}
+.user-message__body {
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid #e8e8e2;
+  border-radius: 11px 11px 3px 11px;
+  background: rgba(255, 255, 255, 0.76);
+}
+.user-message__body span {
+  display: block;
+  margin-bottom: 7px;
+  color: #5b5bf7;
+  font-size: 11px;
+  font-weight: 700;
+}
+.user-message__body p {
+  margin: 0;
+  white-space: pre-wrap;
+  font:
+    15px/1.85 ui-serif,
+    Georgia,
+    "Songti SC",
+    serif;
+}
+.assistant-message {
+  margin-top: 42px;
+}
+.assistant-message__header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.assistant-message__header strong {
+  font:
+    600 14px ui-serif,
+    Georgia,
+    "Songti SC",
+    serif;
+}
+.assistant-message__header > span {
+  color: #777770;
+  font-size: 11px;
+}
+.assistant-message__content {
+  margin-left: 0;
+}
+.assistant-message .answer-shell {
+  margin-top: 20px;
+}
+.assistant-message .answer-shell :deep(p) {
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  line-height: 1.85;
+}
+.citations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 20px;
+}
+.citations > span {
+  margin-right: 3px;
+  color: #777770;
+  font-size: 11px;
+}
+.citations button {
+  width: 29px;
+  height: 27px;
+  border: 1px solid #d8d8d1;
+  border-radius: 6px;
+  background: #fff;
+  color: #5b5bf7;
+  font-size: 11px;
+  cursor: pointer;
+}
+.citations button:hover {
+  border-color: #5b5bf7;
+}
+.run-summary-panel {
+  margin-top: 34px;
+  border-top: 1px solid #e8e8e2;
+}
+.run-summary-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 0;
+}
+.run-summary-panel header strong {
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 15px;
+}
+.run-summary-panel header button {
+  border: 0;
+  background: transparent;
+  color: #777770;
+  font-size: 12px;
+}
+.run-summary-panel dl {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0;
+  border-top: 1px solid #e8e8e2;
+  border-bottom: 1px solid #e8e8e2;
+}
+.run-summary-panel dl > div {
+  display: grid;
+  gap: 12px;
+  padding: 20px 16px;
+}
+.run-summary-panel dl > div + div {
+  border-left: 1px solid #e8e8e2;
+}
+.run-summary-panel dt {
+  font:
+    600 22px ui-serif,
+    Georgia,
+    serif;
+}
+.run-summary-panel dd {
+  margin: 0;
+  color: #777770;
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  .run-summary-panel dl {
+    grid-template-columns: 1fr 1fr;
+  }
+  .run-summary-panel dl > div:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid #e8e8e2;
+  }
+  .run-summary-panel dl > div:nth-child(4) {
+    border-top: 1px solid #e8e8e2;
+  }
 }
 
 .user-actions {
@@ -1213,57 +1665,16 @@ function renderThoughtBody(body: string) {
   color: #687385;
   font-size: 12px;
   line-height: 1;
-  transition: transform 180ms ease, color 180ms ease, border-color 180ms ease;
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .thought-entry__source:hover .thought-entry__source-arrow {
   transform: translateX(2px);
   color: #111827;
   border-color: #aab4c0;
-}
-
-.thinking-footer {
-  min-height: 52px;
-  padding-top: 12px;
-}
-
-.thinking-footer__completion {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0;
-  transform: translateY(6px);
-  color: #4b5565;
-  font-size: 14px;
-  font-weight: 600;
-  transition:
-    opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.thinking-footer__completion--visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.thinking-footer__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  color: #4b5565;
-}
-
-.thinking-footer__divider {
-  height: 1px;
-  margin-top: 16px;
-  border-top: 1px dashed transparent;
-  transition: border-color 240ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.thinking-footer__divider--visible {
-  border-top-color: #d8dde5;
 }
 
 .answer-shell {
@@ -1283,16 +1694,27 @@ function renderThoughtBody(body: string) {
   gap: 8px 12px;
   border: 1px solid #dbe8e4;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(246, 251, 251, 0.82) 0%, rgba(255, 255, 255, 0.9) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(246, 251, 251, 0.82) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
   padding: 14px 16px;
   text-align: left;
   cursor: pointer;
-  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .recall-entry-button:hover {
   border-color: #bfd2cb;
-  background: linear-gradient(180deg, rgba(243, 250, 249, 0.94) 0%, rgba(255, 255, 255, 0.98) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(243, 250, 249, 0.94) 0%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
   box-shadow: 0 6px 18px rgba(108, 140, 132, 0.08);
 }
 
@@ -1333,25 +1755,16 @@ function renderThoughtBody(body: string) {
   color: #5f7790;
   font-size: 12px;
   line-height: 1;
-  transition: transform 180ms ease, border-color 180ms ease, color 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
 }
 
 .recall-entry-button:hover .recall-entry-button__arrow {
   transform: translateX(2px);
   border-color: #bfd2cb;
   color: #17324b;
-}
-
-.answer-shell--divided {
-  padding-top: 20px;
-}
-
-.answer-shell--blank {
-  min-height: 44px;
-}
-
-.answer-shell__placeholder {
-  min-height: 40px;
 }
 
 .answer-actions {
@@ -1406,8 +1819,7 @@ function renderThoughtBody(body: string) {
   width: min(740px, 92vw);
   overflow: auto;
   border-left: 1px solid #dbe8e4;
-  background:
-    linear-gradient(180deg, #f6fbfb 0%, #fbfdfd 38%, #feffff 100%);
+  background: linear-gradient(180deg, #f6fbfb 0%, #fbfdfd 38%, #feffff 100%);
   padding: 18px 20px 28px;
   box-shadow: -16px 0 44px rgba(108, 140, 132, 0.12);
 }
@@ -1449,7 +1861,10 @@ function renderThoughtBody(body: string) {
   background: rgba(255, 255, 255, 0.88);
   color: #3c556c;
   cursor: pointer;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
 }
 
 .evidence-drawer__close:hover {
@@ -1631,38 +2046,6 @@ function renderThoughtBody(body: string) {
   line-height: 1.8;
 }
 
-.chunk-hit-card__scores {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.chunk-hit-card__scores span {
-  border-radius: 12px;
-  background: #f6fafc;
-  padding: 8px 10px;
-  color: #486178;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.chunk-hit-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.chunk-hit-card__tags span {
-  border-radius: 999px;
-  background: #f2f7fb;
-  padding: 5px 11px;
-  color: #67809b;
-  font-size: 12px;
-  line-height: 1.2;
-}
-
 .process-collapse-enter-active,
 .process-collapse-leave-active {
   transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -1739,8 +2122,6 @@ function renderThoughtBody(body: string) {
     animation: none !important;
   }
 
-  .thinking-footer__completion,
-  .thinking-footer__divider,
   .thought-entry__source-arrow,
   .recall-entry-button,
   .recall-entry-button__arrow,
@@ -1754,6 +2135,501 @@ function renderThoughtBody(body: string) {
   .evidence-drawer-enter-active,
   .evidence-drawer-leave-active {
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* 思考过程使用阅读式步骤，不复用旧项目的节点连线样式。 */
+.thinking-shell {
+  width: min(860px, 100%);
+  border-top: 1px solid #e8e8e2;
+  border-bottom: 1px solid #e8e8e2;
+}
+
+.thinking-header {
+  padding: 15px 0;
+}
+
+.thinking-header__title,
+.thinking-header__shine {
+  color: #252523;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.thinking-header__meta {
+  color: #8a8a83;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.thinking-panel {
+  padding: 0;
+}
+
+.thinking-timeline {
+  padding: 0;
+  counter-reset: thought-step;
+}
+
+.thought-entry {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 14px;
+  padding: 17px 0;
+  border-top: 1px solid #e8e8e2;
+  border-left: 0;
+  counter-increment: thought-step;
+}
+
+.thought-entry::before {
+  color: #5b5bf7;
+  content: counter(thought-step, decimal-leading-zero);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.thought-entry:not(:last-child),
+.thought-entry:last-child {
+  padding-bottom: 17px;
+}
+
+.thought-entry__dot-shell {
+  display: none;
+}
+
+.thought-entry__title,
+.thought-entry__title--active {
+  color: #252523;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.thought-entry__note,
+.thought-entry__source,
+.thought-entry__body {
+  color: #5f5f59;
+}
+
+.thought-entry__body {
+  margin-top: 8px;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+/* 详情抽屉沿用 Demo 的纸面阅读结构，业务字段保持完整。 */
+.evidence-drawer__mask {
+  background: rgba(25, 25, 24, 0.14);
+}
+
+.evidence-drawer {
+  width: min(500px, 100vw);
+  padding: 0 24px 32px;
+  border-left: 1px solid #e8e8e2;
+  background: #fafaf7;
+  box-shadow: -18px 0 48px rgba(30, 30, 25, 0.08);
+}
+
+.evidence-drawer__header {
+  min-height: 80px;
+  margin: 0 -24px;
+  padding: 0 24px;
+  border-bottom: 1px solid #e8e8e2;
+  background: #fff;
+}
+
+.evidence-drawer__header strong {
+  color: #191918;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.evidence-drawer__header span {
+  color: #777770;
+  font-size: 11px;
+}
+
+.evidence-drawer__close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #777770;
+}
+
+.evidence-drawer__close:hover {
+  border: 0;
+  background: #efefea;
+  color: #191918;
+}
+
+.evidence-drawer__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 -24px 24px;
+  border-bottom: 1px solid #e8e8e2;
+  background: #fff;
+}
+
+.evidence-drawer__tabs button {
+  position: relative;
+  border: 0;
+  background: transparent;
+  padding: 15px 8px;
+  color: #777770;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.evidence-drawer__tabs button::after {
+  position: absolute;
+  right: 22%;
+  bottom: -1px;
+  left: 22%;
+  height: 2px;
+  background: #5b5bf7;
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.evidence-drawer__tabs button:hover,
+.evidence-drawer__tabs button.is-active {
+  color: #191918;
+}
+
+.evidence-drawer__tabs button.is-active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.evidence-panel__top {
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin-bottom: 28px;
+  border-top: 1px solid #e8e8e2;
+}
+
+.evidence-summary {
+  min-height: 0;
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 1px solid #e8e8e2;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.evidence-summary--query p,
+.retrieval-query-card p,
+.chunk-hit-card blockquote {
+  color: #44443f;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  line-height: 1.75;
+}
+
+.evidence-summary--score strong {
+  color: #5b5bf7;
+  font-family: ui-serif, Georgia, serif;
+  font-size: 25px;
+  font-weight: 600;
+}
+
+.evidence-summary--score p,
+.retrieval-debug-panel__header span {
+  color: #777770;
+}
+
+.evidence-label {
+  color: #8a8a83;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.retrieval-debug-panel {
+  margin-bottom: 30px;
+}
+
+.retrieval-debug-panel__header strong,
+.retrieval-decision h3 {
+  color: #191918;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.retrieval-debug-metrics {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  margin-bottom: 18px;
+  border-top: 1px solid #e8e8e2;
+  border-bottom: 1px solid #e8e8e2;
+}
+
+.retrieval-debug-card,
+.retrieval-query-card {
+  padding: 13px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.retrieval-debug-card:nth-child(even) {
+  padding-left: 14px;
+  border-left: 1px solid #e8e8e2;
+}
+
+.retrieval-debug-card strong {
+  margin-top: 7px;
+  color: #191918;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.retrieval-debug-queries {
+  gap: 0;
+}
+
+.retrieval-query-card + .retrieval-query-card {
+  border-top: 1px solid #e8e8e2;
+}
+
+.retrieval-decision {
+  margin-top: 28px;
+}
+
+.retrieval-decision h3 {
+  margin: 0 0 12px;
+}
+
+.detail-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid #e8e8e2;
+}
+
+.detail-field-grid > div {
+  min-width: 0;
+  padding: 11px 8px 12px 0;
+  border-bottom: 1px solid #e8e8e2;
+}
+
+.detail-field-grid > div:nth-child(even) {
+  padding-left: 14px;
+  border-left: 1px solid #e8e8e2;
+}
+
+.detail-field-grid dt {
+  color: #96968e;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.detail-field-grid dd {
+  margin: 6px 0 0;
+  color: #343431;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.detail-field-grid dd.is-pass {
+  color: #33855a;
+  font-weight: 600;
+}
+
+.drawer-result-count {
+  margin: 0 0 10px;
+  color: #777770;
+  font-size: 11px;
+}
+
+.source-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e8e8e2;
+}
+
+.source-index button {
+  min-width: 30px;
+  height: 30px;
+  border: 1px solid #deded7;
+  border-radius: 6px;
+  background: #fff;
+  color: #777770;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.source-index button:hover,
+.source-index button.is-active {
+  border-color: #7777ff;
+  color: #5b5bf7;
+}
+
+.chunk-hit-list {
+  gap: 0;
+}
+
+.chunk-hit-card {
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  padding: 20px 0;
+  border: 0;
+  border-bottom: 1px solid #e8e8e2;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.chunk-hit-card__rank {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d8d8d1;
+  border-radius: 6px;
+  background: #fff;
+  color: #5b5bf7;
+  font-size: 11px;
+}
+
+.chunk-hit-card__head {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 9px;
+}
+
+.chunk-hit-card__head h4 {
+  color: #191918;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chunk-hit-card__head span {
+  display: block;
+  margin-top: 3px;
+  color: #8a8a83;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.chunk-hit-card__head strong {
+  color: #33855a;
+  font-size: 12px;
+}
+
+.chunk-hit-card blockquote {
+  margin: 18px 0;
+  border-left: 2px solid #7777ff;
+  padding: 2px 0 2px 14px;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.source-feature-grid {
+  margin-top: 4px;
+}
+
+.run-process-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-process-list li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 13px;
+  padding: 18px 0;
+  border-bottom: 1px solid #e8e8e2;
+}
+
+.run-process-list__index {
+  color: #5b5bf7;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.run-process-list header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.run-process-list header strong {
+  color: #191918;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.run-process-list header span {
+  color: #8a8a83;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.run-process-list header span.is-done {
+  color: #33855a;
+}
+
+.run-process-list p {
+  margin: 7px 0 0;
+  color: #5f5f59;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.run-process-list__body {
+  margin-top: 11px;
+  border-left: 2px solid #deded7;
+  padding-left: 12px;
+  color: #44443f;
+  font-family: ui-serif, Georgia, "Songti SC", serif;
+  font-size: 12px;
+  line-height: 1.72;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .evidence-drawer {
+    width: 100%;
+    padding-inline: 16px;
+  }
+
+  .evidence-drawer__header,
+  .evidence-drawer__tabs {
+    margin-inline: -16px;
+    padding-inline: 16px;
+  }
+
+  .retrieval-debug-metrics,
+  .detail-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .retrieval-debug-card:nth-child(even),
+  .detail-field-grid > div:nth-child(even) {
+    padding-left: 0;
+    border-left: 0;
   }
 }
 </style>

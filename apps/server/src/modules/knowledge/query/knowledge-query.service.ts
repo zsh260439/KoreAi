@@ -64,7 +64,7 @@ export class KnowledgeQueryService {
       return {
         sources,
         retrievalDebug: retrievalResult.debug,
-        model: this.qaService.getModelName(),
+        model: await this.qaService.getModelName(),
         totalTokens: Promise.resolve(null),
         stream: staticAnswerStream(
           '检索到的证据不足，无法基于当前知识库给出准确回答。请补充更明确的问题、指定知识库范围，或先完善相关文档后再查询。'
@@ -84,7 +84,7 @@ export class KnowledgeQueryService {
     return {
       sources,
       retrievalDebug: retrievalResult.debug,
-      model: this.qaService.getModelName(),
+      model: await this.qaService.getModelName(),
       totalTokens: answer.totalTokens,
       stream: answer.stream
     }

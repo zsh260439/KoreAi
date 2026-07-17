@@ -1,134 +1,58 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref } from "vue";
+import { useRoute } from "vue-router";
+import AppSidebar from "@/components/shell/AppSidebar.vue";
 
-import AdminSidebar from '@/components/admin/AdminSidebar.vue'
-import AdminTopbar from '@/components/admin/AdminTopbar.vue'
-import { adminNavItems } from '@/config/navigation'
-
-const route = useRoute()
-const router = useRouter()
-const isTraceRoute = computed(() => route.path === '/admin/traces')
-
-type BreadcrumbItem = {
-  label: string
-  to?: string
-}
-
-const breadcrumbPathMap: Record<string, string> = {
-  首页: '/admin/knowledge',
-  知识库管理: '/admin/knowledge',
-  检索参数: '/admin/knowledge-settings',
-  'Trace 链路': '/admin/traces'
-}
-
-const getKnowledgeDocumentsPath = () => {
-  const kbId = typeof route.params.kbId === 'string' ? route.params.kbId : ''
-  return kbId ? `/admin/knowledge/${kbId}` : '/admin/knowledge'
-}
-
-const resolveBreadcrumbPath = (label: string, isLast: boolean) => {
-  if (isLast) {
-    return undefined
-  }
-
-  if (label === '文档管理') {
-    return getKnowledgeDocumentsPath()
-  }
-
-  return breadcrumbPathMap[label]
-}
-
-const breadcrumbs = computed<BreadcrumbItem[]>(() => {
-  const labels =
-    Array.isArray(route.meta.breadcrumb) && route.meta.breadcrumb.length
-      ? route.meta.breadcrumb
-      : ['首页']
-
-  return labels.map((label, index) => ({
-    label,
-    to: resolveBreadcrumbPath(label, index === labels.length - 1)
-  }))
-})
+const route = useRoute();
+const sidebarCollapsed = ref(false);
+const edgeToEdge = computed(
+  () =>
+    route.path === "/admin/knowledge" || route.path.startsWith("/admin/traces"),
+);
 </script>
 
 <template>
-  <div class="admin-layout min-h-screen bg-[#edf3f7] text-slate-900">
-    <div class="flex h-screen">
-      <AdminSidebar
-        class="hidden lg:flex"
-        :active-path="route.fullPath"
-        :items="adminNavItems"
-      />
-
-      <div
-        class="admin-layout__content flex min-h-screen flex-1 flex-col"
-        :class="{ 'admin-layout__content--trace': isTraceRoute }"
-      >
-        <AdminTopbar @open-chat="router.push('/workspace')" />
-
-        <div
-          class="admin-layout__body mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8"
-          :class="{ 'admin-layout__body--trace': isTraceRoute }"
-        >
-          <nav class="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500" aria-label="面包屑">
-            <span
-              v-for="(item, index) in breadcrumbs"
-              :key="`${item.label}-${index}`"
-              class="flex items-center gap-2"
-            >
-              <router-link
-                v-if="item.to && index < breadcrumbs.length - 1"
-                :to="item.to"
-                class="transition-colors hover:text-slate-900"
-              >
-                {{ item.label }}
-              </router-link>
-              <span v-else :class="index === breadcrumbs.length - 1 ? 'text-slate-900' : ''">
-                {{ item.label }}
-              </span>
-              <span v-if="index < breadcrumbs.length - 1">/</span>
-            </span>
-          </nav>
-          <router-view />
-        </div>
-      </div>
-    </div>
-  </div>
+  <main class="admin-shell">
+    <AppSidebar v-model:collapsed="sidebarCollapsed" />
+    <section
+      class="admin-shell__content"
+      :class="{ 'is-edge-to-edge': edgeToEdge }"
+    >
+      <router-view />
+    </section>
+  </main>
 </template>
 
 <style scoped>
-.admin-layout__content {
-  overflow-x: hidden;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
-  background: linear-gradient(180deg, #eef4f7 0%, #edf3f7 100%);
+.admin-shell {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: #fafaf7;
+  color: #191918;
 }
-
-.admin-layout__body {
-  min-height: 100%;
-  background:
-    radial-gradient(circle at 10% 4%, rgba(15, 118, 110, 0.05), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+.admin-shell__content {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 28px 32px 56px;
 }
-
-@media (min-width: 761px) {
-  .admin-layout__content--trace {
-    height: 100dvh;
-    min-height: 0;
-    overflow-y: hidden;
+.admin-shell__content.is-edge-to-edge {
+  overflow: hidden;
+  padding: 0;
+}
+.admin-shell__content :deep(.trace-page) {
+  height: 100%;
+  min-height: 0;
+}
+@media (max-width: 800px) {
+  .admin-shell__content {
+    padding: 20px 16px 44px;
   }
-
-  .admin-layout__body--trace {
-    display: flex;
-    min-height: 0;
-    flex: 1;
-    flex-direction: column;
-  }
-
-  .admin-layout__body--trace :deep(.trace-page) {
-    min-height: 0;
-    flex: 1;
+  .admin-shell__content.is-edge-to-edge {
+    padding: 0;
   }
 }
 </style>

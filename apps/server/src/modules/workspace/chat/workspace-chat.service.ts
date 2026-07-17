@@ -94,23 +94,26 @@ export class WorkspaceChatService {
       }
     }
 
-    let reasoningStageStarted = false
+    let reasoningStageStarted = context.promptCapabilities.think
+    let hasReasoningContent = false
     let answerStageStarted = false
+
+    if (reasoningStageStarted) {
+      yield stageStarted(
+        VISIBLE_REASONING_STAGE_ID,
+        'llm_reasoning',
+        '分析问题与证据',
+        '正在整理可展示的推理摘要'
+      )
+    }
+
     for await (const event of answerStream.stream) {
       if (options.signal?.aborted) {
         return
       }
 
       if (event.type === 'thinking_delta') {
-        if (!reasoningStageStarted) {
-          reasoningStageStarted = true
-          yield stageStarted(
-            VISIBLE_REASONING_STAGE_ID,
-            'llm_reasoning',
-            '分析问题与证据',
-            '正在整理可展示的推理摘要'
-          )
-        }
+        hasReasoningContent = true
         appendReasoningDelta(reasoningSteps, event.delta)
         yield event
         continue
@@ -118,7 +121,10 @@ export class WorkspaceChatService {
 
       if (reasoningStageStarted) {
         reasoningStageStarted = false
-        yield stageCompleted(VISIBLE_REASONING_STAGE_ID, '已形成可展示推理摘要')
+        yield stageCompleted(
+          VISIBLE_REASONING_STAGE_ID,
+          hasReasoningContent ? '已形成可展示推理摘要' : '未返回可展示推理摘要'
+        )
       }
       if (!answerStageStarted) {
         answerStageStarted = true

@@ -213,6 +213,11 @@ export async function renderMessageMarkdown(content: string): Promise<string> {
   return markdown.render(content)
 }
 
+// 流式阶段只做同步 Markdown 转换，避免等待代码高亮时把逐字更新合并成一次完成态渲染。
+export function renderStreamingMarkdown(content: string): string {
+  return content.trim() ? markdown.render(content) : ''
+}
+
 function extractFenceLanguages(content: string): SupportedLanguage[] {
   const languages = new Set<SupportedLanguage>()
   let match: RegExpExecArray | null

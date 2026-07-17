@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { Injectable, Logger } from '@nestjs/common'
+import { KnowledgeConfigService } from '../config/knowledge-config.service'
 
 import {
   buildKnowledgeQueryAnalysisSystemPrompt,
@@ -22,6 +23,8 @@ export class KnowledgeQueryAnalysisService {
   private readonly logger = new Logger(KnowledgeQueryAnalysisService.name)
   private warnedMissingConfig = false
 
+  constructor(private readonly configService: KnowledgeConfigService) {}
+
   async analyze(
     input: KnowledgeQueryAnalysisInput,
     options: { temperature?: number } = {}
@@ -30,7 +33,8 @@ export class KnowledgeQueryAnalysisService {
       return null
     }
 
-    const client = this.createClient(options.temperature)
+    const provider = await this.configService.findProviderSettings()
+    const client = this.createClient(provider.runtimeConfig.llm, options.temperature)
     if (!client) {
       return null
     }
@@ -60,11 +64,14 @@ export class KnowledgeQueryAnalysisService {
   }
 
   // query analysis temperature 允许按运行时配置覆盖，因此这里不缓存单一 client。
-  private createClient(temperature?: number): ChatOpenAI | null {
+  private createClient(
+    provider: { baseUrl: string | null; model: string | null },
+    temperature?: number
+  ): ChatOpenAI | null {
     const apiKey = process.env.LLM_API_KEY
     const model =
       process.env.RETRIEVAL_QUERY_ANALYSIS_MODEL ??
-      process.env.LLM_MODEL
+      provider.model
 
     if (!apiKey || !model) {
       if (!this.warnedMissingConfig) {
@@ -82,7 +89,7 @@ export class KnowledgeQueryAnalysisService {
       model,
       temperature: resolveTemperature(temperature),
       configuration: {
-        baseURL: normalizeLlmBaseUrl(process.env.LLM_BASE_URL)
+        baseURL: normalizeLlmBaseUrl(provider.baseUrl ?? undefined)
       }
     })
   }

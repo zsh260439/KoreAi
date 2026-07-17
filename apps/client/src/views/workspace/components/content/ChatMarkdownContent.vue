@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
-import { renderMessageMarkdown } from '@/utils/chat-markdown'
+import { renderMessageMarkdown, renderStreamingMarkdown } from '@/utils/chat-markdown'
 
 const COPY_DEFAULT_LABEL = '\u590d\u5236'
 const COPY_SUCCESS_LABEL = '\u5df2\u590d\u5236'
@@ -58,6 +58,11 @@ const updateRenderedHtml = async (content: string) => {
   if (!content.trim()) {
     renderedHtml.value = ''
     resetCopiedButton()
+    return
+  }
+
+  if (props.showCursor) {
+    renderedHtml.value = renderStreamingMarkdown(content)
     return
   }
 
@@ -140,8 +145,8 @@ const handleToolbarAction = (event: MouseEvent) => {
 }
 
 watch(
-  () => props.content,
-  (content) => {
+  () => [props.content, props.showCursor] as const,
+  ([content]) => {
     void updateRenderedHtml(content)
   },
   { immediate: true }

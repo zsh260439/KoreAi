@@ -1,251 +1,287 @@
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
-import { RefreshCw, Save } from 'lucide-vue-next'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ElMessage } from "element-plus";
+import {
+  ChevronDown,
+  RefreshCw,
+  Save,
+  SlidersHorizontal,
+} from "lucide-vue-next";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 
-import { useKnowledgeBases } from '@/composables/knowledge/useKnowledgeBases'
-import { findGlobalRuntimeConfigAPI, updateGlobalRuntimeConfigAPI } from '@/servers/knowledge'
+import { useKnowledgeBases } from "@/composables/knowledge/useKnowledgeBases";
+import {
+  findGlobalRuntimeConfigAPI,
+  updateGlobalRuntimeConfigAPI,
+} from "@/servers/knowledge";
 import {
   DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
   KNOWLEDGE_RUNTIME_CONFIG_LIMITS,
   type KnowledgeBaseRuntimeConfig,
-  type KnowledgeGlobalRuntimeSettings
-} from 'share-type'
+  type KnowledgeGlobalRuntimeSettings,
+} from "share-type";
+
+withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false });
 
 type RuntimeScopeSummary = {
-  scopeLabel: string
-  targetLabel: string
-  documentCount: number
-  updatedAt: string
-  description: string
-}
+  scopeLabel: string;
+  targetLabel: string;
+  documentCount: number;
+  updatedAt: string;
+  description: string;
+};
 
 type RuntimeFieldRule = {
-  min: number
-  max: number
-  step?: number
-  hint: string
-}
-
-const ALL_KNOWLEDGE_BASES_VALUE = '__all__'
+  min: number;
+  max: number;
+  step?: number;
+  hint: string;
+};
 
 const runtimeFieldRules = {
   previewTopK: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.previewTopK,
-    hint: '控制管理台检索预览返回数量'
+    hint: "控制管理台检索预览返回数量",
   },
   workspaceTopK: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.workspaceTopK,
-    hint: '控制问答默认参与回答与展示的 chunk 数'
+    hint: "控制问答默认参与回答与展示的 chunk 数",
   },
   candidateMultiplier: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.candidateMultiplier,
-    hint: '按 TopK 放大候选集'
+    hint: "按 TopK 放大候选集",
   },
   minCandidateLimit: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.minCandidateLimit,
-    hint: '候选集最小数量'
+    hint: "候选集最小数量",
   },
   maxCandidateLimit: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.maxCandidateLimit,
-    hint: '候选集最大数量'
+    hint: "候选集最大数量",
   },
   bm25Weight: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.bm25Weight,
     step: 0.1,
-    hint: '控制 BM25 融合权重'
+    hint: "控制 BM25 融合权重",
   },
   vectorWeight: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.vectorWeight,
     step: 0.1,
-    hint: '控制向量召回融合权重'
+    hint: "控制向量召回融合权重",
   },
   queryAnalysisTemperature: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryAnalysisTemperature,
     step: 0.1,
-    hint: '控制 Query Analysis 温度'
+    hint: "控制 Query Analysis 温度",
   },
   answerTemperature: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.answerTemperature,
     step: 0.1,
-    hint: '控制回答生成温度'
-  }
-} satisfies Record<string, RuntimeFieldRule>
+    hint: "控制回答生成温度",
+  },
+} satisfies Record<string, RuntimeFieldRule>;
 
-const route = useRoute()
-const { knowledgeBases, loadKnowledgeBases, updateKnowledgeBase } = useKnowledgeBases()
-const globalRuntimeSettings = ref<KnowledgeGlobalRuntimeSettings | null>(null)
+const route = useRoute();
+const { knowledgeBases, loadKnowledgeBases, updateKnowledgeBase } =
+  useKnowledgeBases();
+const globalRuntimeSettings = ref<KnowledgeGlobalRuntimeSettings | null>(null);
 
 // 空字符串代表全库搜索，对应运行时不传 knowledgeBaseId。
-const selectedKnowledgeBaseId = ref('')
-const saving = ref(false)
+const selectedKnowledgeBaseId = ref("");
+const saving = ref(false);
+const configOpen = ref(true);
 
-const form = reactive(createRuntimeConfigState())
+const form = reactive(createRuntimeConfigState());
 
 const preferredKnowledgeBaseId = computed(() =>
-  typeof route.query.kbId === 'string' ? route.query.kbId : ''
-)
-const selectedKnowledgeBaseSelectValue = computed({
-  get: () => selectedKnowledgeBaseId.value || ALL_KNOWLEDGE_BASES_VALUE,
-  set: (value: string) => {
-    selectedKnowledgeBaseId.value = value === ALL_KNOWLEDGE_BASES_VALUE ? '' : value
-  }
-})
-const isGlobalScope = computed(() => !selectedKnowledgeBaseId.value)
+  typeof route.query.kbId === "string" ? route.query.kbId : "",
+);
+const isGlobalScope = computed(() => !selectedKnowledgeBaseId.value);
 const selectedKnowledgeBase = computed(
-  () => knowledgeBases.value.find((item) => item.id === selectedKnowledgeBaseId.value) ?? null
-)
-const canSave = computed(() => isGlobalScope.value || Boolean(selectedKnowledgeBase.value))
+  () =>
+    knowledgeBases.value.find(
+      (item) => item.id === selectedKnowledgeBaseId.value,
+    ) ?? null,
+);
+const canSave = computed(
+  () => isGlobalScope.value || Boolean(selectedKnowledgeBase.value),
+);
 const selectedSummary = computed<RuntimeScopeSummary | null>(() => {
   if (isGlobalScope.value) {
     return {
-      scopeLabel: '全库搜索',
-      targetLabel: '全部知识库',
-      documentCount: knowledgeBases.value.reduce((total, item) => total + item.documentCount, 0),
+      scopeLabel: "全局默认",
+      targetLabel: "全部知识库",
+      documentCount: knowledgeBases.value.reduce(
+        (total, item) => total + item.documentCount,
+        0,
+      ),
       updatedAt: formatDateTime(globalRuntimeSettings.value?.updatedAt),
-      description: '全库检索的默认参数。'
-    }
+      description: "全库检索的默认参数。",
+    };
   }
 
   if (!selectedKnowledgeBase.value) {
-    return null
+    return null;
   }
 
   return {
-    scopeLabel: '单知识库配置',
+    scopeLabel: "单库覆盖",
     targetLabel: selectedKnowledgeBase.value.name,
     documentCount: selectedKnowledgeBase.value.documentCount,
     updatedAt: formatDateTime(selectedKnowledgeBase.value.updatedAt),
-    description: selectedKnowledgeBase.value.description?.trim() || '当前知识库暂无描述。'
-  }
-})
+    description:
+      selectedKnowledgeBase.value.description?.trim() || "当前知识库暂无描述。",
+  };
+});
 
 const syncFormFromSelection = () => {
   if (isGlobalScope.value) {
-    applyRuntimeConfigToForm(globalRuntimeSettings.value?.runtimeConfig)
-    return
+    applyRuntimeConfigToForm(globalRuntimeSettings.value?.runtimeConfig);
+    return;
   }
 
-  applyRuntimeConfigToForm(selectedKnowledgeBase.value?.runtimeConfig)
-}
+  applyRuntimeConfigToForm(selectedKnowledgeBase.value?.runtimeConfig);
+};
 
 const handleReset = () => {
-  applyRuntimeConfigToForm(DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG)
-}
+  applyRuntimeConfigToForm(DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG);
+};
+
+const selectScope = (scope: "global" | "single") => {
+  selectedKnowledgeBaseId.value =
+    scope === "global"
+      ? ""
+      : selectedKnowledgeBaseId.value || knowledgeBases.value[0]?.id || "";
+};
 
 // 作用域切换只更新表单，不自动保存，避免刷新进入页面就隐式提交。
 const handleSave = async () => {
-  saving.value = true
+  if (saving.value || !canSave.value) return;
+
+  saving.value = true;
 
   try {
     if (isGlobalScope.value) {
       globalRuntimeSettings.value = (
         await updateGlobalRuntimeConfigAPI(buildRuntimeConfigPayload())
-      ).data
-      ElMessage.success('全库默认参数已保存')
+      ).data;
+      ElMessage.success("全库默认参数已保存");
     } else if (selectedKnowledgeBase.value) {
       await updateKnowledgeBase(selectedKnowledgeBaseId.value, {
-        runtimeConfig: buildRuntimeConfigPayload()
-      })
-      ElMessage.success('知识库参数已保存')
+        runtimeConfig: buildRuntimeConfigPayload(),
+      });
+      ElMessage.success("知识库参数已保存");
     }
 
-    syncFormFromSelection()
+    syncFormFromSelection();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '保存参数失败')
+    ElMessage.error(error instanceof Error ? error.message : "保存参数失败");
   } finally {
-    saving.value = false
+    saving.value = false;
   }
-}
+};
 
 watch(selectedKnowledgeBaseId, () => {
-  syncFormFromSelection()
-})
+  syncFormFromSelection();
+});
 
 onMounted(async () => {
   try {
-    const [knowledgeBaseResponse, globalRuntimeSettingsResponse] = await Promise.all([
-      knowledgeBases.value.length ? Promise.resolve() : loadKnowledgeBases(),
-      findGlobalRuntimeConfigAPI()
-    ])
+    const [knowledgeBaseResponse, globalRuntimeSettingsResponse] =
+      await Promise.all([
+        knowledgeBases.value.length ? Promise.resolve() : loadKnowledgeBases(),
+        findGlobalRuntimeConfigAPI(),
+      ]);
 
-    void knowledgeBaseResponse
-    globalRuntimeSettings.value = globalRuntimeSettingsResponse.data
+    void knowledgeBaseResponse;
+    globalRuntimeSettings.value = globalRuntimeSettingsResponse.data;
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '加载参数失败')
+    ElMessage.error(error instanceof Error ? error.message : "加载参数失败");
     globalRuntimeSettings.value = {
       runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
       createdAt: null,
-      updatedAt: null
-    }
+      updatedAt: null,
+    };
   }
 
   if (
     preferredKnowledgeBaseId.value &&
-    knowledgeBases.value.some((item) => item.id === preferredKnowledgeBaseId.value)
+    knowledgeBases.value.some(
+      (item) => item.id === preferredKnowledgeBaseId.value,
+    )
   ) {
-    selectedKnowledgeBaseId.value = preferredKnowledgeBaseId.value
+    selectedKnowledgeBaseId.value = preferredKnowledgeBaseId.value;
   } else {
-    selectedKnowledgeBaseId.value = ''
+    selectedKnowledgeBaseId.value = "";
   }
 
-  syncFormFromSelection()
-})
+  syncFormFromSelection();
+});
 
 function formatDateTime(value?: string | null): string {
   if (!value) {
-    return '-'
+    return "-";
   }
 
-  const parsed = new Date(value)
+  const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return value
+    return value;
   }
 
-  const year = parsed.getFullYear()
-  const month = String(parsed.getMonth() + 1).padStart(2, '0')
-  const day = String(parsed.getDate()).padStart(2, '0')
-  const hours = String(parsed.getHours()).padStart(2, '0')
-  const minutes = String(parsed.getMinutes()).padStart(2, '0')
-  const seconds = String(parsed.getSeconds()).padStart(2, '0')
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const hours = String(parsed.getHours()).padStart(2, "0");
+  const minutes = String(parsed.getMinutes()).padStart(2, "0");
+  const seconds = String(parsed.getSeconds()).padStart(2, "0");
 
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 function createRuntimeConfigState(): KnowledgeBaseRuntimeConfig {
   return {
     retrieval: {
       previewTopK: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.previewTopK,
-      workspaceTopK: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.workspaceTopK,
-      candidateMultiplier: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.candidateMultiplier,
-      minCandidateLimit: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.minCandidateLimit,
-      maxCandidateLimit: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.maxCandidateLimit,
+      workspaceTopK:
+        DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.workspaceTopK,
+      candidateMultiplier:
+        DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.candidateMultiplier,
+      minCandidateLimit:
+        DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.minCandidateLimit,
+      maxCandidateLimit:
+        DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.maxCandidateLimit,
       bm25Weight: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.bm25Weight,
-      vectorWeight: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.vectorWeight,
-      queryAnalysisEnabled: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.queryAnalysisEnabled,
-      queryAnalysisTemperature: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.queryAnalysisTemperature
+      vectorWeight:
+        DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.vectorWeight,
+      queryAnalysisEnabled:
+        DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.queryAnalysisEnabled,
+      queryAnalysisTemperature:
+        DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval
+          .queryAnalysisTemperature,
     },
     answer: {
-      temperature: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.answer.temperature
-    }
-  }
+      temperature: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.answer.temperature,
+    },
+  };
 }
 
 // 显式逐字段写回表单，避免 structuredClone 和响应式代理混用导致异常。
-function applyRuntimeConfigToForm(source?: KnowledgeBaseRuntimeConfig | null): void {
-  const resolved = source ?? DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
+function applyRuntimeConfigToForm(
+  source?: KnowledgeBaseRuntimeConfig | null,
+): void {
+  const resolved = source ?? DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG;
 
-  form.retrieval.previewTopK = resolved.retrieval.previewTopK
-  form.retrieval.workspaceTopK = resolved.retrieval.workspaceTopK
-  form.retrieval.candidateMultiplier = resolved.retrieval.candidateMultiplier
-  form.retrieval.minCandidateLimit = resolved.retrieval.minCandidateLimit
-  form.retrieval.maxCandidateLimit = resolved.retrieval.maxCandidateLimit
-  form.retrieval.bm25Weight = resolved.retrieval.bm25Weight
-  form.retrieval.vectorWeight = resolved.retrieval.vectorWeight
-  form.retrieval.queryAnalysisEnabled = resolved.retrieval.queryAnalysisEnabled
-  form.retrieval.queryAnalysisTemperature = resolved.retrieval.queryAnalysisTemperature
-  form.answer.temperature = resolved.answer.temperature
+  form.retrieval.previewTopK = resolved.retrieval.previewTopK;
+  form.retrieval.workspaceTopK = resolved.retrieval.workspaceTopK;
+  form.retrieval.candidateMultiplier = resolved.retrieval.candidateMultiplier;
+  form.retrieval.minCandidateLimit = resolved.retrieval.minCandidateLimit;
+  form.retrieval.maxCandidateLimit = resolved.retrieval.maxCandidateLimit;
+  form.retrieval.bm25Weight = resolved.retrieval.bm25Weight;
+  form.retrieval.vectorWeight = resolved.retrieval.vectorWeight;
+  form.retrieval.queryAnalysisEnabled = resolved.retrieval.queryAnalysisEnabled;
+  form.retrieval.queryAnalysisTemperature =
+    resolved.retrieval.queryAnalysisTemperature;
+  form.answer.temperature = resolved.answer.temperature;
 }
 
 function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
@@ -259,28 +295,220 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
       bm25Weight: form.retrieval.bm25Weight,
       vectorWeight: form.retrieval.vectorWeight,
       queryAnalysisEnabled: form.retrieval.queryAnalysisEnabled,
-      queryAnalysisTemperature: form.retrieval.queryAnalysisTemperature
+      queryAnalysisTemperature: form.retrieval.queryAnalysisTemperature,
     },
     answer: {
-      temperature: form.answer.temperature
-    }
-  }
+      temperature: form.answer.temperature,
+    },
+  };
 }
-
 </script>
 
 <template>
-  <section class="settings-stage">
+  <section class="settings-stage" :class="{ 'is-embedded': embedded }">
     <div class="settings-stage__canvas">
-      <header class="settings-stage__header">
+      <section v-if="embedded" class="runtime-settings">
+        <button
+          class="settings-heading"
+          type="button"
+          :aria-expanded="configOpen"
+          @click="configOpen = !configOpen"
+        >
+          <span>
+            <SlidersHorizontal class="h-4 w-4" />
+            <span>
+              <strong>{{
+                isGlobalScope ? "全库运行配置" : "单库覆盖配置"
+              }}</strong>
+              <small>{{
+                isGlobalScope
+                  ? "用于未指定知识库的搜索"
+                  : selectedKnowledgeBase?.name
+              }}</small>
+            </span>
+          </span>
+          <ChevronDown class="h-4 w-4" :class="{ 'is-open': configOpen }" />
+        </button>
+
+        <Transition name="disclosure">
+          <div v-if="configOpen" class="runtime-body">
+            <section class="runtime-scope">
+              <header>
+                <h3>作用范围</h3>
+                <span>保存到全局，或覆盖一个知识库</span>
+              </header>
+              <div
+                class="runtime-scope__options"
+                role="group"
+                aria-label="参数作用范围"
+              >
+                <button
+                  type="button"
+                  :class="{ 'is-active': isGlobalScope }"
+                  :aria-pressed="isGlobalScope"
+                  @click="selectScope('global')"
+                >
+                  全局默认
+                </button>
+                <button
+                  type="button"
+                  :class="{ 'is-active': !isGlobalScope }"
+                  :aria-pressed="!isGlobalScope"
+                  :disabled="!knowledgeBases.length"
+                  @click="selectScope('single')"
+                >
+                  单库覆盖
+                </button>
+              </div>
+              <el-select
+                v-if="!isGlobalScope"
+                v-model="selectedKnowledgeBaseId"
+                class="runtime-scope__select"
+                popper-class="knowledge-scope-select-popper"
+                aria-label="选择覆盖知识库"
+              >
+                <el-option
+                  v-for="item in knowledgeBases"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
+              </el-select>
+            </section>
+
+            <section class="runtime-group">
+              <h3>召回范围</h3>
+              <label>
+                <span>回答片段数<small>workspaceTopK</small></span>
+                <input
+                  v-model.number="form.retrieval.workspaceTopK"
+                  type="number"
+                  :min="runtimeFieldRules.workspaceTopK.min"
+                  :max="runtimeFieldRules.workspaceTopK.max"
+                />
+              </label>
+              <label>
+                <span>预览片段数<small>previewTopK</small></span>
+                <input
+                  v-model.number="form.retrieval.previewTopK"
+                  type="number"
+                  :min="runtimeFieldRules.previewTopK.min"
+                  :max="runtimeFieldRules.previewTopK.max"
+                />
+              </label>
+              <label>
+                <span>候选倍数<small>candidateMultiplier</small></span>
+                <input
+                  v-model.number="form.retrieval.candidateMultiplier"
+                  type="number"
+                  :min="runtimeFieldRules.candidateMultiplier.min"
+                  :max="runtimeFieldRules.candidateMultiplier.max"
+                />
+              </label>
+              <label>
+                <span>候选下限<small>minCandidateLimit</small></span>
+                <input
+                  v-model.number="form.retrieval.minCandidateLimit"
+                  type="number"
+                  :min="runtimeFieldRules.minCandidateLimit.min"
+                  :max="runtimeFieldRules.minCandidateLimit.max"
+                />
+              </label>
+              <label>
+                <span>候选上限<small>maxCandidateLimit</small></span>
+                <input
+                  v-model.number="form.retrieval.maxCandidateLimit"
+                  type="number"
+                  :min="runtimeFieldRules.maxCandidateLimit.min"
+                  :max="runtimeFieldRules.maxCandidateLimit.max"
+                />
+              </label>
+            </section>
+
+            <section class="runtime-group">
+              <h3>排序与生成</h3>
+              <label>
+                <span>查询分析<small>queryAnalysisEnabled</small></span>
+                <el-switch v-model="form.retrieval.queryAnalysisEnabled" />
+              </label>
+              <label>
+                <span>BM25 权重<small>bm25Weight</small></span>
+                <input
+                  v-model.number="form.retrieval.bm25Weight"
+                  type="number"
+                  :min="runtimeFieldRules.bm25Weight.min"
+                  :max="runtimeFieldRules.bm25Weight.max"
+                  :step="runtimeFieldRules.bm25Weight.step"
+                />
+              </label>
+              <label>
+                <span>向量权重<small>vectorWeight</small></span>
+                <input
+                  v-model.number="form.retrieval.vectorWeight"
+                  type="number"
+                  :min="runtimeFieldRules.vectorWeight.min"
+                  :max="runtimeFieldRules.vectorWeight.max"
+                  :step="runtimeFieldRules.vectorWeight.step"
+                />
+              </label>
+              <label>
+                <span>分析温度<small>queryAnalysisTemperature</small></span>
+                <input
+                  v-model.number="form.retrieval.queryAnalysisTemperature"
+                  type="number"
+                  :min="runtimeFieldRules.queryAnalysisTemperature.min"
+                  :max="runtimeFieldRules.queryAnalysisTemperature.max"
+                  :step="runtimeFieldRules.queryAnalysisTemperature.step"
+                />
+              </label>
+              <label>
+                <span>回答温度<small>temperature</small></span>
+                <input
+                  v-model.number="form.answer.temperature"
+                  type="number"
+                  :min="runtimeFieldRules.answerTemperature.min"
+                  :max="runtimeFieldRules.answerTemperature.max"
+                  :step="runtimeFieldRules.answerTemperature.step"
+                />
+              </label>
+            </section>
+
+            <footer class="runtime-footer">
+              <span
+                >{{ selectedSummary?.targetLabel }} ·
+                {{ selectedSummary?.updatedAt }}</span
+              >
+              <button type="button" class="runtime-reset" @click="handleReset">
+                <RefreshCw class="h-4 w-4" />恢复默认
+              </button>
+              <button
+                type="button"
+                class="runtime-save"
+                :disabled="saving || !canSave"
+                @click="handleSave"
+              >
+                <Save class="h-4 w-4" />{{ saving ? "保存中" : "保存配置" }}
+              </button>
+            </footer>
+          </div>
+        </Transition>
+      </section>
+
+      <header v-if="!embedded" class="settings-stage__header">
         <div>
           <p class="settings-stage__eyebrow">KNOWLEDGE RUNTIME</p>
           <h1 class="settings-stage__title">检索与问答参数</h1>
-          <p class="settings-stage__subtitle">调整检索范围、候选数量与回答参数。</p>
+          <p class="settings-stage__subtitle">
+            调整检索范围、候选数量与回答参数。
+          </p>
         </div>
 
         <div class="settings-stage__actions">
-          <button type="button" class="settings-button settings-button--ghost" @click="handleReset">
+          <button
+            type="button"
+            class="settings-button settings-button--ghost"
+            @click="handleReset"
+          >
             <RefreshCw class="h-4 w-4" />
             恢复默认值
           </button>
@@ -291,29 +519,57 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
             @click="handleSave"
           >
             <Save class="h-4 w-4" />
-            {{ saving ? '保存中' : '保存参数' }}
+            {{ saving ? "保存中" : "保存参数" }}
           </button>
         </div>
       </header>
 
-      <div class="settings-shell">
+      <div v-if="!embedded" class="settings-shell">
         <section class="settings-card">
           <div class="settings-card__header">
             <div>
               <h2>作用范围</h2>
-              <p>这组参数只作用于当前下拉框选中的目标。</p>
+              <p>先确定参数保存到全局，还是只覆盖一个知识库。</p>
             </div>
           </div>
 
-          <div class="settings-field settings-field--scope">
-            <label for="knowledge-base-select">选择知识库</label>
+          <div
+            class="settings-scope-switch"
+            role="group"
+            aria-label="参数作用范围"
+          >
+            <button
+              type="button"
+              :class="{ 'is-active': isGlobalScope }"
+              :aria-pressed="isGlobalScope"
+              @click="selectScope('global')"
+            >
+              <strong>全局默认</strong>
+              <span>全库检索时使用</span>
+            </button>
+            <button
+              type="button"
+              :class="{ 'is-active': !isGlobalScope }"
+              :aria-pressed="!isGlobalScope"
+              :disabled="!knowledgeBases.length"
+              @click="selectScope('single')"
+            >
+              <strong>单库覆盖</strong>
+              <span>只影响选中的知识库</span>
+            </button>
+          </div>
+
+          <div
+            v-if="!isGlobalScope"
+            class="settings-field settings-field--scope"
+          >
+            <label for="knowledge-base-select">覆盖目标</label>
             <el-select
               id="knowledge-base-select"
-              v-model="selectedKnowledgeBaseSelectValue"
+              v-model="selectedKnowledgeBaseId"
               class="settings-select settings-select--compact"
               popper-class="knowledge-scope-select-popper"
             >
-              <el-option label="全库搜索（全部知识库）" :value="ALL_KNOWLEDGE_BASES_VALUE" />
               <el-option
                 v-for="item in knowledgeBases"
                 :key="item.id"
@@ -325,7 +581,7 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
 
           <div v-if="selectedSummary" class="settings-kb-summary">
             <div class="settings-kb-summary__item">
-              <small>当前作用域</small>
+              <small>保存位置</small>
               <strong>{{ selectedSummary.scopeLabel }}</strong>
             </div>
             <div class="settings-kb-summary__item">
@@ -340,10 +596,9 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
               <small>最近更新</small>
               <strong>{{ selectedSummary.updatedAt }}</strong>
             </div>
-            <div class="settings-kb-summary__description">
-              <small>说明</small>
-              <p>{{ selectedSummary.description }}</p>
-            </div>
+            <p class="settings-kb-summary__description">
+              {{ selectedSummary.description }}
+            </p>
           </div>
         </section>
 
@@ -351,15 +606,29 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
           <div class="settings-card__header">
             <div>
               <h2>生效说明</h2>
-              <p>这组参数会直接影响候选集规模、融合排序、Query Analysis 和回答生成行为。</p>
+              <p>
+                这组参数会直接影响候选集规模、融合排序、Query Analysis
+                和回答生成行为。
+              </p>
             </div>
           </div>
 
           <div class="settings-notice-list">
-            <p>1. BM25 与向量权重在这里显式配置，不再由 LLM rewrite 动态改写融合权重。</p>
-            <p>2. Query Analysis 是否执行，仍然会尊重前端当前是否开启 rewrite 开关。</p>
-            <p>3. `workspaceTopK` 会影响聊天页面默认参与回答和展示的 chunk 数量。</p>
-            <p>4. 全库搜索现在有独立的后台配置；单库配置只有在明确选择单库时才会覆盖它。</p>
+            <p>
+              1. BM25 与向量权重在这里显式配置，不再由 LLM rewrite
+              动态改写融合权重。
+            </p>
+            <p>
+              2. Query Analysis 是否执行，仍然会尊重前端当前是否开启 rewrite
+              开关。
+            </p>
+            <p>
+              3. `workspaceTopK` 会影响聊天页面默认参与回答和展示的 chunk 数量。
+            </p>
+            <p>
+              4.
+              全库搜索现在有独立的后台配置；单库配置只有在明确选择单库时才会覆盖它。
+            </p>
           </div>
         </section>
 
@@ -367,7 +636,10 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
           <div class="settings-card__header">
             <div>
               <h2>召回参数</h2>
-              <p>控制 preview、workspace、候选集规模、融合权重以及 Query Analysis 行为。</p>
+              <p>
+                控制 preview、workspace、候选集规模、融合权重以及 Query Analysis
+                行为。
+              </p>
             </div>
           </div>
 
@@ -468,7 +740,9 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
             <div class="settings-field">
               <div class="settings-field__heading">
                 <label>Query Analysis Temperature</label>
-                <span>{{ runtimeFieldRules.queryAnalysisTemperature.hint }}</span>
+                <span>{{
+                  runtimeFieldRules.queryAnalysisTemperature.hint
+                }}</span>
               </div>
               <input
                 v-model.number="form.retrieval.queryAnalysisTemperature"
@@ -513,6 +787,251 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
 <style scoped>
 .settings-stage {
   padding: 8px 0 28px;
+}
+.settings-stage.is-embedded {
+  padding: 0;
+}
+.is-embedded .settings-stage__canvas {
+  max-width: none;
+}
+.is-embedded .settings-shell {
+  gap: 0;
+  border-top: 1px solid #e8e8e2;
+}
+.is-embedded .settings-card {
+  border: 0;
+  border-bottom: 1px solid #e8e8e2;
+  border-radius: 0;
+  background: transparent;
+  padding: 22px 4px;
+  box-shadow: none;
+}
+.is-embedded .settings-card--notice {
+  display: none;
+}
+.is-embedded .settings-grid {
+  gap: 12px 24px;
+}
+.is-embedded .settings-field input {
+  border-color: #d8d8d1;
+  border-radius: 7px;
+}
+.is-embedded .settings-button {
+  border-radius: 8px;
+}
+
+.runtime-settings {
+  border-top: 1px solid #d8d8d1;
+  border-bottom: 1px solid #d8d8d1;
+}
+
+.settings-heading {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
+  padding: 20px 4px;
+  color: #191918;
+  cursor: pointer;
+}
+
+.settings-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-heading > span > span {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.settings-heading strong {
+  font:
+    600 17px ui-serif,
+    Georgia,
+    "Songti SC",
+    serif;
+}
+
+.settings-heading small {
+  color: #777770;
+  font-size: 11px;
+}
+
+.settings-heading > svg {
+  transition: transform 200ms ease;
+}
+
+.settings-heading > svg.is-open {
+  transform: rotate(180deg);
+}
+
+.runtime-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px 38px;
+  padding: 10px 4px 25px;
+}
+
+.runtime-scope {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(220px, 300px);
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e8e8e2;
+}
+
+.runtime-scope header {
+  display: grid;
+  gap: 4px;
+}
+
+.runtime-scope h3,
+.runtime-group h3 {
+  margin: 0;
+  color: #191918;
+  font-size: 13px;
+}
+
+.runtime-scope header span {
+  color: #777770;
+  font-size: 11px;
+}
+
+.runtime-scope__options {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid #e8e8e2;
+  border-radius: 8px;
+}
+
+.runtime-scope__options button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 7px 10px;
+  color: #777770;
+  font-size: 12px;
+}
+
+.runtime-scope__options button.is-active {
+  background: #f0efff;
+  color: #4d4dd1;
+}
+
+.runtime-scope__options button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.runtime-scope__select {
+  width: 100%;
+}
+
+.runtime-scope__select :deep(.el-select__wrapper) {
+  min-height: 34px;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #e8e8e2 inset;
+}
+
+.runtime-group label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 0;
+  border-top: 1px solid #e8e8e2;
+}
+
+.runtime-group label > span {
+  display: grid;
+  gap: 3px;
+  color: #44443f;
+  font-size: 12px;
+}
+
+.runtime-group small {
+  color: #777770;
+  font:
+    10px ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+
+.runtime-group input {
+  width: 80px;
+  border: 1px solid #e8e8e2;
+  border-radius: 6px;
+  background: #fff;
+  padding: 7px 8px;
+  color: #191918;
+  text-align: right;
+  outline: 0;
+}
+
+.runtime-footer {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 7px;
+  border-top: 1px solid #e8e8e2;
+}
+
+.runtime-footer > span {
+  margin-right: auto;
+  color: #777770;
+  font-size: 11px;
+}
+
+.runtime-footer button {
+  display: inline-flex;
+  height: 34px;
+  align-items: center;
+  gap: 7px;
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.runtime-reset {
+  border: 1px solid #d8d8d1;
+  background: #fff;
+  color: #55554f;
+}
+
+.runtime-save {
+  border: 1px solid #5b5bf7;
+  background: #5b5bf7;
+  color: #fff;
+}
+
+.runtime-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.disclosure-enter-active,
+.disclosure-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.disclosure-enter-from,
+.disclosure-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .settings-stage__canvas {
@@ -628,6 +1147,60 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   max-width: 300px;
 }
 
+.settings-scope-switch {
+  display: flex;
+  width: min(100%, 560px);
+  gap: 8px;
+  margin-top: 18px;
+  padding: 4px;
+  border: 1px solid #d8d8d1;
+  border-radius: 10px;
+  background: #f5f5f1;
+}
+
+.settings-scope-switch button {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  padding: 10px 12px;
+  color: #6b7280;
+  text-align: left;
+  transition:
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.settings-scope-switch button:hover:not(:disabled) {
+  color: #334155;
+}
+
+.settings-scope-switch button.is-active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 8%);
+}
+
+.settings-scope-switch button:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 1px;
+}
+
+.settings-scope-switch button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.settings-scope-switch strong {
+  font-size: 13px;
+}
+
+.settings-scope-switch span {
+  font-size: 11px;
+}
+
 .settings-field__heading {
   display: grid;
   gap: 4px;
@@ -674,7 +1247,9 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
 
 .settings-select--compact :deep(.el-select__wrapper.is-hovering),
 .settings-select--compact :deep(.el-select__wrapper.is-focused) {
-  box-shadow: 0 0 0 1px #0f766e inset, 0 0 0 3px rgba(15, 118, 110, 0.1);
+  box-shadow:
+    0 0 0 1px #0f766e inset,
+    0 0 0 3px rgba(15, 118, 110, 0.1);
 }
 
 .settings-select--compact :deep(.el-select__selected-item) {
@@ -727,11 +1302,17 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   gap: 6px;
 }
 
-.settings-kb-summary small,
-.settings-kb-summary__description small {
+.settings-kb-summary small {
   font-size: 12px;
   font-weight: 700;
   color: #64748b;
+}
+
+.settings-kb-summary__description {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
 }
 
 .settings-kb-summary strong {
@@ -739,18 +1320,13 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   color: #0f172a;
 }
 
-.settings-kb-summary__description {
-  grid-column: 1 / -1;
-}
-
-.settings-kb-summary__description p {
-  color: #334155;
-  line-height: 1.7;
-}
-
 .settings-card--notice {
   border-color: #bfe7de;
-  background: linear-gradient(180deg, rgba(240, 253, 250, 0.95), rgba(255, 255, 255, 0.92));
+  background: linear-gradient(
+    180deg,
+    rgba(240, 253, 250, 0.95),
+    rgba(255, 255, 255, 0.92)
+  );
 }
 
 .settings-notice-list {
@@ -780,6 +1356,36 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   .settings-grid--compact,
   .settings-kb-summary {
     grid-template-columns: 1fr;
+  }
+
+  .settings-scope-switch {
+    flex-direction: column;
+  }
+
+  .runtime-body,
+  .runtime-scope {
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-scope__options {
+    width: fit-content;
+  }
+
+  .runtime-footer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .runtime-footer > span {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-heading > svg,
+  .disclosure-enter-active,
+  .disclosure-leave-active {
+    transition: none;
   }
 }
 </style>
