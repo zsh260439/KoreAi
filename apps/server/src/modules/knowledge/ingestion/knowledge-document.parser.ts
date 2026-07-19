@@ -345,7 +345,7 @@ export async function parsePdfDocument(
 
     for (const block of ocrResult.blocks) {
       if (typeof block.pageNumber === 'number') {
-        pageBlocks.set(block.pageNumber, [block])
+        pageBlocks.set(block.pageNumber, [...(pageBlocks.get(block.pageNumber) ?? []), block])
       }
     }
 
@@ -1110,19 +1110,13 @@ async function parsePdfPagesWithOcr(
       continue
     }
 
-    blocks.push({
-      blockType: 'ocr_page',
-      content: result.text,
-      pageNumber: page.pageNumber,
-      sectionPath: [`第 ${page.pageNumber} 页`],
-      metadata: {
-        ocr: true,
-        imageSource: 'pdf_page_screenshot',
-        width: page.width,
-        height: page.height,
-        scale: page.scale
-      }
-    })
+    blocks.push(...splitOcrPageToBlocks(result.text, page.pageNumber, {
+      ocr: true,
+      imageSource: 'pdf_page_screenshot',
+      width: page.width,
+      height: page.height,
+      scale: page.scale
+    }))
   }
 
   const failedResult = results.find((result) => result.status !== 'success')
@@ -1135,6 +1129,36 @@ async function parsePdfPagesWithOcr(
       message: failedResult?.message
     }
   }
+}
+
+function splitOcrPageToBlocks(
+  content: string,
+  pageNumber: number,
+  metadata: Record<string, unknown>
+): StructuredBlock[] {
+  const pagePath = `第 ${pageNumber} 页`
+  const paragraphs = content.split(/\n\s*\n/).map((item) => item.trim()).filter(Boolean)
+  if (paragraphs.length < 2) {
+    return [{ blockType: 'ocr_page', content: content.trim(), pageNumber, sectionPath: [pagePath], metadata }]
+  }
+
+  let heading = ''
+  return paragraphs.map((paragraph) => {
+    const title = resolvePlainTextTitle(paragraph)
+    if (title) {
+      heading = title
+    }
+
+    return {
+      blockType: title ? 'heading' : 'ocr_paragraph',
+      content: paragraph,
+      title: title ?? undefined,
+      level: title ? 2 : undefined,
+      pageNumber,
+      sectionPath: heading ? [pagePath, heading] : [pagePath],
+      metadata
+    }
+  })
 }
 
 async function appendDocxImageOcrBlocks(

@@ -1,10 +1,23 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  StreamableFile,
+  UploadedFile,
+  UseInterceptors
+} from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
+import { createReadStream } from 'node:fs'
 import type {
   ApiResponse,
   KnowledgeBase,
   KnowledgeChunk,
   KnowledgeDocument,
+  KnowledgeDocumentSyncEvent,
   KnowledgeGlobalRuntimeSettings,
   KnowledgeProviderSettings,
   KnowledgeSearchResponse
@@ -76,6 +89,11 @@ export class KnowledgeController {
     return successResponse(data, '更新成功')
   }
 
+  @Get('document-sync-events')
+  findDocumentSyncEvents(): ApiResponse<KnowledgeDocumentSyncEvent[]> {
+    return successResponse(this.documentService.findDocumentSyncEvents())
+  }
+
   @Post('bases')
   async createKnowledgeBase(@Body() dto: CreateKnowledgeBaseDto): Promise<ApiResponse<KnowledgeBase>> {
     const data = await this.baseService.createKnowledgeBase(dto)
@@ -101,6 +119,19 @@ export class KnowledgeController {
   async findKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.findKnowledgeDocument(docId)
     return successResponse(data, '查询成功')
+  }
+
+  @Get('documents/:docId/file')
+  async findKnowledgeDocumentFile(@Param('docId') docId: string): Promise<StreamableFile> {
+    const file = await this.documentService.findKnowledgeDocumentFile(docId)
+    const fileName = file.name.endsWith(`.${file.fileType}`)
+      ? file.name
+      : `${file.name}.${file.fileType}`
+
+    return new StreamableFile(createReadStream(file.path), {
+      type: getDocumentMimeType(file.fileType),
+      disposition: `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`
+    })
   }
 
   @Post('bases/:kbId/documents')
@@ -136,9 +167,9 @@ export class KnowledgeController {
   }
 
   @Post('documents/:docId/chunks/rebuild')
-  async rebuildDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
+  async rebuildDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.rebuildDocumentChunks(docId)
-    return successResponse(data, '重新切分成功')
+    return successResponse(data, '已加入处理队列')
   }
 
   @Delete('documents/:docId')
@@ -161,4 +192,13 @@ export class KnowledgeController {
     const data = await this.documentService.updateKnowledgeDocument(docId, dto)
     return successResponse(data, '更新成功')
   }
+}
+
+function getDocumentMimeType(fileType: string): string {
+  return {
+    pdf: 'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    md: 'text/markdown; charset=utf-8',
+    txt: 'text/plain; charset=utf-8'
+  }[fileType] ?? 'application/octet-stream'
 }

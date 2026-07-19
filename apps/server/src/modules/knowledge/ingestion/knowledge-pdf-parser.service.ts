@@ -62,7 +62,7 @@ export class KnowledgePdfParserService {
 
     if (mode === 'mineru') {
       try {
-        return withParser(await this.parseWithMineru(buffer), 'mineru', ['forced_mineru'])
+        return withParser(await this.parseWithMineru(buffer, options), 'mineru', ['forced_mineru'])
       } catch (error) {
         throw new UnprocessableEntityException(getMineruErrorMessage(error))
       }
@@ -76,7 +76,7 @@ export class KnowledgePdfParserService {
     }
 
     try {
-      return withParser(await this.parseWithMineru(buffer), 'mineru', decision.reasons)
+      return withParser(await this.parseWithMineru(buffer, options), 'mineru', decision.reasons)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown error'
       console.warn(`[KnowledgePDF] MinerU failed, using native parser: ${message}`)
@@ -88,13 +88,18 @@ export class KnowledgePdfParserService {
     }
   }
 
-  private async parseWithMineru(buffer: Buffer): Promise<ParsedDocument> {
+  private async parseWithMineru(
+    buffer: Buffer,
+    options: ParseKnowledgeDocumentOptions
+  ): Promise<ParsedDocument> {
     const archive = this.getMineruEndpoint()
       ? await this.requestLocalMineru(buffer)
       : await this.requestMineruCloud(buffer)
     const zip = await JSZip.loadAsync(archive)
     await this.saveMineruDebugFiles(zip, buffer)
-    return this.parseMineruArchive(zip)
+    const parsed = await this.parseMineruArchive(zip)
+    const native = await parsePdfDocument(buffer, { ...options, ocrImage: undefined })
+    return mergeMissingNativePages(parsed, native)
   }
 
   private async requestLocalMineru(buffer: Buffer): Promise<Uint8Array> {
@@ -284,6 +289,30 @@ export class KnowledgePdfParserService {
   private getMineruTimeoutMs(): number {
     const timeout = Number(this.configService.get<string>('MINERU_TIMEOUT_MS'))
     return Number.isFinite(timeout) && timeout > 0 ? Math.floor(timeout) : DEFAULT_MINERU_TIMEOUT_MS
+  }
+}
+
+export function mergeMissingNativePages(
+  mineru: ParsedDocument,
+  native: ParsedDocument
+): ParsedDocument {
+  const lastMineruPage = Math.max(0, ...mineru.blocks.map((block) => block.pageNumber ?? 0))
+  const missingBlocks = native.blocks.filter((block) => (block.pageNumber ?? 0) > lastMineruPage)
+  if (missingBlocks.length === 0) {
+    return mineru
+  }
+
+  let offset = mineru.rawContent.length + 2
+  const rebasedBlocks = missingBlocks.map((block) => {
+    const startOffset = offset
+    offset += block.content.length + 2
+    return { ...block, startOffset, endOffset: startOffset + block.content.length }
+  })
+
+  return {
+    ...mineru,
+    blocks: [...mineru.blocks, ...rebasedBlocks],
+    rawContent: [mineru.rawContent, ...rebasedBlocks.map((block) => block.content)].join('\n\n')
   }
 }
 

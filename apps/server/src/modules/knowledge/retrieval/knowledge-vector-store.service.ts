@@ -1,10 +1,8 @@
 import { Document } from '@langchain/core/documents'
-import { PGVectorStore } from '@langchain/pgvector'
 import {
   Injectable,
   InternalServerErrorException,
   Logger,
-  OnModuleDestroy,
   OnModuleInit
 } from '@nestjs/common'
 import { DataSource } from 'typeorm'
@@ -13,9 +11,8 @@ import { EmbeddingService } from './embedding.service'
 const VECTOR_INDEX_NAME = 'knowledge_chunks_embedding_hnsw_idx'
 
 @Injectable()
-export class KnowledgeVectorStoreService implements OnModuleInit, OnModuleDestroy {
+export class KnowledgeVectorStoreService implements OnModuleInit {
   private readonly logger = new Logger(KnowledgeVectorStoreService.name)
-  private storePromise: Promise<PGVectorStore> | null = null
 
   constructor(
     private readonly embeddingService: EmbeddingService,
@@ -26,28 +23,39 @@ export class KnowledgeVectorStoreService implements OnModuleInit, OnModuleDestro
     await this.assertInfrastructureReady()
   }
 
-  // 这里保持现有调用方式不变，只补基础设施校验和索引保障。
   async similaritySearchWithScore(
     query: string,
     limit: number,
     knowledgeBaseId?: string
   ): Promise<[Document, number][]> {
-    const store = await this.getStore()
+    const embedding = await this.embeddingService.embedQuery(query)
+    const rows = (await this.dataSource.query(
+      `
+        SELECT
+          chunk.id,
+          chunk.content,
+          chunk.metadata,
+          1 - (chunk.embedding <=> $1::vector) AS score
+        FROM "knowledge_chunks" AS chunk
+        INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
+        WHERE chunk.embedding IS NOT NULL
+          AND document.status = 'indexed'
+          AND ($2::uuid IS NULL OR chunk."knowledgeBaseId" = $2::uuid)
+        ORDER BY chunk.embedding <=> $1::vector
+        LIMIT $3
+      `,
+      [`[${embedding.join(',')}]`, knowledgeBaseId ?? null, limit]
+    )) as Array<{
+      id: string
+      content: string
+      metadata: Record<string, unknown> | null
+      score: number | string
+    }>
 
-    if (!knowledgeBaseId) {
-      return store.similaritySearchWithScore(query, limit)
-    }
-
-    return store.similaritySearchWithScore(query, limit, { knowledgeBaseId })
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (!this.storePromise) {
-      return
-    }
-
-    const store = await this.storePromise
-    await store.end()
+    return rows.map((row) => [
+      new Document({ id: row.id, pageContent: row.content, metadata: row.metadata ?? {} }),
+      Number(row.score)
+    ])
   }
 
   private async assertInfrastructureReady(): Promise<void> {
@@ -69,15 +77,10 @@ export class KnowledgeVectorStoreService implements OnModuleInit, OnModuleDestro
         AND table_name = 'knowledge_chunks'
         AND column_name = 'embedding'
       LIMIT 1
-    `)) as Array<{
-      column_name: string
-      udt_name: string
-    }>
+    `)) as Array<{ column_name: string; udt_name: string }>
 
     if (!embeddingColumn.length || embeddingColumn[0].udt_name !== 'vector') {
-      throw new InternalServerErrorException(
-        'knowledge_chunks.embedding vector column is missing'
-      )
+      throw new InternalServerErrorException('knowledge_chunks.embedding vector column is missing')
     }
 
     const indexes = (await this.dataSource.query(
@@ -90,43 +93,12 @@ export class KnowledgeVectorStoreService implements OnModuleInit, OnModuleDestro
         LIMIT 1
       `,
       [VECTOR_INDEX_NAME]
-    )) as Array<{
-      indexname: string
-      indexdef: string
-    }>
+    )) as Array<{ indexname: string; indexdef: string }>
 
-    if (!indexes.length) {
-      throw new InternalServerErrorException(`${VECTOR_INDEX_NAME} is not installed`)
-    }
-
-    if (!/using\s+hnsw/i.test(indexes[0].indexdef ?? '')) {
-      throw new InternalServerErrorException(
-        `${VECTOR_INDEX_NAME} exists but is not an HNSW index`
-      )
+    if (!indexes.length || !/using\s+hnsw/i.test(indexes[0].indexdef ?? '')) {
+      throw new InternalServerErrorException(`${VECTOR_INDEX_NAME} is not a valid HNSW index`)
     }
 
     this.logger.log('Vector search infrastructure is ready')
-  }
-
-  private getStore(): Promise<PGVectorStore> {
-    if (!this.storePromise) {
-      this.storePromise = PGVectorStore.initialize(this.embeddingService.getClient(), {
-        postgresConnectionOptions: {
-          connectionString: process.env.DATABASE_URL
-        },
-        tableName: 'knowledge_chunks',
-        columns: {
-          idColumnName: 'id',
-          vectorColumnName: 'embedding',
-          contentColumnName: 'content',
-          metadataColumnName: 'metadata'
-        },
-        distanceStrategy: 'cosine',
-        // 这里必须和 HNSW 索引的 operator class 保持一致。
-        scoreNormalization: 'similarity'
-      })
-    }
-
-    return this.storePromise
   }
 }

@@ -1,8 +1,17 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { BullModule } from '@nestjs/bullmq'
 import { KnowledgeQaService } from './answer/knowledge-qa.service'
 import { KnowledgeConfigService } from './config/knowledge-config.service'
-import { KnowledgeDocumentService } from './ingestion/knowledge-document.service'
+import {
+  KnowledgeDocumentService,
+  KNOWLEDGE_DOCUMENT_CLEANUP_QUEUE,
+  KNOWLEDGE_DOCUMENT_REBUILD_QUEUE
+} from './ingestion/knowledge-document.service'
+import {
+  KnowledgeDocumentRebuildProcessor
+} from './ingestion/knowledge-document-rebuild.processor'
+import { KnowledgeDocumentCleanupProcessor } from './ingestion/knowledge-document-cleanup.processor'
 import { KnowledgeFileService } from './ingestion/knowledge-file.service'
 import { KnowledgeOcrService } from './ingestion/knowledge-ocr.service'
 import { KnowledgePdfParserService } from './ingestion/knowledge-pdf-parser.service'
@@ -22,6 +31,23 @@ import { KnowledgeVectorStoreService } from './retrieval/knowledge-vector-store.
 
 @Module({
   imports: [
+    BullModule.registerQueue({
+      name: KNOWLEDGE_DOCUMENT_CLEANUP_QUEUE,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: true
+      }
+    }),
+    BullModule.registerQueue({
+      name: KNOWLEDGE_DOCUMENT_REBUILD_QUEUE,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: true,
+        removeOnFail: true
+      }
+    }),
     TypeOrmModule.forFeature([
       KnowledgeBaseEntity,
       KnowledgeDocumentEntity,
@@ -34,6 +60,8 @@ import { KnowledgeVectorStoreService } from './retrieval/knowledge-vector-store.
     KnowledgeBaseService,
     KnowledgeConfigService,
     KnowledgeDocumentService,
+    KnowledgeDocumentRebuildProcessor,
+    KnowledgeDocumentCleanupProcessor,
     KnowledgeQueryService,
     KnowledgeFileService,
     KnowledgeBm25Service,

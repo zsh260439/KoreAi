@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { ChevronLeft, RefreshCw } from 'lucide-vue-next'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { ChevronLeft, Download, RefreshCw } from 'lucide-vue-next'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import VueOfficeDocx from '@vue-office/docx/lib/v3/vue-office-docx.mjs'
+import '@vue-office/docx/lib/v3/index.css'
 
 import { useKnowledgeChunks } from '@/composables/knowledge/useKnowledgeChunks'
 import { useKnowledgeDocuments } from '@/composables/knowledge/useKnowledgeDocuments'
+import { getKnowledgeDocumentFileUrl } from '@/servers/knowledge'
 import type { KnowledgeChunk, KnowledgeChunkBlock, KnowledgeChunkMetadata } from 'share-type'
 
 const route = useRoute()
@@ -30,6 +33,17 @@ const searchText = computed(() => {
 
 const contentDialogOpen = ref(false)
 const activeChunk = ref<KnowledgeChunk | null>(null)
+const activeView = ref<'structure' | 'original'>('structure')
+
+const documentFileUrl = computed(() => getKnowledgeDocumentFileUrl(docId.value))
+
+const originalDocumentFacts = computed(() => [
+  { label: '文件名称', value: currentDocument.value?.name || '-' },
+  { label: '文件类型', value: formatDocumentFileType(currentDocument.value?.fileType) },
+  { label: '文件大小', value: formatFileSize(currentDocument.value?.fileSizeBytes) },
+  { label: '更新时间', value: formatDateTime(currentDocument.value?.updatedAt) },
+  { label: '内容指纹', value: currentDocument.value?.contentHash || '-' }
+])
 
 const activeChunkBlocks = computed(() => getChunkBlocks(activeChunk.value))
 
@@ -102,24 +116,15 @@ const rebuildChunks = async () => {
 
   isRebuildingChunks.value = true
   try {
-    const rebuiltChunks = await rebuildKnowledgeChunks(docId.value)
+    await rebuildKnowledgeChunks(docId.value)
     await loadKnowledgeDocument(docId.value)
-    await loadKnowledgeChunks(docId.value)
-    ElMessage.success(formatChunkResultMessage(rebuiltChunks))
-    await scrollToHighlightedChunk()
+    ElMessage.success('已加入处理队列，请稍后查看状态')
   } catch (error) {
     await loadKnowledgeDocument(docId.value)
     ElMessage.error(error instanceof Error ? error.message : '文档分块失败')
   } finally {
     isRebuildingChunks.value = false
   }
-}
-
-function formatChunkResultMessage(items: KnowledgeChunk[]): string {
-  const ocrPageCount = getOcrPageNumbers(items).length
-  return ocrPageCount > 0
-    ? `文档已重新分块，OCR 识别 ${ocrPageCount} 页，共 ${items.length} 个分块`
-    : `文档已重新分块，共 ${items.length} 个分块`
 }
 
 function getDocumentParseLabel(items: KnowledgeChunk[]): string {
@@ -220,6 +225,16 @@ function formatDocumentFileType(fileType?: string | null): string {
   }
 
   return fileType.toUpperCase()
+}
+
+function formatFileSize(size?: number | null): string {
+  if (!size) return '-'
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / 1024 / 1024).toFixed(1)} MB`
+}
+
+function formatDateTime(value?: string | null): string {
+  return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-'
 }
 
 function getChunkMetadata(chunk: KnowledgeChunk | null | undefined): KnowledgeChunkMetadata | null {
@@ -340,6 +355,20 @@ onMounted(async () => {
   await loadKnowledgeChunks(docId.value)
   await scrollToHighlightedChunk()
 })
+
+const processingPoll = window.setInterval(async () => {
+  if (currentDocument.value?.status !== 'processing') return
+
+  const refreshedDocument = await loadKnowledgeDocument(docId.value)
+  if (refreshedDocument?.status === 'indexed') {
+    await loadKnowledgeChunks(docId.value)
+    ElMessage.success('文档分块已完成')
+  } else if (refreshedDocument?.status === 'failed') {
+    ElMessage.error('文档分块失败，请检查解析配置后重试')
+  }
+}, 2000)
+
+onUnmounted(() => window.clearInterval(processingPoll))
 </script>
 
 <template>
@@ -362,15 +391,38 @@ onMounted(async () => {
         <span class="chunk-stage__divider">/</span>
         <span>{{ currentDocument?.name || docId }}</span>
         <span class="chunk-stage__divider">/</span>
-        <span>结构查看</span>
+        <span>{{ activeView === 'structure' ? '结构查看' : '原文档' }}</span>
       </div>
 
       <div class="chunk-stage__actions">
+        <div class="document-view-switch" aria-label="文档视图">
+          <button
+            type="button"
+            :class="{ 'is-active': activeView === 'structure' }"
+            @click="activeView = 'structure'"
+          >
+            结构查看
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': activeView === 'original' }"
+            @click="activeView = 'original'"
+          >
+            原文档
+          </button>
+        </div>
         <el-button @click="handleRefresh">
           <RefreshCw class="h-4 w-4" />
           刷新
         </el-button>
-        <el-button type="primary" :loading="isRebuildingChunks" @click="rebuildChunks">重新分块</el-button>
+        <el-button
+          type="primary"
+          :loading="isRebuildingChunks"
+          :disabled="currentDocument?.status === 'processing'"
+          @click="rebuildChunks"
+        >
+          {{ currentDocument?.status === 'processing' ? '处理中' : '重新分块' }}
+        </el-button>
       </div>
     </div>
 
@@ -378,7 +430,11 @@ onMounted(async () => {
       <div class="chunk-stage__copy">
         <h1 class="chunk-stage__title">{{ currentDocument?.name || '结构查看' }}</h1>
         <p class="chunk-stage__subtitle">
-          这个页面只做 review，不做花哨展示。重点是快速查看每个 chunk 的结构来源、切分范围和真实内容，方便判断当前解析链路是否稳定。
+          {{
+            activeView === 'structure'
+              ? '查看每个 chunk 的结构来源、切分范围和真实内容，判断当前解析链路是否稳定。'
+              : '查看入库时保存的原始文件、文件信息和原版式，不经过切分或内容重排。'
+          }}
         </p>
       </div>
 
@@ -390,11 +446,48 @@ onMounted(async () => {
       </dl>
     </div>
 
-    <div v-if="highlightedChunkId" class="chunk-stage__notice">
+    <section v-if="activeView === 'original'" class="original-document">
+      <aside class="original-document__meta">
+        <div class="original-document__meta-head">
+          <div>
+            <h2>原文档信息</h2>
+            <p>这里展示入库时保存的原始文件，不经过切块和内容重排。</p>
+          </div>
+          <a :href="documentFileUrl" class="original-document__download" download>
+            <Download class="h-4 w-4" />
+            下载原文件
+          </a>
+        </div>
+        <dl>
+          <div v-for="fact in originalDocumentFacts" :key="fact.label">
+            <dt>{{ fact.label }}</dt>
+            <dd :title="fact.value">{{ fact.value }}</dd>
+          </div>
+        </dl>
+      </aside>
+
+      <div class="original-document__viewer">
+        <VueOfficeDocx
+          v-if="currentDocument?.fileType === 'docx'"
+          :src="documentFileUrl"
+          class="original-document__docx"
+        />
+        <iframe
+          v-else-if="['pdf', 'txt', 'md'].includes(currentDocument?.fileType || '')"
+          :src="documentFileUrl"
+          :title="`${currentDocument?.name || '文档'}原文预览`"
+        />
+        <div v-else class="original-document__unsupported">
+          当前文件类型不能在线预览，请下载原文件查看。
+        </div>
+      </div>
+    </section>
+
+    <div v-if="activeView === 'structure' && highlightedChunkId" class="chunk-stage__notice">
       已根据搜索结果自动定位到命中的 chunk。
     </div>
 
-    <div class="chunk-stage__table-shell">
+    <div v-if="activeView === 'structure'" class="chunk-stage__table-shell">
       <div class="chunk-stage__table-caption">{{ tableCaption }}</div>
 
       <el-table
@@ -462,7 +555,7 @@ onMounted(async () => {
       </el-table>
     </div>
 
-    <div class="chunk-footer">
+    <div v-if="activeView === 'structure'" class="chunk-footer">
       <span>共 {{ chunks.length }} 条 chunk</span>
     </div>
 
@@ -1034,7 +1127,152 @@ onMounted(async () => {
   background: #fafaf7;
 }
 
+.document-view-switch {
+  display: flex;
+  padding: 3px;
+  border: 1px solid #deded7;
+  border-radius: 8px;
+  background: #f2f2ee;
+}
+
+.document-view-switch button {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #6f6f68;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.document-view-switch button:hover {
+  color: #30302c;
+}
+
+.document-view-switch button:focus-visible {
+  outline: 2px solid #5b5bf7;
+  outline-offset: 1px;
+}
+
+.document-view-switch button.is-active {
+  background: #fff;
+  color: #30302c;
+  box-shadow: 0 1px 2px rgb(25 25 24 / 8%);
+}
+
+.original-document {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: 280px minmax(0, 1fr);
+  overflow: hidden;
+  border-top: 1px solid #e5e5df;
+  background: #f1f1ed;
+}
+
+.original-document__meta {
+  overflow: auto;
+  padding: 24px 20px;
+  border-right: 1px solid #dfdfd8;
+  background: #fafaf7;
+}
+
+.original-document__meta-head {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.original-document__meta h2 {
+  margin: 0 0 6px;
+  color: #262622;
+  font-size: 16px;
+}
+
+.original-document__meta p {
+  margin: 0;
+  color: #6f6f68;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.original-document__download {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid #d8d8d1;
+  border-radius: 7px;
+  color: #3f3f3a;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.original-document__download:hover {
+  border-color: #aaaaf5;
+  color: #4f4fe8;
+}
+
+.original-document__meta dl {
+  margin: 0;
+}
+
+.original-document__meta dl div {
+  padding: 12px 0;
+  border-top: 1px solid #e8e8e2;
+}
+
+.original-document__meta dt {
+  margin-bottom: 5px;
+  color: #85857d;
+  font-size: 11px;
+}
+
+.original-document__meta dd {
+  overflow: hidden;
+  margin: 0;
+  color: #33332f;
+  font-size: 12px;
+  line-height: 1.55;
+  text-overflow: ellipsis;
+}
+
+.original-document__viewer {
+  min-width: 0;
+  overflow: auto;
+  padding: 24px;
+}
+
+.original-document__viewer iframe,
+.original-document__docx {
+  display: block;
+  width: 100%;
+  min-height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.original-document__docx {
+  min-height: 800px;
+}
+
+.original-document__unsupported {
+  display: grid;
+  min-height: 320px;
+  place-items: center;
+  color: #6f6f68;
+  background: #fff;
+  font-size: 13px;
+}
+
 @media (max-width: 1080px) {
+  .original-document {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
   .chunk-stage__intro,
   .chunk-dialog__summary {
     grid-template-columns: 1fr;
@@ -1052,6 +1290,21 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
+  .original-document {
+    display: block;
+    overflow: auto;
+  }
+
+  .original-document__meta {
+    border-right: 0;
+    border-bottom: 1px solid #dfdfd8;
+  }
+
+  .original-document__viewer {
+    min-height: 70vh;
+    padding: 12px;
+  }
+
   .chunk-stage__facts {
     grid-template-columns: 1fr;
   }

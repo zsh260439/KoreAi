@@ -2,16 +2,22 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  OnApplicationBootstrap,
+  OnApplicationShutdown,
   UnprocessableEntityException
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { stat } from 'node:fs/promises'
-import { DataSource, Repository } from 'typeorm'
+import { InjectQueue } from '@nestjs/bullmq'
+import type { Queue } from 'bullmq'
+import { createHash } from 'node:crypto'
+import { readFile, stat } from 'node:fs/promises'
+import { DataSource, IsNull, Repository } from 'typeorm'
 import { DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG } from 'share-type'
 import type {
   KnowledgeChunk,
   KnowledgeChunkMetadata,
   KnowledgeDocument,
+  KnowledgeDocumentSyncEvent,
   StructureAwareChunkConfig,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
@@ -20,6 +26,7 @@ import { KnowledgeBaseEntity } from '../entity/knowledge-base.entity'
 import { KnowledgeChunkEntity } from '../entity/knowledge-chunk.entity'
 import { KnowledgeDocumentEntity } from '../entity/knowledge-document.entity'
 import { EmbeddingService } from '../retrieval/embedding.service'
+import { KnowledgeConfigService } from '../config/knowledge-config.service'
 import { buildChunksFromBlocks } from './knowledge-chunk-builder'
 import {
   parseKnowledgeDocument,
@@ -36,13 +43,21 @@ import { KnowledgeOcrService } from './knowledge-ocr.service'
 import { KnowledgePdfParserService } from './knowledge-pdf-parser.service'
 import { buildKnowledgeChunkSearchableFields } from './knowledge-searchable-fields'
 
+export const KNOWLEDGE_DOCUMENT_CLEANUP_QUEUE = 'knowledge-document-cleanup'
+export const KNOWLEDGE_DOCUMENT_REBUILD_QUEUE = 'knowledge-document-rebuild'
+
 export type KnowledgeDocumentUploadFields = {
   name?: string
   chunkConfig?: string
 }
 
 @Injectable()
-export class KnowledgeDocumentService {
+export class KnowledgeDocumentService implements OnApplicationBootstrap, OnApplicationShutdown {
+  private readonly syncEvents: KnowledgeDocumentSyncEvent[] = []
+  private syncTimer?: NodeJS.Timeout
+  private syncRunning = false
+  private lastSyncAt = 0
+
   constructor(
     @InjectRepository(KnowledgeBaseEntity)
     private readonly knowledgeBaseRepo: Repository<KnowledgeBaseEntity>,
@@ -51,11 +66,29 @@ export class KnowledgeDocumentService {
     @InjectRepository(KnowledgeChunkEntity)
     private readonly chunkRepo: Repository<KnowledgeChunkEntity>,
     private readonly embeddingService: EmbeddingService,
+    private readonly configService: KnowledgeConfigService,
     private readonly fileService: KnowledgeFileService,
     private readonly ocrService: KnowledgeOcrService,
     private readonly pdfParserService: KnowledgePdfParserService,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    @InjectQueue(KNOWLEDGE_DOCUMENT_CLEANUP_QUEUE)
+    private readonly cleanupQueue: Queue<{ documentId: string }>,
+    @InjectQueue(KNOWLEDGE_DOCUMENT_REBUILD_QUEUE)
+    private readonly rebuildQueue: Queue<{ documentId: string }>
   ) {}
+
+  onApplicationBootstrap(): void {
+    void this.runScheduledSync()
+    this.syncTimer = setInterval(() => void this.runScheduledSync(), 60_000)
+  }
+
+  onApplicationShutdown(): void {
+    if (this.syncTimer) clearInterval(this.syncTimer)
+  }
+
+  findDocumentSyncEvents(): KnowledgeDocumentSyncEvent[] {
+    return [...this.syncEvents]
+  }
 
   async findKnowledgeDocuments(knowledgeBaseId: string): Promise<KnowledgeDocument[]> {
     const items = await this.documentRepo.find({
@@ -67,6 +100,20 @@ export class KnowledgeDocumentService {
 
   async findKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     return toKnowledgeDocument(await this.findEntity(documentId))
+  }
+
+  async findKnowledgeDocumentFile(documentId: string) {
+    const document = await this.findEntity(documentId)
+    if (!document.storagePath) {
+      throw new NotFoundException('Document file is not available')
+    }
+
+    await this.readFileStats(document.storagePath)
+    return {
+      path: document.storagePath,
+      name: document.name,
+      fileType: document.fileType ?? inferKnowledgeDocumentFileType(document.storagePath)
+    }
   }
 
   async updateKnowledgeDocument(
@@ -149,12 +196,36 @@ export class KnowledgeDocumentService {
     return this.loadChunks(documentId)
   }
 
-  async rebuildDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
+  async rebuildDocumentChunks(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.findEntity(documentId)
-    await this.documentRepo.update({ id: documentId }, { status: 'processing' })
+    if (document.status === 'processing') {
+      console.log('document is already processing')
+      return toKnowledgeDocument(document)
+    }
+
+    const previousStatus = document.status
+    document.status = 'processing'
+    const processingDocument = await this.documentRepo.save(document)
+
+    try {
+      //用户点击后触发queue队列 使用bullmq队列接着进行分块处理
+      await this.rebuildQueue.add('rebuild', { documentId }, { jobId: `rebuild-${documentId}` })
+    } catch (error) {
+      document.status = previousStatus
+      await this.documentRepo.save(document)
+      throw error
+    }
+
+    return toKnowledgeDocument(processingDocument)
+  }
+
+  async processDocumentRebuild(documentId: string, markFailed: boolean): Promise<void> {
+    const document = await this.findEntity(documentId)
+    if (document.status !== 'processing') return
 
     try {
       const chunkConfig = normalizeChunkConfig(document.chunkConfig)
+      const sourceHash = document.storagePath ? await hashFile(document.storagePath) : null
       const parsed = await this.parseDocument(document)
       const drafts = buildChunksFromBlocks(parsed.blocks, chunkConfig)
       assertIndexableContent(parsed, drafts.length)
@@ -162,6 +233,12 @@ export class KnowledgeDocumentService {
 
       // 旧 chunk 删除、新 chunk 写入和文档状态必须一起成功，避免留下半套索引。
       await this.dataSource.transaction(async (manager) => {
+        const currentDocument = await manager.findOne(KnowledgeDocumentEntity, {
+          where: { id: documentId, status: 'processing' },
+          lock: { mode: 'pessimistic_write' }
+        })
+        if (!currentDocument) return
+
         await manager.delete(KnowledgeChunkEntity, { documentId })
         const chunks = drafts.map((draft, sequence) =>
           manager.create(KnowledgeChunkEntity, {
@@ -170,6 +247,7 @@ export class KnowledgeDocumentService {
             sequence,
             charCount: draft.content.length,
             tokenCount: estimateTokenCount(draft.content),
+            contentHash: createKnowledgeChunkHash(draft.content, draft.blocks),
             metadata: buildChunkMetadata(document, parsed, draft.blocks),
             embedding: embeddings[sequence]?.length ? embeddings[sequence] : null,
             ...buildKnowledgeChunkSearchableFields(document, parsed, draft.blocks)
@@ -186,22 +264,112 @@ export class KnowledgeDocumentService {
             status: 'indexed',
             chunkConfig,
             chunkCount: chunks.length,
-            contentPreview: parsed.rawContent.slice(0, 500)
+            contentPreview: parsed.rawContent.slice(0, 500),
+            contentHash: createHash('sha256').update(parsed.rawContent).digest('hex'),
+            sourceHash,
+            detectedSourceHash: null,
+            sourceChangedAt: null
           }
         )
       })
 
-      return this.loadChunks(documentId)
     } catch (error) {
-      await this.documentRepo.update({ id: documentId }, { status: 'failed' })
+      if (markFailed) {
+        await this.documentRepo.update({ id: documentId }, { status: 'failed' })
+      }
       throw error
     }
   }
 
   async deleteKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.findEntity(documentId)
-    await this.documentRepo.delete({ id: documentId })
-    return toKnowledgeDocument(document)
+    const previousStatus = document.status
+    document.status = 'inactive'
+    document.deletedAt = new Date()
+    const inactiveDocument = await this.documentRepo.save(document)
+
+    try {
+      await this.cleanupQueue.add('delete', { documentId }, { jobId: documentId })
+    } catch (error) {
+      document.status = previousStatus
+      document.deletedAt = null
+      await this.documentRepo.save(document)
+      throw error
+    }
+
+    return toKnowledgeDocument(inactiveDocument)
+  }
+
+  private async runScheduledSync(): Promise<void> {
+    if (this.syncRunning) return
+    this.syncRunning = true
+    try {
+      const { runtimeConfig } = await this.configService.findProviderSettings()
+      if (!isKnowledgeSyncDue(this.lastSyncAt, runtimeConfig.documents.syncIntervalHours)) return
+      this.lastSyncAt = Date.now()
+      await this.scanStoredDocuments(runtimeConfig.documents.autoSync)
+    } catch (error) {
+      console.warn(`[KnowledgeSync] scan failed: ${error instanceof Error ? error.message : 'unknown error'}`)
+    } finally {
+      this.syncRunning = false
+    }
+  }
+
+  private async scanStoredDocuments(autoSync: boolean): Promise<void> {
+    await this.backfillChunkHashes()
+    const documents = await this.documentRepo.find({
+      where: { status: 'indexed', sourceType: 'file' }
+    })
+
+    for (const document of documents) {
+      if (!document.storagePath) continue
+
+      try {
+        const sourceHash = await hashFile(document.storagePath)
+        if (!document.sourceHash) {
+          // 旧数据首次升级时没有比较基线，只记录当前内容，不能猜测它已经变化。
+          await this.documentRepo.update(document.id, { sourceHash, detectedSourceHash: null })
+          continue
+        }
+        if (sourceHash === document.sourceHash) {
+          if (document.sourceChangedAt || document.detectedSourceHash) {
+            await this.documentRepo.update(document.id, { sourceChangedAt: null, detectedSourceHash: null })
+          }
+          continue
+        }
+        if (sourceHash === document.detectedSourceHash) continue
+
+        const detectedAt = new Date()
+        await this.documentRepo.update(document.id, {
+          sourceChangedAt: detectedAt,
+          detectedSourceHash: sourceHash,
+          lastAutoSyncAt: null
+        })
+        if (autoSync) {
+          await this.rebuildDocumentChunks(document.id)
+          await this.documentRepo.update(document.id, { lastAutoSyncAt: detectedAt })
+        }
+        this.syncEvents.push({
+          id: `${document.id}:${detectedAt.getTime()}`,
+          documentId: document.id,
+          documentName: document.name,
+          autoRebuild: autoSync,
+          detectedAt: detectedAt.toISOString()
+        })
+        if (this.syncEvents.length > 100) this.syncEvents.shift()
+      } catch (error) {
+        console.warn(`[KnowledgeSync] ${document.name}: ${error instanceof Error ? error.message : 'scan failed'}`)
+      }
+    }
+  }
+
+  private async backfillChunkHashes(): Promise<void> {
+    const chunks = await this.chunkRepo.find({ where: { contentHash: IsNull() } })
+    for (const chunk of chunks) {
+      const metadata = chunk.metadata as KnowledgeChunkMetadata | null
+      chunk.contentHash = createKnowledgeChunkHash(chunk.content, metadata?.blocks ?? [])
+    }
+    if (chunks.length) await this.chunkRepo.save(chunks, { chunk: 500 })
   }
 
   private async parseDocument(document: KnowledgeDocumentEntity): Promise<ParsedDocument> {
@@ -373,6 +541,12 @@ function toKnowledgeDocument(entity: KnowledgeDocumentEntity): KnowledgeDocument
     chunkConfig: normalizeChunkConfig(entity.chunkConfig),
     chunkCount: entity.chunkCount,
     contentPreview: entity.contentPreview ?? null,
+    contentHash: entity.contentHash,
+    sourceHash: entity.sourceHash,
+    detectedSourceHash: entity.detectedSourceHash,
+    sourceChangedAt: entity.sourceChangedAt?.toISOString() ?? null,
+    lastAutoSyncAt: entity.lastAutoSyncAt?.toISOString() ?? null,
+    deletedAt: entity.deletedAt?.toISOString() ?? null,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString()
   }
@@ -386,8 +560,30 @@ function toKnowledgeChunk(entity: KnowledgeChunkEntity): KnowledgeChunk {
     content: entity.content,
     charCount: entity.charCount,
     tokenCount: entity.tokenCount,
+    contentHash: entity.contentHash,
     metadata: (entity.metadata as KnowledgeChunkMetadata | null) ?? null,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString()
   }
+}
+
+async function hashFile(storagePath: string): Promise<string> {
+  return createHash('sha256').update(await readFile(storagePath)).digest('hex')
+}
+
+export function isKnowledgeSyncDue(lastSyncAt: number, intervalHours: number, now = Date.now()): boolean {
+  return !lastSyncAt || now - lastSyncAt >= intervalHours * 60 * 60 * 1000
+}
+
+type HashableBlock = Pick<StructuredBlock, 'blockType' | 'title' | 'pageNumber' | 'level' | 'sectionPath'>
+
+export function createKnowledgeChunkHash(content: string, blocks: HashableBlock[]): string {
+  const structure = blocks.map(({ blockType, title, pageNumber, level, sectionPath }) => ({
+    blockType,
+    title,
+    pageNumber,
+    level,
+    sectionPath
+  }))
+  return createHash('sha256').update(JSON.stringify({ content, structure })).digest('hex')
 }

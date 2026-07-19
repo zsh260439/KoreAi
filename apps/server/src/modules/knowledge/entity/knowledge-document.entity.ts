@@ -49,6 +49,24 @@ export class KnowledgeDocumentEntity {
   @Column({ type: 'int', default: 0 })
   chunkCount!: number
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  contentHash!: string | null
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  sourceHash!: string | null
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  detectedSourceHash!: string | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  sourceChangedAt!: Date | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastAutoSyncAt!: Date | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  deletedAt!: Date | null
+
   @CreateDateColumn()
   createdAt!: Date
 

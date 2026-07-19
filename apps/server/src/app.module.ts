@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import { BullModule } from '@nestjs/bullmq'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { resolve } from 'node:path'
 
@@ -16,6 +17,12 @@ import { WorkspaceModule } from './modules/workspace/workspace.module'
         resolve(__dirname, '../.env.local'),
         resolve(__dirname, '../.env')
       ]
+    }),
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT || 6379)
+      }
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',

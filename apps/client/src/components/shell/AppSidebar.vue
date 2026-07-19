@@ -7,8 +7,10 @@ import {
   Settings,
   Workflow,
 } from "lucide-vue-next";
-import { computed, ref } from "vue";
+import { ElNotification } from "element-plus";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { findDocumentSyncEventsAPI } from "@/servers/knowledge";
 import ProviderSettingsDialog from "./ProviderSettingsDialog.vue";
 
 const props = defineProps<{ collapsed: boolean }>();
@@ -24,6 +26,32 @@ const activeKey = computed(() =>
       : "knowledge",
 );
 const settingsOpen = ref(false);
+let syncPoll: number | undefined;
+
+const pollDocumentSync = async () => {
+  try {
+    const { data } = await findDocumentSyncEventsAPI();
+    const events = data.filter((event) => !sessionStorage.getItem(`knowledge-sync:${event.id}`));
+    if (!events.length) return;
+
+    for (const event of events) sessionStorage.setItem(`knowledge-sync:${event.id}`, "1");
+    const names = events.slice(0, 3).map((event) => event.documentName).join("、");
+    const suffix = events.length > 3 ? ` 等 ${events.length} 个文档` : "";
+    const autoCount = events.filter((event) => event.autoRebuild).length;
+    ElNotification.info({
+      title: "本地文档发生变化",
+      message: autoCount
+        ? `${names}${suffix} 已自动加入重建队列`
+        : `${names}${suffix} 已标记内容变动，请手动重新分块`,
+    });
+  } catch {}
+};
+
+onMounted(() => {
+  void pollDocumentSync();
+  syncPoll = window.setInterval(pollDocumentSync, 30_000);
+});
+onUnmounted(() => window.clearInterval(syncPoll));
 const items = [
   { key: "chat", label: "对话", path: "/workspace", icon: MessageSquareText },
   {

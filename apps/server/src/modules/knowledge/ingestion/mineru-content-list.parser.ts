@@ -93,6 +93,7 @@ function buildDocument(
       metadata: {
         mineruType: type,
         source,
+        indexable: !isImagePlaceholder(type, content),
         bbox: getBbox(item.bbox),
         coordinateSpace: '0-1000',
         subType: typeof item.sub_type === 'string' ? item.sub_type : undefined,
@@ -113,6 +114,20 @@ function buildDocument(
     blocks,
     rawContent: rawParts.join('\n\n')
   }
+}
+
+function isImagePlaceholder(type: string, content: string): boolean {
+  if (type !== 'image') {
+    return false
+  }
+
+  const remainder = content
+    .replace(/(?:图|figure)\s*\d+/gi, ' ')
+    .replace(/(?:QQ_)?\d{10,}/gi, ' ')
+    .replace(/\b[\w-]+\.(?:png|jpe?g|webp|gif|bmp)\b/gi, ' ')
+    .replace(/[\s\p{P}\p{S}]+/gu, '')
+
+  return remainder.length === 0
 }
 
 function getV2Content(type: string, content: unknown): string {

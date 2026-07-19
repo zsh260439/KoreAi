@@ -14,7 +14,9 @@ const BM25_SEARCH_SQL = `
     chunk.content AS "content",
     COALESCE(pdb.score(chunk.id), 0)::float8 AS "bm25Score"
   FROM "knowledge_chunks" AS chunk
+  INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
   WHERE chunk.id @@@ pdb.parse($1, lenient => true)
+    AND document.status = 'indexed'
     AND ($2::uuid IS NULL OR chunk."knowledgeBaseId" = $2::uuid)
   ORDER BY "bm25Score" DESC, chunk."updatedAt" DESC, chunk.id
   LIMIT $3

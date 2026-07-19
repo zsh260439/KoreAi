@@ -1,4 +1,4 @@
-import { request } from '@/http-utils/http'
+import { API_BASE_URL, request } from '@/http-utils/http'
 import type {
   CreateKnowledgeBaseInput,
   CreateKnowledgeDocumentInput,
@@ -6,6 +6,7 @@ import type {
   KnowledgeBaseRuntimeConfigPatch,
   KnowledgeChunk,
   KnowledgeDocument,
+  KnowledgeDocumentSyncEvent,
   KnowledgeGlobalRuntimeSettings,
   KnowledgeProviderRuntimeConfigPatch,
   KnowledgeProviderSettings,
@@ -40,6 +41,10 @@ export const updateProviderSettingsAPI = (dto: KnowledgeProviderRuntimeConfigPat
   return request<KnowledgeProviderSettings>('knowledge/provider-settings', 'PATCH', dto)
 }
 
+export const findDocumentSyncEventsAPI = () => {
+  return request<KnowledgeDocumentSyncEvent[]>('knowledge/document-sync-events')
+}
+
 export const updateKnowledgeBaseAPI = (kbId: string, dto: UpdateKnowledgeBaseInput) => {
   return request<KnowledgeBase>(`knowledge/bases/${kbId}`, 'PATCH', dto)
 }
@@ -54,6 +59,11 @@ export const findKnowledgeDocumentsAPI = (kbId: string) => {
 
 export const findKnowledgeDocumentAPI = (docId: string) => {
   return request<KnowledgeDocument>(`knowledge/documents/${docId}`)
+}
+
+export const getKnowledgeDocumentFileUrl = (docId: string) => {
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`
+  return new URL(`knowledge/documents/${docId}/file`, baseUrl).toString()
 }
 
 export const createKnowledgeDocumentAPI = (kbId: string, dto: CreateKnowledgeDocumentInput) => {
@@ -80,9 +90,7 @@ export const findDocumentChunksAPI = (docId: string) => {
 }
 
 export const rebuildDocumentChunksAPI = (docId: string) => {
-  return request<KnowledgeChunk[]>(`knowledge/documents/${docId}/chunks/rebuild`, 'POST', undefined, {
-    timeout: 120000
-  })
+  return request<KnowledgeDocument>(`knowledge/documents/${docId}/chunks/rebuild`, 'POST')
 }
 
 export const updateKnowledgeDocumentAPI = (docId: string, dto: UpdateKnowledgeDocumentInput) => {

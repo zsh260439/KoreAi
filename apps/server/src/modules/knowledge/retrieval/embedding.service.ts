@@ -19,10 +19,6 @@ export class EmbeddingService {
     })
   }
 
-  getClient(): OpenAIEmbeddings {
-    return this.client
-  }
-
   async embedChunks(texts: string[]): Promise<number[][]> {
     const values = texts.map((item) => item.trim()).filter(Boolean)
     if (!values.length) {
@@ -30,6 +26,10 @@ export class EmbeddingService {
     }
 
     return this.client.embedDocuments(values)
+  }
+
+  async embedQuery(text: string): Promise<number[]> {
+    return this.client.embedQuery(text)
   }
 }
 

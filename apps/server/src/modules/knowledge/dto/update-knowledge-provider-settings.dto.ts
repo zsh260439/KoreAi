@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
 import type { KnowledgeProviderRuntimeConfigPatch } from 'share-type'
 
 export class UpdateKnowledgeProviderSettingsDto implements KnowledgeProviderRuntimeConfigPatch {
@@ -25,4 +25,14 @@ export class UpdateKnowledgeProviderSettingsDto implements KnowledgeProviderRunt
   @IsString()
   @MaxLength(160)
   ocrModel?: string | null
+
+  @IsOptional()
+  @IsBoolean()
+  autoSyncDocuments?: boolean
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  documentSyncIntervalHours?: number
 }

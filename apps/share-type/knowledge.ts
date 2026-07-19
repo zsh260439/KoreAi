@@ -11,6 +11,8 @@ export type KnowledgeDocumentStatus =
   | 'processing'
   /** 文档已经完成索引，可被检索命中。 */
   | 'indexed'
+  /** 文档已退出检索，等待后台清理。 */
+  | 'inactive'
   /** 文档处理失败，通常需要在后台查看错误原因后重试。 */
   | 'failed'
 
@@ -118,6 +120,10 @@ export interface KnowledgeProviderRuntimeConfig {
     baseUrl: string | null
     model: string | null
   }
+  documents: {
+    autoSync: boolean
+    syncIntervalHours: number
+  }
 }
 
 export interface KnowledgeProviderRuntimeConfigPatch {
@@ -126,6 +132,8 @@ export interface KnowledgeProviderRuntimeConfigPatch {
   ocrEnabled?: boolean
   ocrBaseUrl?: string | null
   ocrModel?: string | null
+  autoSyncDocuments?: boolean
+  documentSyncIntervalHours?: number
 }
 
 export interface KnowledgeProviderSettings {
@@ -232,6 +240,18 @@ export interface KnowledgeDocument {
   chunkCount: number
   /** 文档内容预览。 */
   contentPreview: string | null
+  /** 成功解析后的正文哈希。 */
+  contentHash: string | null
+  /** 上次成功索引时的原文件字节哈希。 */
+  sourceHash: string | null
+  /** 最近一次检测到的、尚未完成索引的原文件哈希。 */
+  detectedSourceHash: string | null
+  /** 原文件与已索引版本不一致的检测时间。 */
+  sourceChangedAt: string | null
+  /** 最近一次由自动同步提交重建的时间。 */
+  lastAutoSyncAt: string | null
+  /** 文档退出检索的时间。 */
+  deletedAt: string | null
   /** 创建时间。 */
   createdAt: string
   /** 最近更新时间。 */
@@ -307,12 +327,22 @@ export interface KnowledgeChunk {
   charCount: number
   /** chunk token 估算数量。 */
   tokenCount: number
+  /** Chunk 正文和结构上下文的稳定指纹。 */
+  contentHash: string | null
   /** chunk 元数据。 */
   metadata: KnowledgeChunkMetadata | null
   /** 创建时间。 */
   createdAt: string
   /** 最近更新时间。 */
   updatedAt: string
+}
+
+export interface KnowledgeDocumentSyncEvent {
+  id: string
+  documentId: string
+  documentName: string
+  autoRebuild: boolean
+  detectedAt: string
 }
 
 export interface UpdateKnowledgeDocumentInput {

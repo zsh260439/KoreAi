@@ -91,6 +91,10 @@ export class KnowledgeConfigService {
           enabled: saved?.ocr.enabled ?? ocrApiKeyConfigured,
           baseUrl: saved?.ocr.baseUrl ?? envOcrBaseUrl,
           model: saved?.ocr.model ?? envOcrModel
+        },
+        documents: {
+          autoSync: saved?.documents?.autoSync ?? true,
+          syncIntervalHours: saved?.documents?.syncIntervalHours ?? 1
         }
       },
       llmApiKeyConfigured,
@@ -114,6 +118,10 @@ export class KnowledgeConfigService {
         enabled: patch.ocrEnabled ?? current.ocr.enabled,
         baseUrl: patch.ocrBaseUrl === undefined ? current.ocr.baseUrl : normalizeProviderValue(patch.ocrBaseUrl),
         model: patch.ocrModel === undefined ? current.ocr.model : normalizeProviderValue(patch.ocrModel)
+      },
+      documents: {
+        autoSync: patch.autoSyncDocuments ?? current.documents?.autoSync ?? true,
+        syncIntervalHours: patch.documentSyncIntervalHours ?? current.documents?.syncIntervalHours ?? 1
       }
     }
     const entity = settings
@@ -132,7 +140,8 @@ export class KnowledgeConfigService {
 function createEmptyProviderConfig(): KnowledgeProviderRuntimeConfig {
   return {
     llm: { baseUrl: null, model: null },
-    ocr: { enabled: false, baseUrl: null, model: null }
+    ocr: { enabled: false, baseUrl: null, model: null },
+    documents: { autoSync: true, syncIntervalHours: 1 }
   }
 }
 

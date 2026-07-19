@@ -20,9 +20,28 @@ const CE_RERANK_COMPLEXITIES = new Set<KnowledgeQueryComplexity>([
 
 const CE_MAX_DOCUMENTS_PER_REQUEST = 80
 const CE_REQUEST_TIMEOUT_MS = 15_000
+const CE_RELATIVE_RELEVANCE_FLOOR = 0.15
 
 export function shouldApplyCeRerank(plan: KnowledgeQueryPlan): boolean {
   return CE_RERANK_COMPLEXITIES.has(plan.evidencePlan.complexity)
+}
+
+// topK 是上限，不应使用明显不相关的片段补足数量。
+export function filterCeRelevantHits(
+  hits: KnowledgeSearchHit[],
+  scoreMap: Map<string, number> | null
+): KnowledgeSearchHit[] {
+  if (!scoreMap || hits.length === 0) {
+    return hits
+  }
+
+  const topScore = Math.max(...scoreMap.values())
+  if (topScore <= 0) {
+    return hits
+  }
+
+  const minimumScore = topScore * CE_RELATIVE_RELEVANCE_FLOOR
+  return hits.filter((hit) => (scoreMap.get(hit.chunkId) ?? 0) >= minimumScore)
 }
 
 export async function fetchCeRerankScores(

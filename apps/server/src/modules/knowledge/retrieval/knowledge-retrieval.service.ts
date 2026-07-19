@@ -22,6 +22,7 @@ import type {
 import type { KnowledgeRetrievalCandidate } from './knowledge-retrieval.types'
 import { KnowledgeVectorStoreService } from './knowledge-vector-store.service'
 import {
+  filterCeRelevantHits,
   fetchCeRerankScores,
   shouldApplyCeRerank
 } from './knowledge-ce-ranker'
@@ -145,7 +146,8 @@ export class KnowledgeRetrievalService {
       ? await fetchCeRerankScores(mergedHits, plan.originalQuery)
       : null
     const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
-    const finalHits = await this.assembleEvidenceContext(rerankedHits, plan)
+    const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
+    const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
     const completedHits = includeReferenceEvidence(finalHits, referenceCandidates, plan)
     const evidenceCoverage = computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
 
@@ -230,7 +232,9 @@ export class KnowledgeRetrievalService {
           chunk."primaryTitle" AS "primaryTitle",
           chunk.content AS "content"
         FROM "knowledge_chunks" AS chunk
+        INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
         WHERE chunk."documentId" = $1::uuid
+          AND document.status = 'indexed'
         ORDER BY chunk.sequence ASC
       `,
       [documentId]
@@ -333,7 +337,9 @@ export class KnowledgeRetrievalService {
               OR LOWER(chunk.content) LIKE evidence_pattern
           ) AS "evidenceMatchCount"
         FROM "knowledge_chunks" AS chunk
-        WHERE ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
+        INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
+        WHERE document.status = 'indexed'
+          AND ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
           AND (
             LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($2::text[])
             OR LOWER(COALESCE(chunk."primaryTitle", '')) LIKE ANY($2::text[])
@@ -370,7 +376,9 @@ export class KnowledgeRetrievalService {
               OR LOWER(chunk.content) LIKE evidence_pattern
           ) AS "evidenceMatchCount"
         FROM "knowledge_chunks" AS chunk
-        WHERE ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
+        INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
+        WHERE document.status = 'indexed'
+          AND ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
           AND (
             LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($2::text[])
             OR LOWER(COALESCE(chunk."primaryTitle", '')) LIKE ANY($2::text[])

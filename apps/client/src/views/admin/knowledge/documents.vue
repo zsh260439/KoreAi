@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { ChevronLeft, FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Settings2, Trash2 } from 'lucide-vue-next'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useKnowledgeBases } from '@/composables/knowledge/useKnowledgeBases'
@@ -33,7 +33,7 @@ const router = useRouter()
 const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
 const {
   documents,
-  loadKnowledgeDocument,
+  isLoading: isLoadingDocuments,
   loadKnowledgeDocuments,
   uploadKnowledgeDocument,
   updateKnowledgeDocument,
@@ -99,6 +99,11 @@ const statusOptions = [
   { value: 'indexed', label: '已索引' },
   { value: 'failed', label: '处理失败' }
 ] as const
+
+const formatDocumentStatus = (document: KnowledgeDocument) => {
+  if (document.status === 'indexed' && document.sourceChangedAt) return '内容变动'
+  return statusOptions.find((option) => option.value === document.status)?.label ?? document.status
+}
 
 const currentKnowledgeBaseName = computed(() => knowledgeBase.value?.name || '当前知识库')
 const currentKnowledgeBaseCode = computed(() => {
@@ -218,20 +223,6 @@ const formatDateTime = (value?: string | null) => {
 const resolveUploadFileName = (value: string) => {
   const dotIndex = value.lastIndexOf('.')
   return dotIndex > 0 ? value.slice(0, dotIndex) : value
-}
-
-const formatChunkResultMessage = (prefix: string, chunks: Awaited<ReturnType<typeof rebuildKnowledgeChunks>>) => {
-  const ocrPages = new Set(
-    chunks.flatMap((chunk) =>
-      (chunk.metadata?.blocks ?? [])
-        .filter((block) => block.blockType === 'ocr_page' && typeof block.pageNumber === 'number')
-        .map((block) => block.pageNumber as number)
-    )
-  )
-
-  return ocrPages.size > 0
-    ? `${prefix}，OCR 识别 ${ocrPages.size} 页，共 ${chunks.length} 个分块`
-    : `${prefix}，共 ${chunks.length} 个分块`
 }
 
 const validateUploadFile = (file: File) => {
@@ -365,16 +356,11 @@ const submitUpload = async () => {
       chunkConfig: payload.chunkConfig ? JSON.parse(payload.chunkConfig) : undefined
     })
 
-    const chunks = await rebuildKnowledgeChunks(created.id)
-    const refreshedDocument = await loadKnowledgeDocument(created.id)
+    await rebuildKnowledgeChunks(created.id)
     await loadKnowledgeDocuments(kbId.value)
     await loadKnowledgeBases()
 
-    if (refreshedDocument?.status !== 'indexed') {
-      throw new Error('文档已上传，但未完成分块')
-    }
-
-    ElMessage.success(formatChunkResultMessage('文档已上传', chunks))
+    ElMessage.success('文档已上传并加入处理队列')
 
     resetUploadDialog()
   } catch (error) {
@@ -433,10 +419,10 @@ const submitChunkConfirm = async () => {
 
   isRebuildingChunks.value = true
   try {
-    const chunks = await rebuildKnowledgeChunks(activeDocument.value.id)
+    await rebuildKnowledgeChunks(activeDocument.value.id)
     chunkDialogOpen.value = false
     await loadKnowledgeDocuments(kbId.value)
-    ElMessage.success(formatChunkResultMessage('已完成分块', chunks))
+    ElMessage.success('已加入处理队列，请稍后查看状态')
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '文档分块失败')
   } finally {
@@ -526,6 +512,26 @@ onMounted(async () => {
     contentSearchInput.value = route.query.text as string
   }
 })
+
+const processingPoll = window.setInterval(async () => {
+  const processing = documents.value.filter((document) => document.status === 'processing')
+  if (!processing.length || isLoadingDocuments.value) return
+
+  await loadKnowledgeDocuments(kbId.value)
+  for (const previous of processing) {
+    const current = documents.value.find((document) => document.id === previous.id)
+    const automatic = previous.lastAutoSyncAt && previous.sourceChangedAt &&
+      new Date(previous.lastAutoSyncAt).getTime() >= new Date(previous.sourceChangedAt).getTime()
+    if (automatic) continue
+    if (current?.status === 'indexed') {
+      ElMessage.success(`${current.name} 分块已完成`)
+    } else if (current?.status === 'failed') {
+      ElMessage.error(`${current.name} 分块失败`)
+    }
+  }
+}, 2000)
+
+onUnmounted(() => window.clearInterval(processingPoll))
 </script>
 
 <template>
@@ -773,8 +779,11 @@ onMounted(async () => {
             <el-table-column label="状态" width="140">
               <template #default="{ row }">
                 <div class="inline-flex items-center gap-2 text-sm text-slate-600">
-                  <span class="status-dot" :class="`status-dot--${row.status}`" />
-                  <span>{{ row.status }}</span>
+                  <span
+                    class="status-dot"
+                    :class="row.status === 'indexed' && row.sourceChangedAt ? 'status-dot--changed' : `status-dot--${row.status}`"
+                  />
+                  <span>{{ formatDocumentStatus(row) }}</span>
                 </div>
               </template>
             </el-table-column>
@@ -798,10 +807,15 @@ onMounted(async () => {
             <el-table-column label="操作" width="160" align="right">
               <template #default="{ row }">
                 <div class="flex items-center justify-end gap-1">
-                  <el-button link @click="openEdit(row)" title="编辑">
+                  <el-button link :disabled="row.status === 'processing'" @click="openEdit(row)" title="编辑">
                     <Pencil class="h-4 w-4" />
                   </el-button>
-                  <el-button link @click="openChunkConfirm(row)" title="重新分块">
+                  <el-button
+                    link
+                    :disabled="row.status === 'processing'"
+                    @click="openChunkConfirm(row)"
+                    :title="row.status === 'processing' ? '正在处理' : '重新分块'"
+                  >
                     <PlayCircle class="h-4 w-4" />
                   </el-button>
                   <el-button link @click="openChunkLog(row)" title="查看分块">
@@ -1590,6 +1604,9 @@ onMounted(async () => {
 
 .status-dot--processing {
   background: #60a5fa;
+}
+.status-dot--changed {
+  background: #c58a2a;
 }
 
 .status-dot--failed {

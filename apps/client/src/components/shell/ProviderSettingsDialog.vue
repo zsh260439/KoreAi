@@ -20,6 +20,8 @@ const form = ref({
   ocrEnabled: false,
   ocrBaseUrl: "",
   ocrModel: "",
+  autoSyncDocuments: true,
+  documentSyncIntervalHours: 1,
 });
 const visible = computed({
   get: () => props.open,
@@ -39,6 +41,8 @@ const loadSettings = async () => {
       ocrEnabled: data.runtimeConfig.ocr.enabled,
       ocrBaseUrl: data.runtimeConfig.ocr.baseUrl ?? "",
       ocrModel: data.runtimeConfig.ocr.model ?? "",
+      autoSyncDocuments: data.runtimeConfig.documents.autoSync,
+      documentSyncIntervalHours: data.runtimeConfig.documents.syncIntervalHours,
     };
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : "设置加载失败";
@@ -137,6 +141,29 @@ watch(
               <label>
                 <span>模型</span>
                 <input v-model.trim="form.ocrModel" :disabled="!form.ocrEnabled" placeholder="使用本地环境默认模型" />
+              </label>
+            </section>
+
+            <section class="provider-section">
+              <div class="provider-section__heading">
+                <div>
+                  <h3>文档同步</h3>
+                  <p>服务启动时检查本地文件变化；开启后自动重新分块，关闭后仅标记内容变动。</p>
+                </div>
+              </div>
+              <label class="provider-switch">
+                <input v-model="form.autoSyncDocuments" type="checkbox" />
+                <span>自动同步本地文档</span>
+              </label>
+              <label>
+                <span>扫描间隔（小时）</span>
+                <input
+                  v-model.number="form.documentSyncIntervalHours"
+                  type="number"
+                  min="1"
+                  max="168"
+                  step="1"
+                />
               </label>
             </section>
 

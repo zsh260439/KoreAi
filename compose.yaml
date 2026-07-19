@@ -1,4 +1,11 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: KoreAi-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
   paradedb:
     image: paradedb/paradedb:0.24.1
     container_name: KoreAi-paradedb

@@ -16,6 +16,9 @@ const ASCII_TERM_PATTERN = /\b[a-z][a-z0-9_]{2,}\b/gi
 const CJK_REFERENCE_PHRASE_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|黄金文档|相似文档|未命中|命中|证据|引用|规则|标准|规范|指南|手册|策略|参考|合规|审计/g
 
+const CJK_FACT_PHRASE_PATTERN =
+  /主控制阈值|核心阈值|阈值|责任角色|负责人|响应时限|响应时间|处理时限/g
+
 const REFERENCE_TRIGGER_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|标准|规范|规则|制度|证据|合规|审计|策略|手册|指南|参考|gold_document|fully_grounded|normal_confidence|high_confidence|reviewed_but_not_grounded|recall_gap|exact_code|reference|standard|policy|rule|guideline|playbook|confidence|citation|grounded|recall/i
 
@@ -273,7 +276,8 @@ function computeRoleScore(documentRole: string, plan: KnowledgeQueryEvidencePlan
 function extractEvidenceTerms(value: string): string[] {
   const asciiTerms = extractPatternTerms(value, ASCII_TERM_PATTERN)
   const referenceTerms = extractCjkReferenceTerms(value)
-  return uniqueStrings([...asciiTerms, ...referenceTerms])
+  const factTerms = value.match(CJK_FACT_PHRASE_PATTERN) ?? []
+  return uniqueStrings([...asciiTerms, ...referenceTerms, ...factTerms])
 }
 
 function extractCjkReferenceTerms(value: string): string[] {

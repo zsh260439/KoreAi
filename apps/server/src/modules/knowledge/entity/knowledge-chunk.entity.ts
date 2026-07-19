@@ -49,6 +49,9 @@ export class KnowledgeChunkEntity {
   @Column({ type: 'int' })
   tokenCount!: number
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  contentHash!: string | null
+
   @Column({ type: 'jsonb', nullable: true, select: false })
   metadata!: Record<string, unknown> | null
 

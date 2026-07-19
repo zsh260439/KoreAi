@@ -27,11 +27,10 @@ export function useKnowledgeChunks() {
 
     try {
       const response = await rebuildDocumentChunksAPI(docId)
-      chunks.value = response.data
-      return chunks.value
+      return response.data
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : '重新分块失败'
-      return []
+      throw caughtError
     } finally {
       isLoading.value = false
     }
