@@ -6,6 +6,8 @@ import type {
   KnowledgeBaseRuntimeConfigPatch,
   KnowledgeChunk,
   KnowledgeDocument,
+  KnowledgeDocumentRevision,
+  KnowledgeDocumentTrash,
   KnowledgeDocumentSyncEvent,
   KnowledgeGlobalRuntimeSettings,
   KnowledgeProviderRuntimeConfigPatch,
@@ -99,6 +101,29 @@ export const updateKnowledgeDocumentAPI = (docId: string, dto: UpdateKnowledgeDo
 
 export const deleteKnowledgeDocumentAPI = (docId: string) => {
   return request<KnowledgeDocument>(`knowledge/documents/${docId}`, 'DELETE')
+}
+
+export const findDocumentRevisionsAPI = (docId: string) => {
+  return request<KnowledgeDocumentRevision[]>(`knowledge/documents/${docId}/revisions`)
+}
+
+export const rollbackDocumentRevisionAPI = (docId: string, revisionId: string) => {
+  return request<KnowledgeDocument>(
+    `knowledge/documents/${docId}/revisions/${revisionId}/rollback`,
+    'POST'
+  )
+}
+
+export const findKnowledgeDocumentTrashAPI = () => {
+  return request<KnowledgeDocumentTrash>('knowledge/documents-trash')
+}
+
+export const restoreKnowledgeDocumentAPI = (docId: string) => {
+  return request<KnowledgeDocument>(`knowledge/documents/${docId}/restore`, 'POST')
+}
+
+export const purgeKnowledgeDocumentAPI = (docId: string) => {
+  return request<null>(`knowledge/documents/${docId}/purge`, 'DELETE')
 }
 
 export const deleteKnowledgeBaseAPI = (kbId: string) => {

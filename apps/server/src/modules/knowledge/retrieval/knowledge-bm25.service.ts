@@ -17,6 +17,7 @@ const BM25_SEARCH_SQL = `
   INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
   WHERE chunk.id @@@ pdb.parse($1, lenient => true)
     AND document.status = 'indexed'
+    AND chunk."revisionId" = document."activeRevisionId"
     AND ($2::uuid IS NULL OR chunk."knowledgeBaseId" = $2::uuid)
   ORDER BY "bm25Score" DESC, chunk."updatedAt" DESC, chunk.id
   LIMIT $3

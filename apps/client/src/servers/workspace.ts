@@ -4,12 +4,13 @@ import type {
   WorkspaceChatInput,
   WorkspaceChatResult,
   WorkspaceChatStreamEvent,
+  WorkspaceConversationPage,
   WorkspaceConversationSummary,
   WorkspaceMessage
 } from 'share-type'
 
-export const findWorkspaceConversationsAPI = () => {
-  return request<WorkspaceConversationSummary[]>('workspace/conversations')
+export const findWorkspaceConversationsAPI = (page: number, limit: number) => {
+  return request<WorkspaceConversationPage>(`workspace/conversations?page=${page}&limit=${limit}`)
 }
 
 export const createWorkspaceConversationAPI = (dto: CreateWorkspaceConversationInput = {}) => {

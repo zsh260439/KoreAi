@@ -100,7 +100,7 @@ const items = [
         type="button"
         @click="settingsOpen = true"
       ><Settings :size="18" /><span>设置</span></button
-      ><span class="app-sidebar__avatar">ZS</span>
+      >
     </footer>
     <ProviderSettingsDialog v-model:open="settingsOpen" />
   </aside>

@@ -21,6 +21,7 @@ const conversationList = useConversationList();
 const workspaceChat = useWorkspaceChat();
 const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases();
 const { rewriteEnabled, setRewriteEnabled } = useRetrievalRewritePreference();
+const hasMore = conversationList.hasMore;
 
 const composerValue = ref("");
 const conversationSearch = ref("");
@@ -39,12 +40,14 @@ const {
   updateStickToBottom,
   scrollMessagesToBottom,
 } = autoScroll;
-
 const activeConversation = conversationList.activeConversation;
 const activeContentList = workspaceChat.activeContentList;
 const hasContent = computed(() => activeContentList.value.length > 0);
 const activeConversationId = conversationList.activeConversationId;
 const conversationListLoading = conversationList.isLoading;
+const initialConversationLoading = computed(
+  () => conversationListLoading.value && conversationList.conversations.value.length === 0,
+);
 const conversationListError = conversationList.error;
 const conversationDeleteError = ref("");
 const filteredConversations = computed(() => {
@@ -230,7 +233,16 @@ const handleEditMessage = async (payload: EditableUserMessage) => {
   await nextTick();
   promptBoxRef.value?.focusComposer();
 };
+const page = ref(1)
+const limit = 20
+const handleLoadMoreConversations = async () => {
+  page.value += 1;
 
+  await conversationList.loadConversationList(
+    page.value,
+    limit,
+  );
+};
 onMounted(async () => {
   const conversationId =
     typeof route.params.conversationId === "string"
@@ -238,7 +250,7 @@ onMounted(async () => {
       : undefined;
 
   await Promise.all([
-    conversationList.loadConversationList(),
+    conversationList.loadConversationList(page.value, limit),
     loadKnowledgeBases(),
   ]);
 
@@ -278,9 +290,11 @@ onMounted(async () => {
         <MessageList
           :conversations="filteredConversations"
           :active-conversation-id="activeConversationId"
-          :loading="conversationListLoading"
+          :loading="initialConversationLoading"
+          :has-more="hasMore"
           :get-conversation-time-label="formatConversationTime"
           :is-conversation-streaming="isConversationStreaming"
+          @load-more-page="handleLoadMoreConversations"
           @delete="handleConversationDelete"
           @select="handleConversationSelect"
         />
@@ -316,7 +330,7 @@ onMounted(async () => {
             class="message-column"
             :class="{ 'message-column--welcome': !hasContent }"
           >
-            <template v-if="conversationListLoading || messagesLoading">
+            <template v-if="initialConversationLoading || messagesLoading">
               <div class="conversation-loading" aria-label="正在加载对话">
                 <span />
                 <span />
@@ -330,7 +344,7 @@ onMounted(async () => {
                 <p>{{ conversationListError }}</p>
                 <button
                   type="button"
-                  @click="conversationList.loadConversationList()"
+                  @click="conversationList.loadConversationList(page, limit)"
                 >
                   重试
                 </button>
@@ -453,7 +467,7 @@ onMounted(async () => {
   color: #aaa9a2;
 }
 .conversation-scroll {
-  height: calc(100dvh - 282px);
+  height: calc(100dvh - 363px);
   overflow-y: auto;
   padding: 17px 9px 0;
   overscroll-behavior: contain;

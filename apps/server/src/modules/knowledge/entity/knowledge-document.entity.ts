@@ -67,6 +67,12 @@ export class KnowledgeDocumentEntity {
   @Column({ type: 'timestamptz', nullable: true })
   deletedAt!: Date | null
 
+  @Column({ type: 'timestamptz', nullable: true })
+  purgeAfter!: Date | null
+
+  @Column({ type: 'uuid', nullable: true })
+  activeRevisionId!: string | null
+
   @CreateDateColumn()
   createdAt!: Date
 

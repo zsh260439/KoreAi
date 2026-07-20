@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import type {
   CreateWorkspaceConversationInput,
+  WorkspaceConversationPage,
   WorkspaceConversationSummary,
   WorkspaceMessage
 } from 'share-type'
@@ -18,9 +19,17 @@ export class WorkspaceConversationService {
     private readonly messageRepo: Repository<WorkspaceMessageEntity>
   ) {}
 
-  async findConversations(): Promise<WorkspaceConversationSummary[]> {
-    const items = await this.conversationRepo.find({ order: { updatedAt: 'DESC' } })
-    return items.map(toWorkspaceConversationSummary)
+  async findConversations(page: number, limit: number): Promise<WorkspaceConversationPage> {
+     const [items,total] = await this.conversationRepo.findAndCount({
+      order:{updatedAt:'DESC'},
+      skip:(page-1)*limit,
+      take:limit
+     })
+     return {
+          items:items.map(toWorkspaceConversationSummary),
+          total,
+          hasMore:page*limit < total
+     }
   }
 
   async createConversation(

@@ -23,6 +23,7 @@ export class KnowledgeQueryEngineService {
     query: string,
     options: {
       enableAnalysis?: boolean
+      forceAnalysis?: boolean
       runtimeConfig: KnowledgeBaseRuntimeConfig
       requestedTopK?: number
     }
@@ -38,7 +39,8 @@ export class KnowledgeQueryEngineService {
 
     const ruleSignal = detectKnowledgeQueryRuleSignal(normalizedQuery)
     const shouldRunAnalysis =
-      options.enableAnalysis !== false && ruleSignal.confidence !== 'high'
+      options.forceAnalysis === true ||
+      (options.enableAnalysis !== false && ruleSignal.confidence !== 'high')
 
     const analysis =
       !shouldRunAnalysis

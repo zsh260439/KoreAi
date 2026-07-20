@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, Res } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Query, DefaultValuePipe, ParseIntPipe,Param, Post, Req, Res } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type {
   ApiResponse,
   WorkspaceChatStreamEvent,
+  WorkspaceConversationPage,
   WorkspaceConversationSummary,
   WorkspaceMessage
 } from 'share-type'
@@ -19,8 +20,11 @@ export class WorkspaceController {
   ) {}
 
   @Get('conversations')
-  async findConversations(): Promise<ApiResponse<WorkspaceConversationSummary[]>> {
-    const data = await this.conversationService.findConversations()
+  async findConversations(
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ): Promise<ApiResponse<WorkspaceConversationPage>> {
+    const data = await this.conversationService.findConversations(page, Math.min(limit, 100))
     return successResponse(data, '查询成功')
   }
 

@@ -34,9 +34,12 @@ docs/
 
 # local evaluation artifacts
 .venv-ragas/
+.venv_ragas/
+tmp/
 apps/server/tsconfig.tsbuildinfo
 *.tsbuildinfo
 scripts/ragas_eval/*
+scripts/final_eval/
 scripts/document_ingestion_eval/generated_complex_corpus/
 scripts/document_ingestion_eval/*_report.json
 scripts/document_ingestion_eval/*_progress.json

@@ -266,7 +266,7 @@ const loadConversations = async (force = false) => {
   errorMessage.value = "";
 
   try {
-    await cache.loadConversations(force);
+    await cache.loadConversations(1, 20, force);
     if (!selectedConversationId.value && conversations.value[0]) {
       await selectConversation(conversations.value[0].id);
     }

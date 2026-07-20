@@ -4,10 +4,14 @@ import {
   findWorkspaceConversationMessagesAPI,
   findWorkspaceConversationsAPI
 } from '@/servers/workspace'
-import type { WorkspaceConversationSummary, WorkspaceMessage } from 'share-type'
+import type {
+  WorkspaceConversationPage,
+  WorkspaceConversationSummary,
+  WorkspaceMessage
+} from 'share-type'
 
 const conversationRequests = new Map<string, Promise<WorkspaceMessage[]>>()
-let conversationListRequest: Promise<WorkspaceConversationSummary[]> | null = null
+let conversationListRequest: Promise<WorkspaceConversationPage> | null = null
 const messageCacheOrder: string[] = []
 const MAX_CACHED_CONVERSATIONS = 40
 
@@ -16,9 +20,10 @@ export const useWorkspaceCacheStore = defineStore('workspace-cache', () => {
   const messagesByConversation = shallowRef<Record<string, WorkspaceMessage[]>>({})
   const loadedConversationIds = new Set<string>()
   const conversationsLoading = ref(false)
+  const hasMore = ref(false)
 
-  const loadConversations = async (force = false) => {
-    if (!force && conversations.value.length) {
+  const loadConversations = async (page: number, limit: number, force = false) => {
+    if (page === 1 && !force && conversations.value.length) {
       return conversations.value
     }
 
@@ -27,9 +32,10 @@ export const useWorkspaceCacheStore = defineStore('workspace-cache', () => {
     }
 
     conversationsLoading.value = true
-    conversationListRequest = findWorkspaceConversationsAPI()
+    conversationListRequest = findWorkspaceConversationsAPI(page, limit)
       .then((response) => {
-        conversations.value = response.data
+        conversations.value = page === 1 ? response.data.items ?? [] : [...conversations.value, ...(response.data.items ?? [])]
+        hasMore.value = response.data.hasMore
         return response.data
       })
       .finally(() => {
@@ -111,6 +117,7 @@ export const useWorkspaceCacheStore = defineStore('workspace-cache', () => {
     conversations,
     messagesByConversation,
     conversationsLoading,
+    hasMore,
     loadConversations,
     loadConversationMessages,
     setConversationMessages,

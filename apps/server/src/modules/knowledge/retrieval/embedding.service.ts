@@ -6,6 +6,7 @@ const EMBEDDING_DIMENSIONS = 1024
 @Injectable()
 export class EmbeddingService {
   private readonly client: OpenAIEmbeddings
+  readonly fingerprint = `${process.env.EMBEDDING_MODEL || 'text-embedding-3-small'}:${EMBEDDING_DIMENSIONS}`
 
   constructor() {
     this.client = new OpenAIEmbeddings({

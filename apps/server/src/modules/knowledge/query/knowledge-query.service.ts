@@ -42,7 +42,7 @@ export class KnowledgeQueryService {
       dto.knowledgeBaseId,
       query,
       runtimeConfig.retrieval.previewTopK,
-      { enableRewrite: dto.rewrite !== false, runtimeConfig }
+      { forceRewrite: dto.rewrite === true, runtimeConfig }
     )
   }
 
@@ -56,7 +56,7 @@ export class KnowledgeQueryService {
       dto.knowledgeBaseId,
       query,
       normalizeTopK(dto.topK, runtimeConfig.retrieval.workspaceTopK),
-      { enableRewrite: dto.rewrite !== false, runtimeConfig }
+      { forceRewrite: dto.rewrite === true, runtimeConfig }
     )
     const sources = retrievalResult.hits
 

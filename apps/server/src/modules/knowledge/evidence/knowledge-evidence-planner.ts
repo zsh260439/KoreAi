@@ -216,6 +216,12 @@ export function resolveEvidenceGateStatus(
   return 'pass'
 }
 
+export function hasKnowledgeEvidenceRequirements(
+  plan: KnowledgeQueryEvidencePlan
+): boolean {
+  return plan.identifiers.length + plan.numericTerms.length + plan.evidenceTerms.length > 0
+}
+
 function resolveEvidenceTargetTopK(
   requestedTopK: number,
   complexity: KnowledgeQueryEvidencePlan['complexity']

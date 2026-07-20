@@ -252,6 +252,10 @@ export interface KnowledgeDocument {
   lastAutoSyncAt: string | null
   /** 文档退出检索的时间。 */
   deletedAt: string | null
+  /** 回收站到期清理时间。 */
+  purgeAfter: string | null
+  /** 当前参与检索的文档版本。 */
+  activeRevisionId: string | null
   /** 创建时间。 */
   createdAt: string
   /** 最近更新时间。 */
@@ -343,6 +347,22 @@ export interface KnowledgeDocumentSyncEvent {
   documentName: string
   autoRebuild: boolean
   detectedAt: string
+}
+
+export interface KnowledgeDocumentTrash {
+  items: KnowledgeDocument[]
+  usedBytes: number
+  quotaBytes: number
+  retentionDays: number
+}
+
+export interface KnowledgeDocumentRevision {
+  id: string
+  documentId: string
+  chunkCount: number
+  active: boolean
+  expiresAt: string | null
+  createdAt: string
 }
 
 export interface UpdateKnowledgeDocumentInput {

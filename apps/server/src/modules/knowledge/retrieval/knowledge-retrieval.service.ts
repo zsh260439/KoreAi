@@ -11,6 +11,7 @@ import { KnowledgeBm25Service } from './knowledge-bm25.service'
 import {
   computeKnowledgeEvidenceCoverage,
   computeKnowledgeEvidenceScore,
+  hasKnowledgeEvidenceRequirements,
   resolveEvidenceGateStatus
 } from '../evidence/knowledge-evidence-planner'
 import { mergeKnowledgeRetrievalCandidates } from './knowledge-hybrid-ranker'
@@ -41,32 +42,74 @@ export class KnowledgeRetrievalService {
     query: string,
     topK: number,
     options: {
-      enableRewrite?: boolean
+      forceRewrite?: boolean
       runtimeConfig: KnowledgeBaseRuntimeConfig
     }
   ): Promise<KnowledgeSearchResponse> {
-    const plan = await this.knowledgeQueryEngineService.buildPlan(query, {
-      enableAnalysis:
-        options.enableRewrite !== false && options.runtimeConfig.retrieval.queryAnalysisEnabled,
+    const analysisEnabled = options.runtimeConfig.retrieval.queryAnalysisEnabled
+    let plan = await this.knowledgeQueryEngineService.buildPlan(query, {
+      enableAnalysis: analysisEnabled && options.forceRewrite === true,
+      forceAnalysis: analysisEnabled && options.forceRewrite === true,
       runtimeConfig: options.runtimeConfig,
       requestedTopK: topK
     })
 
-    const primaryResult = await this.retrieveWithHints(
+    let finalResult = await this.retrieveWithHints(
       knowledgeBaseId,
       plan,
       plan.retrieval
     )
-
-    let finalResult = primaryResult
     let fallbackApplied = false
-    let fallbackReason: string | null = null
+    const fallbackReasons: string[] = []
     let exactEntityMiss = false
 
-    const fallbackDecision = shouldFallback(plan, primaryResult.hits, topK)
+    if (
+      analysisEnabled &&
+      options.forceRewrite !== true &&
+      isWeakEvidence(plan, finalResult)
+    ) {
+      const rewrittenPlan = await this.knowledgeQueryEngineService.buildPlan(query, {
+        enableAnalysis: true,
+        forceAnalysis: true,
+        runtimeConfig: options.runtimeConfig,
+        requestedTopK: topK
+      })
+
+      if (rewrittenPlan.rewriteApplied) {
+        plan = rewrittenPlan
+        finalResult = await this.retrieveWithHints(
+          knowledgeBaseId,
+          plan,
+          plan.retrieval
+        )
+        fallbackApplied = true
+        fallbackReasons.push('weak_evidence_query_rewrite')
+      }
+    }
+
+    if (isWeakEvidence(plan, finalResult)) {
+      const expanded = expandWeakEvidenceRetrieval(plan, topK)
+      if (
+        expanded.plan.evidencePlan.targetTopK > plan.evidencePlan.targetTopK ||
+        expanded.hints.candidateMultiplier > plan.retrieval.candidateMultiplier
+      ) {
+        plan = expanded.plan
+        finalResult = await this.retrieveWithHints(
+          knowledgeBaseId,
+          plan,
+          expanded.hints
+        )
+        fallbackApplied = true
+        fallbackReasons.push('weak_evidence_candidate_expansion')
+      }
+    }
+
+    const fallbackDecision = shouldFallback(plan, finalResult.hits, topK)
     if (fallbackDecision.shouldFallback && plan.fallbackRetrieval) {
       fallbackApplied = true
-      fallbackReason = fallbackDecision.reason
+      if (fallbackDecision.reason) {
+        fallbackReasons.push(fallbackDecision.reason)
+      }
       exactEntityMiss = fallbackDecision.exactEntityMiss
 
       const fallbackResult = await this.retrieveWithHints(
@@ -75,7 +118,7 @@ export class KnowledgeRetrievalService {
         plan.fallbackRetrieval
       )
 
-      finalResult = selectBetterResult(plan, primaryResult, fallbackResult)
+      finalResult = selectBetterResult(plan, finalResult, fallbackResult)
     }
 
     const debug: KnowledgeSearchDebugInfo = {
@@ -96,7 +139,7 @@ export class KnowledgeRetrievalService {
       routeSource: finalResult.hints.source,
       routeConfidence: finalResult.hints.confidence,
       fallbackApplied,
-      fallbackReason,
+      fallbackReason: fallbackReasons.join(',') || null,
       exactEntityMiss,
       protectedTerms: plan.protectedTerms,
       excludedTerms: plan.excludedTerms,
@@ -149,7 +192,10 @@ export class KnowledgeRetrievalService {
     const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
     const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
     const completedHits = includeReferenceEvidence(finalHits, referenceCandidates, plan)
-    const evidenceCoverage = computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
+    const hasEvidenceRequirements = hasKnowledgeEvidenceRequirements(plan.evidencePlan)
+    const evidenceCoverage = hasEvidenceRequirements
+      ? computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
+      : 0
 
     return {
       hints,
@@ -163,7 +209,12 @@ export class KnowledgeRetrievalService {
       evidenceCoverage,
       evidenceExpansionApplied:
         completedHits.some((hit) => hit.scoreDetail?.matchedBy.length === 0),
-      evidenceGateStatus: resolveEvidenceGateStatus(evidenceCoverage, plan.evidencePlan)
+      evidenceGateStatus:
+        completedHits.length === 0
+          ? 'blocked'
+          : hasEvidenceRequirements
+            ? resolveEvidenceGateStatus(evidenceCoverage, plan.evidencePlan)
+            : 'degraded'
     }
   }
 
@@ -235,6 +286,7 @@ export class KnowledgeRetrievalService {
         INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
         WHERE chunk."documentId" = $1::uuid
           AND document.status = 'indexed'
+          AND chunk."revisionId" = document."activeRevisionId"
         ORDER BY chunk.sequence ASC
       `,
       [documentId]
@@ -339,6 +391,7 @@ export class KnowledgeRetrievalService {
         FROM "knowledge_chunks" AS chunk
         INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
         WHERE document.status = 'indexed'
+          AND chunk."revisionId" = document."activeRevisionId"
           AND ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
           AND (
             LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($2::text[])
@@ -378,6 +431,7 @@ export class KnowledgeRetrievalService {
         FROM "knowledge_chunks" AS chunk
         INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
         WHERE document.status = 'indexed'
+          AND chunk."revisionId" = document."activeRevisionId"
           AND ($1::uuid IS NULL OR chunk."knowledgeBaseId" = $1::uuid)
           AND (
             LOWER(COALESCE(chunk."documentName", '')) LIKE ANY($2::text[])
@@ -498,6 +552,49 @@ function shouldFallback(
     shouldFallback: false,
     reason: null,
     exactEntityMiss: false
+  }
+}
+
+function isWeakEvidence(
+  plan: KnowledgeQueryPlan,
+  result: RetrievalExecutionResult
+): boolean {
+  return (
+    result.evidenceGateStatus !== 'pass' ||
+    !hasKnowledgeEvidenceRequirements(plan.evidencePlan)
+  )
+}
+
+function expandWeakEvidenceRetrieval(
+  plan: KnowledgeQueryPlan,
+  requestedTopK: number
+): {
+  plan: KnowledgeQueryPlan
+  hints: KnowledgeQueryRetrievalHints
+} {
+  const targetTopK = Math.min(
+    Math.max(plan.evidencePlan.targetTopK, requestedTopK, 8),
+    10
+  )
+  const candidateMultiplier = Math.max(
+    plan.retrieval.candidateMultiplier,
+    Math.ceil(plan.retrieval.maxCandidateLimit / targetTopK)
+  )
+
+  return {
+    plan: {
+      ...plan,
+      evidencePlan: {
+        ...plan.evidencePlan,
+        targetTopK,
+        maxTopK: Math.min(Math.max(plan.evidencePlan.maxTopK, targetTopK + 2), 10)
+      }
+    },
+    hints: {
+      ...plan.retrieval,
+      source: 'fallback',
+      candidateMultiplier
+    }
   }
 }
 

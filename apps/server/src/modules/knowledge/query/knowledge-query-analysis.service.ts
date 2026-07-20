@@ -29,10 +29,6 @@ export class KnowledgeQueryAnalysisService {
     input: KnowledgeQueryAnalysisInput,
     options: { temperature?: number } = {}
   ): Promise<KnowledgeQueryAnalysis | null> {
-    if (!isQueryAnalysisEnabled()) {
-      return null
-    }
-
     const provider = await this.configService.findProviderSettings()
     const client = this.createClient(provider.runtimeConfig.llm, options.temperature)
     if (!client) {
@@ -93,15 +89,6 @@ export class KnowledgeQueryAnalysisService {
       }
     })
   }
-}
-
-function isQueryAnalysisEnabled(): boolean {
-  const value = process.env.RETRIEVAL_QUERY_ANALYSIS_ENABLED
-  if (!value) {
-    return true
-  }
-
-  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
 }
 
 function resolveTemperature(override?: number): number {

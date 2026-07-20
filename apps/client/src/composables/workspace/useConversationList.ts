@@ -12,16 +12,16 @@ const error = ref<string | null>(null)
 
 export function useConversationList() {
   const cache = useWorkspaceCacheStore()
-  const { conversations, conversationsLoading: isLoading } = storeToRefs(cache)
+  const { conversations, conversationsLoading: isLoading, hasMore } = storeToRefs(cache)
   const activeConversation = computed(
     () => conversations.value.find((item) => item.id === activeConversationId.value) ?? null
   )
 
-  const loadConversationList = async () => {
+  const loadConversationList = async (page: number, limit: number, force = false) => {
     error.value = null
 
     try {
-      await cache.loadConversations()
+      await cache.loadConversations(page, limit, force)
 
       if (
         activeConversationId.value &&
@@ -73,6 +73,7 @@ export function useConversationList() {
     selectConversation,
     createConversation,
     deleteConversation,
-    upsertConversation
+    upsertConversation,
+    hasMore
   }
 }

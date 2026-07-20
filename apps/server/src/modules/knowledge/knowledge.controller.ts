@@ -17,7 +17,9 @@ import type {
   KnowledgeBase,
   KnowledgeChunk,
   KnowledgeDocument,
+  KnowledgeDocumentRevision,
   KnowledgeDocumentSyncEvent,
+  KnowledgeDocumentTrash,
   KnowledgeGlobalRuntimeSettings,
   KnowledgeProviderSettings,
   KnowledgeSearchResponse
@@ -176,6 +178,38 @@ export class KnowledgeController {
   async deleteKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.deleteKnowledgeDocument(docId)
     return successResponse(data, '删除成功')
+  }
+
+  @Get('documents/:docId/revisions')
+  async findDocumentRevisions(
+    @Param('docId') docId: string
+  ): Promise<ApiResponse<KnowledgeDocumentRevision[]>> {
+    return successResponse(await this.documentService.findDocumentRevisions(docId))
+  }
+
+  @Post('documents/:docId/revisions/:revisionId/rollback')
+  async rollbackDocumentRevision(
+    @Param('docId') docId: string,
+    @Param('revisionId') revisionId: string
+  ): Promise<ApiResponse<KnowledgeDocument>> {
+    const data = await this.documentService.rollbackDocumentRevision(docId, revisionId)
+    return successResponse(data, '索引版本已回滚')
+  }
+
+  @Get('documents-trash')
+  async findDocumentTrash(): Promise<ApiResponse<KnowledgeDocumentTrash>> {
+    return successResponse(await this.documentService.findTrash())
+  }
+
+  @Post('documents/:docId/restore')
+  async restoreKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
+    return successResponse(await this.documentService.restoreKnowledgeDocument(docId), '恢复成功')
+  }
+
+  @Delete('documents/:docId/purge')
+  async purgeKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<null>> {
+    await this.documentService.purgeKnowledgeDocument(docId)
+    return successResponse(null, '已加入永久删除队列')
   }
 
   @Delete('bases/:kbId')

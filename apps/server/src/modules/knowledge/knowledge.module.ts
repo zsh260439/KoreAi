@@ -20,6 +20,7 @@ import { KnowledgeBaseEntity } from './entity/knowledge-base.entity'
 import { KnowledgeChunkEntity } from './entity/knowledge-chunk.entity'
 import { KnowledgeDocumentEntity } from './entity/knowledge-document.entity'
 import { KnowledgeRuntimeSettingsEntity } from './entity/knowledge-runtime-settings.entity'
+import { KnowledgeDocumentRevisionEntity } from './entity/knowledge-document-revision.entity'
 import { KnowledgeBaseService } from './management/knowledge-base.service'
 import { KnowledgeQueryAnalysisService } from './query/knowledge-query-analysis.service'
 import { KnowledgeQueryEngineService } from './query/knowledge-query-engine.service'
@@ -52,6 +53,7 @@ import { KnowledgeVectorStoreService } from './retrieval/knowledge-vector-store.
       KnowledgeBaseEntity,
       KnowledgeDocumentEntity,
       KnowledgeChunkEntity,
+      KnowledgeDocumentRevisionEntity,
       KnowledgeRuntimeSettingsEntity
     ])
   ],

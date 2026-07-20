@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { WorkspaceConversationSummary } from "share-type";
 import ConversationListItem from "./ConversationListItem.vue";
 
@@ -14,6 +7,7 @@ const props = defineProps<{
   conversations: WorkspaceConversationSummary[];
   activeConversationId?: string;
   loading?: boolean;
+  hasMore?: boolean;
   getConversationTimeLabel: (value: string) => string;
   isConversationStreaming: (conversationId: string) => boolean;
 }>();
@@ -21,14 +15,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [conversationId: string];
   delete: [conversationId: string];
+  loadMorePage: [];
 }>();
 const activeButtonId = ref<string | null>(null);
-const PAGE_SIZE = 80;
-const visibleCount = ref(PAGE_SIZE);
-const loadMoreRef = ref<HTMLDivElement>();
-const visibleConversations = computed(() =>
-  props.conversations.slice(0, visibleCount.value),
-);
 const groupedConversations = computed(() => {
   const now = new Date();
   const today = new Date(
@@ -43,7 +32,7 @@ const groupedConversations = computed(() => {
     { label: "更早", items: [] as WorkspaceConversationSummary[] },
   ];
 
-  for (const conversation of visibleConversations.value) {
+  for (const conversation of props.conversations) {
     const updatedAt = new Date(conversation.updatedAt).getTime();
     const group =
       updatedAt >= today
@@ -56,46 +45,31 @@ const groupedConversations = computed(() => {
 
   return groups.filter((group) => group.items.length);
 });
-let observer: IntersectionObserver | null = null;
 
-const observeLoadMore = async () => {
-  await nextTick();
-  observer?.disconnect();
-
-  if (!loadMoreRef.value || visibleCount.value >= props.conversations.length) {
-    return;
-  }
-
-  observer = new IntersectionObserver(([entry]) => {
-    if (entry?.isIntersecting) {
-      visibleCount.value = Math.min(
-        visibleCount.value + PAGE_SIZE,
-        props.conversations.length,
-      );
-    }
-  });
-  observer.observe(loadMoreRef.value);
+const toggleActiveButton = (id: string | null) => {
+  activeButtonId.value = id === activeButtonId.value ? null : id;
 };
- const toggleActiveButton = (id: string | null)=>{
-      if(id === activeButtonId.value){
-        activeButtonId.value = null;
-      }else{
-        activeButtonId.value = id;
-      }
+const loadRef = ref<HTMLElement | null>(null);
+let observer : IntersectionObserver | null = null;
+
+watch(loadRef, (element) => {
+  if (element) {
+    observer?.observe(element);
   }
-watch(
-  () => props.conversations.length,
-  (length) => {
-    visibleCount.value = Math.min(
-      Math.max(visibleCount.value, PAGE_SIZE),
-      length || PAGE_SIZE,
-    );
-    void observeLoadMore();
-  },
-);
-watch(visibleCount, observeLoadMore);
-onMounted(observeLoadMore);
-onBeforeUnmount(() => observer?.disconnect());
+});
+onMounted(async ()=>{
+    observer = new IntersectionObserver(([entry])=>{
+       if(entry.isIntersecting){
+        //出现视口传出加载更多事件
+        emit('loadMorePage');
+       }
+    })
+})
+onBeforeUnmount(()=>{
+    if(observer){
+      observer.disconnect();
+    }
+})
 </script>
 
 <template>
@@ -119,11 +93,7 @@ onBeforeUnmount(() => observer?.disconnect());
           @select="emit('select', $event)"
         />
       </section>
-      <div
-        v-if="visibleCount < conversations.length"
-        ref="loadMoreRef"
-        class="h-px"
-      />
+       <div v-if="hasMore && !loading" ref="loadRef"> 加载更多</div>
     </template>
     <p v-else class="conversation-list__empty">暂无会话</p>
   </div>

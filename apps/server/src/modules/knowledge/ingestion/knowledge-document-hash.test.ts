@@ -18,6 +18,14 @@ test('chunk hash changes with content or structural context', () => {
   assert.notEqual(original, createKnowledgeChunkHash('使用互斥锁重建缓存', [block('并发控制')]))
 })
 
+test('chunk hash changes when embedding model changes', () => {
+  const blocks = [block('cache')]
+  assert.notEqual(
+    createKnowledgeChunkHash('content', blocks, 'model-v1'),
+    createKnowledgeChunkHash('content', blocks, 'model-v2')
+  )
+})
+
 test('document sync is due only after the configured interval', () => {
   const hour = 60 * 60 * 1000
   assert.equal(isKnowledgeSyncDue(0, 1, hour), true)

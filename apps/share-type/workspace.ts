@@ -19,6 +19,12 @@ export interface WorkspaceConversationSummary {
   model: string | null
 }
 
+export interface WorkspaceConversationPage {
+  items: WorkspaceConversationSummary[]
+  total: number
+  hasMore: boolean
+}
+
 export interface WorkspaceMessage {
   id: string
   conversationId: string

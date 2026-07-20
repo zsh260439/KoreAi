@@ -2,14 +2,18 @@ import { ref } from 'vue'
 import {
   createKnowledgeDocumentAPI,
   deleteKnowledgeDocumentAPI,
+  findKnowledgeDocumentTrashAPI,
   findKnowledgeDocumentAPI,
   findKnowledgeDocumentsAPI,
   uploadKnowledgeDocumentAPI,
+  purgeKnowledgeDocumentAPI,
+  restoreKnowledgeDocumentAPI,
   updateKnowledgeDocumentAPI
 } from '@/servers/knowledge'
 import type {
   CreateKnowledgeDocumentInput,
   KnowledgeDocument,
+  KnowledgeDocumentTrash,
   StructureAwareChunkConfig,
   UpdateKnowledgeDocumentInput
 } from 'share-type'
@@ -22,6 +26,7 @@ type UploadKnowledgeDocumentInput = {
 
 const documents = ref<KnowledgeDocument[]>([])
 const currentDocument = ref<KnowledgeDocument | null>(null)
+const trash = ref<KnowledgeDocumentTrash | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
@@ -104,9 +109,29 @@ export function useKnowledgeDocuments() {
     return response.data
   }
 
+  const loadKnowledgeDocumentTrash = async () => {
+    const response = await findKnowledgeDocumentTrashAPI()
+    trash.value = response.data
+    return response.data
+  }
+
+  const restoreKnowledgeDocument = async (docId: string) => {
+    const response = await restoreKnowledgeDocumentAPI(docId)
+    trash.value = trash.value
+      ? { ...trash.value, items: trash.value.items.filter((item) => item.id !== docId) }
+      : null
+    return response.data
+  }
+
+  const purgeKnowledgeDocument = async (docId: string) => {
+    await purgeKnowledgeDocumentAPI(docId)
+    await loadKnowledgeDocumentTrash()
+  }
+
   return {
     documents,
     currentDocument,
+    trash,
     isLoading,
     error,
     loadKnowledgeDocuments,
@@ -114,6 +139,9 @@ export function useKnowledgeDocuments() {
     createKnowledgeDocument,
     uploadKnowledgeDocument,
     updateKnowledgeDocument,
-    removeKnowledgeDocument
+    removeKnowledgeDocument,
+    loadKnowledgeDocumentTrash,
+    restoreKnowledgeDocument,
+    purgeKnowledgeDocument
   }
 }

@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
-import { ElMessage } from 'element-plus'
-import { ChevronLeft, FileUp, FolderOpen, Pencil, PlayCircle, RefreshCw, Settings2, Trash2 } from 'lucide-vue-next'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ChevronLeft, FileUp, FolderOpen, History, Pencil, PlayCircle, RefreshCw, RotateCcw, Settings2, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -11,8 +11,13 @@ import { useKnowledgeSearch } from '@/composables/knowledge/useKnowledgeSearch'
 import { useRetrievalRewritePreference } from '@/composables/knowledge/useRetrievalRewritePreference'
 import RetrievalRewriteToggle from '@/components/ui/RetrievalRewriteToggle.vue'
 import {
+  findDocumentRevisionsAPI,
+  rollbackDocumentRevisionAPI
+} from '@/servers/knowledge'
+import {
   DEFAULT_STRUCTURE_AWARE_CHUNK_CONFIG,
   type KnowledgeDocument,
+  type KnowledgeDocumentRevision,
   type StructureAwareChunkConfig
 } from 'share-type'
 
@@ -33,11 +38,15 @@ const router = useRouter()
 const { knowledgeBases, loadKnowledgeBases } = useKnowledgeBases()
 const {
   documents,
+  trash,
   isLoading: isLoadingDocuments,
   loadKnowledgeDocuments,
   uploadKnowledgeDocument,
   updateKnowledgeDocument,
-  removeKnowledgeDocument
+  removeKnowledgeDocument,
+  loadKnowledgeDocumentTrash,
+  restoreKnowledgeDocument,
+  purgeKnowledgeDocument
 } =
   useKnowledgeDocuments()
 const { rebuildKnowledgeChunks } = useKnowledgeChunks()
@@ -91,6 +100,11 @@ const chunkDialogOpen = ref(false)
 const isRebuildingChunks = ref(false)
 const deleteDialogOpen = ref(false)
 const isDeletingDocument = ref(false)
+const trashDialogOpen = ref(false)
+const trashActionId = ref('')
+const revisionDialogOpen = ref(false)
+const revisions = ref<KnowledgeDocumentRevision[]>([])
+const revisionActionId = ref('')
 
 const statusOptions = [
   { value: 'all', label: '全部状态' },
@@ -443,16 +457,96 @@ const submitDeleteConfirm = async () => {
     await removeKnowledgeDocument(activeDocument.value.id)
     await loadKnowledgeBases()
     deleteDialogOpen.value = false
-    ElMessage.success('文档已删除')
+    ElMessage.success('文档已移入回收站，可在 7 天内恢复')
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '文档删除失败')
+    const message = error instanceof Error ? error.message : '文档删除失败'
+    ElMessage.error(message)
+    if (message.includes('5GB')) await openTrash()
   } finally {
     isDeletingDocument.value = false
   }
 }
 
+const openTrash = async () => {
+  try {
+    await loadKnowledgeDocumentTrash()
+    trashDialogOpen.value = true
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '回收站加载失败')
+  }
+}
+
+const restoreTrashDocument = async (document: KnowledgeDocument) => {
+  trashActionId.value = document.id
+  try {
+    await restoreKnowledgeDocument(document.id)
+    await Promise.all([loadKnowledgeDocumentTrash(), loadKnowledgeDocuments(kbId.value)])
+    ElMessage.success('文档已恢复')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '文档恢复失败')
+  } finally {
+    trashActionId.value = ''
+  }
+}
+
+const purgeTrashDocument = async (document: KnowledgeDocument) => {
+  try {
+    await ElMessageBox.confirm(`永久删除「${document.name}」及其全部 Chunk？`, '永久删除', {
+      confirmButtonText: '永久删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+  trashActionId.value = document.id
+  try {
+    await purgeKnowledgeDocument(document.id)
+    ElMessage.success('已加入永久删除队列')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '永久删除失败')
+  } finally {
+    trashActionId.value = ''
+  }
+}
+
 const openChunkLog = (document: KnowledgeDocument) => {
   router.push(`/admin/knowledge/${kbId.value}/docs/${document.id}`)
+}
+
+const openRevisions = async (document: KnowledgeDocument) => {
+  activeDocumentId.value = document.id
+  try {
+    revisions.value = (await findDocumentRevisionsAPI(document.id)).data
+    revisionDialogOpen.value = true
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '版本记录加载失败')
+  }
+}
+
+const rollbackRevision = async (revision: KnowledgeDocumentRevision) => {
+  if (!activeDocument.value || revision.active) return
+  try {
+    await ElMessageBox.confirm('回滚后只切换检索索引，不会改写本地原文件。', '回滚索引版本', {
+      confirmButtonText: '确认回滚',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+
+  revisionActionId.value = revision.id
+  try {
+    await rollbackDocumentRevisionAPI(activeDocument.value.id, revision.id)
+    revisions.value = (await findDocumentRevisionsAPI(activeDocument.value.id)).data
+    await loadKnowledgeDocuments(kbId.value)
+    ElMessage.success('索引版本已回滚')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '版本回滚失败')
+  } finally {
+    revisionActionId.value = ''
+  }
 }
 
 const openSearchHitDocument = (documentId: string, chunkId: string) => {
@@ -550,6 +644,10 @@ onUnmounted(() => window.clearInterval(processingPoll))
         </div>
 
         <div class="doc-stage__actions">
+          <el-button @click="openTrash">
+            <Trash2 class="h-4 w-4" />
+            回收站
+          </el-button>
           <el-button @click="openKnowledgeSettings">
             <Settings2 class="h-4 w-4" />
             检索参数
@@ -804,7 +902,7 @@ onUnmounted(() => window.clearInterval(processingPoll))
               <template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
             </el-table-column>
 
-            <el-table-column label="操作" width="160" align="right">
+            <el-table-column label="操作" width="190" align="right">
               <template #default="{ row }">
                 <div class="flex items-center justify-end gap-1">
                   <el-button link :disabled="row.status === 'processing'" @click="openEdit(row)" title="编辑">
@@ -820,6 +918,9 @@ onUnmounted(() => window.clearInterval(processingPoll))
                   </el-button>
                   <el-button link @click="openChunkLog(row)" title="查看分块">
                     <FolderOpen class="h-4 w-4" />
+                  </el-button>
+                  <el-button link :disabled="row.status !== 'indexed'" @click="openRevisions(row)" title="版本记录">
+                    <History class="h-4 w-4" />
                   </el-button>
                   <el-button link @click="openDeleteConfirm(row)" title="删除">
                     <Trash2 class="h-4 w-4" />
@@ -955,7 +1056,7 @@ onUnmounted(() => window.clearInterval(processingPoll))
     <el-dialog v-model="chunkDialogOpen" title="重新分块" width="460px" destroy-on-close>
       <div class="space-y-2 text-sm">
         <p>文档 [{{ activeDocumentName }}] 当前已有 {{ activeDocument?.chunkCount ?? 0 }} 条分块记录。</p>
-        <p class="text-[#f59e0b]">重新分块会清空旧 chunk，再按当前分块配置重新生成。</p>
+        <p class="text-[#f59e0b]">重新分块会生成新版本，完成后一次切换；未变化的 Chunk 会复用向量。</p>
       </div>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -966,13 +1067,63 @@ onUnmounted(() => window.clearInterval(processingPoll))
     </el-dialog>
 
     <el-dialog v-model="deleteDialogOpen" title="删除文档" width="420px" destroy-on-close>
-      <p class="text-sm leading-6 text-slate-500">删除后不可恢复，确认删除当前文档吗？</p>
+      <p class="text-sm leading-6 text-slate-500">文档会移入回收站并立即退出检索，7 天后自动永久删除。</p>
       <template #footer>
         <div class="flex justify-end gap-3">
           <el-button @click="deleteDialogOpen = false">取消</el-button>
           <el-button type="danger" :loading="isDeletingDocument" @click="submitDeleteConfirm">删除</el-button>
         </div>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="trashDialogOpen" title="回收站" width="680px" destroy-on-close>
+      <div class="trash-summary">
+        <span>保留 {{ trash?.retentionDays ?? 7 }} 天</span>
+        <span>{{ formatSize(trash?.usedBytes ?? 0) }} / {{ formatSize(trash?.quotaBytes ?? 0) }}</span>
+      </div>
+      <div v-if="trash?.items.length" class="trash-list">
+        <div v-for="item in trash.items" :key="item.id" class="trash-item">
+          <div>
+            <strong>{{ item.name }}</strong>
+            <small>{{ formatSize(item.fileSizeBytes) }} · {{ item.purgeAfter ? formatDateTime(item.purgeAfter) : '-' }} 到期</small>
+          </div>
+          <div class="trash-item__actions">
+            <el-button :loading="trashActionId === item.id" @click="restoreTrashDocument(item)">
+              <RotateCcw class="h-4 w-4" />
+              恢复
+            </el-button>
+            <el-button type="danger" plain :loading="trashActionId === item.id" @click="purgeTrashDocument(item)">
+              永久删除
+            </el-button>
+          </div>
+        </div>
+      </div>
+      <p v-else class="trash-empty">回收站为空</p>
+    </el-dialog>
+
+    <el-dialog v-model="revisionDialogOpen" title="索引版本" width="640px" destroy-on-close>
+      <p class="mb-4 text-sm leading-6 text-slate-500">
+        旧索引保留 7 天。回滚只切换参与检索的 Chunk，不会改写本地原文件。
+      </p>
+      <div class="trash-list">
+        <div v-for="revision in revisions" :key="revision.id" class="trash-item">
+          <div>
+            <strong>{{ revision.active ? '当前版本' : formatDateTime(revision.createdAt) }}</strong>
+            <small>
+              {{ revision.chunkCount }} 个 Chunk
+              <template v-if="revision.expiresAt"> · {{ formatDateTime(revision.expiresAt) }} 到期</template>
+            </small>
+          </div>
+          <el-button
+            v-if="!revision.active"
+            :loading="revisionActionId === revision.id"
+            @click="rollbackRevision(revision)"
+          >
+            回滚
+          </el-button>
+          <span v-else class="text-sm text-emerald-600">使用中</span>
+        </div>
+      </div>
     </el-dialog>
   </section>
 </template>
@@ -1043,6 +1194,50 @@ onUnmounted(() => window.clearInterval(processingPoll))
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.trash-summary,
+.trash-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.trash-summary {
+  margin-bottom: 12px;
+  color: #777770;
+  font-size: 13px;
+}
+
+.trash-list {
+  border-top: 1px solid #e3e3dd;
+}
+
+.trash-item {
+  min-height: 72px;
+  border-bottom: 1px solid #e3e3dd;
+}
+
+.trash-item strong,
+.trash-item small {
+  display: block;
+}
+
+.trash-item small {
+  margin-top: 5px;
+  color: #8a8a83;
+}
+
+.trash-item__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.trash-empty {
+  margin: 32px 0;
+  color: #8a8a83;
+  text-align: center;
 }
 
 .doc-stage__headline {

@@ -40,6 +40,7 @@ export class KnowledgeVectorStoreService implements OnModuleInit {
         INNER JOIN "knowledge_document" AS document ON document.id = chunk."documentId"
         WHERE chunk.embedding IS NOT NULL
           AND document.status = 'indexed'
+          AND chunk."revisionId" = document."activeRevisionId"
           AND ($2::uuid IS NULL OR chunk."knowledgeBaseId" = $2::uuid)
         ORDER BY chunk.embedding <=> $1::vector
         LIMIT $3

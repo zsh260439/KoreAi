@@ -17,6 +17,9 @@ export class KnowledgeChunkEntity {
   documentId!: string
 
   @Column({ type: 'uuid', nullable: true })
+  revisionId!: string | null
+
+  @Column({ type: 'uuid', nullable: true })
   knowledgeBaseId!: string | null
 
   @Column({ type: 'varchar', length: 255, nullable: true })
