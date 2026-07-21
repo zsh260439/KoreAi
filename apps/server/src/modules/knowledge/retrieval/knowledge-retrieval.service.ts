@@ -48,7 +48,7 @@ export class KnowledgeRetrievalService {
   ): Promise<KnowledgeSearchResponse> {
     const analysisEnabled = options.runtimeConfig.retrieval.queryAnalysisEnabled
     let plan = await this.knowledgeQueryEngineService.buildPlan(query, {
-      enableAnalysis: analysisEnabled && options.forceRewrite === true,
+      enableAnalysis: analysisEnabled,
       forceAnalysis: analysisEnabled && options.forceRewrite === true,
       runtimeConfig: options.runtimeConfig,
       requestedTopK: topK
@@ -525,7 +525,7 @@ function shouldFallback(
     }
   }
 
-  if (plan.protectedTerms.length > 0) {
+  if (hasStructuredProtectedTerms(plan.protectedTerms)) {
     const topWindow = hits.slice(0, Math.min(3, hits.length))
     const hasExactEntityCoverage = topWindow.some((hit) =>
       isStrongProtectedTermMatch(hit, plan.protectedTerms)
@@ -1180,6 +1180,10 @@ function splitProtectedTerms(protectedTerms: string[]): {
     structured,
     structuredSet: new Set(structured)
   }
+}
+
+function hasStructuredProtectedTerms(protectedTerms: string[]): boolean {
+  return splitProtectedTerms(protectedTerms).structured.length > 0
 }
 
 function countSiblingIdentifierConflicts(

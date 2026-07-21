@@ -132,7 +132,7 @@ function buildChunksWithinSection(
 function splitOversizedBlocks(blocks: StructuredBlock[], targetChars: number): StructuredBlock[] {
   return blocks.flatMap((block) => {
     const content = block.content.trim()
-    if (content.length <= targetChars) {
+    if (content.length <= targetChars || block.blockType === 'ocr_image') {
       return block
     }
 
