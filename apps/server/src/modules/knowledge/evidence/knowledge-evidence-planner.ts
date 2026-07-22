@@ -79,6 +79,16 @@ const FIELD_SLOT_DEFINITIONS: Array<{
 
 const FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '阈值']
 
+const SUPPLEMENTAL_FIELD_SLOT_ALIASES: Record<string, string[]> = {
+  main_control_threshold: ['主控制阈值', '主控制阈值固定', '主阈值', '管控线', '控制阈值', '核心阈值'],
+  alert_threshold: ['预警值', '预警阈值', '预警线', '告警值', '告警阈值', '附件仪表盘', '附件看板', '仪表盘', '看板', 'alert threshold', 'visual alert'],
+  action_code: ['处置代码', '动作码', '动作代码', '处置编码', 'action code'],
+  responsible_role: ['责任角色', '负责人', '责任人', '归谁确认', '谁确认', 'owner', 'role'],
+  response_time: ['响应时限', '响应时间', '处理时限', '复核时限', '多久内处理', '多久内要处理完', '多久内完成', '多久处理', 'escalation window']
+}
+
+const SUPPLEMENTAL_FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '附件仪表盘', '附件看板', '看板', '阈值']
+
 const REFERENCE_TRIGGER_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|标准|规范|规则|制度|证据|合规|审计|策略|手册|指南|参考|gold_document|fully_grounded|normal_confidence|high_confidence|reviewed_but_not_grounded|recall_gap|exact_code|reference|standard|policy|rule|guideline|playbook|confidence|citation|grounded|recall/i
 
@@ -152,6 +162,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     .filter((term) => !isValueBearingEvidenceTerm(term))
     .filter((term) => !isFieldSlotAlias(term))
     .filter((term) => !isFieldContextTerm(term))
+    .filter((term) => fieldSlots.length === 0 || REFERENCE_TRIGGER_PATTERN.test(term))
     .slice(0, 24)
   const referenceTerms = evidenceTerms
     .filter((term) => REFERENCE_TRIGGER_PATTERN.test(term))
@@ -451,11 +462,18 @@ function matchFieldSlots(text: string, slots: string[]): string[] {
   return uniqueStrings(result)
 }
 
+function getFieldSlotAliases(definition: (typeof FIELD_SLOT_DEFINITIONS)[number]): string[] {
+  return uniqueStrings([
+    ...definition.aliases,
+    ...(SUPPLEMENTAL_FIELD_SLOT_ALIASES[definition.slot] ?? [])
+  ])
+}
+
 function hasFieldSlotValueSignal(
   text: string,
   definition: (typeof FIELD_SLOT_DEFINITIONS)[number]
 ): boolean {
-  for (const alias of definition.aliases) {
+  for (const alias of getFieldSlotAliases(definition)) {
     const normalizedAlias = normalizeTerm(alias)
     const index = text.indexOf(normalizedAlias)
     if (index < 0) {
@@ -489,7 +507,7 @@ function extractFieldSlots(query: string, terms: string[]): string[] {
   const normalizedValues = [query, ...terms].map(normalizeTerm)
   return FIELD_SLOT_DEFINITIONS
     .filter((definition) =>
-      definition.aliases.some((alias) => {
+      getFieldSlotAliases(definition).some((alias) => {
         const normalizedAlias = normalizeTerm(alias)
         return normalizedValues.some((value) => value.includes(normalizedAlias))
       })
@@ -500,13 +518,14 @@ function extractFieldSlots(query: string, terms: string[]): string[] {
 function isFieldSlotAlias(term: string): boolean {
   const normalizedTerm = normalizeTerm(term)
   return FIELD_SLOT_DEFINITIONS.some((definition) =>
-    definition.aliases.some((alias) => normalizeTerm(alias) === normalizedTerm)
+    getFieldSlotAliases(definition).some((alias) => normalizeTerm(alias) === normalizedTerm)
   )
 }
 
 function isFieldContextTerm(term: string): boolean {
   const normalizedTerm = normalizeTerm(term)
-  return FIELD_CONTEXT_TERMS.some((item) => normalizeTerm(item) === normalizedTerm)
+  return [...FIELD_CONTEXT_TERMS, ...SUPPLEMENTAL_FIELD_CONTEXT_TERMS]
+    .some((item) => normalizeTerm(item) === normalizedTerm)
 }
 
 function normalizeText(value: string): string {

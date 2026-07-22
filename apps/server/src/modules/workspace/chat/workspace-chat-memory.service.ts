@@ -32,6 +32,8 @@ const SAFE_ACKNOWLEDGEMENT_PATTERN =
 const SAFE_GREETING_PATTERN = /^(?:hi|hello|hey|你好|您好)$/i
 const STRUCTURED_IDENTIFIER_PATTERN =
   /\b[a-z0-9]+(?:[-_./:][a-z0-9]+)+\b|\b[a-z]{2,12}\d{2,4}\b/gi
+const MEMORY_KEYWORD_PATTERN =
+  /[\p{Script=Han}]{2,}|[a-z][a-z0-9_./-]{2,}/giu
 
 @Injectable()
 export class WorkspaceChatMemoryService {
@@ -67,6 +69,10 @@ export class WorkspaceChatMemoryService {
 
     if (hasExplicitKnowledgeReference(query)) {
       return createPassthroughResolution(query, localMemory)
+    }
+
+    if (localMemory.strongMatch) {
+      return createLocalMemoryResolution(query, localMemory)
     }
 
     const client = await this.createClient()
@@ -270,7 +276,7 @@ function parseMemoryResolution(
 
 function createPassthroughResolution(
   query: string,
-  localMemory: LocalMemoryBoard = { summary: null, hints: [] }
+  localMemory: LocalMemoryBoard = { summary: null, hints: [], strongMatch: false }
 ): WorkspaceChatMemoryResolution {
   return {
     intent: 'new_question',
@@ -282,6 +288,38 @@ function createPassthroughResolution(
     memoryBoardSource: localMemory.summary ? 'local' : 'none',
     applied: false
   }
+}
+
+function createLocalMemoryResolution(
+  query: string,
+  localMemory: LocalMemoryBoard
+): WorkspaceChatMemoryResolution {
+  return {
+    intent: looksLikeFollowUp(query) ? 'followup_question' : 'new_question',
+    groundedQuery: buildLocalMemoryGroundedQuery(query, localMemory.hints),
+    directAnswer: null,
+    scopeSummary: null,
+    memoryBoardSummary: localMemory.summary,
+    retrievalHints: localMemory.hints,
+    memoryBoardSource: 'local',
+    applied: localMemory.hints.length > 0
+  }
+}
+
+function buildLocalMemoryGroundedQuery(query: string, hints: string[]): string {
+  const documentHints = hints.filter((hint) => /\.[a-z0-9]+$/i.test(hint)).slice(0, 2)
+  const identifierHints = hints.filter((hint) =>
+    !documentHints.includes(hint) && isGroundingHint(hint)
+  ).slice(0, 3)
+  return uniqueStrings([
+    query,
+    ...documentHints,
+    ...identifierHints
+  ]).join(' ')
+}
+
+function isGroundingHint(value: string): boolean {
+  return hasExplicitKnowledgeReference(value) || /^[A-Z]+-[A-Z]+-\d{1,4}$/i.test(value)
 }
 
 function resolveSafeDirectReply(query: string): string | null {
@@ -303,6 +341,7 @@ function hasExplicitKnowledgeReference(query: string): boolean {
 type LocalMemoryBoard = {
   summary: string | null
   hints: string[]
+  strongMatch: boolean
 }
 
 type MemoryFactEntry = {
@@ -316,7 +355,8 @@ type MemoryFactEntry = {
 
 function buildLocalMemoryBoard(query: string, messages: WorkspaceMessage[]): LocalMemoryBoard {
   const entries = buildMemoryFactEntries(messages)
-  const selectedEntries = selectRelevantMemoryEntries(query, entries)
+  const selection = selectRelevantMemoryEntries(query, entries)
+  const selectedEntries = selection.entries
   const referencedObjects = uniqueStrings(
     selectedEntries.flatMap((entry) => [
       ...entry.identifiers,
@@ -338,7 +378,8 @@ function buildLocalMemoryBoard(query: string, messages: WorkspaceMessage[]): Loc
 
   return {
     summary: parts.length ? parts.join('\n') : null,
-    hints: uniqueStrings(selectedEntries.flatMap((entry) => entry.hints)).slice(0, 8)
+    hints: uniqueStrings(selectedEntries.flatMap((entry) => entry.hints)).slice(0, 8),
+    strongMatch: selection.strongMatch
   }
 }
 
@@ -362,9 +403,12 @@ function buildMemoryFactEntries(messages: WorkspaceMessage[]): MemoryFactEntry[]
       const key = buildMemoryEntryKey(citation.documentName, identifiers)
       const current = entries.get(key)
       const hints = uniqueStrings([
+        ...extractStructuredIdentifiers(message.content),
         ...identifiers,
         citation.documentName,
-        sectionPath
+        sectionPath,
+        ...extractMemoryKeywords(message.content),
+        ...extractMemoryKeywords(citation.content)
       ]).filter(Boolean)
 
       if (!current) {
@@ -393,14 +437,17 @@ function buildMemoryFactEntries(messages: WorkspaceMessage[]): MemoryFactEntry[]
   return [...entries.values()].sort((left, right) => right.recency - left.recency)
 }
 
-function selectRelevantMemoryEntries(query: string, entries: MemoryFactEntry[]): MemoryFactEntry[] {
+function selectRelevantMemoryEntries(
+  query: string,
+  entries: MemoryFactEntry[]
+): { entries: MemoryFactEntry[]; strongMatch: boolean } {
   if (entries.length === 0) {
-    return []
+    return { entries: [], strongMatch: false }
   }
 
   const queryIdentifiers = extractStructuredIdentifiers(query)
   if (queryIdentifiers.length > 0) {
-    return entries
+    const matchedEntries = entries
       .filter((entry) =>
         entry.identifiers.some((identifier) =>
           queryIdentifiers.some((queryIdentifier) =>
@@ -412,25 +459,28 @@ function selectRelevantMemoryEntries(query: string, entries: MemoryFactEntry[]):
         )
       )
       .slice(0, 3)
+    return { entries: matchedEntries, strongMatch: matchedEntries.length > 0 }
   }
 
   if (looksLikeFollowUp(query)) {
-    return entries.slice(0, 1)
+    return { entries: entries.slice(0, 1), strongMatch: true }
   }
 
-  const normalizedQuery = normalizeLoose(query)
-  return entries
+  const queryKeywords = extractMemoryKeywords(query)
+  const rankedEntries = entries
     .map((entry) => ({
       entry,
-      score: entry.hints.reduce(
-        (total, hint) => total + (normalizedQuery.includes(normalizeLoose(hint)) ? 1 : 0),
-        0
-      )
+      score: scoreMemoryEntry(queryKeywords, entry)
     }))
     .filter((item) => item.score > 0)
     .sort((left, right) => right.score - left.score || right.entry.recency - left.entry.recency)
     .slice(0, 3)
     .map((item) => item.entry)
+
+  return {
+    entries: rankedEntries,
+    strongMatch: rankedEntries.length > 0 && scoreMemoryEntry(queryKeywords, rankedEntries[0]) >= 2
+  }
 }
 
 function extractAnswerFacts(content: string): string[] {
@@ -439,6 +489,53 @@ function extractAnswerFacts(content: string): string[] {
     .map((item) => item.trim())
     .filter((item) => item.length >= 4)
     .slice(0, 4)
+}
+
+function extractMemoryKeywords(value: string): string[] {
+  const tokens = normalizeSingleLine(value).match(MEMORY_KEYWORD_PATTERN) ?? []
+  return uniqueStrings([
+    ...tokens,
+    ...tokens.flatMap(extractCjkMemoryShingles)
+  ]
+    .map((item) => item.trim())
+    .filter((item) => item.length >= 2)
+  ).slice(0, 120)
+}
+
+function extractCjkMemoryShingles(value: string): string[] {
+  if (!/^[\p{Script=Han}]+$/u.test(value)) {
+    return []
+  }
+
+  const result: string[] = []
+  for (const size of [2, 3, 4, 5, 6]) {
+    for (let index = 0; index <= value.length - size; index += 1) {
+      result.push(value.slice(index, index + size))
+    }
+  }
+  return result
+}
+
+function scoreMemoryEntry(queryKeywords: string[], entry: MemoryFactEntry): number {
+  if (queryKeywords.length === 0) {
+    return 0
+  }
+
+  const entryKeywords = uniqueStrings([
+    ...entry.hints,
+    ...entry.facts.flatMap(extractMemoryKeywords)
+  ]).map(normalizeLoose)
+
+  return queryKeywords.reduce((score, keyword) => {
+    const normalizedKeyword = normalizeLoose(keyword)
+    if (!normalizedKeyword) {
+      return score
+    }
+
+    return score + (entryKeywords.some((item) =>
+      item.includes(normalizedKeyword) || normalizedKeyword.includes(item)
+    ) ? 1 : 0)
+  }, 0)
 }
 
 function buildMemoryEntryKey(documentName: string, identifiers: string[]): string {

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ElMessage } from "element-plus";
 import {
   ChevronDown,
@@ -42,43 +42,43 @@ type RuntimeFieldRule = {
 const runtimeFieldRules = {
   previewTopK: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.previewTopK,
-    hint: "控制管理台检索预览返回数量",
+    hint: "管理端检索预览返回的 chunk 数。",
   },
   workspaceTopK: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.workspaceTopK,
-    hint: "控制问答默认参与回答与展示的 chunk 数",
+    hint: "工作台问答默认注入并展示的 chunk 数。",
   },
   candidateMultiplier: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.candidateMultiplier,
-    hint: "按 TopK 放大候选集",
+    hint: "按 TopK 放大候选池。",
   },
   minCandidateLimit: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.minCandidateLimit,
-    hint: "候选集最小数量",
+    hint: "候选池最小数量。",
   },
   maxCandidateLimit: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.maxCandidateLimit,
-    hint: "候选集最大数量",
+    hint: "候选池最大数量。",
   },
   bm25Weight: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.bm25Weight,
     step: 0.1,
-    hint: "控制 BM25 融合权重",
+    hint: "控制 BM25 融合权重。",
   },
   vectorWeight: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.vectorWeight,
     step: 0.1,
-    hint: "控制向量召回融合权重",
+    hint: "控制向量召回融合权重。",
   },
   queryAnalysisTemperature: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryAnalysisTemperature,
     step: 0.1,
-    hint: "控制 Query Analysis 温度",
+    hint: "控制 Query Analysis 温度。",
   },
   answerTemperature: {
     ...KNOWLEDGE_RUNTIME_CONFIG_LIMITS.answerTemperature,
     step: 0.1,
-    hint: "控制回答生成温度",
+    hint: "控制回答生成温度。",
   },
 } satisfies Record<string, RuntimeFieldRule>;
 
@@ -87,7 +87,7 @@ const { knowledgeBases, loadKnowledgeBases, updateKnowledgeBase } =
   useKnowledgeBases();
 const globalRuntimeSettings = ref<KnowledgeGlobalRuntimeSettings | null>(null);
 
-// 空字符串代表全库搜索，对应运行时不传 knowledgeBaseId。
+// 空字符串表示全库搜索，对应运行时不传 knowledgeBaseId。
 const selectedKnowledgeBaseId = ref("");
 const saving = ref(false);
 const configOpen = ref(true);
@@ -198,7 +198,7 @@ onMounted(async () => {
     void knowledgeBaseResponse;
     globalRuntimeSettings.value = globalRuntimeSettingsResponse.data;
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : "加载参数失败");
+    ElMessage.error(error instanceof Error ? error.message : "鍔犺浇鍙傛暟澶辫触");
     globalRuntimeSettings.value = {
       runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
       createdAt: null,
@@ -321,29 +321,6 @@ function normalizeQueryMappingsForSave(): KnowledgeQueryMapping[] {
     .filter((mapping) => mapping.trigger && mapping.terms.length > 0);
 }
 
-function addQueryMapping(): void {
-  form.retrieval.queryMappings.push({ trigger: "", terms: [] });
-}
-
-function removeQueryMapping(index: number): void {
-  form.retrieval.queryMappings.splice(index, 1);
-}
-
-function formatMappingTerms(terms: string[]): string {
-  return terms.join(", ");
-}
-
-function updateMappingTerms(index: number, value: string): void {
-  const mapping = form.retrieval.queryMappings[index];
-  if (!mapping) {
-    return;
-  }
-
-  mapping.terms = value
-    .split(/[,，;；\n]/)
-    .map((term) => term.trim())
-    .filter(Boolean);
-}
 </script>
 
 <template>
@@ -359,14 +336,8 @@ function updateMappingTerms(index: number, value: string): void {
           <span>
             <SlidersHorizontal class="h-4 w-4" />
             <span>
-              <strong>{{
-                isGlobalScope ? "全库运行配置" : "单库覆盖配置"
-              }}</strong>
-              <small>{{
-                isGlobalScope
-                  ? "用于未指定知识库的搜索"
-                  : selectedKnowledgeBase?.name
-              }}</small>
+              <strong>{{ isGlobalScope ? '全局默认参数' : '单库覆盖参数' }}</strong>
+              <small>{{ isGlobalScope ? '用于未指定知识库的全库搜索' : selectedKnowledgeBase?.name }}</small>
             </span>
           </span>
           <ChevronDown class="h-4 w-4" :class="{ 'is-open': configOpen }" />
@@ -377,28 +348,13 @@ function updateMappingTerms(index: number, value: string): void {
             <section class="runtime-scope">
               <header>
                 <h3>作用范围</h3>
-                <span>保存到全局，或覆盖一个知识库</span>
+                <span>先选全局默认，或覆盖某一个知识库</span>
               </header>
-              <div
-                class="runtime-scope__options"
-                role="group"
-                aria-label="参数作用范围"
-              >
-                <button
-                  type="button"
-                  :class="{ 'is-active': isGlobalScope }"
-                  :aria-pressed="isGlobalScope"
-                  @click="selectScope('global')"
-                >
+              <div class="runtime-scope__options" role="group" aria-label="参数作用范围">
+                <button type="button" :class="{ 'is-active': isGlobalScope }" :aria-pressed="isGlobalScope" @click="selectScope('global')">
                   全局默认
                 </button>
-                <button
-                  type="button"
-                  :class="{ 'is-active': !isGlobalScope }"
-                  :aria-pressed="!isGlobalScope"
-                  :disabled="!knowledgeBases.length"
-                  @click="selectScope('single')"
-                >
+                <button type="button" :class="{ 'is-active': !isGlobalScope }" :aria-pressed="!isGlobalScope" :disabled="!knowledgeBases.length" @click="selectScope('single')">
                   单库覆盖
                 </button>
               </div>
@@ -409,128 +365,32 @@ function updateMappingTerms(index: number, value: string): void {
                 popper-class="knowledge-scope-select-popper"
                 aria-label="选择覆盖知识库"
               >
-                <el-option
-                  v-for="item in knowledgeBases"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
-                />
+                <el-option v-for="item in knowledgeBases" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
             </section>
 
             <section class="runtime-group">
-              <h3>召回范围</h3>
-              <label>
-                <span>回答片段数<small>workspaceTopK</small></span>
-                <input
-                  v-model.number="form.retrieval.workspaceTopK"
-                  type="number"
-                  :min="runtimeFieldRules.workspaceTopK.min"
-                  :max="runtimeFieldRules.workspaceTopK.max"
-                />
-              </label>
-              <label>
-                <span>预览片段数<small>previewTopK</small></span>
-                <input
-                  v-model.number="form.retrieval.previewTopK"
-                  type="number"
-                  :min="runtimeFieldRules.previewTopK.min"
-                  :max="runtimeFieldRules.previewTopK.max"
-                />
-              </label>
-              <label>
-                <span>候选倍数<small>candidateMultiplier</small></span>
-                <input
-                  v-model.number="form.retrieval.candidateMultiplier"
-                  type="number"
-                  :min="runtimeFieldRules.candidateMultiplier.min"
-                  :max="runtimeFieldRules.candidateMultiplier.max"
-                />
-              </label>
-              <label>
-                <span>候选下限<small>minCandidateLimit</small></span>
-                <input
-                  v-model.number="form.retrieval.minCandidateLimit"
-                  type="number"
-                  :min="runtimeFieldRules.minCandidateLimit.min"
-                  :max="runtimeFieldRules.minCandidateLimit.max"
-                />
-              </label>
-              <label>
-                <span>候选上限<small>maxCandidateLimit</small></span>
-                <input
-                  v-model.number="form.retrieval.maxCandidateLimit"
-                  type="number"
-                  :min="runtimeFieldRules.maxCandidateLimit.min"
-                  :max="runtimeFieldRules.maxCandidateLimit.max"
-                />
-              </label>
+              <h3>召回参数</h3>
+              <label><span>回答片段数 <small>workspaceTopK</small></span><input v-model.number="form.retrieval.workspaceTopK" type="number" :min="runtimeFieldRules.workspaceTopK.min" :max="runtimeFieldRules.workspaceTopK.max" /></label>
+              <label><span>预览片段数 <small>previewTopK</small></span><input v-model.number="form.retrieval.previewTopK" type="number" :min="runtimeFieldRules.previewTopK.min" :max="runtimeFieldRules.previewTopK.max" /></label>
+              <label><span>候选倍数 <small>candidateMultiplier</small></span><input v-model.number="form.retrieval.candidateMultiplier" type="number" :min="runtimeFieldRules.candidateMultiplier.min" :max="runtimeFieldRules.candidateMultiplier.max" /></label>
+              <label><span>候选下限 <small>minCandidateLimit</small></span><input v-model.number="form.retrieval.minCandidateLimit" type="number" :min="runtimeFieldRules.minCandidateLimit.min" :max="runtimeFieldRules.minCandidateLimit.max" /></label>
+              <label><span>候选上限 <small>maxCandidateLimit</small></span><input v-model.number="form.retrieval.maxCandidateLimit" type="number" :min="runtimeFieldRules.maxCandidateLimit.min" :max="runtimeFieldRules.maxCandidateLimit.max" /></label>
             </section>
 
             <section class="runtime-group">
               <h3>排序与生成</h3>
-              <label>
-                <span>查询分析<small>queryAnalysisEnabled</small></span>
-                <el-switch v-model="form.retrieval.queryAnalysisEnabled" />
-              </label>
-              <label>
-                <span>BM25 权重<small>bm25Weight</small></span>
-                <input
-                  v-model.number="form.retrieval.bm25Weight"
-                  type="number"
-                  :min="runtimeFieldRules.bm25Weight.min"
-                  :max="runtimeFieldRules.bm25Weight.max"
-                  :step="runtimeFieldRules.bm25Weight.step"
-                />
-              </label>
-              <label>
-                <span>向量权重<small>vectorWeight</small></span>
-                <input
-                  v-model.number="form.retrieval.vectorWeight"
-                  type="number"
-                  :min="runtimeFieldRules.vectorWeight.min"
-                  :max="runtimeFieldRules.vectorWeight.max"
-                  :step="runtimeFieldRules.vectorWeight.step"
-                />
-              </label>
-              <label>
-                <span>分析温度<small>queryAnalysisTemperature</small></span>
-                <input
-                  v-model.number="form.retrieval.queryAnalysisTemperature"
-                  type="number"
-                  :min="runtimeFieldRules.queryAnalysisTemperature.min"
-                  :max="runtimeFieldRules.queryAnalysisTemperature.max"
-                  :step="runtimeFieldRules.queryAnalysisTemperature.step"
-                />
-              </label>
-              <label>
-                <span>回答温度<small>temperature</small></span>
-                <input
-                  v-model.number="form.answer.temperature"
-                  type="number"
-                  :min="runtimeFieldRules.answerTemperature.min"
-                  :max="runtimeFieldRules.answerTemperature.max"
-                  :step="runtimeFieldRules.answerTemperature.step"
-                />
-              </label>
+              <label><span>启用 Query Analysis <small>queryAnalysisEnabled</small></span><el-switch v-model="form.retrieval.queryAnalysisEnabled" /></label>
+              <label><span>BM25 权重 <small>bm25Weight</small></span><input v-model.number="form.retrieval.bm25Weight" type="number" :min="runtimeFieldRules.bm25Weight.min" :max="runtimeFieldRules.bm25Weight.max" :step="runtimeFieldRules.bm25Weight.step" /></label>
+              <label><span>向量权重 <small>vectorWeight</small></span><input v-model.number="form.retrieval.vectorWeight" type="number" :min="runtimeFieldRules.vectorWeight.min" :max="runtimeFieldRules.vectorWeight.max" :step="runtimeFieldRules.vectorWeight.step" /></label>
+              <label><span>分析温度 <small>queryAnalysisTemperature</small></span><input v-model.number="form.retrieval.queryAnalysisTemperature" type="number" :min="runtimeFieldRules.queryAnalysisTemperature.min" :max="runtimeFieldRules.queryAnalysisTemperature.max" :step="runtimeFieldRules.queryAnalysisTemperature.step" /></label>
+              <label><span>回答温度 <small>temperature</small></span><input v-model.number="form.answer.temperature" type="number" :min="runtimeFieldRules.answerTemperature.min" :max="runtimeFieldRules.answerTemperature.max" :step="runtimeFieldRules.answerTemperature.step" /></label>
             </section>
 
             <footer class="runtime-footer">
-              <span
-                >{{ selectedSummary?.targetLabel }} ·
-                {{ selectedSummary?.updatedAt }}</span
-              >
-              <button type="button" class="runtime-reset" @click="handleReset">
-                <RefreshCw class="h-4 w-4" />恢复默认
-              </button>
-              <button
-                type="button"
-                class="runtime-save"
-                :disabled="saving || !canSave"
-                @click="handleSave"
-              >
-                <Save class="h-4 w-4" />{{ saving ? "保存中" : "保存配置" }}
-              </button>
+              <span>{{ selectedSummary?.targetLabel }} · {{ selectedSummary?.updatedAt }}</span>
+              <button type="button" class="runtime-reset" @click="handleReset"><RefreshCw class="h-4 w-4" />恢复默认</button>
+              <button type="button" class="runtime-save" :disabled="saving || !canSave" @click="handleSave"><Save class="h-4 w-4" />{{ saving ? '保存中' : '保存配置' }}</button>
             </footer>
           </div>
         </Transition>
@@ -540,29 +400,12 @@ function updateMappingTerms(index: number, value: string): void {
         <div>
           <p class="settings-stage__eyebrow">KNOWLEDGE RUNTIME</p>
           <h1 class="settings-stage__title">检索与问答参数</h1>
-          <p class="settings-stage__subtitle">
-            调整检索范围、候选数量与回答参数。
-          </p>
+          <p class="settings-stage__subtitle">调整检索范围、候选数量与回答参数。</p>
         </div>
 
         <div class="settings-stage__actions">
-          <button
-            type="button"
-            class="settings-button settings-button--ghost"
-            @click="handleReset"
-          >
-            <RefreshCw class="h-4 w-4" />
-            恢复默认值
-          </button>
-          <button
-            type="button"
-            class="settings-button settings-button--primary"
-            :disabled="saving || !canSave"
-            @click="handleSave"
-          >
-            <Save class="h-4 w-4" />
-            {{ saving ? "保存中" : "保存参数" }}
-          </button>
+          <button type="button" class="settings-button settings-button--ghost" @click="handleReset"><RefreshCw class="h-4 w-4" />恢复默认</button>
+          <button type="button" class="settings-button settings-button--primary" :disabled="saving || !canSave" @click="handleSave"><Save class="h-4 w-4" />{{ saving ? '保存中' : '保存参数' }}</button>
         </div>
       </header>
 
@@ -571,106 +414,50 @@ function updateMappingTerms(index: number, value: string): void {
           <div class="settings-card__header">
             <div>
               <h2>作用范围</h2>
-              <p>先确定参数保存到全局，还是只覆盖一个知识库。</p>
+              <p>先确认参数是保存到全局，还是只覆盖某一个知识库。</p>
             </div>
           </div>
 
-          <div
-            class="settings-scope-switch"
-            role="group"
-            aria-label="参数作用范围"
-          >
-            <button
-              type="button"
-              :class="{ 'is-active': isGlobalScope }"
-              :aria-pressed="isGlobalScope"
-              @click="selectScope('global')"
-            >
+          <div class="settings-scope-switch" role="group" aria-label="参数作用范围">
+            <button type="button" :class="{ 'is-active': isGlobalScope }" :aria-pressed="isGlobalScope" @click="selectScope('global')">
               <strong>全局默认</strong>
-              <span>全库检索时使用</span>
+              <span>全库检索时生效</span>
             </button>
-            <button
-              type="button"
-              :class="{ 'is-active': !isGlobalScope }"
-              :aria-pressed="!isGlobalScope"
-              :disabled="!knowledgeBases.length"
-              @click="selectScope('single')"
-            >
+            <button type="button" :class="{ 'is-active': !isGlobalScope }" :aria-pressed="!isGlobalScope" :disabled="!knowledgeBases.length" @click="selectScope('single')">
               <strong>单库覆盖</strong>
               <span>只影响选中的知识库</span>
             </button>
           </div>
 
-          <div
-            v-if="!isGlobalScope"
-            class="settings-field settings-field--scope"
-          >
+          <div v-if="!isGlobalScope" class="settings-field settings-field--scope">
             <label for="knowledge-base-select">覆盖目标</label>
-            <el-select
-              id="knowledge-base-select"
-              v-model="selectedKnowledgeBaseId"
-              class="settings-select settings-select--compact"
-              popper-class="knowledge-scope-select-popper"
-            >
-              <el-option
-                v-for="item in knowledgeBases"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              />
+            <el-select id="knowledge-base-select" v-model="selectedKnowledgeBaseId" class="settings-select settings-select--compact" popper-class="knowledge-scope-select-popper">
+              <el-option v-for="item in knowledgeBases" :key="item.id" :label="item.name" :value="item.id" />
             </el-select>
           </div>
 
           <div v-if="selectedSummary" class="settings-kb-summary">
-            <div class="settings-kb-summary__item">
-              <small>保存位置</small>
-              <strong>{{ selectedSummary.scopeLabel }}</strong>
-            </div>
-            <div class="settings-kb-summary__item">
-              <small>目标对象</small>
-              <strong>{{ selectedSummary.targetLabel }}</strong>
-            </div>
-            <div class="settings-kb-summary__item">
-              <small>文档数量</small>
-              <strong>{{ selectedSummary.documentCount }}</strong>
-            </div>
-            <div class="settings-kb-summary__item">
-              <small>最近更新</small>
-              <strong>{{ selectedSummary.updatedAt }}</strong>
-            </div>
-            <p class="settings-kb-summary__description">
-              {{ selectedSummary.description }}
-            </p>
+            <div class="settings-kb-summary__item"><small>保存位置</small><strong>{{ selectedSummary.scopeLabel }}</strong></div>
+            <div class="settings-kb-summary__item"><small>目标对象</small><strong>{{ selectedSummary.targetLabel }}</strong></div>
+            <div class="settings-kb-summary__item"><small>文档数量</small><strong>{{ selectedSummary.documentCount }}</strong></div>
+            <div class="settings-kb-summary__item"><small>最近更新</small><strong>{{ selectedSummary.updatedAt }}</strong></div>
+            <p class="settings-kb-summary__description">{{ selectedSummary.description }}</p>
           </div>
         </section>
 
         <section class="settings-card settings-card--notice">
           <div class="settings-card__header">
             <div>
-              <h2>生效说明</h2>
-              <p>
-                这组参数会直接影响候选集规模、融合排序、Query Analysis
-                和回答生成行为。
-              </p>
+              <h2>作用说明</h2>
+              <p>这组参数会直接影响候选池规模、融合排序、Query Analysis 和回答生成行为。</p>
             </div>
           </div>
 
           <div class="settings-notice-list">
-            <p>
-              1. BM25 与向量权重在这里显式配置，不再由 LLM rewrite
-              动态改写融合权重。
-            </p>
-            <p>
-              2. Query Analysis 是否执行，仍然会尊重前端当前是否开启 rewrite
-              开关。
-            </p>
-            <p>
-              3. `workspaceTopK` 会影响聊天页面默认参与回答和展示的 chunk 数量。
-            </p>
-            <p>
-              4.
-              全库搜索现在有独立的后台配置；单库配置只有在明确选择单库时才会覆盖它。
-            </p>
+            <p>1. BM25 与向量权重在这里显式配置，不再由 LLM rewrite 动态改写。</p>
+            <p>2. Query Analysis 是否执行，仍然尊重前端开关和后端运行配置。</p>
+            <p>3. <code>workspaceTopK</code> 会影响工作台默认参与回答和展示的 chunk 数量。</p>
+            <p>4. 全局默认和单库覆盖现在有独立配置路径，避免误把单库参数写进全局。</p>
           </div>
         </section>
 
@@ -678,164 +465,20 @@ function updateMappingTerms(index: number, value: string): void {
           <div class="settings-card__header">
             <div>
               <h2>召回参数</h2>
-              <p>
-                控制 preview、workspace、候选集规模、融合权重以及 Query Analysis
-                行为。
-              </p>
+              <p>控制预览、工作台、候选池规模、融合权重以及 Query Analysis 行为。</p>
             </div>
           </div>
 
           <div class="settings-grid">
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Preview TopK</label>
-                <span>{{ runtimeFieldRules.previewTopK.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.previewTopK"
-                type="number"
-                :min="runtimeFieldRules.previewTopK.min"
-                :max="runtimeFieldRules.previewTopK.max"
-              />
-            </div>
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Workspace TopK</label>
-                <span>{{ runtimeFieldRules.workspaceTopK.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.workspaceTopK"
-                type="number"
-                :min="runtimeFieldRules.workspaceTopK.min"
-                :max="runtimeFieldRules.workspaceTopK.max"
-              />
-            </div>
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Candidate Multiplier</label>
-                <span>{{ runtimeFieldRules.candidateMultiplier.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.candidateMultiplier"
-                type="number"
-                :min="runtimeFieldRules.candidateMultiplier.min"
-                :max="runtimeFieldRules.candidateMultiplier.max"
-              />
-            </div>
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Min Candidate Limit</label>
-                <span>{{ runtimeFieldRules.minCandidateLimit.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.minCandidateLimit"
-                type="number"
-                :min="runtimeFieldRules.minCandidateLimit.min"
-                :max="runtimeFieldRules.minCandidateLimit.max"
-              />
-            </div>
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Max Candidate Limit</label>
-                <span>{{ runtimeFieldRules.maxCandidateLimit.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.maxCandidateLimit"
-                type="number"
-                :min="runtimeFieldRules.maxCandidateLimit.min"
-                :max="runtimeFieldRules.maxCandidateLimit.max"
-              />
-            </div>
-            <div class="settings-field settings-field--switch">
-              <div class="settings-field__heading">
-                <label>启用 Query Analysis</label>
-                <span>决定是否让 LLM 先做检索问句分析与改写</span>
-              </div>
-              <el-switch v-model="form.retrieval.queryAnalysisEnabled" />
-            </div>
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>BM25 Weight</label>
-                <span>{{ runtimeFieldRules.bm25Weight.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.bm25Weight"
-                type="number"
-                :min="runtimeFieldRules.bm25Weight.min"
-                :max="runtimeFieldRules.bm25Weight.max"
-                :step="runtimeFieldRules.bm25Weight.step"
-              />
-            </div>
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Vector Weight</label>
-                <span>{{ runtimeFieldRules.vectorWeight.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.vectorWeight"
-                type="number"
-                :min="runtimeFieldRules.vectorWeight.min"
-                :max="runtimeFieldRules.vectorWeight.max"
-                :step="runtimeFieldRules.vectorWeight.step"
-              />
-            </div>
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Query Analysis Temperature</label>
-                <span>{{
-                  runtimeFieldRules.queryAnalysisTemperature.hint
-                }}</span>
-              </div>
-              <input
-                v-model.number="form.retrieval.queryAnalysisTemperature"
-                type="number"
-                :min="runtimeFieldRules.queryAnalysisTemperature.min"
-                :max="runtimeFieldRules.queryAnalysisTemperature.max"
-                :step="runtimeFieldRules.queryAnalysisTemperature.step"
-              />
-            </div>
-            <div class="settings-field settings-field--wide">
-              <div class="settings-field__heading">
-                <label>Query Mappings</label>
-                <span>白话触发词命中后，只追加召回词，不直接改写答案。</span>
-              </div>
-              <div class="query-mapping-list">
-                <div
-                  v-for="(mapping, index) in form.retrieval.queryMappings"
-                  :key="index"
-                  class="query-mapping-row"
-                >
-                  <input
-                    v-model="mapping.trigger"
-                    placeholder="触发词，例如：只让一个请求"
-                  />
-                  <input
-                    :value="formatMappingTerms(mapping.terms)"
-                    placeholder="召回词，用逗号分隔，例如：互斥锁, 缓存击穿, 数据库"
-                    @input="
-                      updateMappingTerms(
-                        index,
-                        ($event.target as HTMLInputElement).value,
-                      )
-                    "
-                  />
-                  <button
-                    type="button"
-                    class="query-mapping-row__remove"
-                    @click="removeQueryMapping(index)"
-                  >
-                    删除
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  class="query-mapping-add"
-                  @click="addQueryMapping"
-                >
-                  添加映射
-                </button>
-              </div>
-            </div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Preview TopK</label><span>{{ runtimeFieldRules.previewTopK.hint }}</span></div><input v-model.number="form.retrieval.previewTopK" type="number" :min="runtimeFieldRules.previewTopK.min" :max="runtimeFieldRules.previewTopK.max" /></div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Workspace TopK</label><span>{{ runtimeFieldRules.workspaceTopK.hint }}</span></div><input v-model.number="form.retrieval.workspaceTopK" type="number" :min="runtimeFieldRules.workspaceTopK.min" :max="runtimeFieldRules.workspaceTopK.max" /></div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Candidate Multiplier</label><span>{{ runtimeFieldRules.candidateMultiplier.hint }}</span></div><input v-model.number="form.retrieval.candidateMultiplier" type="number" :min="runtimeFieldRules.candidateMultiplier.min" :max="runtimeFieldRules.candidateMultiplier.max" /></div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Min Candidate Limit</label><span>{{ runtimeFieldRules.minCandidateLimit.hint }}</span></div><input v-model.number="form.retrieval.minCandidateLimit" type="number" :min="runtimeFieldRules.minCandidateLimit.min" :max="runtimeFieldRules.minCandidateLimit.max" /></div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Max Candidate Limit</label><span>{{ runtimeFieldRules.maxCandidateLimit.hint }}</span></div><input v-model.number="form.retrieval.maxCandidateLimit" type="number" :min="runtimeFieldRules.maxCandidateLimit.min" :max="runtimeFieldRules.maxCandidateLimit.max" /></div>
+            <div class="settings-field settings-field--switch"><div class="settings-field__heading"><label>启用 Query Analysis</label><span>决定是否先让 LLM 做检索问题分析和改写</span></div><el-switch v-model="form.retrieval.queryAnalysisEnabled" /></div>
+            <div class="settings-field"><div class="settings-field__heading"><label>BM25 Weight</label><span>{{ runtimeFieldRules.bm25Weight.hint }}</span></div><input v-model.number="form.retrieval.bm25Weight" type="number" :min="runtimeFieldRules.bm25Weight.min" :max="runtimeFieldRules.bm25Weight.max" :step="runtimeFieldRules.bm25Weight.step" /></div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Vector Weight</label><span>{{ runtimeFieldRules.vectorWeight.hint }}</span></div><input v-model.number="form.retrieval.vectorWeight" type="number" :min="runtimeFieldRules.vectorWeight.min" :max="runtimeFieldRules.vectorWeight.max" :step="runtimeFieldRules.vectorWeight.step" /></div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Query Analysis Temperature</label><span>{{ runtimeFieldRules.queryAnalysisTemperature.hint }}</span></div><input v-model.number="form.retrieval.queryAnalysisTemperature" type="number" :min="runtimeFieldRules.queryAnalysisTemperature.min" :max="runtimeFieldRules.queryAnalysisTemperature.max" :step="runtimeFieldRules.queryAnalysisTemperature.step" /></div>
           </div>
         </section>
 
@@ -843,24 +486,12 @@ function updateMappingTerms(index: number, value: string): void {
           <div class="settings-card__header">
             <div>
               <h2>回答参数</h2>
-              <p>控制问答模型的生成温度。</p>
+              <p>控制最终回答生成温度。</p>
             </div>
           </div>
 
           <div class="settings-grid settings-grid--compact">
-            <div class="settings-field">
-              <div class="settings-field__heading">
-                <label>Answer Temperature</label>
-                <span>{{ runtimeFieldRules.answerTemperature.hint }}</span>
-              </div>
-              <input
-                v-model.number="form.answer.temperature"
-                type="number"
-                :min="runtimeFieldRules.answerTemperature.min"
-                :max="runtimeFieldRules.answerTemperature.max"
-                :step="runtimeFieldRules.answerTemperature.step"
-              />
-            </div>
+            <div class="settings-field"><div class="settings-field__heading"><label>Answer Temperature</label><span>{{ runtimeFieldRules.answerTemperature.hint }}</span></div><input v-model.number="form.answer.temperature" type="number" :min="runtimeFieldRules.answerTemperature.min" :max="runtimeFieldRules.answerTemperature.max" :step="runtimeFieldRules.answerTemperature.step" /></div>
           </div>
         </section>
       </div>
@@ -1522,3 +1153,4 @@ function updateMappingTerms(index: number, value: string): void {
   }
 }
 </style>
+

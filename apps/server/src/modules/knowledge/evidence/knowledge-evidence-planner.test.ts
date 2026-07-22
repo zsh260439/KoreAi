@@ -41,6 +41,70 @@ test('query without verifiable fields is not treated as fully grounded', () => {
   assert.equal(hasKnowledgeEvidenceRequirements(plan), false)
 })
 
+test('plain Chinese aliases map to control threshold and owner slots', () => {
+  const plan = buildKnowledgeQueryEvidencePlan({
+    normalizedQuery: 'PDF-CLD-01 这条记录的管控线和负责人帮我捞一下',
+    analysis: null,
+    protectedTerms: ['PDF-CLD-01'],
+    optionalTerms: [],
+    excludedTerms: [],
+    requestedTopK: 4
+  })
+
+  assert.deepEqual(plan.fieldSlots, [
+    'main_control_threshold',
+    'responsible_role'
+  ])
+  assert.deepEqual(plan.evidenceTerms, [])
+})
+
+test('plain confirmation wording maps to threshold and owner slots', () => {
+  const plan = buildKnowledgeQueryEvidencePlan({
+    normalizedQuery: '我只看 PDF-CLD-02，主阈值是多少，归谁确认',
+    analysis: null,
+    protectedTerms: ['PDF-CLD-02'],
+    optionalTerms: [],
+    excludedTerms: [],
+    requestedTopK: 4
+  })
+
+  assert.deepEqual(plan.fieldSlots, [
+    'main_control_threshold',
+    'responsible_role'
+  ])
+})
+
+test('visual dashboard aliases map to alert threshold and action code slots', () => {
+  const plan = buildKnowledgeQueryEvidencePlan({
+    normalizedQuery: '这份 PDF-ENE-01 的附件看板里，预警线和动作码分别是多少',
+    analysis: null,
+    protectedTerms: ['PDF-ENE-01'],
+    optionalTerms: [],
+    excludedTerms: [],
+    requestedTopK: 4
+  })
+
+  assert.deepEqual(plan.fieldSlots, [
+    'alert_threshold',
+    'action_code'
+  ])
+  assert.deepEqual(plan.evidenceTerms, [])
+})
+
+test('plain time wording maps to response time slot', () => {
+  const plan = buildKnowledgeQueryEvidencePlan({
+    normalizedQuery: 'PDF-CLD-03 触发以后多久内要处理完',
+    analysis: null,
+    protectedTerms: ['PDF-CLD-03'],
+    optionalTerms: [],
+    excludedTerms: [],
+    requestedTopK: 4
+  })
+
+  assert.deepEqual(plan.fieldSlots, ['response_time'])
+  assert.deepEqual(plan.evidenceTerms, [])
+})
+
 test('field-value lookup requires concrete value near the field label', () => {
   const plan = buildKnowledgeQueryEvidencePlan({
     normalizedQuery: 'PDF-SEC-03 的处置代码是',

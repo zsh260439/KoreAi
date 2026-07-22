@@ -165,6 +165,7 @@ export class KnowledgeRetrievalService {
       llmIntent: plan.analysis?.intent ?? null,
       evidenceComplexity: plan.evidencePlan.complexity,
       evidenceTerms: plan.evidencePlan.evidenceTerms,
+      evidenceFieldSlots: plan.evidencePlan.fieldSlots,
       evidenceNumericTerms: plan.evidencePlan.numericTerms,
       effectiveTopK: finalResult.effectiveTopK,
       evidenceCoverage: finalResult.evidenceCoverage,

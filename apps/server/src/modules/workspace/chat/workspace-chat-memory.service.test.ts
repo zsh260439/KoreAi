@@ -3,8 +3,8 @@ import test from 'node:test'
 
 import type { WorkspaceMessage } from 'share-type'
 
-import { WorkspaceChatMemoryService } from './workspace-chat-memory.service'
 import type { KnowledgeConfigService } from '../../knowledge/config/knowledge-config.service'
+import { WorkspaceChatMemoryService } from './workspace-chat-memory.service'
 
 const configService = {
   findProviderSettings: async () => ({
@@ -59,6 +59,29 @@ test('ambiguous follow-up inherits the latest cited document scope', async () =>
   assert.equal(resolution.retrievalHints.includes('VISUAL CONTROL DASHBOARD'), true)
   assert.equal(resolution.memoryBoardSummary?.includes('PDF-ENE-03'), true)
   assert.equal(resolution.memoryBoardSummary?.includes('DOCX-ENE-02'), false)
+})
+
+test('technical topic follow-up recalls local memory facts before LLM resolution', async () => {
+  const service = new WorkspaceChatMemoryService(configService)
+  const resolution = await service.resolveChatMemory({
+    query: '有没有一个方法，只让一个请求去查数据库，其他请求先等着？',
+    messages: [
+      userMessage('能不能只让一个请求去查数据库，其他请求先等着？'),
+      assistantMessage(
+        '互斥锁重建方案：只允许获得锁的请求查询数据库并回填缓存，其他请求等待后重试。',
+        'cache_breakdown.md',
+        'Redis 缓存击穿处理规范。首选方案是互斥锁重建：只允许获得锁的请求查询数据库并回填缓存，其他请求等待后重试。'
+      )
+    ],
+    conversationTitle: 'redis cache breakdown'
+  })
+
+  assert.equal(resolution.intent, 'new_question')
+  assert.equal(resolution.memoryBoardSource, 'local')
+  assert.equal(resolution.applied, true)
+  assert.equal(resolution.retrievalHints.includes('cache_breakdown.md'), true)
+  assert.equal(resolution.groundedQuery.includes('cache_breakdown.md'), true)
+  assert.equal(resolution.memoryBoardSummary?.includes('互斥锁重建方案'), true)
 })
 
 function buildHistory(): WorkspaceMessage[] {

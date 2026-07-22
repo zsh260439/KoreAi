@@ -484,6 +484,8 @@ export interface KnowledgeSearchDebugInfo {
   evidenceComplexity?: string
   /** 本次证据规划需要覆盖的关键证据词。 */
   evidenceTerms?: string[]
+  /** 本次证据规划需要覆盖的字段槽位。 */
+  evidenceFieldSlots?: string[]
   /** 本次证据规划需要覆盖的数字、阈值、时间等事实槽位。 */
   evidenceNumericTerms?: string[]
   /** 本次最终采用的动态上下文 chunk 数。 */
