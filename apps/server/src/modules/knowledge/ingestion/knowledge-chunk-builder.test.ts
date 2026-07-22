@@ -116,3 +116,39 @@ test('non-indexable image placeholders stay only in chunk metadata', () => {
   assert.equal(chunks[0].content, '实验截图\n\n路由器根据目的网络选择下一跳。')
   assert.equal(chunks[0].blocks.length, 2)
 })
+
+test('VLM page evidence stays as an independent chunk', () => {
+  const chunks = buildChunksFromBlocks(
+    [
+      {
+        blockType: 'paragraph',
+        content: '前置正文'.repeat(80),
+        pageNumber: 7,
+        sectionPath: ['版本与归档']
+      },
+      {
+        blockType: 'vlm_page',
+        content: [
+          'VISUAL CONTROL DASHBOARD',
+          'ALERT THRESHOLD',
+          '83%',
+          'ACTION CODE',
+          'ACT-PSEC-23'
+        ].join('\n'),
+        pageNumber: 7,
+        sectionPath: ['第 7 页', 'VLM 结构增强']
+      },
+      {
+        blockType: 'paragraph',
+        content: '后续正文'.repeat(80),
+        pageNumber: 7,
+        sectionPath: ['趋势说明']
+      }
+    ],
+    config
+  )
+
+  assert.equal(chunks.length, 3)
+  assert.equal(chunks[1].blocks.length, 1)
+  assert.equal(chunks[1].blocks[0].blockType, 'vlm_page')
+})

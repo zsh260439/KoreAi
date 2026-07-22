@@ -10,7 +10,8 @@ import {
   parseMarkdownDocument,
   parsePdfDocument,
   type ParsedDocument,
-  type ParseKnowledgeDocumentOptions
+  type ParseKnowledgeDocumentOptions,
+  type StructuredBlock
 } from './knowledge-document.parser'
 import {
   parseMineruContentList,
@@ -49,6 +50,7 @@ type MineruBatchResult = {
 const DEFAULT_MINERU_TIMEOUT_MS = 180_000
 const DEFAULT_MINERU_API_BASE_URL = 'https://mineru.net/api/v4'
 const MINERU_POLL_INTERVAL_MS = 2_000
+const VLM_ENHANCEMENT_WIDTH = 1600
 
 @Injectable()
 export class KnowledgePdfParserService {
@@ -98,8 +100,9 @@ export class KnowledgePdfParserService {
     const zip = await JSZip.loadAsync(archive)
     await this.saveMineruDebugFiles(zip, buffer)
     const parsed = await this.parseMineruArchive(zip)
+    const enhanced = await enhanceRiskyMineruPagesWithVlm(buffer, parsed, options)
     const native = await parsePdfDocument(buffer, { ...options, ocrImage: undefined })
-    return mergeMissingNativePages(parsed, native)
+    return mergeMissingNativePages(enhanced, native)
   }
 
   private async requestLocalMineru(buffer: Buffer): Promise<Uint8Array> {
@@ -314,6 +317,183 @@ export function mergeMissingNativePages(
     blocks: [...mineru.blocks, ...rebasedBlocks],
     rawContent: [mineru.rawContent, ...rebasedBlocks.map((block) => block.content)].join('\n\n')
   }
+}
+
+async function enhanceRiskyMineruPagesWithVlm(
+  buffer: Buffer,
+  parsed: ParsedDocument,
+  options: ParseKnowledgeDocumentOptions
+): Promise<ParsedDocument> {
+  if (!options.ocrImage) {
+    return parsed
+  }
+
+  const riskyPages = resolveVlmEnhancementPages(parsed.blocks)
+  if (riskyPages.length === 0) {
+    return parsed
+  }
+
+  const parser = new PDFParse({ data: buffer })
+  const vlmBlocks: StructuredBlock[] = []
+  try {
+    const screenshots = await parser.getScreenshot({
+      partial: riskyPages,
+      desiredWidth: VLM_ENHANCEMENT_WIDTH,
+      imageBuffer: true,
+      imageDataUrl: false
+    })
+
+    for (const page of screenshots.pages) {
+      const result = await options.ocrImage({
+        buffer: Buffer.from(page.data),
+        mimeType: 'image/png',
+        sourceName: `pdf page ${page.pageNumber} vlm enhancement`
+      })
+      if (result.status !== 'success' || !result.text?.trim()) {
+        continue
+      }
+
+      vlmBlocks.push({
+        blockType: 'vlm_page',
+        content: result.text,
+        pageNumber: page.pageNumber,
+        sectionPath: [`第 ${page.pageNumber} 页`, 'VLM 结构增强'],
+        metadata: {
+          vlm: true,
+          imageSource: 'pdf_page_screenshot',
+          enhancementReason: 'layout_relation_risk',
+          width: page.width,
+          height: page.height,
+          scale: page.scale
+        }
+      })
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error'
+    console.warn(`[KnowledgePDF] VLM page enhancement skipped: ${message}`)
+    return parsed
+  } finally {
+    await parser.destroy()
+  }
+
+  return appendStructuredBlocks(parsed, vlmBlocks)
+}
+
+function appendStructuredBlocks(parsed: ParsedDocument, blocks: StructuredBlock[]): ParsedDocument {
+  if (blocks.length === 0) {
+    return parsed
+  }
+
+  const rawParts = parsed.rawContent ? [parsed.rawContent] : []
+  let offset = parsed.rawContent.length
+  const rebasedBlocks = blocks.map((block) => {
+    const content = block.content.trim()
+    const startOffset = offset + (rawParts.length > 0 ? 2 : 0)
+    offset = startOffset + content.length
+    rawParts.push(content)
+    return {
+      ...block,
+      content,
+      startOffset,
+      endOffset: startOffset + content.length
+    }
+  })
+
+  return {
+    ...parsed,
+    blocks: [...parsed.blocks, ...rebasedBlocks],
+    rawContent: rawParts.join('\n\n').trim()
+  }
+}
+
+function resolveVlmEnhancementPages(blocks: StructuredBlock[]): number[] {
+  const pages = new Map<number, StructuredBlock[]>()
+  for (const block of blocks) {
+    if (typeof block.pageNumber !== 'number') {
+      continue
+    }
+
+    pages.set(block.pageNumber, [...(pages.get(block.pageNumber) ?? []), block])
+  }
+
+  return [...pages.entries()]
+    .filter(([, pageBlocks]) => shouldEnhancePdfPageWithVlm(pageBlocks))
+    .map(([pageNumber]) => pageNumber)
+}
+
+export function shouldEnhancePdfPageWithVlm(blocks: StructuredBlock[]): boolean {
+  const lines = blocks
+    .flatMap((block) => block.content.split(/\r?\n/))
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const hasVisualBlock = blocks.some((block) =>
+    /^(?:image|chart|figure|layout|table)$/i.test(block.blockType) ||
+    /visual|dashboard|snapshot|附件|仪表盘|截图|图表/i.test(block.content)
+  )
+  const hasRelationRisk = hasSeparatedFieldValueRows(lines)
+
+  return hasRelationRisk && (hasVisualBlock || hasCompactFieldValuePage(lines))
+}
+
+function hasSeparatedFieldValueRows(lines: string[]): boolean {
+  if (lines.length < 4) {
+    return false
+  }
+
+  for (let index = 0; index <= lines.length - 4; index += 1) {
+    const window = lines.slice(index, index + 8)
+    const firstValueIndex = window.findIndex(isValueLikeLine)
+    if (firstValueIndex < 2) {
+      continue
+    }
+
+    const labelCount = window.slice(0, firstValueIndex).filter(isLabelLikeLine).length
+    const valueCount = window.slice(firstValueIndex).filter(isValueLikeLine).length
+    if (labelCount >= 2 && valueCount >= 2) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function hasCompactFieldValuePage(lines: string[]): boolean {
+  const compactLines = lines.filter((line) => line.length <= 36)
+  if (compactLines.length < 5) {
+    return false
+  }
+
+  return compactLines.filter(isLabelLikeLine).length >= 2 &&
+    compactLines.filter(isValueLikeLine).length >= 2
+}
+
+function isLabelLikeLine(line: string): boolean {
+  const normalized = line.trim()
+  if (!normalized || normalized.length > 32 || isValueLikeLine(normalized)) {
+    return false
+  }
+
+  if (/[。！？!?]/.test(normalized)) {
+    return false
+  }
+
+  return /[\p{Script=Han}A-Za-z]/u.test(normalized)
+}
+
+function isValueLikeLine(line: string): boolean {
+  const normalized = line.trim()
+  if (!normalized || normalized.length > 40) {
+    return false
+  }
+
+  return (
+    /^\d+(?:\.\d+)?\s*%$/.test(normalized) ||
+    /^\d+(?:\.\d+)?\s*(?:hours?|小时|分钟|天|days?)$/i.test(normalized) ||
+    /^[A-Z]{2,}(?:-[A-Z0-9]+){1,}\d*$/i.test(normalized) ||
+    /^[a-z]+(?:_[a-z0-9]+)+$/i.test(normalized) ||
+    /^(?:[<>]=?|≥|≤)\s*\d/.test(normalized) ||
+    /^\d+(?:\.\d+)?$/.test(normalized)
+  )
 }
 
 async function inspectPdf(buffer: Buffer): Promise<PdfInspection> {

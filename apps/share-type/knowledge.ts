@@ -73,6 +73,15 @@ export interface KnowledgeBaseRetrievalRuntimeConfig {
   queryAnalysisEnabled: boolean
   /** LLM query analysis 的温度，越低越稳定。 */
   queryAnalysisTemperature: number
+  /** 用户可配置的白话/术语映射，用于在召回前补充检索词。 */
+  queryMappings: KnowledgeQueryMapping[]
+}
+
+export interface KnowledgeQueryMapping {
+  /** 触发词或短语，命中用户问题时生效。 */
+  trigger: string
+  /** 追加到 BM25/evidence terms 的召回词。 */
+  terms: string[]
 }
 
 export interface KnowledgeBaseAnswerRuntimeConfig {
@@ -154,7 +163,8 @@ export const DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG: KnowledgeBaseRuntimeConfig =
     bm25Weight: 1,
     vectorWeight: 1,
     queryAnalysisEnabled: true,
-    queryAnalysisTemperature: 0.1
+    queryAnalysisTemperature: 0.1,
+    queryMappings: []
   },
   answer: {
     temperature: 0
@@ -170,6 +180,7 @@ export const KNOWLEDGE_RUNTIME_CONFIG_LIMITS = {
   bm25Weight: { min: 0.2, max: 3 },
   vectorWeight: { min: 0.2, max: 3 },
   queryAnalysisTemperature: { min: 0, max: 2 },
+  queryMappings: { maxItems: 50, maxTriggerLength: 80, maxTermLength: 80, maxTermsPerMapping: 8 },
   answerTemperature: { min: 0, max: 2 }
 } as const
 
@@ -390,6 +401,35 @@ export type KnowledgeRetrievalSource =
 export interface KnowledgeSearchDebugInfo {
   /** 用户输入的原始 query。 */
   originalQuery: string
+  /** 会话短期记忆识别出的意图，仅用于追踪本轮指代消解。 */
+  memoryIntent?: string | null
+  /** 短期记忆是否改写了检索问题或本地处理了闲聊。 */
+  memoryApplied?: boolean
+  /** 短期记忆最终交给检索层的独立问题。 */
+  memoryGroundedQuery?: string | null
+  /** 会话短期记忆板摘要，用于解释当前讨论范围和目标。 */
+  memoryBoardSummary?: string | null
+  /** 记忆板来源：本地摘要、LLM 消解，或未生成。 */
+  memoryBoardSource?: string | null
+  /** 记忆板抽取后追加给召回层的提示词。 */
+  memoryRetrievalHints?: string[]
+  /** 实际进入召回扩展的记忆提示词。 */
+  appliedMemoryRetrievalHints?: string[]
+  /** 因本轮显式对象优先而丢弃的记忆提示词。 */
+  droppedMemoryRetrievalHints?: string[]
+  /** 本轮显式对象与会话记忆对象是否发生冲突。 */
+  memoryHintConflict?: boolean
+  /** 短期记忆解析耗时。 */
+  memoryLatencyMs?: number
+  /** 本轮关键阶段耗时，用于定位 P95 长尾。 */
+  stageTimingsMs?: {
+    memory?: number
+    queryAnalysis?: number
+    retrieval?: number
+    ce?: number
+    qa?: number
+    repair?: number
+  }
   /** 归一化后的 query。 */
   normalizedQuery: string
   /** 实际传给 BM25 的 query。 */
@@ -412,6 +452,14 @@ export interface KnowledgeSearchDebugInfo {
   candidateLimit?: number
   /** 实际送入 Cross-Encoder 的候选数量。 */
   ceCandidateCount?: number
+  /** 是否在弱证据 fallback 阶段触发多 query 二级 RRF。 */
+  secondLevelRrfApplied?: boolean
+  /** 二级 RRF 使用的独立 query 域。 */
+  secondLevelRrfQueries?: string[]
+  /** 本次命中的用户可配置 query mapping 触发词。 */
+  appliedQueryMappings?: string[]
+  /** query mapping 追加给召回层的扩展词。 */
+  queryMappingTerms?: string[]
   /** CE 精排前候选文档顺序，用于离线计算 candidate recall。 */
   candidateDocumentNames?: string[]
   /** 路由类型，通常与 retrievalMode 一致。 */
@@ -498,6 +546,8 @@ export interface KnowledgeSearchResponse {
 }
 
 export type KnowledgeReasoningStepKey =
+  /** 同一会话内的短期记忆指代消解阶段。 */
+  | 'memory_resolution'
   /** 知识库召回阶段。 */
   | 'knowledge_recall'
   /** LLM 推理阶段。 */

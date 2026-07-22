@@ -4,6 +4,10 @@ import type {
   KnowledgeQueryComplexity,
   KnowledgeQueryPlan
 } from '../query/knowledge-query-plan.types'
+import {
+  hasValueBearingEvidencePhrase,
+  isValueBearingEvidenceTerm
+} from '../evidence/knowledge-evidence-planner'
 
 type CeRerankResponse = {
   results?: Array<{
@@ -19,11 +23,20 @@ const CE_RERANK_COMPLEXITIES = new Set<KnowledgeQueryComplexity>([
 ])
 
 const CE_MAX_DOCUMENTS_PER_REQUEST = 80
-const CE_REQUEST_TIMEOUT_MS = 15_000
 const CE_RELATIVE_RELEVANCE_FLOOR = 0.15
 
 export function shouldApplyCeRerank(plan: KnowledgeQueryPlan): boolean {
-  return CE_RERANK_COMPLEXITIES.has(plan.evidencePlan.complexity)
+  return CE_RERANK_COMPLEXITIES.has(plan.evidencePlan.complexity) ||
+    isExactFieldValueLookup(plan)
+}
+
+export function isExactFieldValueLookup(plan: KnowledgeQueryPlan): boolean {
+  return plan.evidencePlan.identifiers.length > 0 &&
+    (
+      plan.evidencePlan.evidenceTerms.some(isValueBearingEvidenceTerm) ||
+      hasValueBearingEvidencePhrase(plan.normalizedQuery) ||
+      hasValueBearingEvidencePhrase(plan.bm25Query)
+    )
 }
 
 // topK 是上限，不应使用明显不相关的片段补足数量。
@@ -111,8 +124,7 @@ async function requestCeBatch(
       model,
       query,
       documents: batch.map(buildCeDocument)
-    }),
-    signal: AbortSignal.timeout(CE_REQUEST_TIMEOUT_MS)
+    })
   })
 
   if (!response.ok) {

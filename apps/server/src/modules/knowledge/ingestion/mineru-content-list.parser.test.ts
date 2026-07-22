@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { parseMineruContentListV2 } from './mineru-content-list.parser'
-import { mergeMissingNativePages } from './knowledge-pdf-parser.service'
+import {
+  mergeMissingNativePages,
+  shouldEnhancePdfPageWithVlm
+} from './knowledge-pdf-parser.service'
 
 test('pure image labels are metadata-only while factual captions stay indexable', () => {
   const parsed = parseMineruContentListV2(JSON.stringify([[
@@ -34,4 +37,22 @@ test('native text restores trailing pages omitted by MinerU', () => {
 
   assert.equal(merged.blocks.at(-1)?.pageNumber, 57)
   assert.match(merged.rawContent, /第 57 页实验总结/)
+})
+
+test('separated label and value rows trigger VLM page enhancement', () => {
+  assert.equal(shouldEnhancePdfPageWithVlm([
+    {
+      blockType: 'paragraph',
+      content: [
+        '主控制阈值',
+        '责任角色',
+        '响应时限',
+        '50%',
+        'operations_director',
+        '5 小时'
+      ].join('\n'),
+      pageNumber: 1,
+      sectionPath: ['第 1 页']
+    }
+  ]), true)
 })

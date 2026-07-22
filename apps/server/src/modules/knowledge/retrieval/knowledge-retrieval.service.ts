@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import type {
+  KnowledgeRetrievalSource,
   KnowledgeBaseRuntimeConfig,
   KnowledgeSearchDebugInfo,
   KnowledgeSearchHit,
@@ -25,8 +26,12 @@ import { KnowledgeVectorStoreService } from './knowledge-vector-store.service'
 import {
   filterCeRelevantHits,
   fetchCeRerankScores,
+  isExactFieldValueLookup,
   shouldApplyCeRerank
 } from './knowledge-ce-ranker'
+
+const QUERY_LEVEL_RRF_K = 60
+const MAX_SECOND_LEVEL_QUERY_DOMAINS = 6
 
 @Injectable()
 export class KnowledgeRetrievalService {
@@ -44,21 +49,29 @@ export class KnowledgeRetrievalService {
     options: {
       forceRewrite?: boolean
       runtimeConfig: KnowledgeBaseRuntimeConfig
+      retrievalHints?: string[]
     }
   ): Promise<KnowledgeSearchResponse> {
+    const retrievalStartedAt = Date.now()
     const analysisEnabled = options.runtimeConfig.retrieval.queryAnalysisEnabled
+    let queryAnalysisMs = 0
+    let ceMs = 0
+    const firstPlanStartedAt = Date.now()
     let plan = await this.knowledgeQueryEngineService.buildPlan(query, {
       enableAnalysis: analysisEnabled,
       forceAnalysis: analysisEnabled && options.forceRewrite === true,
       runtimeConfig: options.runtimeConfig,
-      requestedTopK: topK
+      requestedTopK: topK,
+      retrievalHints: options.retrievalHints
     })
+    queryAnalysisMs += Date.now() - firstPlanStartedAt
 
     let finalResult = await this.retrieveWithHints(
       knowledgeBaseId,
       plan,
       plan.retrieval
     )
+    ceMs += finalResult.ceRerankMs
     let fallbackApplied = false
     const fallbackReasons: string[] = []
     let exactEntityMiss = false
@@ -68,20 +81,24 @@ export class KnowledgeRetrievalService {
       options.forceRewrite !== true &&
       isWeakEvidence(plan, finalResult)
     ) {
+      const rewriteStartedAt = Date.now()
       const rewrittenPlan = await this.knowledgeQueryEngineService.buildPlan(query, {
         enableAnalysis: true,
         forceAnalysis: true,
         runtimeConfig: options.runtimeConfig,
-        requestedTopK: topK
+        requestedTopK: topK,
+        retrievalHints: options.retrievalHints
       })
+      queryAnalysisMs += Date.now() - rewriteStartedAt
 
       if (rewrittenPlan.rewriteApplied) {
         plan = rewrittenPlan
-        finalResult = await this.retrieveWithHints(
+        finalResult = await this.retrieveWithSecondLevelRrf(
           knowledgeBaseId,
           plan,
           plan.retrieval
         )
+        ceMs += finalResult.ceRerankMs
         fallbackApplied = true
         fallbackReasons.push('weak_evidence_query_rewrite')
       }
@@ -94,11 +111,12 @@ export class KnowledgeRetrievalService {
         expanded.hints.candidateMultiplier > plan.retrieval.candidateMultiplier
       ) {
         plan = expanded.plan
-        finalResult = await this.retrieveWithHints(
+        finalResult = await this.retrieveWithSecondLevelRrf(
           knowledgeBaseId,
           plan,
           expanded.hints
         )
+        ceMs += finalResult.ceRerankMs
         fallbackApplied = true
         fallbackReasons.push('weak_evidence_candidate_expansion')
       }
@@ -112,11 +130,12 @@ export class KnowledgeRetrievalService {
       }
       exactEntityMiss = fallbackDecision.exactEntityMiss
 
-      const fallbackResult = await this.retrieveWithHints(
+      const fallbackResult = await this.retrieveWithSecondLevelRrf(
         knowledgeBaseId,
         plan,
         plan.fallbackRetrieval
       )
+      ceMs += fallbackResult.ceRerankMs
 
       finalResult = selectBetterResult(plan, finalResult, fallbackResult)
     }
@@ -150,12 +169,127 @@ export class KnowledgeRetrievalService {
       effectiveTopK: finalResult.effectiveTopK,
       evidenceCoverage: finalResult.evidenceCoverage,
       evidenceExpansionApplied: finalResult.evidenceExpansionApplied,
-      evidenceGateStatus: finalResult.evidenceGateStatus
+      evidenceGateStatus: finalResult.evidenceGateStatus,
+      secondLevelRrfApplied: finalResult.secondLevelRrfApplied,
+      secondLevelRrfQueries: finalResult.secondLevelRrfQueries,
+      appliedQueryMappings: plan.appliedQueryMappings,
+      queryMappingTerms: plan.queryMappingTerms,
+      appliedMemoryRetrievalHints: plan.retrievalHintTerms,
+      droppedMemoryRetrievalHints: plan.droppedRetrievalHintTerms,
+      memoryHintConflict: plan.retrievalHintConflict,
+      stageTimingsMs: {
+        queryAnalysis: queryAnalysisMs,
+        retrieval: Date.now() - retrievalStartedAt,
+        ce: ceMs
+      }
     }
 
     return {
       hits: finalResult.hits,
       debug
+    }
+  }
+
+  private async retrieveWithSecondLevelRrf(
+    knowledgeBaseId: string | undefined,
+    plan: KnowledgeQueryPlan,
+    hints: KnowledgeQueryRetrievalHints
+  ): Promise<RetrievalExecutionResult> {
+    const domains = buildSecondLevelQueryDomains(plan)
+    if (!shouldUseSecondLevelRrf(plan, domains)) {
+      return this.retrieveWithHints(knowledgeBaseId, plan, hints)
+    }
+
+    const effectiveTopK = plan.evidencePlan.targetTopK
+    const baseCandidateLimit = resolveCandidateLimit(effectiveTopK, hints)
+    const candidateLimit = resolveCeCandidateLimit(baseCandidateLimit, effectiveTopK, hints, plan)
+    const mergedCandidateLimit = resolveMergedCandidateLimit(candidateLimit, plan)
+    const domainLimit = Math.max(mergedCandidateLimit, Math.ceil(candidateLimit / Math.max(domains.length, 1)))
+
+    const [domainResults, referenceCandidates] = await Promise.all([
+      Promise.all(domains.map((domain) =>
+        this.retrieveQueryDomain(knowledgeBaseId, domain, hints, domainLimit)
+      )),
+      this.referenceRecall(knowledgeBaseId, plan, candidateLimit)
+    ])
+    const referenceHits = referenceCandidates
+      .slice(0, Math.min(candidateLimit, 40))
+      .map(candidateToSearchHit)
+    const mergedHits = mergeQueryLevelRrf(
+      [
+        ...domainResults.map((result) => ({
+          label: result.domain.label,
+          hits: result.hits
+        })),
+        ...(referenceHits.length > 0 ? [{ label: 'reference', hits: referenceHits }] : [])
+      ],
+      mergedCandidateLimit
+    )
+
+    let ceRerankMs = 0
+    let ceScoreMap: Map<string, number> | null = null
+    if (shouldApplyCeRerank(plan)) {
+      const ceStartedAt = Date.now()
+      ceScoreMap = await fetchCeRerankScores(mergedHits, plan.originalQuery)
+      ceRerankMs = Date.now() - ceStartedAt
+    }
+    const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
+    const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
+    const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
+    const completedHits = includeReferenceEvidence(finalHits, referenceCandidates, plan)
+    const hasEvidenceRequirements = hasKnowledgeEvidenceRequirements(plan.evidencePlan)
+    const evidenceCoverage = hasEvidenceRequirements
+      ? computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
+      : 0
+
+    return {
+      hints,
+      bm25Candidates: dedupeCandidates(domainResults.flatMap((result) => result.bm25Candidates)),
+      vectorCandidates: dedupeCandidates(domainResults.flatMap((result) => result.vectorCandidates)),
+      hits: completedHits,
+      effectiveTopK,
+      candidateLimit,
+      ceCandidateCount: ceScoreMap?.size ?? 0,
+      candidateDocumentNames: rerankedHits.map((hit) => hit.documentName),
+      ceRerankMs,
+      secondLevelRrfApplied: true,
+      secondLevelRrfQueries: domains.map((domain) => domain.label),
+      evidenceCoverage,
+      evidenceExpansionApplied:
+        completedHits.some((hit) => hit.scoreDetail?.matchedBy.length === 0),
+      evidenceGateStatus:
+        completedHits.length === 0
+          ? 'blocked'
+          : hasEvidenceRequirements
+            ? resolveEvidenceGateStatus(evidenceCoverage, plan.evidencePlan)
+            : 'degraded'
+    }
+  }
+
+  private async retrieveQueryDomain(
+    knowledgeBaseId: string | undefined,
+    domain: QueryRecallDomain,
+    hints: KnowledgeQueryRetrievalHints,
+    limit: number
+  ): Promise<QueryRecallResult> {
+    const [bm25Candidates, vectorCandidates] = await Promise.all([
+      this.knowledgeBm25Service.search(domain.bm25Query, knowledgeBaseId, limit),
+      this.vectorRecall(domain.vectorQuery, knowledgeBaseId, limit)
+    ])
+
+    return {
+      domain,
+      bm25Candidates,
+      vectorCandidates,
+      hits: mergeKnowledgeRetrievalCandidates(
+        bm25Candidates,
+        vectorCandidates,
+        limit,
+        {
+          bm25Weight: hints.bm25Weight,
+          vectorWeight: hints.vectorWeight
+        }
+      )
     }
   }
 
@@ -185,9 +319,13 @@ export class KnowledgeRetrievalService {
       }
     )
 
-    const ceScoreMap = shouldApplyCeRerank(plan)
-      ? await fetchCeRerankScores(mergedHits, plan.originalQuery)
-      : null
+    let ceRerankMs = 0
+    let ceScoreMap: Map<string, number> | null = null
+    if (shouldApplyCeRerank(plan)) {
+      const ceStartedAt = Date.now()
+      ceScoreMap = await fetchCeRerankScores(mergedHits, plan.originalQuery)
+      ceRerankMs = Date.now() - ceStartedAt
+    }
     const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
     const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
     const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
@@ -206,6 +344,9 @@ export class KnowledgeRetrievalService {
       candidateLimit,
       ceCandidateCount: ceScoreMap?.size ?? 0,
       candidateDocumentNames: rerankedHits.map((hit) => hit.documentName),
+      ceRerankMs,
+      secondLevelRrfApplied: false,
+      secondLevelRrfQueries: [],
       evidenceCoverage,
       evidenceExpansionApplied:
         completedHits.some((hit) => hit.scoreDetail?.matchedBy.length === 0),
@@ -563,6 +704,262 @@ function isWeakEvidence(
     result.evidenceGateStatus !== 'pass' ||
     !hasKnowledgeEvidenceRequirements(plan.evidencePlan)
   )
+}
+
+function shouldUseSecondLevelRrf(
+  plan: KnowledgeQueryPlan,
+  domains: QueryRecallDomain[]
+): boolean {
+  return (
+    domains.length > 1 &&
+    !hasStructuredProtectedTerms(plan.protectedTerms)
+  )
+}
+
+function buildSecondLevelQueryDomains(plan: KnowledgeQueryPlan): QueryRecallDomain[] {
+  const analysis = plan.analysis
+  const domains: QueryRecallDomain[] = []
+  addQueryDomain(domains, {
+    label: analysis ? 'rewritten' : 'original',
+    bm25Query: plan.bm25Query,
+    vectorQuery: plan.vectorQuery
+  })
+  addQueryDomain(domains, {
+    label: analysis ? 'original' : 'raw_query',
+    bm25Query: uniqueStrings([plan.normalizedQuery, ...plan.protectedTerms]).join(' '),
+    vectorQuery: plan.normalizedQuery
+  })
+
+  if (analysis) {
+    for (const phrase of analysis.searchPhrases.slice(0, 2)) {
+      addQueryDomain(domains, {
+        label: `bm25:${phrase}`,
+        bm25Query: uniqueStrings([
+          phrase,
+          ...plan.protectedTerms,
+          ...analysis.requiredTerms
+        ]).join(' '),
+        vectorQuery: phrase
+      })
+    }
+
+    for (const semanticQuery of analysis.semanticQueries.slice(0, 2)) {
+      addQueryDomain(domains, {
+        label: `vector:${semanticQuery}`,
+        bm25Query: uniqueStrings([
+          semanticQuery,
+          ...plan.protectedTerms,
+          ...analysis.requiredTerms
+        ]).join(' '),
+        vectorQuery: semanticQuery
+      })
+    }
+  }
+
+  const evidenceQuery = uniqueStrings([
+    ...plan.protectedTerms,
+    ...plan.evidencePlan.evidenceTerms,
+    ...plan.evidencePlan.numericTerms
+  ]).join(' ')
+  if (evidenceQuery) {
+    addQueryDomain(domains, {
+      label: 'evidence_terms',
+      bm25Query: evidenceQuery,
+      vectorQuery: evidenceQuery
+    })
+  }
+
+  return domains.slice(0, MAX_SECOND_LEVEL_QUERY_DOMAINS)
+}
+
+function addQueryDomain(domains: QueryRecallDomain[], domain: QueryRecallDomain): void {
+  const bm25Query = domain.bm25Query.trim()
+  const vectorQuery = domain.vectorQuery.trim()
+  if (!bm25Query || !vectorQuery) {
+    return
+  }
+
+  const key = `${normalizeQueryDomainKey(bm25Query)}\n${normalizeQueryDomainKey(vectorQuery)}`
+  if (domains.some((item) =>
+    `${normalizeQueryDomainKey(item.bm25Query)}\n${normalizeQueryDomainKey(item.vectorQuery)}` === key
+  )) {
+    return
+  }
+
+  domains.push({
+    label: domain.label,
+    bm25Query,
+    vectorQuery
+  })
+}
+
+function mergeQueryLevelRrf(
+  groups: QueryLevelRrfGroup[],
+  limit: number
+): KnowledgeSearchHit[] {
+  const merged = new Map<string, QueryLevelMergedHit>()
+
+  for (const group of groups.filter((item) => item.hits.length > 0)) {
+    group.hits.forEach((hit, index) => {
+      const rrfScore = 1 / (QUERY_LEVEL_RRF_K + index + 1)
+      const current = merged.get(hit.chunkId)
+      if (!current) {
+        merged.set(hit.chunkId, {
+          ...hit,
+          queryLevelScore: rrfScore,
+          queryLevelMatches: [group.label],
+          scoreDetail: {
+            matchedBy: [...(hit.scoreDetail?.matchedBy ?? [])],
+            bm25Score: hit.scoreDetail?.bm25Score ?? null,
+            vectorScore: hit.scoreDetail?.vectorScore ?? null,
+            fusedScore: hit.scoreDetail?.fusedScore ?? 0,
+            ceScore: hit.scoreDetail?.ceScore,
+            evidenceScore: hit.scoreDetail?.evidenceScore,
+            matchedEvidenceTerms: hit.scoreDetail?.matchedEvidenceTerms,
+            matchedNumericTerms: hit.scoreDetail?.matchedNumericTerms,
+            documentRole: hit.scoreDetail?.documentRole
+          }
+        })
+        return
+      }
+
+      current.queryLevelScore += rrfScore
+      current.queryLevelMatches.push(group.label)
+      current.score = Math.max(current.score, hit.score)
+      current.scoreDetail = mergeScoreDetail(current.scoreDetail, hit.scoreDetail)
+    })
+  }
+
+  const maxScore = Math.max(...[...merged.values()].map((hit) => hit.queryLevelScore), 0)
+  return [...merged.values()]
+    .sort((left, right) =>
+      right.queryLevelScore - left.queryLevelScore ||
+      right.queryLevelMatches.length - left.queryLevelMatches.length ||
+      right.score - left.score
+    )
+    .slice(0, limit)
+    .map((hit) => {
+      const { queryLevelScore, queryLevelMatches, ...rest } = hit
+      const scoreDetail = rest.scoreDetail ?? {
+        matchedBy: [],
+        bm25Score: null,
+        vectorScore: null,
+        fusedScore: 0
+      }
+      return {
+        ...rest,
+        score: maxScore > 0 ? Number(((queryLevelScore / maxScore) * 100).toFixed(2)) : rest.score,
+        scoreDetail: {
+          ...scoreDetail,
+          fusedScore: Number(queryLevelScore.toFixed(8))
+        }
+      }
+    })
+}
+
+function mergeScoreDetail(
+  current: KnowledgeSearchHit['scoreDetail'],
+  next: KnowledgeSearchHit['scoreDetail']
+): NonNullable<KnowledgeSearchHit['scoreDetail']> {
+  const matchedBy = mergeMatchedBy(current?.matchedBy ?? [], next?.matchedBy ?? [])
+  return {
+    matchedBy,
+    bm25Score: maxNullableNumber(current?.bm25Score, next?.bm25Score),
+    vectorScore: maxNullableNumber(current?.vectorScore, next?.vectorScore),
+    fusedScore: Math.max(current?.fusedScore ?? 0, next?.fusedScore ?? 0),
+    ceScore: maxOptionalNumber(current?.ceScore, next?.ceScore),
+    evidenceScore: maxOptionalNumber(current?.evidenceScore, next?.evidenceScore),
+    matchedEvidenceTerms: uniqueStrings([
+      ...(current?.matchedEvidenceTerms ?? []),
+      ...(next?.matchedEvidenceTerms ?? [])
+    ]),
+    matchedNumericTerms: uniqueStrings([
+      ...(current?.matchedNumericTerms ?? []),
+      ...(next?.matchedNumericTerms ?? [])
+    ]),
+    documentRole: current?.documentRole ?? next?.documentRole
+  }
+}
+
+function mergeMatchedBy(
+  current: KnowledgeRetrievalSource[],
+  next: KnowledgeRetrievalSource[]
+): KnowledgeRetrievalSource[] {
+  return [...new Set([...current, ...next])]
+}
+
+function maxNullableNumber(
+  left: number | null | undefined,
+  right: number | null | undefined
+): number | null {
+  if (left === null || left === undefined) {
+    return right ?? null
+  }
+
+  if (right === null || right === undefined) {
+    return left
+  }
+
+  return Math.max(left, right)
+}
+
+function maxOptionalNumber(
+  left: number | undefined,
+  right: number | undefined
+): number | undefined {
+  if (left === undefined) {
+    return right
+  }
+
+  if (right === undefined) {
+    return left
+  }
+
+  return Math.max(left, right)
+}
+
+function dedupeCandidates(candidates: KnowledgeRetrievalCandidate[]): KnowledgeRetrievalCandidate[] {
+  const merged = new Map<string, KnowledgeRetrievalCandidate>()
+  for (const candidate of candidates) {
+    const current = merged.get(candidate.chunkId)
+    if (!current) {
+      merged.set(candidate.chunkId, {
+        ...candidate,
+        matchedBy: [...candidate.matchedBy]
+      })
+      continue
+    }
+
+    merged.set(candidate.chunkId, {
+      ...current,
+      bm25Score: maxNullableNumber(current.bm25Score, candidate.bm25Score),
+      vectorScore: maxNullableNumber(current.vectorScore, candidate.vectorScore),
+      bm25Rank: minNullableNumber(current.bm25Rank, candidate.bm25Rank),
+      vectorRank: minNullableNumber(current.vectorRank, candidate.vectorRank),
+      matchedBy: mergeMatchedBy(current.matchedBy, candidate.matchedBy)
+    })
+  }
+
+  return [...merged.values()]
+}
+
+function minNullableNumber(
+  left: number | null,
+  right: number | null
+): number | null {
+  if (left === null) {
+    return right
+  }
+
+  if (right === null) {
+    return left
+  }
+
+  return Math.min(left, right)
+}
+
+function normalizeQueryDomainKey(value: string): string {
+  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
 function expandWeakEvidenceRetrieval(
@@ -1052,7 +1449,9 @@ function resolveCeCandidateLimit(
     return baseCandidateLimit
   }
 
-  const expandedLimit = Math.max(baseCandidateLimit, topK * 10, 40)
+  const expandedLimit = isExactFieldValueLookup(plan)
+    ? 80
+    : Math.max(baseCandidateLimit, topK * 10, 40)
   return Math.min(expandedLimit, hints.maxCandidateLimit, 80)
 }
 
@@ -1313,9 +1712,35 @@ type RetrievalExecutionResult = {
   candidateLimit: number
   ceCandidateCount: number
   candidateDocumentNames: string[]
+  ceRerankMs: number
+  secondLevelRrfApplied: boolean
+  secondLevelRrfQueries: string[]
   evidenceCoverage: number
   evidenceExpansionApplied: boolean
   evidenceGateStatus: 'pass' | 'degraded' | 'blocked'
+}
+
+type QueryRecallDomain = {
+  label: string
+  bm25Query: string
+  vectorQuery: string
+}
+
+type QueryRecallResult = {
+  domain: QueryRecallDomain
+  bm25Candidates: KnowledgeRetrievalCandidate[]
+  vectorCandidates: KnowledgeRetrievalCandidate[]
+  hits: KnowledgeSearchHit[]
+}
+
+type QueryLevelRrfGroup = {
+  label: string
+  hits: KnowledgeSearchHit[]
+}
+
+type QueryLevelMergedHit = KnowledgeSearchHit & {
+  queryLevelScore: number
+  queryLevelMatches: string[]
 }
 
 type ReferenceRecallRow = {

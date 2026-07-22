@@ -1,7 +1,8 @@
 import type {
   KnowledgeBaseAnswerRuntimeConfig,
   KnowledgeBaseRuntimeConfigPatch,
-  KnowledgeBaseRetrievalRuntimeConfig
+  KnowledgeBaseRetrievalRuntimeConfig,
+  KnowledgeQueryMapping
 } from 'share-type'
 import {
   DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG,
@@ -70,7 +71,8 @@ export function normalizeKnowledgeBaseRuntimeConfig(
       DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.queryAnalysisTemperature,
       KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryAnalysisTemperature.min,
       KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryAnalysisTemperature.max
-    )
+    ),
+    queryMappings: normalizeQueryMappings(retrievalSource.queryMappings)
   }
 
   // 保证候选集上下限关系稳定，避免保存出 min 比 max 还大的非法配置。
@@ -132,6 +134,36 @@ function normalizeFloat(value: unknown, fallback: number, min: number, max: numb
 
 function normalizeBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback
+}
+
+function normalizeQueryMappings(value: unknown): KnowledgeQueryMapping[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .map((item) => {
+      if (!isRecord(item) || typeof item.trigger !== 'string' || !Array.isArray(item.terms)) {
+        return null
+      }
+
+      const trigger = item.trigger.trim().slice(
+        0,
+        KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryMappings.maxTriggerLength
+      )
+      const terms = item.terms
+        .filter((term): term is string => typeof term === 'string')
+        .map((term) => term.trim().slice(
+          0,
+          KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryMappings.maxTermLength
+        ))
+        .filter(Boolean)
+        .slice(0, KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryMappings.maxTermsPerMapping)
+
+      return trigger && terms.length > 0 ? { trigger, terms } : null
+    })
+    .filter((item): item is KnowledgeQueryMapping => Boolean(item))
+    .slice(0, KNOWLEDGE_RUNTIME_CONFIG_LIMITS.queryMappings.maxItems)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

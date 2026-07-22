@@ -39,6 +39,8 @@ function packAdjacentSmallChunks(
     const merged = createChunkDraft([...current.blocks, ...next.blocks])
     const currentPage = resolveSinglePage(current.blocks)
     if (
+      !hasStandalonePageEvidenceBlock(current.blocks) &&
+      !hasStandalonePageEvidenceBlock(next.blocks) &&
       current.content.length < config.targetChars &&
       merged.content.length <= config.maxChars &&
       currentPage !== undefined &&
@@ -95,6 +97,17 @@ function buildChunksWithinSection(
   let pendingMetadataBlocks: StructuredBlock[] = []
 
   for (const block of splitOversizedBlocks(blocks, config.targetChars)) {
+    if (isStandalonePageEvidenceBlock(block)) {
+      if (currentBlocks.length > 0) {
+        drafts.push(createChunkDraft(currentBlocks))
+        currentBlocks = []
+        currentLength = 0
+      }
+      drafts.push(createChunkDraft([...pendingMetadataBlocks, block]))
+      pendingMetadataBlocks = []
+      continue
+    }
+
     if (!isIndexableBlock(block)) {
       pendingMetadataBlocks.push(block)
       continue
@@ -132,7 +145,7 @@ function buildChunksWithinSection(
 function splitOversizedBlocks(blocks: StructuredBlock[], targetChars: number): StructuredBlock[] {
   return blocks.flatMap((block) => {
     const content = block.content.trim()
-    if (content.length <= targetChars || block.blockType === 'ocr_image') {
+    if (content.length <= targetChars || block.blockType === 'ocr_image' || block.blockType === 'vlm_page') {
       return block
     }
 
@@ -297,6 +310,14 @@ function buildBlockBody(block: StructuredBlock, sharedSectionPath: string[], hea
 
 function isIndexableBlock(block: StructuredBlock): boolean {
   return block.metadata?.indexable !== false
+}
+
+function isStandalonePageEvidenceBlock(block: StructuredBlock): boolean {
+  return block.blockType === 'vlm_page'
+}
+
+function hasStandalonePageEvidenceBlock(blocks: StructuredBlock[]): boolean {
+  return blocks.some(isStandalonePageEvidenceBlock)
 }
 
 // 如果标题已经在 chunk 头里表达过，就不要再把同一标题正文重复写一遍。

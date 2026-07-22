@@ -299,6 +299,10 @@ const retrievalMetricItems = computed<RetrievalDebugField[]>(() => {
       label: "检索模式",
       value: formatRetrievalMode(retrievalDebug.value.retrievalMode),
     },
+    {
+      label: "二层 RRF",
+      value: retrievalDebug.value.secondLevelRrfApplied ? "已生效" : "未生效",
+    },
   ];
 });
 
@@ -325,6 +329,21 @@ const retrievalQueryItems = computed<RetrievalDebugField[]>(() => {
     {
       label: "向量检索词",
       value: retrievalDebug.value.vectorQuery,
+      multiline: true,
+    },
+    {
+      label: "二层 RRF 查询域",
+      value: formatList(retrievalDebug.value.secondLevelRrfQueries),
+      multiline: true,
+    },
+    {
+      label: "Query Mapping 命中",
+      value: formatList(retrievalDebug.value.appliedQueryMappings),
+      multiline: true,
+    },
+    {
+      label: "Query Mapping 扩展词",
+      value: formatList(retrievalDebug.value.queryMappingTerms),
       multiline: true,
     },
   ];
@@ -394,6 +413,13 @@ const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
     { label: "routeType", value: debug.routeType || "-" },
     { label: "routeSource", value: debug.routeSource || "-" },
     { label: "routeConfidence", value: debug.routeConfidence || "-" },
+    { label: "memoryIntent", value: debug.memoryIntent || "-" },
+    { label: "memoryBoardSource", value: debug.memoryBoardSource || "-" },
+    { label: "memoryBoard", value: debug.memoryBoardSummary || "-" },
+    { label: "memoryRetrievalHints", value: formatList(debug.memoryRetrievalHints) },
+    { label: "appliedMemoryRetrievalHints", value: formatList(debug.appliedMemoryRetrievalHints) },
+    { label: "droppedMemoryRetrievalHints", value: formatList(debug.droppedMemoryRetrievalHints) },
+    { label: "memoryHintConflict", value: formatBoolean(debug.memoryHintConflict) },
     { label: "llmIntent", value: debug.llmIntent || "-" },
     { label: "bm25Weight", value: formatWeight(debug.bm25Weight) },
     { label: "vectorWeight", value: formatWeight(debug.vectorWeight) },
@@ -406,6 +432,14 @@ const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
     {
       label: "ceCandidateCount",
       value: formatOptionalValue(debug.ceCandidateCount),
+    },
+    {
+      label: "secondLevelRrfApplied",
+      value: formatBoolean(debug.secondLevelRrfApplied),
+    },
+    {
+      label: "secondLevelRrfQueries",
+      value: formatList(debug.secondLevelRrfQueries),
     },
     { label: "effectiveTopK", value: formatOptionalValue(debug.effectiveTopK) },
     { label: "fallbackApplied", value: formatBoolean(debug.fallbackApplied) },
@@ -666,6 +700,12 @@ function isKnowledgeRecallStage(stage: AssistantThinkingStage) {
   );
 }
 
+function isMemoryResolutionStage(stage: AssistantThinkingStage) {
+  return (
+    stage.stageKey === "memory_resolution" || stage.id === "memory-resolution"
+  );
+}
+
 function formatLatency(latencyMs?: number | null) {
   return `${((latencyMs || 0) / 1000).toFixed(1)} 秒`;
 }
@@ -756,6 +796,12 @@ function getStageNote(stage: AssistantThinkingStage, sourceCount: number) {
       : "正在检索相关 chunk";
   }
 
+  if (isMemoryResolutionStage(stage)) {
+    return stage.status === "running"
+      ? "正在判断是否需要继承上一轮上下文"
+      : "已完成本轮上下文消解";
+  }
+
   return stage.status === "running" ? "正在整理当前思路" : "";
 }
 
@@ -780,6 +826,18 @@ function buildTimelineEntries(
         status: stage.status,
         kind: "retrieval",
         sourceLink: sourceCount > 0,
+      });
+      return entries;
+    }
+
+    if (isMemoryResolutionStage(stage)) {
+      entries.push({
+        id: stage.id,
+        title: stage.title,
+        body: stage.visibleContent || stage.content,
+        note: getStageNote(stage, sourceCount),
+        status: stage.status,
+        kind: "generic",
       });
       return entries;
     }

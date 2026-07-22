@@ -27,11 +27,32 @@ type TraceField = {
   value: string | number;
 };
 
+type TraceStatus = "pass" | "warn" | "blocked" | "neutral";
+
 type TraceStep = {
   key: string;
   title: string;
   summary: string;
+  status: TraceStatus;
   fields: TraceField[];
+};
+
+type DiagnosticCard = {
+  label: string;
+  value: string;
+  hint: string;
+  status: TraceStatus;
+};
+
+type SourceSummary = {
+  chunkId: string;
+  index: number;
+  documentName: string;
+  title: string;
+  score: string;
+  matchedBy: string;
+  evidenceTerms: number;
+  numericTerms: number;
 };
 
 const cache = useWorkspaceCacheStore();
@@ -97,6 +118,60 @@ const activeSource = computed(
   () => activeSources.value[selectedSourceIndex.value] ?? null,
 );
 
+const diagnosticCards = computed<DiagnosticCard[]>(() => {
+  const debug = activeDebug.value;
+  const message = activeMessage.value;
+  if (!message) return [];
+
+  return [
+    {
+      label: "证据门禁",
+      value: debug?.evidenceGateStatus ?? "未记录",
+      hint: `覆盖率 ${formatPercent(debug?.evidenceCoverage)}`,
+      status: statusFromGate(debug?.evidenceGateStatus),
+    },
+    {
+      label: "LLM 意图",
+      value: debug?.llmIntent ?? "未触发",
+      hint: debug?.memoryIntent ? `记忆 ${debug.memoryIntent}` : "展示已持久化意图",
+      status: debug?.llmIntent || debug?.memoryIntent ? "pass" : "neutral",
+    },
+    {
+      label: "路由来源",
+      value: debug?.routeSource ?? "未记录",
+      hint: debug?.fallbackApplied
+        ? `fallback: ${debug.fallbackReason ?? "已触发"}`
+        : `mode: ${debug?.retrievalMode ?? "未记录"}`,
+      status: debug?.fallbackApplied ? "warn" : "pass",
+    },
+    {
+      label: "回答出口",
+      value: resolveAnswerOutlet(debug, activeSources.value),
+      hint: `${activeSources.value.length} 个引用 chunk`,
+      status: debug?.evidenceGateStatus === "blocked" ? "warn" : "pass",
+    },
+    {
+      label: "总耗时",
+      value: formatDuration(message.latencyMs),
+      hint: formatStageTimings(debug),
+      status: "neutral",
+    },
+  ];
+});
+
+const sourceSummaries = computed<SourceSummary[]>(() =>
+  activeSources.value.map((source, index) => ({
+    chunkId: source.chunkId,
+    index,
+    documentName: source.documentName,
+    title: source.primaryTitle || source.sectionPath || "未标记章节",
+    score: formatScore(source.score),
+    matchedBy: source.scoreDetail?.matchedBy.join(" + ") || "unknown",
+    evidenceTerms: source.scoreDetail?.matchedEvidenceTerms?.length ?? 0,
+    numericTerms: source.scoreDetail?.matchedNumericTerms?.length ?? 0,
+  })),
+);
+
 const traceSteps = computed<TraceStep[]>(() => {
   const message = activeMessage.value;
   const debug = activeDebug.value;
@@ -107,6 +182,7 @@ const traceSteps = computed<TraceStep[]>(() => {
       key: "request",
       title: "请求",
       summary: "保留用户问题和本次问答开关。",
+      status: "neutral",
       fields: compactFields([
         field("originalQuery", debug?.originalQuery),
         field("think", yesNo(message.promptCapabilities?.think)),
@@ -119,12 +195,23 @@ const traceSteps = computed<TraceStep[]>(() => {
       summary: debug?.rewriteApplied
         ? "查询经过分析后进入检索。"
         : "查询未改写，直接进入检索。",
+      status: debug?.rewriteApplied || debug?.memoryApplied ? "pass" : "neutral",
       fields: compactFields([
         field("normalizedQuery", debug?.normalizedQuery),
         field("retrievalMode", debug?.retrievalMode),
         field("routeType", debug?.routeType),
         field("routeSource", debug?.routeSource),
         field("routeConfidence", debug?.routeConfidence),
+        field("memoryIntent", debug?.memoryIntent),
+        field("memoryApplied", yesNo(debug?.memoryApplied)),
+        field("memoryGroundedQuery", debug?.memoryGroundedQuery),
+        field("memoryBoard", debug?.memoryBoardSummary),
+        field("memoryBoardSource", debug?.memoryBoardSource),
+        field("memoryRetrievalHints", debug?.memoryRetrievalHints?.join(" · ")),
+        field("appliedMemoryRetrievalHints", debug?.appliedMemoryRetrievalHints?.join(" · ")),
+        field("droppedMemoryRetrievalHints", debug?.droppedMemoryRetrievalHints?.join(" · ")),
+        field("memoryHintConflict", yesNo(debug?.memoryHintConflict)),
+        field("memoryLatency", formatDurationMs(debug?.stageTimingsMs?.memory)),
         field("protectedTerms", debug?.protectedTerms?.join(" · ")),
         field("llmIntent", debug?.llmIntent),
       ]),
@@ -133,11 +220,18 @@ const traceSteps = computed<TraceStep[]>(() => {
       key: "retrieval",
       title: "候选召回",
       summary: `BM25 与向量召回形成候选，最终保留 ${activeSources.value.length} 个片段。`,
+      status: debug?.fallbackApplied || debug?.secondLevelRrfApplied ? "warn" : "pass",
       fields: compactFields([
         field("bm25HitCount", debug?.bm25HitCount),
         field("vectorHitCount", debug?.vectorHitCount),
         field("candidateLimit", debug?.candidateLimit),
         field("ceCandidateCount", debug?.ceCandidateCount),
+        field("secondLevelRrfApplied", yesNo(debug?.secondLevelRrfApplied)),
+        field("secondLevelRrfQueries", debug?.secondLevelRrfQueries?.join(" · ")),
+        field("appliedQueryMappings", debug?.appliedQueryMappings?.join(" · ")),
+        field("queryMappingTerms", debug?.queryMappingTerms?.join(" · ")),
+        field("retrievalLatency", formatDurationMs(debug?.stageTimingsMs?.retrieval)),
+        field("ceLatency", formatDurationMs(debug?.stageTimingsMs?.ce)),
         field("bm25Weight", formatScore(debug?.bm25Weight)),
         field("vectorWeight", formatScore(debug?.vectorWeight)),
         field("fallbackApplied", yesNo(debug?.fallbackApplied)),
@@ -149,6 +243,7 @@ const traceSteps = computed<TraceStep[]>(() => {
       key: "evidence",
       title: "证据筛选",
       summary: `${activeSources.value.length} 个片段进入最终证据集；覆盖率表示检索信号覆盖，不等同于每个问题字段都有答案。`,
+      status: statusFromGate(debug?.evidenceGateStatus),
       fields: compactFields([
         field("effectiveTopK", debug?.effectiveTopK),
         field("evidenceComplexity", debug?.evidenceComplexity),
@@ -164,9 +259,12 @@ const traceSteps = computed<TraceStep[]>(() => {
       key: "answer",
       title: "回答生成",
       summary: `最终回答记录 ${activeSources.value.length} 个来源。`,
+      status: debug?.evidenceGateStatus === "blocked" ? "warn" : "pass",
       fields: compactFields([
         field("model", message.model),
         field("latencyMs", message.latencyMs),
+        field("qaLatency", formatDurationMs(debug?.stageTimingsMs?.qa)),
+        field("repairLatency", formatDurationMs(debug?.stageTimingsMs?.repair)),
         field("totalTokens", message.totalTokens),
         field("reasoningSteps", message.reasoningSteps?.length),
       ]),
@@ -183,6 +281,16 @@ const queryFields = computed(() => {
     field("normalizedQuery", debug.normalizedQuery),
     field("bm25Query", debug.bm25Query),
     field("vectorQuery", debug.vectorQuery),
+    field("memoryIntent", debug.memoryIntent),
+    field("memoryApplied", yesNo(debug.memoryApplied)),
+    field("memoryGroundedQuery", debug.memoryGroundedQuery),
+    field("memoryBoard", debug.memoryBoardSummary),
+    field("memoryBoardSource", debug.memoryBoardSource),
+    field("memoryRetrievalHints", debug.memoryRetrievalHints?.join(" · ")),
+    field("appliedMemoryRetrievalHints", debug.appliedMemoryRetrievalHints?.join(" · ")),
+    field("droppedMemoryRetrievalHints", debug.droppedMemoryRetrievalHints?.join(" · ")),
+    field("memoryHintConflict", yesNo(debug.memoryHintConflict)),
+    field("memoryLatencyMs", debug.memoryLatencyMs),
     field("rewriteApplied", yesNo(debug.rewriteApplied)),
     field("retrievalMode", debug.retrievalMode),
     field("routeType", debug.routeType),
@@ -197,6 +305,16 @@ const queryFields = computed(() => {
     field("vectorHitCount", debug.vectorHitCount),
     field("candidateLimit", debug.candidateLimit),
     field("ceCandidateCount", debug.ceCandidateCount),
+    field("secondLevelRrfApplied", yesNo(debug.secondLevelRrfApplied)),
+    field("secondLevelRrfQueries", debug.secondLevelRrfQueries?.join(" · ")),
+    field("appliedQueryMappings", debug.appliedQueryMappings?.join(" · ")),
+    field("queryMappingTerms", debug.queryMappingTerms?.join(" · ")),
+    field("stage.memory", formatDurationMs(debug.stageTimingsMs?.memory)),
+    field("stage.queryAnalysis", formatDurationMs(debug.stageTimingsMs?.queryAnalysis)),
+    field("stage.retrieval", formatDurationMs(debug.stageTimingsMs?.retrieval)),
+    field("stage.ce", formatDurationMs(debug.stageTimingsMs?.ce)),
+    field("stage.qa", formatDurationMs(debug.stageTimingsMs?.qa)),
+    field("stage.repair", formatDurationMs(debug.stageTimingsMs?.repair)),
     field("effectiveTopK", debug.effectiveTopK),
     field("evidenceComplexity", debug.evidenceComplexity),
     field("evidenceCoverage", formatPercent(debug.evidenceCoverage)),
@@ -378,6 +496,52 @@ function formatDuration(milliseconds: number | null): string {
   return `${(milliseconds / 1000).toFixed(milliseconds < 10000 ? 1 : 0)} 秒`;
 }
 
+function formatDurationMs(milliseconds?: number | null): string {
+  if (typeof milliseconds !== "number") return "-";
+  return milliseconds < 1000
+    ? `${Math.round(milliseconds)} ms`
+    : `${(milliseconds / 1000).toFixed(milliseconds < 10000 ? 1 : 0)} 秒`;
+}
+
+function statusFromGate(
+  gate?: KnowledgeSearchDebugInfo["evidenceGateStatus"] | null,
+): TraceStatus {
+  if (gate === "pass") return "pass";
+  if (gate === "blocked") return "blocked";
+  if (gate === "degraded") return "warn";
+  return "neutral";
+}
+
+function resolveAnswerOutlet(
+  debug: KnowledgeSearchDebugInfo | null,
+  sources: KnowledgeSearchHit[],
+): string {
+  if (!debug) return "未记录";
+  if (debug.evidenceGateStatus === "blocked" && sources.length === 0) {
+    return "通用回答 / 无引用";
+  }
+  if (debug.evidenceGateStatus === "blocked") {
+    return "证据拒答";
+  }
+  return "知识库问答";
+}
+
+function formatStageTimings(debug: KnowledgeSearchDebugInfo | null): string {
+  if (!debug?.stageTimingsMs) return "阶段耗时未记录";
+
+  return [
+    ["memory", debug.stageTimingsMs.memory],
+    ["query", debug.stageTimingsMs.queryAnalysis],
+    ["retrieval", debug.stageTimingsMs.retrieval],
+    ["ce", debug.stageTimingsMs.ce],
+    ["qa", debug.stageTimingsMs.qa],
+    ["repair", debug.stageTimingsMs.repair],
+  ]
+    .filter(([, value]) => typeof value === "number")
+    .map(([key, value]) => `${key} ${formatDurationMs(value as number)}`)
+    .join(" · ") || "阶段耗时未记录";
+}
+
 function formatDateTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -496,13 +660,27 @@ onMounted(() => loadConversations());
             </div>
           </header>
 
+          <section class="diagnostic-strip" aria-label="诊断摘要">
+            <article
+              v-for="card in diagnosticCards"
+              :key="card.label"
+              :class="['diagnostic-card', `is-${card.status}`]"
+            >
+              <span>{{ card.label }}</span>
+              <strong>{{ card.value }}</strong>
+              <small>{{ card.hint }}</small>
+            </article>
+          </section>
+
           <ol class="trace-flow">
             <li v-for="(step, index) in traceSteps" :key="step.key">
-              <span class="step-dot">{{ index + 1 }}</span>
+              <span :class="['step-dot', `is-${step.status}`]">{{ index + 1 }}</span>
               <div>
                 <header>
                   <h3>{{ step.title }}</h3>
-                  <span>{{ step.fields.length }} 个字段</span>
+                  <span :class="['step-status', `is-${step.status}`]">
+                    {{ step.status }}
+                  </span>
                 </header>
                 <p>{{ step.summary }}</p>
                 <dl>
@@ -578,6 +756,22 @@ onMounted(() => loadConversations());
               <div class="drawer-result-count">
                 完整召回 {{ activeSources.length }} 个 chunk
               </div>
+              <div v-if="sourceSummaries.length" class="chunk-overview">
+                <button
+                  v-for="source in sourceSummaries"
+                  :key="source.chunkId"
+                  type="button"
+                  :class="{ 'is-active': selectedSourceIndex === source.index }"
+                  @click="selectedSourceIndex = source.index"
+                >
+                  <span>{{ String(source.index + 1).padStart(2, "0") }}</span>
+                  <strong>{{ source.documentName }}</strong>
+                  <small>{{ source.title }}</small>
+                  <em>{{ source.score }}</em>
+                  <i>{{ source.matchedBy }}</i>
+                  <b>词 {{ source.evidenceTerms }} · 数 {{ source.numericTerms }}</b>
+                </button>
+              </div>
               <div class="source-index">
                 <button
                   v-for="(source, index) in activeSources"
@@ -614,7 +808,20 @@ onMounted(() => loadConversations());
             </template>
 
             <section v-else-if="drawerTab === 'query'" class="query-detail">
-              <h3>查询与检索决策</h3>
+              <header class="query-detail__header">
+                <h3>查询与检索决策</h3>
+                <div v-if="activeDebug">
+                  <span :class="['status-chip', `is-${statusFromGate(activeDebug.evidenceGateStatus)}`]">
+                    gate {{ activeDebug.evidenceGateStatus ?? "unknown" }}
+                  </span>
+                  <span class="status-chip is-neutral">
+                    intent {{ activeDebug.llmIntent ?? activeDebug.memoryIntent ?? "none" }}
+                  </span>
+                  <span class="status-chip is-neutral">
+                    route {{ activeDebug.routeSource ?? "unknown" }}
+                  </span>
+                </div>
+              </header>
               <dl class="score-grid">
                 <div v-for="item in queryFields" :key="item.key">
                   <dt>{{ item.key }}</dt>
@@ -838,6 +1045,45 @@ onMounted(() => loadConversations());
 .pass {
   color: #33855a !important;
 }
+.diagnostic-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  margin: 18px 0 8px;
+  border: 1px solid #e0e0da;
+  background: #e0e0da;
+}
+.diagnostic-card {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  background: #fff;
+  padding: 13px 14px;
+}
+.diagnostic-card span,
+.diagnostic-card small {
+  overflow: hidden;
+  color: #777770;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diagnostic-card strong {
+  overflow: hidden;
+  color: #191918;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diagnostic-card.is-pass strong {
+  color: #23734b;
+}
+.diagnostic-card.is-warn strong {
+  color: #9a5b12;
+}
+.diagnostic-card.is-blocked strong {
+  color: #b42318;
+}
 .trace-flow {
   margin: 0;
   padding: 18px 0 34px;
@@ -860,6 +1106,18 @@ onMounted(() => loadConversations());
   border-radius: 50%;
   background: #fafaf7;
   font-size: 11px;
+}
+.step-dot.is-pass {
+  border-color: #87b99d;
+  color: #23734b;
+}
+.step-dot.is-warn {
+  border-color: #d6aa62;
+  color: #9a5b12;
+}
+.step-dot.is-blocked {
+  border-color: #dc8a82;
+  color: #b42318;
 }
 .trace-flow li:not(:last-child) > .step-dot:after {
   position: absolute;
@@ -890,6 +1148,32 @@ onMounted(() => loadConversations());
 .trace-flow header span {
   color: #777770;
   font-size: 11px;
+}
+.step-status {
+  border: 1px solid #deded8;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #fff;
+  font:
+    10px ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.step-status.is-pass {
+  border-color: #b9d7c5;
+  background: #f2faf5;
+  color: #23734b;
+}
+.step-status.is-warn {
+  border-color: #ead0a2;
+  background: #fff8ec;
+  color: #9a5b12;
+}
+.step-status.is-blocked {
+  border-color: #e8b1aa;
+  background: #fff4f2;
+  color: #b42318;
 }
 .trace-flow p {
   margin: 9px 0;
@@ -1049,6 +1333,68 @@ onMounted(() => loadConversations());
   color: #777770;
   font-size: 11px;
 }
+.chunk-overview {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.chunk-overview button {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  border: 1px solid #e8e8e2;
+  border-radius: 9px;
+  background: #fff;
+  padding: 10px;
+  text-align: left;
+}
+.chunk-overview button.is-active {
+  border-color: #a8a7f5;
+  background: #f7f6ff;
+}
+.chunk-overview span {
+  grid-row: span 3;
+  color: #5b5bf7;
+  font:
+    11px ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.chunk-overview strong,
+.chunk-overview small,
+.chunk-overview i,
+.chunk-overview b {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chunk-overview strong {
+  font-size: 12px;
+}
+.chunk-overview small,
+.chunk-overview i,
+.chunk-overview b {
+  color: #777770;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+}
+.chunk-overview em {
+  grid-column: 3;
+  grid-row: 1;
+  color: #23734b;
+  font-size: 11px;
+  font-style: normal;
+}
+.chunk-overview i {
+  grid-column: 2;
+}
+.chunk-overview b {
+  grid-column: 3;
+  color: #55554f;
+}
 .source-index {
   display: flex;
   flex-wrap: wrap;
@@ -1135,6 +1481,46 @@ onMounted(() => loadConversations());
     Georgia,
     "Songti SC",
     serif;
+}
+.query-detail__header {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.query-detail__header h3 {
+  margin-bottom: 0;
+}
+.query-detail__header > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.status-chip {
+  border: 1px solid #deded8;
+  border-radius: 999px;
+  background: #fafaf7;
+  padding: 4px 8px;
+  color: #55554f;
+  font:
+    10px ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.status-chip.is-pass {
+  border-color: #b9d7c5;
+  background: #f2faf5;
+  color: #23734b;
+}
+.status-chip.is-warn {
+  border-color: #ead0a2;
+  background: #fff8ec;
+  color: #9a5b12;
+}
+.status-chip.is-blocked {
+  border-color: #e8b1aa;
+  background: #fff4f2;
+  color: #b42318;
 }
 .json-detail__header {
   display: flex;
@@ -1227,6 +1613,9 @@ onMounted(() => loadConversations());
   .trace-title h2 {
     font-size: 23px;
   }
+  .diagnostic-strip {
+    grid-template-columns: 1fr;
+  }
   .trace-flow li {
     grid-template-columns: 31px 1fr;
     gap: 8px;
@@ -1243,6 +1632,13 @@ onMounted(() => loadConversations());
   }
   .drawer {
     width: 100%;
+  }
+  .chunk-overview button {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  .chunk-overview em,
+  .chunk-overview b {
+    grid-column: 2;
   }
   .score-grid {
     grid-template-columns: 1fr;

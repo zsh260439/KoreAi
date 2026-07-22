@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { KnowledgeModule } from '../knowledge/knowledge.module'
 import { WorkspaceChatService } from './chat/workspace-chat.service'
+import { WorkspaceChatMemoryService } from './chat/workspace-chat-memory.service'
 import { WorkspaceConversationService } from './conversation/workspace-conversation.service'
 import { WorkspaceController } from './workspace.controller'
 import { WorkspaceConversationEntity } from './entity/workspace-conversation.entity'
@@ -13,6 +14,6 @@ import { WorkspaceMessageEntity } from './entity/workspace-message.entity'
     TypeOrmModule.forFeature([WorkspaceConversationEntity, WorkspaceMessageEntity])
   ],
   controllers: [WorkspaceController],
-  providers: [WorkspaceConversationService, WorkspaceChatService]
+  providers: [WorkspaceConversationService, WorkspaceChatMemoryService, WorkspaceChatService]
 })
 export class WorkspaceModule {}

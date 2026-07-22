@@ -7,6 +7,7 @@ import {
   createRouteDecision,
   detectKnowledgeQueryRuleSignal
 } from './knowledge-query-rule-router'
+import { expandStructuredIdentifierAliases } from './knowledge-identifier-aliases'
 import type {
   KnowledgeQueryAnalysis,
   KnowledgeQueryPlan,
@@ -14,6 +15,35 @@ import type {
   KnowledgeQueryRouteDecision,
   KnowledgeRetrievalMode
 } from './knowledge-query-plan.types'
+
+const FIELD_ALIAS_GROUPS: Array<{
+  pattern: RegExp
+  aliases: string[]
+}> = [
+  {
+    pattern: /处置代码|动作代码|处置编号/i,
+    aliases: ['ACTION CODE']
+  },
+  {
+    pattern: /预警值|警戒值|告警阈值|报警阈值/i,
+    aliases: ['ALERT THRESHOLD', 'visual alert']
+  },
+  {
+    pattern: /响应时限|响应时间|处理时限/i,
+    aliases: ['ESCALATION WINDOW']
+  },
+  {
+    pattern: /责任角色|负责人/i,
+    aliases: ['owner', 'role']
+  },
+  {
+    pattern: /主控制阈值|核心阈值/i,
+    aliases: ['threshold']
+  }
+]
+
+const STRUCTURED_HINT_PATTERN =
+  /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,12}[-_]?\d{2,})\b/gi
 
 @Injectable()
 export class KnowledgeQueryEngineService {
@@ -26,6 +56,7 @@ export class KnowledgeQueryEngineService {
       forceAnalysis?: boolean
       runtimeConfig: KnowledgeBaseRuntimeConfig
       requestedTopK?: number
+      retrievalHints?: string[]
     }
   ): Promise<KnowledgeQueryPlan> {
     // 保留原始 query，便于调试面板展示用户最初输入。
@@ -58,6 +89,20 @@ export class KnowledgeQueryEngineService {
     const routeDecision = resolveRouteDecision(ruleSignal, analysis)
     const constraintTerms = buildConstraintTerms(analysis)
     const excludedTerms = buildExcludedTerms(analysis)
+    const fieldAliasTerms = buildFieldAliasTerms(normalizedQuery)
+    const retrievalHintFilter = filterRetrievalHints(
+      normalizedQuery,
+      options.retrievalHints
+    )
+    const queryMappingMatch = applyQueryMappings(
+      normalizedQuery,
+      options.runtimeConfig.retrieval.queryMappings
+    )
+    const retrievalExpansionTerms = uniqueStrings([
+      ...fieldAliasTerms,
+      ...queryMappingMatch.terms,
+      ...retrievalHintFilter.applied
+    ])
     const protectedTerms = buildProtectedTerms(ruleSignal, analysis, constraintTerms)
     const evidencePlan = buildKnowledgeQueryEvidencePlan({
       normalizedQuery,
@@ -84,7 +129,7 @@ export class KnowledgeQueryEngineService {
         analysis,
         routeDecision.mode,
         protectedTerms,
-        constraintTerms.optional
+        [...constraintTerms.optional, ...retrievalExpansionTerms]
       ),
       vectorQuery: buildVectorQuery(normalizedQuery, analysis, routeDecision.mode),
       rewriteApplied: analysis !== null,
@@ -95,6 +140,11 @@ export class KnowledgeQueryEngineService {
       constraints: analysis?.constraints ?? [],
       protectedTerms,
       excludedTerms,
+      appliedQueryMappings: queryMappingMatch.triggers,
+      queryMappingTerms: queryMappingMatch.terms,
+      retrievalHintTerms: retrievalHintFilter.applied,
+      droppedRetrievalHintTerms: retrievalHintFilter.dropped,
+      retrievalHintConflict: retrievalHintFilter.conflict,
       evidencePlan,
       retrieval,
       fallbackRetrieval
@@ -299,12 +349,12 @@ function buildProtectedTerms(
 
   const requiredTerms = analysis?.requiredTerms ?? []
 
-  return compactStructuredExactTerms(uniqueStrings([
+  return compactStructuredExactTerms(expandStructuredIdentifierAliases(uniqueStrings([
     ...ruleSignal.exactTerms,
     ...entityTerms,
     ...requiredTerms,
     ...constraintTerms.required
-  ])).slice(0, 8)
+  ]))).slice(0, 8)
 }
 
 function buildConstraintTerms(
@@ -349,6 +399,93 @@ function buildExcludedTerms(analysis: KnowledgeQueryAnalysis | null): string[] {
   return uniqueStrings(analysis.excludedTerms).slice(0, 6)
 }
 
+function buildFieldAliasTerms(normalizedQuery: string): string[] {
+  return uniqueStrings(FIELD_ALIAS_GROUPS.flatMap((group) =>
+    group.pattern.test(normalizedQuery) ? group.aliases : []
+  ))
+}
+
+function filterRetrievalHints(
+  normalizedQuery: string,
+  value: string[] | undefined
+): {
+  applied: string[]
+  dropped: string[]
+  conflict: boolean
+} {
+  const hints = uniqueStrings((value ?? [])
+    .map((item) => item.trim())
+    .filter(Boolean)
+  ).slice(0, 8)
+  const explicitIdentifiers = extractStructuredHints(normalizedQuery)
+  if (explicitIdentifiers.length === 0) {
+    return { applied: hints, dropped: [], conflict: false }
+  }
+
+  const applied: string[] = []
+  const dropped: string[] = []
+
+  for (const hint of hints) {
+    const hintIdentifiers = extractStructuredHints(hint)
+    if (
+      hintIdentifiers.length > 0 &&
+      !hintIdentifiers.some((identifier) => hasCompatibleIdentifier(identifier, explicitIdentifiers))
+    ) {
+      dropped.push(hint)
+      continue
+    }
+
+    if (hintIdentifiers.length === 0) {
+      dropped.push(hint)
+      continue
+    }
+
+    applied.push(hint)
+  }
+
+  return {
+    applied,
+    dropped,
+    conflict: dropped.length > 0
+  }
+}
+
+function extractStructuredHints(value: string): string[] {
+  return uniqueStrings(value.match(STRUCTURED_HINT_PATTERN) ?? [])
+    .filter((item) => /\d/.test(item))
+}
+
+function hasCompatibleIdentifier(identifier: string, explicitIdentifiers: string[]): boolean {
+  const normalizedIdentifier = normalizeIdentifier(identifier)
+  return explicitIdentifiers.some((explicitIdentifier) => {
+    const normalizedExplicit = normalizeIdentifier(explicitIdentifier)
+    return (
+      normalizedIdentifier === normalizedExplicit ||
+      normalizedIdentifier.includes(normalizedExplicit) ||
+      normalizedExplicit.includes(normalizedIdentifier)
+    )
+  })
+}
+
+function normalizeIdentifier(value: string): string {
+  return value.normalize('NFKC').toLowerCase().replace(/\.[a-z0-9]+$/i, '')
+}
+
+function applyQueryMappings(
+  normalizedQuery: string,
+  mappings: KnowledgeBaseRuntimeConfig['retrieval']['queryMappings']
+): { triggers: string[]; terms: string[] } {
+  const normalized = normalizedQuery.toLowerCase()
+  const matched = mappings.filter((mapping) =>
+    normalized.includes(mapping.trigger.toLowerCase())
+  )
+
+  return {
+    triggers: uniqueStrings(matched.map((mapping) => mapping.trigger)),
+    terms: uniqueStrings(matched.flatMap((mapping) => mapping.terms))
+  }
+}
+
 function buildBm25Query(
   normalizedQuery: string,
   analysis: KnowledgeQueryAnalysis | null,
@@ -357,7 +494,11 @@ function buildBm25Query(
   optionalConstraintTerms: string[]
 ): string {
   if (!analysis) {
-    return uniqueStrings([normalizedQuery, ...protectedTerms]).join(' ')
+    return uniqueStrings([
+      normalizedQuery,
+      ...protectedTerms,
+      ...optionalConstraintTerms
+    ]).join(' ')
   }
 
   switch (mode) {

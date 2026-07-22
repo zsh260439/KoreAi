@@ -19,6 +19,7 @@ import {
   KNOWLEDGE_RUNTIME_CONFIG_LIMITS,
   type KnowledgeBaseRuntimeConfig,
   type KnowledgeGlobalRuntimeSettings,
+  type KnowledgeQueryMapping,
 } from "share-type";
 
 withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false });
@@ -161,14 +162,15 @@ const handleSave = async () => {
   saving.value = true;
 
   try {
+    const queryMappings = normalizeQueryMappingsForSave();
     if (isGlobalScope.value) {
       globalRuntimeSettings.value = (
-        await updateGlobalRuntimeConfigAPI(buildRuntimeConfigPayload())
+        await updateGlobalRuntimeConfigAPI(buildRuntimeConfigPayload(queryMappings))
       ).data;
       ElMessage.success("全库默认参数已保存");
     } else if (selectedKnowledgeBase.value) {
       await updateKnowledgeBase(selectedKnowledgeBaseId.value, {
-        runtimeConfig: buildRuntimeConfigPayload(),
+        runtimeConfig: buildRuntimeConfigPayload(queryMappings),
       });
       ElMessage.success("知识库参数已保存");
     }
@@ -258,6 +260,9 @@ function createRuntimeConfigState(): KnowledgeBaseRuntimeConfig {
       queryAnalysisTemperature:
         DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval
           .queryAnalysisTemperature,
+      queryMappings: [
+        ...DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.retrieval.queryMappings,
+      ],
     },
     answer: {
       temperature: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG.answer.temperature,
@@ -281,10 +286,13 @@ function applyRuntimeConfigToForm(
   form.retrieval.queryAnalysisEnabled = resolved.retrieval.queryAnalysisEnabled;
   form.retrieval.queryAnalysisTemperature =
     resolved.retrieval.queryAnalysisTemperature;
+  form.retrieval.queryMappings = [...resolved.retrieval.queryMappings];
   form.answer.temperature = resolved.answer.temperature;
 }
 
-function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
+function buildRuntimeConfigPayload(
+  queryMappings: KnowledgeQueryMapping[],
+): KnowledgeBaseRuntimeConfig {
   return {
     retrieval: {
       previewTopK: form.retrieval.previewTopK,
@@ -296,11 +304,45 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
       vectorWeight: form.retrieval.vectorWeight,
       queryAnalysisEnabled: form.retrieval.queryAnalysisEnabled,
       queryAnalysisTemperature: form.retrieval.queryAnalysisTemperature,
+      queryMappings,
     },
     answer: {
       temperature: form.answer.temperature,
     },
   };
+}
+
+function normalizeQueryMappingsForSave(): KnowledgeQueryMapping[] {
+  return form.retrieval.queryMappings
+    .map((mapping) => ({
+      trigger: mapping.trigger.trim(),
+      terms: mapping.terms.map((term) => term.trim()).filter(Boolean),
+    }))
+    .filter((mapping) => mapping.trigger && mapping.terms.length > 0);
+}
+
+function addQueryMapping(): void {
+  form.retrieval.queryMappings.push({ trigger: "", terms: [] });
+}
+
+function removeQueryMapping(index: number): void {
+  form.retrieval.queryMappings.splice(index, 1);
+}
+
+function formatMappingTerms(terms: string[]): string {
+  return terms.join(", ");
+}
+
+function updateMappingTerms(index: number, value: string): void {
+  const mapping = form.retrieval.queryMappings[index];
+  if (!mapping) {
+    return;
+  }
+
+  mapping.terms = value
+    .split(/[,，;；\n]/)
+    .map((term) => term.trim())
+    .filter(Boolean);
 }
 </script>
 
@@ -751,6 +793,48 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
                 :max="runtimeFieldRules.queryAnalysisTemperature.max"
                 :step="runtimeFieldRules.queryAnalysisTemperature.step"
               />
+            </div>
+            <div class="settings-field settings-field--wide">
+              <div class="settings-field__heading">
+                <label>Query Mappings</label>
+                <span>白话触发词命中后，只追加召回词，不直接改写答案。</span>
+              </div>
+              <div class="query-mapping-list">
+                <div
+                  v-for="(mapping, index) in form.retrieval.queryMappings"
+                  :key="index"
+                  class="query-mapping-row"
+                >
+                  <input
+                    v-model="mapping.trigger"
+                    placeholder="触发词，例如：只让一个请求"
+                  />
+                  <input
+                    :value="formatMappingTerms(mapping.terms)"
+                    placeholder="召回词，用逗号分隔，例如：互斥锁, 缓存击穿, 数据库"
+                    @input="
+                      updateMappingTerms(
+                        index,
+                        ($event.target as HTMLInputElement).value,
+                      )
+                    "
+                  />
+                  <button
+                    type="button"
+                    class="query-mapping-row__remove"
+                    @click="removeQueryMapping(index)"
+                  >
+                    删除
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  class="query-mapping-add"
+                  @click="addQueryMapping"
+                >
+                  添加映射
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -1218,7 +1302,8 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   line-height: 1.5;
 }
 
-.settings-field input {
+.settings-field input,
+.settings-field textarea {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -1228,7 +1313,54 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
   outline: none;
 }
 
-.settings-field input:focus {
+.settings-field textarea {
+  resize: vertical;
+  font:
+    12px/1.65 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+
+.settings-field--wide {
+  grid-column: 1 / -1;
+}
+
+.query-mapping-list {
+  display: grid;
+  gap: 10px;
+}
+
+.query-mapping-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.query-mapping-row__remove,
+.query-mapping-add {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  color: #475569;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.query-mapping-row__remove:hover,
+.query-mapping-add:hover {
+  border-color: #0f766e;
+  color: #0f766e;
+}
+
+.query-mapping-add {
+  justify-self: start;
+}
+
+.settings-field input:focus,
+.settings-field textarea:focus {
   border-color: #0f766e;
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
 }
@@ -1354,7 +1486,8 @@ function buildRuntimeConfigPayload(): KnowledgeBaseRuntimeConfig {
 
   .settings-grid,
   .settings-grid--compact,
-  .settings-kb-summary {
+  .settings-kb-summary,
+  .query-mapping-row {
     grid-template-columns: 1fr;
   }
 

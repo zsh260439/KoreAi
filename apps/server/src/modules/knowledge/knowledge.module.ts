@@ -76,6 +76,6 @@ import { KnowledgeVectorStoreService } from './retrieval/knowledge-vector-store.
     KnowledgeVectorStoreService,
     KnowledgeQaService
   ],
-  exports: [KnowledgeQueryService]
+  exports: [KnowledgeConfigService, KnowledgeQueryService]
 })
 export class KnowledgeModule {}

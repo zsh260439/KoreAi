@@ -19,6 +19,66 @@ const CJK_REFERENCE_PHRASE_PATTERN =
 const CJK_FACT_PHRASE_PATTERN =
   /主控制阈值|核心阈值|阈值|责任角色|负责人|响应时限|响应时间|处理时限|附件|视觉附件|仪表盘|预警值|处置代码/g
 
+const VALUE_FIELD_DEFINITIONS: Array<{
+  aliases: string[]
+  valuePattern: RegExp
+}> = [
+  {
+    aliases: ['处置代码', '动作代码', '处置编号', 'action code'],
+    valuePattern: /\bact[-_][a-z0-9]+[-_]\d{1,4}\b/i
+  },
+  {
+    aliases: ['预警值', '警戒值', '告警阈值', '报警阈值', 'alert threshold', 'visual alert'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+  },
+  {
+    aliases: ['响应时限', '响应时间', '处理时限', 'escalation window'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*(?:小时|分钟|天|hours?|minutes?|days?)\b/i
+  },
+  {
+    aliases: ['责任角色', '负责人', 'owner', 'role'],
+    valuePattern: /\b[a-z][a-z0-9_]{2,}\b/i
+  },
+  {
+    aliases: ['主控制阈值', '核心阈值', 'threshold'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+  }
+]
+
+const FIELD_SLOT_DEFINITIONS: Array<{
+  slot: string
+  aliases: string[]
+  valuePattern: RegExp
+}> = [
+  {
+    slot: 'main_control_threshold',
+    aliases: ['主控制阈值', '主控阈值', '核心阈值'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+  },
+  {
+    slot: 'alert_threshold',
+    aliases: ['预警值', '预警阈值', '警戒值', '报警阈值', 'alert threshold', 'visual alert'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+  },
+  {
+    slot: 'action_code',
+    aliases: ['处置代码', '动作代码', '处置编号', 'action code'],
+    valuePattern: /\bact[-_][a-z0-9]+[-_]\d{1,4}\b/i
+  },
+  {
+    slot: 'responsible_role',
+    aliases: ['责任角色', '负责人', 'owner', 'role'],
+    valuePattern: /\b[a-z][a-z0-9_]{2,}\b/i
+  },
+  {
+    slot: 'response_time',
+    aliases: ['响应时限', '响应时间', '处理时限', 'escalation window'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*(?:小时|分钟|天|hours?|minutes?|days?)\b/i
+  }
+]
+
+const FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '阈值']
+
 const REFERENCE_TRIGGER_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|标准|规范|规则|制度|证据|合规|审计|策略|手册|指南|参考|gold_document|fully_grounded|normal_confidence|high_confidence|reviewed_but_not_grounded|recall_gap|exact_code|reference|standard|policy|rule|guideline|playbook|confidence|citation|grounded|recall/i
 
@@ -53,6 +113,7 @@ export type KnowledgeEvidenceScore = {
   coverage: number
   matchedIdentifiers: string[]
   matchedNumericTerms: string[]
+  matchedFieldSlots: string[]
   matchedEvidenceTerms: string[]
   documentRole: string
 }
@@ -79,6 +140,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     ...(input.analysis?.searchPhrases ?? []),
     ...input.optionalTerms
   ])
+  const fieldSlots = extractFieldSlots(input.normalizedQuery, llmTerms)
   const evidenceTerms = uniqueStrings([
     ...input.protectedTerms,
     ...extractEvidenceTerms(input.normalizedQuery),
@@ -87,6 +149,9 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     .filter((term) => !identifiers.some((identifier) => sameTerm(identifier, term)))
     .filter((term) => !identifierFragments.has(normalizeTerm(term)))
     .filter((term) => !numericTerms.some((numericTerm) => sameTerm(numericTerm, term)))
+    .filter((term) => !isValueBearingEvidenceTerm(term))
+    .filter((term) => !isFieldSlotAlias(term))
+    .filter((term) => !isFieldContextTerm(term))
     .slice(0, 24)
   const referenceTerms = evidenceTerms
     .filter((term) => REFERENCE_TRIGGER_PATTERN.test(term))
@@ -95,7 +160,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     referenceTerms.length > 0 ||
     REFERENCE_TRIGGER_PATTERN.test(input.normalizedQuery)
   const requiredSignalCount =
-    identifiers.length + numericTerms.length + Math.min(evidenceTerms.length, 8)
+    identifiers.length + numericTerms.length + fieldSlots.length + Math.min(evidenceTerms.length, 8)
   const complexity =
     needsReference
       ? 'reference_required'
@@ -111,6 +176,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
   return {
     identifiers,
     numericTerms,
+    fieldSlots,
     evidenceTerms,
     referenceTerms,
     complexity,
@@ -133,24 +199,28 @@ export function computeKnowledgeEvidenceScore(
   const documentRole = inferDocumentRole(hit.documentName, hit.primaryTitle, hit.sectionPath, hit.content)
   const matchedIdentifiers = matchTerms(fullText, plan.identifiers)
   const matchedNumericTerms = matchTerms(fullText, plan.numericTerms)
+  const matchedFieldSlots = matchFieldSlots(fullText, plan.fieldSlots)
   const matchedEvidenceTerms = matchTerms(fullText, plan.evidenceTerms)
   const identifierScore = ratio(matchedIdentifiers.length, plan.identifiers.length) * 35
   const numericScore = ratio(matchedNumericTerms.length, plan.numericTerms.length) * 25
-  const evidenceScore = ratio(matchedEvidenceTerms.length, Math.min(plan.evidenceTerms.length, 8)) * 20
+  const fieldSlotScore = ratio(matchedFieldSlots.length, plan.fieldSlots.length) * 25
+  const evidenceScore = ratio(matchedEvidenceTerms.length, Math.min(plan.evidenceTerms.length, 8)) * 15
   const titleScore = computeTitleScore(titleText, plan) * 10
   const roleScore = computeRoleScore(documentRole, plan) * 10
   const coverage = computeCoverageFromMatches({
     plan,
     matchedIdentifiers,
     matchedNumericTerms,
+    matchedFieldSlots,
     matchedEvidenceTerms
   })
 
   return {
-    score: Number((identifierScore + numericScore + evidenceScore + titleScore + roleScore).toFixed(4)),
+    score: Number((identifierScore + numericScore + fieldSlotScore + evidenceScore + titleScore + roleScore).toFixed(4)),
     coverage,
     matchedIdentifiers,
     matchedNumericTerms,
+    matchedFieldSlots,
     matchedEvidenceTerms,
     documentRole
   }
@@ -163,6 +233,7 @@ export function computeKnowledgeEvidenceCoverage(
   const matchedIdentifiers = new Set<string>()
   const matchedNumericTerms = new Set<string>()
   const matchedEvidenceTerms = new Set<string>()
+  const matchedFieldSlots = new Set<string>()
 
   for (const hit of hits) {
     const score = computeKnowledgeEvidenceScore(hit, plan)
@@ -171,6 +242,9 @@ export function computeKnowledgeEvidenceCoverage(
     }
     for (const term of score.matchedNumericTerms) {
       matchedNumericTerms.add(term)
+    }
+    for (const slot of score.matchedFieldSlots) {
+      matchedFieldSlots.add(slot)
     }
     for (const term of score.matchedEvidenceTerms) {
       matchedEvidenceTerms.add(term)
@@ -181,6 +255,7 @@ export function computeKnowledgeEvidenceCoverage(
     plan,
     matchedIdentifiers: Array.from(matchedIdentifiers),
     matchedNumericTerms: Array.from(matchedNumericTerms),
+    matchedFieldSlots: Array.from(matchedFieldSlots),
     matchedEvidenceTerms: Array.from(matchedEvidenceTerms)
   })
 }
@@ -205,6 +280,12 @@ export function resolveEvidenceGateStatus(
   coverage: number,
   plan: KnowledgeQueryEvidencePlan
 ): 'pass' | 'degraded' | 'blocked' {
+  const hasHardRequirements =
+    plan.identifiers.length + plan.numericTerms.length + plan.fieldSlots.length > 0
+  if (!hasHardRequirements && plan.evidenceTerms.length > 0 && coverage > 0) {
+    return coverage < plan.requiredCoverage ? 'degraded' : 'pass'
+  }
+
   if (coverage < plan.hardGateCoverage) {
     return 'blocked'
   }
@@ -219,7 +300,7 @@ export function resolveEvidenceGateStatus(
 export function hasKnowledgeEvidenceRequirements(
   plan: KnowledgeQueryEvidencePlan
 ): boolean {
-  return plan.identifiers.length + plan.numericTerms.length + plan.evidenceTerms.length > 0
+  return plan.identifiers.length + plan.numericTerms.length + plan.fieldSlots.length + plan.evidenceTerms.length > 0
 }
 
 function resolveEvidenceTargetTopK(
@@ -244,11 +325,13 @@ function computeCoverageFromMatches(input: {
   plan: KnowledgeQueryEvidencePlan
   matchedIdentifiers: string[]
   matchedNumericTerms: string[]
+  matchedFieldSlots: string[]
   matchedEvidenceTerms: string[]
 }): number {
   const requiredCount =
     input.plan.identifiers.length +
     input.plan.numericTerms.length +
+    input.plan.fieldSlots.length +
     Math.min(input.plan.evidenceTerms.length, 8)
 
   if (requiredCount === 0) {
@@ -258,6 +341,7 @@ function computeCoverageFromMatches(input: {
   const matchedCount =
     input.matchedIdentifiers.length +
     input.matchedNumericTerms.length +
+    input.matchedFieldSlots.length +
     Math.min(input.matchedEvidenceTerms.length, 8)
 
   return Number(Math.min(matchedCount / requiredCount, 1).toFixed(4))
@@ -283,7 +367,8 @@ function extractEvidenceTerms(value: string): string[] {
   const asciiTerms = extractPatternTerms(value, ASCII_TERM_PATTERN)
   const referenceTerms = extractCjkReferenceTerms(value)
   const factTerms = value.match(CJK_FACT_PHRASE_PATTERN) ?? []
-  return uniqueStrings([...asciiTerms, ...referenceTerms, ...factTerms])
+  const valueFieldTerms = extractValueFieldTerms(value)
+  return uniqueStrings([...asciiTerms, ...referenceTerms, ...factTerms, ...valueFieldTerms])
 }
 
 function extractCjkReferenceTerms(value: string): string[] {
@@ -303,12 +388,125 @@ function matchTerms(text: string, terms: string[]): string[] {
       continue
     }
 
-    if (text.includes(normalizedTerm)) {
+    const valueBearingTerm = isValueBearingEvidenceTerm(term)
+    const valueBearingSignal = valueBearingTerm && hasValueBearingFieldSignal(text, term)
+    if (
+      (text.includes(normalizedTerm) || valueBearingSignal) &&
+      (!valueBearingTerm || valueBearingSignal)
+    ) {
       result.push(term)
     }
   }
 
   return uniqueStrings(result)
+}
+
+export function isValueBearingEvidenceTerm(term: string): boolean {
+  return resolveValueFieldDefinition(term) !== null
+}
+
+export function hasValueBearingEvidencePhrase(value: string): boolean {
+  const normalizedValue = normalizeTerm(value)
+  return VALUE_FIELD_DEFINITIONS.some((definition) =>
+    definition.aliases.some((alias) => normalizedValue.includes(normalizeTerm(alias)))
+  )
+}
+
+function hasValueBearingFieldSignal(text: string, term: string): boolean {
+  const definition = resolveValueFieldDefinition(term)
+  if (!definition) {
+    return true
+  }
+
+  for (const alias of definition.aliases) {
+    const normalizedAlias = normalizeTerm(alias)
+    const index = text.indexOf(normalizedAlias)
+    if (index < 0) {
+      continue
+    }
+
+    const nearbyText = text.slice(index + normalizedAlias.length, index + 160)
+    if (definition.valuePattern.test(nearbyText)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function matchFieldSlots(text: string, slots: string[]): string[] {
+  const result: string[] = []
+
+  for (const slot of slots) {
+    const definition = FIELD_SLOT_DEFINITIONS.find((item) => item.slot === slot)
+    if (!definition) {
+      continue
+    }
+
+    if (hasFieldSlotValueSignal(text, definition)) {
+      result.push(slot)
+    }
+  }
+
+  return uniqueStrings(result)
+}
+
+function hasFieldSlotValueSignal(
+  text: string,
+  definition: (typeof FIELD_SLOT_DEFINITIONS)[number]
+): boolean {
+  for (const alias of definition.aliases) {
+    const normalizedAlias = normalizeTerm(alias)
+    const index = text.indexOf(normalizedAlias)
+    if (index < 0) {
+      continue
+    }
+
+    const nearbyText = text.slice(index + normalizedAlias.length, index + 160)
+    if (definition.valuePattern.test(nearbyText)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function resolveValueFieldDefinition(term: string): (typeof VALUE_FIELD_DEFINITIONS)[number] | null {
+  const normalizedTerm = normalizeTerm(term)
+  return VALUE_FIELD_DEFINITIONS.find((definition) =>
+    definition.aliases.some((alias) => normalizeTerm(alias) === normalizedTerm)
+  ) ?? null
+}
+
+function extractValueFieldTerms(value: string): string[] {
+  const normalizedValue = normalizeTerm(value)
+  return VALUE_FIELD_DEFINITIONS.flatMap((definition) =>
+    definition.aliases.filter((alias) => normalizedValue.includes(normalizeTerm(alias)))
+  )
+}
+
+function extractFieldSlots(query: string, terms: string[]): string[] {
+  const normalizedValues = [query, ...terms].map(normalizeTerm)
+  return FIELD_SLOT_DEFINITIONS
+    .filter((definition) =>
+      definition.aliases.some((alias) => {
+        const normalizedAlias = normalizeTerm(alias)
+        return normalizedValues.some((value) => value.includes(normalizedAlias))
+      })
+    )
+    .map((definition) => definition.slot)
+}
+
+function isFieldSlotAlias(term: string): boolean {
+  const normalizedTerm = normalizeTerm(term)
+  return FIELD_SLOT_DEFINITIONS.some((definition) =>
+    definition.aliases.some((alias) => normalizeTerm(alias) === normalizedTerm)
+  )
+}
+
+function isFieldContextTerm(term: string): boolean {
+  const normalizedTerm = normalizeTerm(term)
+  return FIELD_CONTEXT_TERMS.some((item) => normalizeTerm(item) === normalizedTerm)
 }
 
 function normalizeText(value: string): string {

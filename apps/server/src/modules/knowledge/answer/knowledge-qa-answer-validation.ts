@@ -47,7 +47,13 @@ export function selectMoreCompleteKnowledgeAnswer(
   edited: string,
   facts: KnowledgeEvidenceFact[]
 ): string {
-  return scoreAnswer(edited, facts) >= scoreAnswer(original, facts) ? edited : original
+  const originalScore = scoreAnswer(original, facts)
+  const editedScore = scoreAnswer(edited, facts)
+  if (originalScore > 0 && isMissingAnswer(edited)) {
+    return original
+  }
+
+  return editedScore > originalScore ? edited : original
 }
 
 function scoreAnswer(answer: string, facts: KnowledgeEvidenceFact[]): number {
@@ -60,4 +66,9 @@ function scoreAnswer(answer: string, facts: KnowledgeEvidenceFact[]): number {
 
 function normalize(value: string): string {
   return value.normalize('NFKC').toLowerCase().replace(/\s+/g, '')
+}
+
+function isMissingAnswer(answer: string): boolean {
+  return /(?:未提供|未找到|找不到|无法确定|无法确认|证据不足|不包含|没有提供|not found|not provided|cannot determine)/i
+    .test(answer)
 }

@@ -85,21 +85,24 @@ export class KnowledgeQaService {
         { signal: options.signal } as never
       )
     const repairAnswerWithLlm = async (draft: string): Promise<string> => {
-      if (!hasPotentialKnowledgeAnswerGap(query, draft, evidenceFacts)) {
+      if (!shouldRepairAnswer(query, draft, evidenceFacts, hits)) {
         return draft
       }
 
+      const repairStartedAt = Date.now()
       try {
         const message = await this.createClient(provider.runtimeConfig.llm, options.temperature).invoke([
           {
             role: 'system',
             content: [
               'You are a factual answer editor for a retrieval-augmented question answering system.',
-              'Rewrite the draft using only the user question and verified evidence facts.',
+              'Rewrite the draft using only the user question, verified evidence facts, and retrieved excerpts.',
               'Include every fact explicitly requested by the user when it is supported by the evidence.',
               'Remove unsupported or unrequested facts.',
               'Evaluate each fact independently and never transfer an exact value to another fact or subject.',
-              'Do not declare a requested item missing when a verified fact directly contains its value.',
+              'Do not declare a requested item missing when a verified fact or retrieved excerpt directly contains its value.',
+              'Text extracted from OCR, VLM, images, attachments, dashboards, or tables is valid evidence once it is present in retrieved excerpts.',
+              'Treat "stored in an image" or "stored in an attachment" as source-carrier wording, not as proof that the extracted value is missing.',
               'Preserve exact identifiers, labels, roles, numbers, conditions, and time scopes from the evidence.',
               'A descriptive paraphrase is incomplete when the evidence provides a machine-readable identifier for the requested item.',
               'Do not use general knowledge or infer missing values.',
@@ -110,14 +113,23 @@ export class KnowledgeQaService {
             role: 'user',
             content: [
               `User question:\n${query}`,
-              `Verified evidence facts:\n${formatEvidenceFactsForRepair(evidenceFacts)}`
+              `Draft answer:\n${draft}`,
+              `Verified evidence facts:\n${formatEvidenceFactsForRepair(evidenceFacts)}`,
+              `Retrieved excerpts:\n${formatHitsForRepair(hits)}`
             ].join('\n\n')
           }
         ])
         const content = normalizeMessageContent(message.content).trim() || draft
-        return selectMoreCompleteKnowledgeAnswer(draft, content, evidenceFacts)
+        return selectRepairedAnswer(draft, content, evidenceFacts, hits)
       } catch {
         return draft
+      } finally {
+        if (options.retrievalDebug) {
+          options.retrievalDebug.stageTimingsMs = {
+            ...options.retrievalDebug.stageTimingsMs,
+            repair: Date.now() - repairStartedAt
+          }
+        }
       }
     }
 
@@ -288,4 +300,96 @@ function formatEvidenceFactsForRepair(
       ].join('\n')
     )
     .join('\n\n')
+}
+
+function shouldRepairAnswer(
+  query: string,
+  draft: string,
+  facts: ReturnType<typeof extractKnowledgeEvidenceFacts>,
+  hits: KnowledgeSearchHit[]
+): boolean {
+  return hasPotentialKnowledgeAnswerGap(query, draft, facts) ||
+    hasMissingAnswerWithConcreteEvidence(query, draft, hits)
+}
+
+function hasMissingAnswerWithConcreteEvidence(
+  query: string,
+  draft: string,
+  hits: KnowledgeSearchHit[]
+): boolean {
+  if (!isMissingKnowledgeAnswer(draft)) {
+    return false
+  }
+
+  const normalizedQuery = normalizeForValueMatch(query)
+  const queryAsksValue = /(?:值|代码|编号|角色|阈值|时限|window|code|threshold|role|owner|value)/i.test(query)
+  if (!queryAsksValue) {
+    return false
+  }
+
+  return extractConcreteEvidenceValues(hits)
+    .some((value) => !normalizedQuery.includes(normalizeForValueMatch(value)))
+}
+
+function selectRepairedAnswer(
+  draft: string,
+  edited: string,
+  facts: ReturnType<typeof extractKnowledgeEvidenceFacts>,
+  hits: KnowledgeSearchHit[]
+): string {
+  const factSelected = selectMoreCompleteKnowledgeAnswer(draft, edited, facts)
+  if (factSelected !== draft) {
+    return factSelected
+  }
+
+  if (!isMissingKnowledgeAnswer(draft) || isMissingKnowledgeAnswer(edited)) {
+    return draft
+  }
+
+  const editedValueCount = extractConcreteEvidenceValues(hits)
+    .filter((value) => normalizeForValueMatch(edited).includes(normalizeForValueMatch(value)))
+    .length
+  return editedValueCount > 0 ? edited : draft
+}
+
+function formatHitsForRepair(hits: KnowledgeSearchHit[]): string {
+  if (hits.length === 0) {
+    return '(no retrieved excerpts)'
+  }
+
+  return hits.slice(0, 8)
+    .map((hit, index) => [
+      `Excerpt ${index + 1}:`,
+      `documentName: ${hit.documentName}`,
+      hit.primaryTitle ? `primaryTitle: ${hit.primaryTitle}` : '',
+      hit.sectionPath ? `sectionPath: ${hit.sectionPath}` : '',
+      `content: ${hit.content}`
+    ].filter(Boolean).join('\n'))
+    .join('\n\n')
+}
+
+function extractConcreteEvidenceValues(hits: KnowledgeSearchHit[]): string[] {
+  const values = new Set<string>()
+  const pattern =
+    /\b[A-Z]{2,}(?:-[A-Z0-9]+){1,}\d*\b|\b[a-z]+(?:_[a-z0-9]+)+\b|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*(?:hours?|小时|分钟|天|days?)\b/gi
+
+  for (const hit of hits.slice(0, 8)) {
+    for (const match of hit.content.match(pattern) ?? []) {
+      const value = match.trim()
+      if (value.length >= 2 && value.length <= 60) {
+        values.add(value)
+      }
+    }
+  }
+
+  return [...values]
+}
+
+function isMissingKnowledgeAnswer(answer: string): boolean {
+  return /(?:未提供|未找到|找不到|无法确定|无法确认|证据不足|不包含|没有提供|not found|not provided|cannot determine)/i
+    .test(answer)
+}
+
+function normalizeForValueMatch(value: string): string {
+  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, '')
 }

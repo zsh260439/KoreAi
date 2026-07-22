@@ -7,9 +7,38 @@ type ChatMessageWithThinking = ChatMessage & {
 }
 
 const FINAL_ANSWER_TITLE = '最终回答'
+const MEMORY_RESOLUTION_STAGE_ID = 'memory-resolution'
 const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
 const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
 const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
+
+const buildMemoryResolutionStage = (
+  messageId: string,
+  debug: KnowledgeSearchDebugInfo | null | undefined
+): AssistantThinkingStage[] => {
+  if (!debug || debug.memoryIntent === undefined) {
+    return []
+  }
+
+  const content = [
+    `intent: ${debug.memoryIntent ?? 'unknown'}`,
+    `applied: ${debug.memoryApplied === true ? 'yes' : 'no'}`,
+    debug.memoryGroundedQuery ? `groundedQuery: ${debug.memoryGroundedQuery}` : '',
+  ].filter(Boolean).join('\n')
+
+  return [
+    {
+      kind: 'process',
+      id: `${messageId}-${MEMORY_RESOLUTION_STAGE_ID}`,
+      stageKey: 'memory_resolution',
+      title: '短期记忆消解',
+      subtitle: debug.memoryApplied ? '已用于检索问题消解' : '未改写检索问题',
+      status: 'done',
+      content,
+      visibleContent: content
+    }
+  ]
+}
 
 const buildKnowledgeRecallStage = (
   messageId: string,
@@ -64,6 +93,7 @@ const buildThinkingStages = (message: ChatMessage): AssistantThinkingStage[] => 
 
 export const buildCompletedResponseFlow = (message: ChatMessage): AssistantResponseFlow => ({
   thinking: [
+    ...buildMemoryResolutionStage(message.id, message.retrievalDebug),
     ...buildKnowledgeRecallStage(message.id, message.citations ?? []),
     ...buildThinkingStages(message)
   ],

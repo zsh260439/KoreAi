@@ -5,6 +5,10 @@ import type {
   KnowledgeQueryRuleSignal,
   KnowledgeRetrievalMode
 } from './knowledge-query-plan.types'
+import {
+  expandStructuredIdentifierAliases,
+  isCompactStructuredIdentifier
+} from './knowledge-identifier-aliases'
 
 // 规则只识别通用结构，不绑定业务前缀或评测集词汇。
 const IDENTIFIER_LIKE_PATTERN =
@@ -12,6 +16,9 @@ const IDENTIFIER_LIKE_PATTERN =
 
 const ERROR_CODE_LIKE_PATTERN =
   /\b[a-z]{1,8}[-_]?\d{3,}\b/gi
+
+const COMPACT_IDENTIFIER_LIKE_PATTERN =
+  /\b[a-z]{2,12}\d{2,4}\b/gi
 
 const PROCEDURE_PATTERN =
   /\b(how to|steps?|procedure|process|troubleshoot(?:ing)?|debug|fix|resolve|why)\b|如何|怎么|步骤|流程|排查|处理方法|修复|原因/iu
@@ -23,11 +30,14 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
   const quotedTerms = extractQuotedTerms(normalizedQuery)
   const identifierTerms = extractPatternTerms(normalizedQuery, IDENTIFIER_LIKE_PATTERN)
   const errorCodeTerms = extractPatternTerms(normalizedQuery, ERROR_CODE_LIKE_PATTERN)
-  const exactTerms = compactStructuredExactTerms(uniqueStrings([
+  const compactIdentifierTerms = extractPatternTerms(normalizedQuery, COMPACT_IDENTIFIER_LIKE_PATTERN)
+    .filter(isCompactStructuredIdentifier)
+  const exactTerms = compactStructuredExactTerms(expandStructuredIdentifierAliases(uniqueStrings([
     ...quotedTerms,
     ...identifierTerms,
-    ...errorCodeTerms
-  ]))
+    ...errorCodeTerms,
+    ...compactIdentifierTerms
+  ])))
 
   const tokenCount = normalizedQuery.split(/\s+/).filter(Boolean).length
   const shortQuery = tokenCount > 0 && tokenCount <= 3 && normalizedQuery.length <= 48
@@ -45,6 +55,10 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
 
   if (errorCodeTerms.length > 0) {
     reasons.push('contains_error_code_like_terms')
+  }
+
+  if (compactIdentifierTerms.length > 0) {
+    reasons.push('contains_compact_identifier_like_terms')
   }
 
   if (shortQuery) {

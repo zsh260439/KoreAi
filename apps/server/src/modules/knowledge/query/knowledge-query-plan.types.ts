@@ -139,6 +139,8 @@ export type KnowledgeQueryEvidencePlan = {
   identifiers: string[]
   /** query 中出现的数字、阈值、时间、次数等事实槽位。 */
   numericTerms: string[]
+  /** 用户实际请求的字段槽位，只有字段标签附近存在具体值时才算覆盖。 */
+  fieldSlots: string[]
   /** 用于判断 chunk 是否覆盖关键证据的字段/术语词。 */
   evidenceTerms: string[]
   /** 用于触发 reference/standard/playbook 等支撑文档的通用概念词。 */
@@ -214,6 +216,16 @@ export type KnowledgeQueryPlan = {
   protectedTerms: string[]
   /** 需要在排序阶段降权的排除词。 */
   excludedTerms: string[]
+  /** 命中的用户可配置 query mapping 触发词。 */
+  appliedQueryMappings: string[]
+  /** query mapping 追加到召回层的扩展词。 */
+  queryMappingTerms: string[]
+  /** 会话短期记忆追加到召回层的提示词。 */
+  retrievalHintTerms: string[]
+  /** 因本轮显式对象优先而丢弃的会话记忆提示词。 */
+  droppedRetrievalHintTerms: string[]
+  /** 本轮显式对象与会话记忆对象是否发生冲突。 */
+  retrievalHintConflict: boolean
   /** 证据驱动检索计划，供重排、上下文组装和生成门禁复用。 */
   evidencePlan: KnowledgeQueryEvidencePlan
   /** 主检索执行策略。 */

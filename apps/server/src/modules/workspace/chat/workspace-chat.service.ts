@@ -7,6 +7,7 @@ import type {
   KnowledgeSearchHit,
   WorkspaceChatInput,
   WorkspaceChatResult,
+  WorkspaceMessage,
   WorkspaceChatStreamEvent,
   WorkspacePromptCapabilities
 } from 'share-type'
@@ -18,8 +19,10 @@ import {
 } from '../conversation/workspace-conversation.service'
 import { WorkspaceConversationEntity } from '../entity/workspace-conversation.entity'
 import { WorkspaceMessageEntity } from '../entity/workspace-message.entity'
+import { WorkspaceChatMemoryService } from './workspace-chat-memory.service'
 
 const KNOWLEDGE_RECALL_STAGE_ID = 'knowledge-recall'
+const MEMORY_RESOLUTION_STAGE_ID = 'memory-resolution'
 const VISIBLE_REASONING_STAGE_ID = 'visible-reasoning'
 const ANSWER_SYNTHESIS_STAGE_ID = 'answer-synthesis'
 
@@ -48,15 +51,53 @@ export class WorkspaceChatService {
     @InjectRepository(WorkspaceMessageEntity)
     private readonly messageRepo: Repository<WorkspaceMessageEntity>,
     private readonly conversationService: WorkspaceConversationService,
-    private readonly knowledgeQueryService: KnowledgeQueryService
+    private readonly knowledgeQueryService: KnowledgeQueryService,
+    private readonly chatMemoryService: WorkspaceChatMemoryService
   ) {}
 
   async *chatStream(
     dto: WorkspaceChatInput,
     options: { signal?: AbortSignal } = {}
   ): AsyncGenerator<WorkspaceChatStreamEvent> {
-    const context = await this.prepareChatContext(dto)
     const startedAt = Date.now()
+    const context = await this.prepareChatContext(dto)
+    yield stageStarted(
+      MEMORY_RESOLUTION_STAGE_ID,
+      'memory_resolution',
+      '短期记忆消解',
+      '正在判断本轮问题是否依赖同一会话上下文'
+    )
+    const memoryStartedAt = Date.now()
+    const memoryResolution = await this.chatMemoryService.resolveChatMemory({
+      query: context.query,
+      conversationTitle: context.conversation.title,
+      messages: dropCurrentUserMessage(
+        await this.conversationService.findConversationMessages(context.conversation.id),
+        context.query
+      )
+    })
+    const memoryLatencyMs = Date.now() - memoryStartedAt
+    yield stageCompleted(
+      MEMORY_RESOLUTION_STAGE_ID,
+      formatMemoryResolutionSubtitle(memoryResolution, memoryLatencyMs)
+    )
+
+    if (memoryResolution.directAnswer) {
+      const result = await this.persistAssistantResponse({
+        conversation: context.conversation,
+        query: context.query,
+        promptCapabilities: context.promptCapabilities,
+        answer: memoryResolution.directAnswer,
+        sources: [],
+        retrievalDebug: null,
+        model: null,
+        reasoningSteps: null,
+        latencyMs: Date.now() - startedAt,
+        totalTokens: null
+      })
+      yield { type: 'completed', data: result }
+      return
+    }
 
     yield stageStarted(
       KNOWLEDGE_RECALL_STAGE_ID,
@@ -67,12 +108,19 @@ export class WorkspaceChatService {
 
     const answerStream = await this.knowledgeQueryService.streamAnswer(
       {
-        query: context.query,
+        query: memoryResolution.groundedQuery,
         knowledgeBaseId: dto.knowledgeBaseId,
         think: dto.think,
-        rewrite: context.promptCapabilities.rewrite
+        rewrite: context.promptCapabilities.rewrite,
+        generalKnowledgeOnly: memoryResolution.intent === 'general_question',
+        retrievalHints: memoryResolution.retrievalHints
       },
       { signal: options.signal }
+    )
+    const retrievalDebug = attachMemoryDebug(
+      answerStream.retrievalDebug,
+      memoryResolution,
+      memoryLatencyMs
     )
     const reasoningSteps: KnowledgeReasoningStep[] = []
     let answer = ''
@@ -81,7 +129,7 @@ export class WorkspaceChatService {
       type: 'sources',
       data: {
         sources: answerStream.sources,
-        retrievalDebug: answerStream.retrievalDebug
+        retrievalDebug
       }
     }
     yield {
@@ -107,6 +155,7 @@ export class WorkspaceChatService {
       )
     }
 
+    const qaStartedAt = Date.now()
     for await (const event of answerStream.stream) {
       if (options.signal?.aborted) {
         return
@@ -142,6 +191,12 @@ export class WorkspaceChatService {
     if (answerStageStarted) {
       yield stageCompleted(ANSWER_SYNTHESIS_STAGE_ID, '最终回答已生成')
     }
+    if (retrievalDebug) {
+      retrievalDebug.stageTimingsMs = {
+        ...retrievalDebug.stageTimingsMs,
+        qa: Date.now() - qaStartedAt
+      }
+    }
 
     const finalAnswer = answer.trim()
     if (!finalAnswer) {
@@ -154,11 +209,11 @@ export class WorkspaceChatService {
 
     const result = await this.persistAssistantResponse({
       conversation: context.conversation,
-      query: context.query,
+      query: memoryResolution.groundedQuery,
       promptCapabilities: context.promptCapabilities,
       answer: finalAnswer,
       sources: answerStream.sources,
-      retrievalDebug: answerStream.retrievalDebug,
+      retrievalDebug,
       model: answerStream.model,
       reasoningSteps: normalizeReasoningSteps(reasoningSteps),
       latencyMs: Date.now() - startedAt,
@@ -227,7 +282,7 @@ export class WorkspaceChatService {
         input.conversation.messageCount === 0
           ? buildConversationTitle(input.query)
           : input.conversation.title,
-      model: input.model
+      model: input.model ?? input.conversation.model
     })
 
     return {
@@ -261,6 +316,53 @@ export class WorkspaceChatService {
   }
 }
 
+function dropCurrentUserMessage(messages: WorkspaceMessage[], currentQuery: string): WorkspaceMessage[] {
+  const lastMessage = messages.at(-1)
+  if (
+    lastMessage?.role === 'user' &&
+    normalizeMessageContent(lastMessage.content) === normalizeMessageContent(currentQuery)
+  ) {
+    return messages.slice(0, -1)
+  }
+
+  return messages
+}
+
+function attachMemoryDebug(
+  debug: KnowledgeSearchDebugInfo | null,
+  memory: Awaited<ReturnType<WorkspaceChatMemoryService['resolveChatMemory']>>,
+  latencyMs: number
+): KnowledgeSearchDebugInfo | null {
+  if (!debug) {
+    return null
+  }
+
+  debug.memoryIntent = memory.intent
+  debug.memoryApplied = memory.applied
+  debug.memoryGroundedQuery = memory.groundedQuery
+  debug.memoryBoardSummary = memory.memoryBoardSummary
+  debug.memoryBoardSource = memory.memoryBoardSource
+  debug.memoryRetrievalHints = memory.retrievalHints
+  debug.memoryLatencyMs = latencyMs
+  debug.stageTimingsMs = {
+    ...debug.stageTimingsMs,
+    memory: latencyMs
+  }
+  return debug
+}
+
+function formatMemoryResolutionSubtitle(
+  memory: Awaited<ReturnType<WorkspaceChatMemoryService['resolveChatMemory']>>,
+  latencyMs: number
+): string {
+  const mode = memory.applied ? '已用于检索问题消解' : '未改写检索问题'
+  return `${mode} · ${memory.intent} · ${latencyMs} ms`
+}
+
+function normalizeMessageContent(value: string): string {
+  return value.normalize('NFKC').replace(/\s+/g, ' ').trim()
+}
+
 function buildPromptCapabilities(think?: boolean, rewrite?: boolean): WorkspacePromptCapabilities {
   return { think: Boolean(think), rewrite: rewrite !== false }
 }
@@ -281,7 +383,7 @@ function appendReasoningDelta(steps: KnowledgeReasoningStep[], delta: string): v
 
 function stageStarted(
   id: string,
-  stageKey: 'knowledge_recall' | 'llm_reasoning' | 'answer_synthesis',
+  stageKey: 'memory_resolution' | 'knowledge_recall' | 'llm_reasoning' | 'answer_synthesis',
   title: string,
   subtitle: string
 ): WorkspaceChatStreamEvent {
