@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+﻿import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import type {
@@ -11,7 +11,7 @@ import type {
   WorkspaceChatStreamEvent,
   WorkspacePromptCapabilities
 } from 'share-type'
-import { KnowledgeQueryService } from '../../knowledge/query/knowledge-query.service'
+import { KnowledgeQueryService } from '../../knowledge/pipeline/query-understanding/knowledge-query.service'
 import {
   buildConversationTitle,
   toWorkspaceConversationSummary,
@@ -393,3 +393,4 @@ function stageStarted(
 function stageCompleted(stageId: string, subtitle: string): WorkspaceChatStreamEvent {
   return { type: 'stage_completed', data: { stageId, subtitle } }
 }
+

@@ -22,7 +22,7 @@ import {
 import { computed, onBeforeUnmount, ref } from "vue";
 
 import ShiningText from "@/components/ui/ShiningText.vue";
-import WorkspaceMark from "@/views/workspace/components/content/WorkspaceMark.vue";
+import WorkspaceMark from "@/features/workspace/components/content/WorkspaceMark.vue";
 
 type ViewKey = "chat" | "knowledge" | "trace";
 type DrawerTab = "evidence" | "query" | "run";

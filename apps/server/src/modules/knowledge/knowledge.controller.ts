@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -26,7 +26,7 @@ import type {
 } from 'share-type'
 
 import { successResponse } from '../../common/api-response'
-import { KnowledgeConfigService } from './config/knowledge-config.service'
+import { KnowledgeConfigService } from './runtime/config/knowledge-config.service'
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto'
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto'
 import { SearchKnowledgeDto } from './dto/search-knowledge.dto'
@@ -37,10 +37,10 @@ import { UpdateKnowledgeProviderSettingsDto } from './dto/update-knowledge-provi
 import {
   KnowledgeDocumentService,
   type KnowledgeDocumentUploadFields
-} from './ingestion/knowledge-document.service'
-import type { UploadedKnowledgeDocumentFile } from './ingestion/knowledge-file.service'
-import { KnowledgeBaseService } from './management/knowledge-base.service'
-import { KnowledgeQueryService } from './query/knowledge-query.service'
+} from './pipeline/document-processing/knowledge-document.service'
+import type { UploadedKnowledgeDocumentFile } from './pipeline/document-processing/knowledge-file.service'
+import { KnowledgeBaseService } from './runtime/management/knowledge-base.service'
+import { KnowledgeQueryService } from './pipeline/query-understanding/knowledge-query.service'
 
 @Controller('knowledge')
 export class KnowledgeController {
@@ -54,19 +54,19 @@ export class KnowledgeController {
   @Post('search')
   async searchKnowledge(@Body() dto: SearchKnowledgeDto): Promise<ApiResponse<KnowledgeSearchResponse>> {
     const data = await this.queryService.searchKnowledge(dto)
-    return successResponse(data, '搜索成功')
+    return successResponse(data, '鎼滅储鎴愬姛')
   }
 
   @Get('bases')
   async findKnowledgeBases(): Promise<ApiResponse<KnowledgeBase[]>> {
     const data = await this.baseService.findKnowledgeBases()
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Get('runtime-config/global')
   async findGlobalRuntimeConfig(): Promise<ApiResponse<KnowledgeGlobalRuntimeSettings>> {
     const data = await this.configService.findGlobalRuntimeConfig()
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Patch('runtime-config/global')
@@ -74,13 +74,13 @@ export class KnowledgeController {
     @Body() dto: UpdateKnowledgeGlobalRuntimeConfigDto
   ): Promise<ApiResponse<KnowledgeGlobalRuntimeSettings>> {
     const data = await this.configService.updateGlobalRuntimeConfig(dto)
-    return successResponse(data, '更新成功')
+    return successResponse(data, '鏇存柊鎴愬姛')
   }
 
   @Get('provider-settings')
   async findProviderSettings(): Promise<ApiResponse<KnowledgeProviderSettings>> {
     const data = await this.configService.findProviderSettings()
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Patch('provider-settings')
@@ -88,7 +88,7 @@ export class KnowledgeController {
     @Body() dto: UpdateKnowledgeProviderSettingsDto
   ): Promise<ApiResponse<KnowledgeProviderSettings>> {
     const data = await this.configService.updateProviderSettings(dto)
-    return successResponse(data, '更新成功')
+    return successResponse(data, '鏇存柊鎴愬姛')
   }
 
   @Get('document-sync-events')
@@ -99,7 +99,7 @@ export class KnowledgeController {
   @Post('bases')
   async createKnowledgeBase(@Body() dto: CreateKnowledgeBaseDto): Promise<ApiResponse<KnowledgeBase>> {
     const data = await this.baseService.createKnowledgeBase(dto)
-    return successResponse(data, '创建成功')
+    return successResponse(data, '鍒涘缓鎴愬姛')
   }
 
   @Patch('bases/:kbId')
@@ -108,19 +108,19 @@ export class KnowledgeController {
     @Body() dto: UpdateKnowledgeBaseDto
   ): Promise<ApiResponse<KnowledgeBase>> {
     const data = await this.baseService.updateKnowledgeBase(kbId, dto)
-    return successResponse(data, '更新成功')
+    return successResponse(data, '鏇存柊鎴愬姛')
   }
 
   @Get('bases/:kbId/documents')
   async findKnowledgeDocuments(@Param('kbId') kbId: string): Promise<ApiResponse<KnowledgeDocument[]>> {
     const data = await this.documentService.findKnowledgeDocuments(kbId)
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Get('documents/:docId')
   async findKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.findKnowledgeDocument(docId)
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Get('documents/:docId/file')
@@ -142,7 +142,7 @@ export class KnowledgeController {
     @Body() dto: CreateKnowledgeDocumentDto
   ): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.createKnowledgeDocument(kbId, dto)
-    return successResponse(data, '创建成功')
+    return successResponse(data, '鍒涘缓鎴愬姛')
   }
 
   @Post('bases/:kbId/documents/upload')
@@ -159,13 +159,13 @@ export class KnowledgeController {
     @UploadedFile() file?: UploadedKnowledgeDocumentFile
   ): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.uploadKnowledgeDocument(kbId, body, file)
-    return successResponse(data, '上传成功')
+    return successResponse(data, '涓婁紶鎴愬姛')
   }
 
   @Get('documents/:docId/chunks')
   async findDocumentChunks(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeChunk[]>> {
     const data = await this.documentService.findDocumentChunks(docId)
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Post('documents/:docId/chunks/rebuild')
@@ -177,7 +177,7 @@ export class KnowledgeController {
   @Delete('documents/:docId')
   async deleteKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.deleteKnowledgeDocument(docId)
-    return successResponse(data, '删除成功')
+    return successResponse(data, '鍒犻櫎鎴愬姛')
   }
 
   @Get('documents/:docId/revisions')
@@ -203,7 +203,7 @@ export class KnowledgeController {
 
   @Post('documents/:docId/restore')
   async restoreKnowledgeDocument(@Param('docId') docId: string): Promise<ApiResponse<KnowledgeDocument>> {
-    return successResponse(await this.documentService.restoreKnowledgeDocument(docId), '恢复成功')
+    return successResponse(await this.documentService.restoreKnowledgeDocument(docId), '鎭㈠鎴愬姛')
   }
 
   @Delete('documents/:docId/purge')
@@ -215,7 +215,7 @@ export class KnowledgeController {
   @Delete('bases/:kbId')
   async deleteKnowledgeBase(@Param('kbId') kbId: string): Promise<ApiResponse<KnowledgeBase>> {
     const data = await this.baseService.deleteKnowledgeBase(kbId)
-    return successResponse(data, '删除成功')
+    return successResponse(data, '鍒犻櫎鎴愬姛')
   }
 
   @Patch('documents/:docId')
@@ -224,7 +224,7 @@ export class KnowledgeController {
     @Body() dto: UpdateKnowledgeDocumentDto
   ): Promise<ApiResponse<KnowledgeDocument>> {
     const data = await this.documentService.updateKnowledgeDocument(docId, dto)
-    return successResponse(data, '更新成功')
+    return successResponse(data, '鏇存柊鎴愬姛')
   }
 }
 
@@ -236,3 +236,4 @@ function getDocumentMimeType(fileType: string): string {
     txt: 'text/plain; charset=utf-8'
   }[fileType] ?? 'application/octet-stream'
 }
+

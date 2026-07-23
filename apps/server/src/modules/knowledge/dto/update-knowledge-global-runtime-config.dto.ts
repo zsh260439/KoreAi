@@ -1,4 +1,4 @@
-import { IsObject, IsOptional } from 'class-validator'
+﻿import { IsObject, IsOptional } from 'class-validator'
 import type { KnowledgeBaseRuntimeConfigPatch } from 'share-type'
 
 export class UpdateKnowledgeGlobalRuntimeConfigDto implements KnowledgeBaseRuntimeConfigPatch {
@@ -10,3 +10,4 @@ export class UpdateKnowledgeGlobalRuntimeConfigDto implements KnowledgeBaseRunti
   @IsObject()
   answer?: KnowledgeBaseRuntimeConfigPatch['answer']
 }
+

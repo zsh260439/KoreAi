@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Query, DefaultValuePipe, ParseIntPipe,Param, Post, Req, Res } from '@nestjs/common'
+﻿import { Body, Controller, Delete, Get, Query, DefaultValuePipe, ParseIntPipe,Param, Post, Req, Res } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type {
   ApiResponse,
@@ -25,7 +25,7 @@ export class WorkspaceController {
     @Query("limit", new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ): Promise<ApiResponse<WorkspaceConversationPage>> {
     const data = await this.conversationService.findConversations(page, Math.min(limit, 100))
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Post('conversations')
@@ -33,7 +33,7 @@ export class WorkspaceController {
     @Body() dto: CreateWorkspaceConversationDto
   ): Promise<ApiResponse<WorkspaceConversationSummary>> {
     const data = await this.conversationService.createConversation(dto)
-    return successResponse(data, '创建成功')
+    return successResponse(data, '鍒涘缓鎴愬姛')
   }
 
   @Get('conversations/:conversationId/messages')
@@ -41,7 +41,7 @@ export class WorkspaceController {
     @Param('conversationId') conversationId: string
   ): Promise<ApiResponse<WorkspaceMessage[]>> {
     const data = await this.conversationService.findConversationMessages(conversationId)
-    return successResponse(data, '查询成功')
+    return successResponse(data, '鏌ヨ鎴愬姛')
   }
 
   @Delete('conversations/:conversationId')
@@ -49,7 +49,7 @@ export class WorkspaceController {
     @Param('conversationId') conversationId: string
   ): Promise<ApiResponse<WorkspaceConversationSummary>> {
     const data = await this.conversationService.deleteConversation(conversationId)
-    return successResponse(data, '删除成功')
+    return successResponse(data, '鍒犻櫎鎴愬姛')
   }
 
   @Post('chat/stream')
@@ -95,3 +95,4 @@ export class WorkspaceController {
     }
   }
 }
+

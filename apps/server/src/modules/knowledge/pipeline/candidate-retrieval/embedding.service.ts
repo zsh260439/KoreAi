@@ -1,0 +1,45 @@
+﻿import { OpenAIEmbeddings } from '@langchain/openai'
+import { Injectable } from '@nestjs/common'
+
+const EMBEDDING_DIMENSIONS = 1024
+
+@Injectable()
+export class EmbeddingService {
+  private readonly client: OpenAIEmbeddings
+  readonly fingerprint = `${process.env.EMBEDDING_MODEL || 'text-embedding-3-small'}:${EMBEDDING_DIMENSIONS}`
+
+  constructor() {
+    this.client = new OpenAIEmbeddings({
+      apiKey: process.env.EMBEDDING_API_KEY,
+      model: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
+      dimensions: EMBEDDING_DIMENSIONS,
+      encodingFormat: 'float',
+      configuration: {
+        baseURL: normalizeEmbeddingBaseUrl(process.env.EMBEDDING_BASE_URL)
+      }
+    })
+  }
+
+  async embedChunks(texts: string[]): Promise<number[][]> {
+    const values = texts.map((item) => item.trim()).filter(Boolean)
+    if (!values.length) {
+      return []
+    }
+
+    return this.client.embedDocuments(values)
+  }
+
+  async embedQuery(text: string): Promise<number[]> {
+    return this.client.embedQuery(text)
+  }
+}
+
+function normalizeEmbeddingBaseUrl(value?: string): string | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  return value.replace(/\/embeddings\/?$/, '')
+}
+
+

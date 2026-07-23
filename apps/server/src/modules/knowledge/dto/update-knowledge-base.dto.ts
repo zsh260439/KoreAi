@@ -1,4 +1,4 @@
-import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
+﻿import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
 import type { UpdateKnowledgeBaseInput } from 'share-type'
 
 export class UpdateKnowledgeBaseDto implements UpdateKnowledgeBaseInput {
@@ -11,8 +11,8 @@ export class UpdateKnowledgeBaseDto implements UpdateKnowledgeBaseInput {
   @IsString()
   description?: string
 
-  // 这里允许 admin 直接提交对象，具体字段边界统一在服务层做归一化。
-  @IsOptional()
+  // 杩欓噷鍏佽 admin 鐩存帴鎻愪氦瀵硅薄锛屽叿浣撳瓧娈佃竟鐣岀粺涓€鍦ㄦ湇鍔″眰鍋氬綊涓€鍖栥€?  @IsOptional()
   @IsObject()
   runtimeConfig?: UpdateKnowledgeBaseInput['runtimeConfig']
 }
+

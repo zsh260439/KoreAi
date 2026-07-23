@@ -1,7 +1,7 @@
-import { ChatOpenAI } from '@langchain/openai'
+﻿import { ChatOpenAI } from '@langchain/openai'
 import { Injectable, Logger } from '@nestjs/common'
 import type { KnowledgeSearchHit, WorkspaceMessage } from 'share-type'
-import { KnowledgeConfigService } from '../../knowledge/config/knowledge-config.service'
+import { KnowledgeConfigService } from '../../knowledge/runtime/config/knowledge-config.service'
 
 export type WorkspaceChatMemoryIntent =
   | 'followup_question'
@@ -28,8 +28,8 @@ const MESSAGE_PREVIEW_LIMIT = 420
 const EXPLICIT_KNOWLEDGE_REFERENCE_PATTERN =
   /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,12}[-_]?\d{2,}|[\w.-]+\.(?:pdf|docx|md|txt|xlsx|pptx))\b/i
 const SAFE_ACKNOWLEDGEMENT_PATTERN =
-  /^(?:ok|okay|ojbk|好的?|好|嗯+|哦+|哦哦|收到|了解|行|thanks?|thx)$/i
-const SAFE_GREETING_PATTERN = /^(?:hi|hello|hey|你好|您好)$/i
+  /^(?:ok|okay|ojbk|濂界殑?|濂絴鍡?|鍝?|鍝﹀摝|鏀跺埌|浜嗚В|琛寍thanks?|thx)$/i
+const SAFE_GREETING_PATTERN = /^(?:hi|hello|hey|浣犲ソ|鎮ㄥソ)$/i
 const STRUCTURED_IDENTIFIER_PATTERN =
   /\b[a-z0-9]+(?:[-_./:][a-z0-9]+)+\b|\b[a-z]{2,12}\d{2,4}\b/gi
 const MEMORY_KEYWORD_PATTERN =
@@ -159,7 +159,7 @@ function buildMemoryUserPrompt(input: {
       '- If the current message is just an acknowledgement or greeting, do not send it to retrieval.',
       '- If it asks a new topic that still sounds like a document/knowledge-base lookup, keep it as new_question.',
       '- If it asks general public knowledge, game/person/concept explanation, learning help, or an open-world question unrelated to cited documents, classify it as general_question.',
-      '- If it says things like "他的", "这个", "呢", "那个字段", or omits the document/subject, resolve it from the recent conversation.',
+      '- If it says things like "浠栫殑", "杩欎釜", "鍛?, "閭ｄ釜瀛楁", or omits the document/subject, resolve it from the recent conversation.',
       '- For follow-up questions, prefer the Primary retrieval scope and do not mix multiple documents.',
       '- If Primary retrieval scope is (none), do not resolve document or field references from older cited messages; classify them as new_question unless they are clearly general_question.',
       '- Do not classify a question with explicit document IDs, filenames, record IDs, citations, chunks, or knowledge-base scope as general_question.',
@@ -216,8 +216,8 @@ function normalizeSectionPath(value?: string | null): string {
     .map((item) => item.trim())
     .filter((item) =>
       item &&
-      !/^第\s*\d+\s*页$/i.test(item) &&
-      !/VLM\s*结构增强/i.test(item)
+      !/^绗琝s*\d+\s*椤?/i.test(item) &&
+      !/VLM\s*缁撴瀯澧炲己/i.test(item)
     )
     .slice(0, 2)
     .join(' > ')
@@ -463,7 +463,12 @@ function selectRelevantMemoryEntries(
   }
 
   if (looksLikeFollowUp(query)) {
-    return { entries: entries.slice(0, 1), strongMatch: true }
+    return {
+      entries: [...entries]
+        .sort((left, right) => right.recency - left.recency)
+        .slice(0, 1),
+      strongMatch: entries.length > 0
+    }
   }
 
   const queryKeywords = extractMemoryKeywords(query)
@@ -485,7 +490,7 @@ function selectRelevantMemoryEntries(
 
 function extractAnswerFacts(content: string): string[] {
   return normalizeSingleLine(content)
-    .split(/(?<=[。.!?])\s+|[；;]/)
+    .split(/(?<=[銆?!?])\s+|[锛?]/)
     .map((item) => item.trim())
     .filter((item) => item.length >= 4)
     .slice(0, 4)
@@ -539,12 +544,12 @@ function scoreMemoryEntry(queryKeywords: string[], entry: MemoryFactEntry): numb
 }
 
 function buildMemoryEntryKey(documentName: string, identifiers: string[]): string {
-  const primaryIdentifier = identifiers[0]
+  const primaryIdentifier = identifiers.find((identifier) => /\d/.test(identifier))
   return normalizeLoose(primaryIdentifier || documentName)
 }
 
 function looksLikeFollowUp(query: string): boolean {
-  return /^(?:那|那么|所以)?(?:他|它|她|这个|那个|该|其|上面|前面|附件|仪表盘|图片|处置代码|预警值|责任角色|主控制阈值|响应时限|呢|是什么|多少|分别是什么|是)\b|呢[？?]?$/.test(query)
+  return /^(?:那|那么|所以)?(?:他|它|这个|那个|该|其|上面|前面|附件|仪表盘|图片|处置代码|预警值|责任角色|主控制阈值|响应时限|呢|是什么|多少|分别是什么|是|that|its|that action code|the action code|action code)[?？。!！\s]*$/i.test(query)
 }
 
 function areCompatibleStructuredIdentifiers(left: string, right: string): boolean {
@@ -697,3 +702,4 @@ function isJsonRecord(value: unknown): value is JsonRecord {
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'unknown error'
 }
+

@@ -1,4 +1,4 @@
-import { IsString, MaxLength, IsOptional } from 'class-validator'
+﻿import { IsString, MaxLength, IsOptional } from 'class-validator'
 import type { CreateKnowledgeBaseInput } from 'share-type'
 
 export class CreateKnowledgeBaseDto implements CreateKnowledgeBaseInput {
@@ -10,3 +10,4 @@ export class CreateKnowledgeBaseDto implements CreateKnowledgeBaseInput {
   @IsString()
   description?: string
 }
+

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+﻿import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import type {
@@ -123,3 +123,4 @@ function toWorkspaceMessage(entity: WorkspaceMessageEntity): WorkspaceMessage {
     promptCapabilities: entity.promptCapabilities
   }
 }
+

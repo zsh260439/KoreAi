@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
+﻿import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
 import type { CreateWorkspaceConversationInput, WorkspaceChatInput } from 'share-type'
 
 export class CreateWorkspaceConversationDto implements CreateWorkspaceConversationInput {
@@ -32,3 +32,4 @@ export class WorkspaceChatDto implements WorkspaceChatInput {
   @IsBoolean()
   regenerate?: boolean
 }
+

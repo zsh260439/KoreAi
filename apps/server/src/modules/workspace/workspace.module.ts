@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+﻿import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { KnowledgeModule } from '../knowledge/knowledge.module'
 import { WorkspaceChatService } from './chat/workspace-chat.service'
@@ -17,3 +17,4 @@ import { WorkspaceMessageEntity } from './entity/workspace-message.entity'
   providers: [WorkspaceConversationService, WorkspaceChatMemoryService, WorkspaceChatService]
 })
 export class WorkspaceModule {}
+

@@ -1,4 +1,4 @@
-import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
+﻿import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
 import type { StructureAwareChunkConfig, UpdateKnowledgeDocumentInput } from 'share-type'
 
 export class UpdateKnowledgeDocumentDto implements UpdateKnowledgeDocumentInput {
@@ -11,3 +11,4 @@ export class UpdateKnowledgeDocumentDto implements UpdateKnowledgeDocumentInput 
   @IsObject()
   chunkConfig?: StructureAwareChunkConfig
 }
+

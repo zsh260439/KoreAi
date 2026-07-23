@@ -1,4 +1,4 @@
-import {
+﻿import {
   Column,
   CreateDateColumn,
   Entity,
@@ -83,3 +83,4 @@ export class KnowledgeDocumentEntity {
   @JoinColumn()
   knowledgeBase!: KnowledgeBaseEntity
 }
+

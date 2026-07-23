@@ -1,4 +1,4 @@
-import {
+﻿import {
   Column,
   CreateDateColumn,
   Entity,
@@ -71,3 +71,4 @@ export class KnowledgeChunkEntity {
   @JoinColumn()
   document!: KnowledgeDocumentEntity
 }
+

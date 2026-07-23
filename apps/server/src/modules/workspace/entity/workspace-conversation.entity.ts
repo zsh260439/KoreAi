@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+﻿import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 
 @Entity('workspace_conversation')
 export class WorkspaceConversationEntity {
@@ -20,3 +20,4 @@ export class WorkspaceConversationEntity {
   @UpdateDateColumn()
   updatedAt!: Date
 }
+

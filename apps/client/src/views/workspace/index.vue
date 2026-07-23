@@ -9,10 +9,10 @@ import { useConversationList } from "@/composables/workspace/useConversationList
 import { useWorkspaceChat } from "@/composables/workspace/useWorkspaceChat";
 import type { EditableUserMessage } from "@/types/chat/models";
 import type { WorkspacePromptCapabilities } from "share-type";
-import ContentList from "./components/content/ContentList.vue";
-import WorkspaceWelcome from "./components/content/WorkspaceWelcome.vue";
-import WorkspacePromptBox from "./components/input/WorkspacePromptBox.vue";
-import MessageList from "./components/sidebar/MessageList.vue";
+import ContentList from "@/features/workspace/components/content/ContentList.vue";
+import WorkspaceWelcome from "@/features/workspace/components/content/WorkspaceWelcome.vue";
+import WorkspacePromptBox from "@/features/workspace/components/input/WorkspacePromptBox.vue";
+import MessageList from "@/features/workspace/components/sidebar/MessageList.vue";
 import AppSidebar from "@/components/shell/AppSidebar.vue";
 
 const route = useRoute();

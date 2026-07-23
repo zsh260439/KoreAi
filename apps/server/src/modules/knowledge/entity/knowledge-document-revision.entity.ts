@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm'
+﻿import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
 @Entity('knowledge_document_revision')
 export class KnowledgeDocumentRevisionEntity {
@@ -20,3 +20,4 @@ export class KnowledgeDocumentRevisionEntity {
   @CreateDateColumn()
   createdAt!: Date
 }
+

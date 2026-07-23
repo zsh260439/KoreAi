@@ -6,7 +6,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "build": "nest build",
-    "test:chunking": "pnpm build && node --test dist/modules/knowledge/ingestion/knowledge-chunk-builder.test.js dist/modules/knowledge/ingestion/mineru-content-list.parser.test.js",
+    "test:chunking": "pnpm build && node --test dist/test/knowledge/ingestion/knowledge-chunk-builder.test.js dist/test/knowledge/ingestion/mineru-content-list.parser.test.js",
     "start:prod": "node dist/main",
     "lint": "tsc --noEmit",
     "db:bootstrap": "pnpm build && node dist/database/bootstrap.js",
