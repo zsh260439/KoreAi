@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   edit: [payload: EditableUserMessage]
   regenerate: []
+  clarifyMemory: [payload: { query: string }]
 }>()
 
 const latestAssistantId = computed(() => {
@@ -74,6 +75,7 @@ const handleEdit = (msg: ChatMessage) => {
       :regenerating="regenerating"
       @edit="handleEdit"
       @regenerate="emit('regenerate')"
+      @clarify-memory="emit('clarifyMemory', $event)"
     />
   </div>
 </template>

@@ -83,13 +83,14 @@ export class WorkspaceChatService {
     )
 
     if (memoryResolution.directAnswer) {
+      const retrievalDebug = buildMemoryOnlyDebug(context.query, memoryResolution, memoryLatencyMs)
       const result = await this.persistAssistantResponse({
         conversation: context.conversation,
         query: context.query,
         promptCapabilities: context.promptCapabilities,
         answer: memoryResolution.directAnswer,
         sources: [],
-        retrievalDebug: null,
+        retrievalDebug,
         model: null,
         reasoningSteps: null,
         latencyMs: Date.now() - startedAt,
@@ -343,12 +344,66 @@ function attachMemoryDebug(
   debug.memoryBoardSummary = memory.memoryBoardSummary
   debug.memoryBoardSource = memory.memoryBoardSource
   debug.memoryRetrievalHints = memory.retrievalHints
+  debug.memoryMatchDebug = memory.memoryMatchDebug
+  debug.memoryClarificationCandidates = memory.memoryClarificationCandidates
   debug.memoryLatencyMs = latencyMs
   debug.stageTimingsMs = {
     ...debug.stageTimingsMs,
     memory: latencyMs
   }
   return debug
+}
+
+function buildMemoryOnlyDebug(
+  query: string,
+  memory: Awaited<ReturnType<WorkspaceChatMemoryService['resolveChatMemory']>>,
+  latencyMs: number
+): KnowledgeSearchDebugInfo {
+  return {
+    originalQuery: query,
+    memoryIntent: memory.intent,
+    memoryApplied: memory.applied,
+    memoryGroundedQuery: memory.groundedQuery,
+    memoryBoardSummary: memory.memoryBoardSummary,
+    memoryBoardSource: memory.memoryBoardSource,
+    memoryRetrievalHints: memory.retrievalHints,
+    appliedMemoryRetrievalHints: [],
+    droppedMemoryRetrievalHints: [],
+    memoryHintConflict: Boolean(memory.memoryClarificationCandidates?.length),
+    memoryMatchDebug: memory.memoryMatchDebug,
+    memoryClarificationCandidates: memory.memoryClarificationCandidates,
+    memoryLatencyMs: latencyMs,
+    stageTimingsMs: { memory: latencyMs },
+    normalizedQuery: query,
+    bm25Query: query,
+    vectorQuery: query,
+    rewriteApplied: false,
+    retrievalMode: 'memory_clarification',
+    bm25Weight: 0,
+    vectorWeight: 0,
+    bm25HitCount: 0,
+    vectorHitCount: 0,
+    candidateLimit: 0,
+    ceCandidateCount: 0,
+    secondLevelRrfApplied: false,
+    secondLevelRrfQueries: [],
+    routeType: 'memory_clarification',
+    routeSource: 'memory',
+    routeConfidence: 'high',
+    fallbackApplied: false,
+    fallbackReason: null,
+    exactEntityMiss: false,
+    protectedTerms: [],
+    excludedTerms: [],
+    llmIntent: null,
+    evidenceComplexity: 'clarification_required',
+    evidenceTerms: [],
+    evidenceNumericTerms: [],
+    effectiveTopK: 0,
+    evidenceCoverage: 0,
+    evidenceExpansionApplied: false,
+    evidenceGateStatus: 'degraded'
+  }
 }
 
 function formatMemoryResolutionSubtitle(

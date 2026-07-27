@@ -211,6 +211,9 @@ const traceSteps = computed<TraceStep[]>(() => {
         field("appliedMemoryRetrievalHints", debug?.appliedMemoryRetrievalHints?.join(" · ")),
         field("droppedMemoryRetrievalHints", debug?.droppedMemoryRetrievalHints?.join(" · ")),
         field("memoryHintConflict", yesNo(debug?.memoryHintConflict)),
+        field("memorySelectedEntries", formatMemorySelectedEntries(debug?.memoryMatchDebug)),
+        field("memoryDroppedEntries", formatMemoryDroppedEntries(debug?.memoryMatchDebug)),
+        field("memoryClarificationCandidates", formatMemoryClarificationCandidates(debug?.memoryClarificationCandidates)),
         field("memoryLatency", formatDurationMs(debug?.stageTimingsMs?.memory)),
         field("protectedTerms", debug?.protectedTerms?.join(" · ")),
         field("llmIntent", debug?.llmIntent),
@@ -290,6 +293,9 @@ const queryFields = computed(() => {
     field("appliedMemoryRetrievalHints", debug.appliedMemoryRetrievalHints?.join(" · ")),
     field("droppedMemoryRetrievalHints", debug.droppedMemoryRetrievalHints?.join(" · ")),
     field("memoryHintConflict", yesNo(debug.memoryHintConflict)),
+    field("memorySelectedEntries", formatMemorySelectedEntries(debug.memoryMatchDebug)),
+    field("memoryDroppedEntries", formatMemoryDroppedEntries(debug.memoryMatchDebug)),
+    field("memoryClarificationCandidates", formatMemoryClarificationCandidates(debug.memoryClarificationCandidates)),
     field("memoryLatencyMs", debug.memoryLatencyMs),
     field("rewriteApplied", yesNo(debug.rewriteApplied)),
     field("retrievalMode", debug.retrievalMode),
@@ -473,6 +479,48 @@ function field(key: string, value?: string | number | null): TraceField | null {
   return value === undefined || value === null || value === "" || value === "-"
     ? null
     : { key, value };
+}
+
+function formatMemorySelectedEntries(
+  value: KnowledgeSearchDebugInfo["memoryMatchDebug"] | null | undefined,
+): string {
+  return value?.selected.length
+    ? value.selected
+        .map((item) =>
+          `${item.documentName} [${item.reason}, score=${item.score}, firstSeen=${formatTraceOptionalValue(item.firstSeen)}, lastSeen=${formatTraceOptionalValue(item.lastSeen)}, mentionOrder=${formatTraceOptionalValue(item.mentionOrder)}]`,
+        )
+        .join(" · ")
+    : "-";
+}
+
+function formatMemoryDroppedEntries(
+  value: KnowledgeSearchDebugInfo["memoryMatchDebug"] | null | undefined,
+): string {
+  return value?.dropped.length
+    ? value.dropped
+        .map(
+          (item) =>
+            `${item.documentName} [${item.reason}, firstSeen=${formatTraceOptionalValue(item.firstSeen)}, lastSeen=${formatTraceOptionalValue(item.lastSeen)}, mentionOrder=${formatTraceOptionalValue(item.mentionOrder)}]`,
+        )
+        .join(" · ")
+    : "-";
+}
+
+function formatMemoryClarificationCandidates(
+  value: KnowledgeSearchDebugInfo["memoryClarificationCandidates"] | null | undefined,
+): string {
+  return value?.length
+    ? value
+        .map(
+          (item) =>
+            `${item.documentName} [firstSeen=${formatTraceOptionalValue(item.firstSeen)}, lastSeen=${formatTraceOptionalValue(item.lastSeen)}, mentionOrder=${formatTraceOptionalValue(item.mentionOrder)}]`,
+        )
+        .join(" 路 ")
+    : "-";
+}
+
+function formatTraceOptionalValue(value?: number | string | null): string {
+  return value === null || value === undefined || value === "" ? "-" : String(value);
 }
 
 function compactFields(fields: Array<TraceField | null>): TraceField[] {

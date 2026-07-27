@@ -3,13 +3,16 @@ import type { KnowledgeEvidenceFact } from '../evidence-gating/knowledge-evidenc
 
 export function buildKnowledgeQaStreamingSystemPrompt(
   hasKnowledge: boolean,
-  evidenceGateStatus: 'pass' | 'degraded' | 'blocked' = 'pass'
+  evidenceGateStatus: 'pass' | 'degraded' | 'blocked' = 'pass',
+  allowGeneralKnowledge = false
 ): string {
   const baseInstructions = hasKnowledge
     ? [
         'You are a professional question-answering assistant.',
         'Use the provided knowledge-base excerpts as the primary source of truth.',
-        'Do not supplement missing knowledge-base facts with general knowledge.',
+        allowGeneralKnowledge
+          ? 'The user explicitly asked to combine local knowledge-base evidence with general knowledge. Use excerpts first, then clearly label any general-knowledge supplement.'
+          : 'Do not supplement missing knowledge-base facts with general knowledge.',
         'If a required fact is not present in the excerpts, explicitly say that the evidence is missing.',
         'Every concrete number, identifier, role, threshold, rule, or conclusion must be grounded in the excerpts.',
         'Text extracted from OCR, VLM, images, attachments, dashboards, or tables is valid evidence once it appears in the excerpts.',
@@ -43,6 +46,7 @@ export function buildKnowledgeQaStreamingUserPrompt(
     evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
     evidenceCoverage?: number
     evidenceFacts?: KnowledgeEvidenceFact[]
+    allowGeneralKnowledge?: boolean
   } = {}
 ): string {
   const evidenceFacts = buildKnowledgeEvidenceFactsContext(evidence.evidenceFacts ?? [])
@@ -53,7 +57,9 @@ export function buildKnowledgeQaStreamingUserPrompt(
     'Answering rules:',
     '- Treat verified evidence facts as the compact answer checklist extracted from the excerpts, not as optional commentary.',
     '- Answer every requested item that has a matching verified fact before declaring any item missing.',
-    '- Use only the knowledge excerpts above for factual claims.',
+    evidence.allowGeneralKnowledge
+      ? '- For facts not covered by the excerpts, you may add general knowledge, but label it as general knowledge and do not present it as knowledge-base evidence.'
+      : '- Use only the knowledge excerpts above for factual claims.',
     '- OCR/VLM/image/attachment/table extracted text is valid evidence once it appears in the excerpts.',
     '- Do not treat "stored in an image/attachment" as a missing-value statement when the excerpt also contains the extracted value.',
     '- If the excerpts do not contain a requested fact, say that the fact is not found in the retrieved evidence.',

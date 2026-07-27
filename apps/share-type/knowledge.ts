@@ -419,7 +419,37 @@ export interface KnowledgeSearchDebugInfo {
   droppedMemoryRetrievalHints?: string[]
   /** 本轮显式对象与会话记忆对象是否发生冲突。 */
   memoryHintConflict?: boolean
+  /** 本轮短期记忆条目的命中与丢弃明细，用于排查上下文污染。 */
+  memoryMatchDebug?: {
+    selected: Array<{
+      documentName: string
+      identifiers: string[]
+      sectionPath?: string | null
+      firstSeen?: number
+      lastSeen?: number
+      mentionOrder?: number
+      matchedTerms: string[]
+      score: number
+      reason: string
+    }>
+    dropped: Array<{
+      documentName: string
+      identifiers: string[]
+      firstSeen?: number
+      lastSeen?: number
+      mentionOrder?: number
+      reason: string
+    }>
+  }
   /** 短期记忆解析耗时。 */
+  memoryClarificationCandidates?: Array<{
+    documentName: string
+    identifiers: string[]
+    sectionPath?: string | null
+    firstSeen?: number
+    lastSeen?: number
+    mentionOrder?: number
+  }>
   memoryLatencyMs?: number
   /** 本轮关键阶段耗时，用于定位 P95 长尾。 */
   stageTimingsMs?: {

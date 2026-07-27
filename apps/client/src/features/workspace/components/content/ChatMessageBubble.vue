@@ -57,6 +57,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   edit: [message: ChatMessage];
   regenerate: [];
+  clarifyMemory: [payload: { query: string }];
 }>();
 
 const createdAtFallbackMs = Date.now();
@@ -244,12 +245,24 @@ const showAnswerActions = computed(
 );
 
 const evidencePanelVisible = computed(
-  () => evidenceDrawerOpen.value && hasSources.value,
+  () => evidenceDrawerOpen.value && (hasSources.value || Boolean(retrievalDebug.value)),
 );
 // 优先读取 responseFlow 里的流式态 debug，刷新历史消息时再退回持久化消息字段。
 const retrievalDebug = computed<KnowledgeSearchDebugInfo | null>(
   () =>
     responseFlow.value?.retrievalDebug ?? props.message.retrievalDebug ?? null,
+);
+
+const memoryClarificationCandidates = computed(
+  () => retrievalDebug.value?.memoryClarificationCandidates ?? [],
+);
+
+const showMemoryClarificationActions = computed(
+  () =>
+    !isStreamingMessage.value &&
+    !isTypingAnswer.value &&
+    answerHasContent.value &&
+    memoryClarificationCandidates.value.length > 0,
 );
 
 const recallScore = computed(() => {
@@ -420,6 +433,9 @@ const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
     { label: "appliedMemoryRetrievalHints", value: formatList(debug.appliedMemoryRetrievalHints) },
     { label: "droppedMemoryRetrievalHints", value: formatList(debug.droppedMemoryRetrievalHints) },
     { label: "memoryHintConflict", value: formatBoolean(debug.memoryHintConflict) },
+    { label: "memorySelectedEntries", value: formatMemorySelectedEntries(debug.memoryMatchDebug) },
+    { label: "memoryDroppedEntries", value: formatMemoryDroppedEntries(debug.memoryMatchDebug) },
+    { label: "memoryClarificationCandidates", value: formatMemoryClarificationCandidates(debug.memoryClarificationCandidates) },
     { label: "llmIntent", value: debug.llmIntent || "-" },
     { label: "bm25Weight", value: formatWeight(debug.bm25Weight) },
     { label: "vectorWeight", value: formatWeight(debug.vectorWeight) },
@@ -694,6 +710,33 @@ const copyUserMessage = async () => {
   }
 };
 
+const buildMemoryClarificationQuery = (
+  candidates: NonNullable<KnowledgeSearchDebugInfo["memoryClarificationCandidates"]>,
+) => {
+  const scope = candidates
+    .map((item) => item.identifiers[0] || item.documentName)
+    .filter(Boolean)
+    .join("、");
+  const question =
+    props.retrievalQuery?.trim() ||
+    retrievalDebug.value?.originalQuery?.trim() ||
+    props.message.content.trim();
+
+  return `请基于 ${scope} 回答：${question}`;
+};
+
+const submitMemoryClarification = (
+  candidates: NonNullable<KnowledgeSearchDebugInfo["memoryClarificationCandidates"]>,
+) => {
+  if (!candidates.length) {
+    return;
+  }
+
+  emit("clarifyMemory", {
+    query: buildMemoryClarificationQuery(candidates),
+  });
+};
+
 function isKnowledgeRecallStage(stage: AssistantThinkingStage) {
   return (
     stage.stageKey === "knowledge_recall" || stage.id === "knowledge-recall"
@@ -746,6 +789,44 @@ function formatBoolean(value: boolean | null | undefined) {
 
 function formatList(value: string[] | null | undefined) {
   return value?.length ? value.join(" · ") : "-";
+}
+
+function formatMemorySelectedEntries(
+  value: KnowledgeSearchDebugInfo["memoryMatchDebug"] | null | undefined,
+) {
+  return value?.selected.length
+    ? value.selected
+        .map((item) =>
+          `${item.documentName} [${item.reason}, score=${item.score}, firstSeen=${formatOptionalValue(item.firstSeen)}, lastSeen=${formatOptionalValue(item.lastSeen)}, mentionOrder=${formatOptionalValue(item.mentionOrder)}]`,
+        )
+        .join(" · ")
+    : "-";
+}
+
+function formatMemoryDroppedEntries(
+  value: KnowledgeSearchDebugInfo["memoryMatchDebug"] | null | undefined,
+) {
+  return value?.dropped.length
+    ? value.dropped
+        .map(
+          (item) =>
+            `${item.documentName} [${item.reason}, firstSeen=${formatOptionalValue(item.firstSeen)}, lastSeen=${formatOptionalValue(item.lastSeen)}, mentionOrder=${formatOptionalValue(item.mentionOrder)}]`,
+        )
+        .join(" · ")
+    : "-";
+}
+
+function formatMemoryClarificationCandidates(
+  value: KnowledgeSearchDebugInfo["memoryClarificationCandidates"] | null | undefined,
+) {
+  return value?.length
+    ? value
+        .map(
+          (item) =>
+            `${item.documentName} [firstSeen=${formatOptionalValue(item.firstSeen)}, lastSeen=${formatOptionalValue(item.lastSeen)}, mentionOrder=${formatOptionalValue(item.mentionOrder)}]`,
+        )
+        .join(" 路 ")
+    : "-";
 }
 
 const formatPercent = (value?: number | null) =>
@@ -1125,6 +1206,30 @@ function renderThoughtBody(body: string) {
         </div>
       </section>
 
+      <section
+        v-if="showMemoryClarificationActions"
+        class="memory-clarification-panel"
+      >
+        <button
+          type="button"
+          class="memory-clarification-chip memory-clarification-chip--primary"
+          @click="submitMemoryClarification(memoryClarificationCandidates)"
+        >
+          以上全部
+        </button>
+        <button
+          v-for="candidate in memoryClarificationCandidates"
+          :key="`${candidate.documentName}-${candidate.mentionOrder ?? 0}`"
+          type="button"
+          class="memory-clarification-chip"
+          @click="submitMemoryClarification([candidate])"
+        >
+          {{ candidate.mentionOrder ? `${candidate.mentionOrder}. ` : "" }}{{
+            candidate.identifiers[0] || candidate.documentName
+          }}
+        </button>
+      </section>
+
       <div
         v-if="
           !isStreamingMessage &&
@@ -1150,7 +1255,7 @@ function renderThoughtBody(body: string) {
           !isStreamingMessage &&
           !isTypingAnswer &&
           answerHasContent &&
-          hasSources
+          (hasSources || retrievalDebug)
         "
         class="run-summary-panel"
       >
@@ -1452,6 +1557,37 @@ function renderThoughtBody(body: string) {
 .assistant-message .answer-shell :deep(p) {
   font-family: ui-serif, Georgia, "Songti SC", serif;
   line-height: 1.85;
+}
+.memory-clarification-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #e8e8e2;
+}
+.memory-clarification-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #d8d8d1;
+  border-radius: 999px;
+  background: #fff;
+  color: #44443f;
+  font-size: 12px;
+  cursor: pointer;
+}
+.memory-clarification-chip:hover {
+  border-color: #5b5bf7;
+  color: #3434d6;
+}
+.memory-clarification-chip--primary {
+  background: #191918;
+  border-color: #191918;
+  color: #fff;
+}
+.memory-clarification-chip--primary:hover {
+  border-color: #191918;
+  color: #fff;
 }
 .citations {
   display: flex;

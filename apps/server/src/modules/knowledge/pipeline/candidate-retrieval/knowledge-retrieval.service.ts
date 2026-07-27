@@ -237,7 +237,8 @@ export class KnowledgeRetrievalService {
     const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
     const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
     const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
-    const completedHits = includeReferenceEvidence(finalHits, referenceCandidates, plan)
+    const objectCoveredHits = ensureProtectedObjectCoverage(finalHits, relevantHits, plan)
+    const completedHits = includeReferenceEvidence(objectCoveredHits, referenceCandidates, plan)
     const hasEvidenceRequirements = hasKnowledgeEvidenceRequirements(plan.evidencePlan)
     const evidenceCoverage = hasEvidenceRequirements
       ? computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
@@ -330,7 +331,8 @@ export class KnowledgeRetrievalService {
     const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
     const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
     const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
-    const completedHits = includeReferenceEvidence(finalHits, referenceCandidates, plan)
+    const objectCoveredHits = ensureProtectedObjectCoverage(finalHits, relevantHits, plan)
+    const completedHits = includeReferenceEvidence(objectCoveredHits, referenceCandidates, plan)
     const hasEvidenceRequirements = hasKnowledgeEvidenceRequirements(plan.evidencePlan)
     const evidenceCoverage = hasEvidenceRequirements
       ? computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
@@ -1375,6 +1377,117 @@ function includeReferenceEvidence(
   return selected.map((hit, index) =>
     index === selected.length - 1 ? bestCandidate : hit
   )
+}
+
+function ensureProtectedObjectCoverage(
+  selectedHits: KnowledgeSearchHit[],
+  rankedCandidates: KnowledgeSearchHit[],
+  plan: KnowledgeQueryPlan
+): KnowledgeSearchHit[] {
+  const protectedObjects = splitProtectedTerms(plan.protectedTerms).structured
+  if (protectedObjects.length <= 1 || selectedHits.length === 0) {
+    return selectedHits
+  }
+
+  const selected = [...selectedHits]
+  const selectedChunkIds = new Set(selected.map((hit) => hit.chunkId))
+  const coveredObjects = collectCoveredProtectedObjects(selected, protectedObjects)
+  const missingObjects = protectedObjects.filter((term) => !coveredObjects.has(term))
+  if (missingObjects.length === 0) {
+    return selected
+  }
+
+  for (const missingObject of missingObjects) {
+    const candidate = rankedCandidates
+      .filter((hit) => !selectedChunkIds.has(hit.chunkId))
+      .find((hit) => hitMatchesProtectedObject(hit, missingObject))
+    if (!candidate) {
+      continue
+    }
+
+    const scoredCandidate = attachEvidenceScore(candidate, plan)
+    if (selected.length < plan.evidencePlan.maxTopK) {
+      selected.push(scoredCandidate)
+      selectedChunkIds.add(scoredCandidate.chunkId)
+      coveredObjects.add(missingObject)
+      continue
+    }
+
+    const replaceIndex = findReplaceableDuplicateHitIndex(selected, protectedObjects, coveredObjects)
+    if (replaceIndex < 0) {
+      continue
+    }
+
+    selectedChunkIds.delete(selected[replaceIndex].chunkId)
+    selected[replaceIndex] = scoredCandidate
+    selectedChunkIds.add(scoredCandidate.chunkId)
+    coveredObjects.add(missingObject)
+  }
+
+  return selected
+}
+
+function collectCoveredProtectedObjects(
+  hits: KnowledgeSearchHit[],
+  protectedObjects: string[]
+): Set<string> {
+  const covered = new Set<string>()
+  for (const hit of hits) {
+    for (const object of protectedObjects) {
+      if (hitMatchesProtectedObject(hit, object)) {
+        covered.add(object)
+      }
+    }
+  }
+  return covered
+}
+
+function hitMatchesProtectedObject(hit: KnowledgeSearchHit, protectedObject: string): boolean {
+  const normalizedObject = normalizeForExactMatch(protectedObject)
+  if (!normalizedObject) {
+    return false
+  }
+
+  const normalizedText = normalizeForExactMatch([
+    hit.documentName,
+    hit.primaryTitle ?? '',
+    hit.sectionPath ?? '',
+    hit.content
+  ].join(' '))
+  return containsExactTerm(normalizedText, normalizedObject)
+}
+
+function findReplaceableDuplicateHitIndex(
+  hits: KnowledgeSearchHit[],
+  protectedObjects: string[],
+  coveredObjects: Set<string>
+): number {
+  const documentCounts = new Map<string, number>()
+  for (const hit of hits) {
+    documentCounts.set(hit.documentId, (documentCounts.get(hit.documentId) ?? 0) + 1)
+  }
+
+  let replaceIndex = -1
+  let replaceScore = Number.POSITIVE_INFINITY
+  hits.forEach((hit, index) => {
+    if ((documentCounts.get(hit.documentId) ?? 0) <= 1) {
+      return
+    }
+
+    const hitObjects = protectedObjects.filter((object) => hitMatchesProtectedObject(hit, object))
+    const hasOnlyCoveredObjects = hitObjects.every((object) => coveredObjects.has(object))
+    if (!hasOnlyCoveredObjects) {
+      return
+    }
+
+    const score = hit.scoreDetail?.evidenceScore ?? hit.score ?? 0
+    if (score < replaceScore) {
+      replaceScore = score
+      replaceIndex = index
+    }
+  })
+
+  return replaceIndex
 }
 
 function candidateToSearchHit(candidate: KnowledgeRetrievalCandidate): KnowledgeSearchHit {

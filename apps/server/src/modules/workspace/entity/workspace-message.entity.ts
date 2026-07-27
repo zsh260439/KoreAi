@@ -31,7 +31,8 @@ export class WorkspaceMessageEntity {
   @Column({ type: 'jsonb', nullable: true })
   citations!: KnowledgeSearchHit[] | null
 
-  // 鍗曠嫭淇濆瓨涓€娆℃绱㈣皟璇曞揩鐓э紝閬垮厤鎶婂悓涓€浠?debug 鍐椾綑澶嶅埗鍒版瘡涓?citation 閲屻€?  @Column({ type: 'jsonb', nullable: true })
+  // 单独保存一次检索调试快照，避免把同一份 debug 冗余复制到每个 citation 里。
+  @Column({ type: 'jsonb', nullable: true })
   retrievalDebug!: KnowledgeSearchDebugInfo | null
 
   @Column({ type: 'varchar', length: 100, nullable: true })

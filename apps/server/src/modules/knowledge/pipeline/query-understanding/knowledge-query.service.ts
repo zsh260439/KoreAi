@@ -84,8 +84,29 @@ export class KnowledgeQueryService {
       }
     )
     const sources = retrievalResult.hits
+    const allowGeneralKnowledge = shouldAllowMixedKnowledgeAnswer(query)
 
     if (retrievalResult.debug?.evidenceGateStatus === 'blocked') {
+      if (allowGeneralKnowledge) {
+        const answer = await this.qaService.streamAnswerQuestion(query, sources, {
+          includeReasoning: dto.think,
+          signal: options.signal,
+          temperature: runtimeConfig.answer.temperature,
+          evidenceGateStatus: 'degraded',
+          evidenceCoverage: retrievalResult.debug.evidenceCoverage,
+          retrievalDebug: retrievalResult.debug,
+          allowGeneralKnowledge: true
+        })
+
+        return {
+          sources,
+          retrievalDebug: retrievalResult.debug,
+          model: await this.qaService.getModelName(),
+          totalTokens: answer.totalTokens,
+          stream: answer.stream
+        }
+      }
+
       if (shouldUseGeneralKnowledgeFallback(query, retrievalResult.debug)) {
         const answer = await this.qaService.streamAnswerQuestion(query, [], {
           includeReasoning: dto.think,
@@ -122,7 +143,8 @@ export class KnowledgeQueryService {
       temperature: runtimeConfig.answer.temperature,
       evidenceGateStatus: retrievalResult.debug?.evidenceGateStatus,
       evidenceCoverage: retrievalResult.debug?.evidenceCoverage,
-      retrievalDebug: retrievalResult.debug
+      retrievalDebug: retrievalResult.debug,
+      allowGeneralKnowledge
     })
 
     return {
@@ -163,6 +185,11 @@ function shouldUseGeneralKnowledgeFallback(
   }
 
   return /学习|新手|介绍|解释|原理|教程|怎么用|如何使用|是什么|区别|入门|概念|redis|database|cache/i.test(query)
+}
+
+function shouldAllowMixedKnowledgeAnswer(query: string): boolean {
+  return /(?:结合|整合|综合).{0,12}(?:本地|知识库|rag).{0,20}(?:通用|常识|general)|(?:本地|知识库|rag).{0,20}(?:和|与|加上).{0,8}(?:通用|常识|general)/i
+    .test(query)
 }
 
 function hasStructuredProtectedTerm(debug: KnowledgeSearchDebugInfo | null): boolean {

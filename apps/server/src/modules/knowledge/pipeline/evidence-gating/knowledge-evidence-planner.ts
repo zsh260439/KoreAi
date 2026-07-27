@@ -88,6 +88,7 @@ const SUPPLEMENTAL_FIELD_SLOT_ALIASES: Record<string, string[]> = {
 }
 
 const SUPPLEMENTAL_FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '附件仪表盘', '附件看板', '看板', '阈值']
+const TASK_ONLY_EVIDENCE_TERM_PATTERN = /^(?:共性|共同点|相同点|差异|区别|对比|比较|综合分析|分析|回答)$/i
 
 const REFERENCE_TRIGGER_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|标准|规范|规则|制度|证据|合规|审计|策略|手册|指南|参考|gold_document|fully_grounded|normal_confidence|high_confidence|reviewed_but_not_grounded|recall_gap|exact_code|reference|standard|policy|rule|guideline|playbook|confidence|citation|grounded|recall/i
@@ -162,6 +163,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     .filter((term) => !isValueBearingEvidenceTerm(term))
     .filter((term) => !isFieldSlotAlias(term))
     .filter((term) => !isFieldContextTerm(term))
+    .filter((term) => !isTaskOnlyEvidenceTerm(term))
     .filter((term) => fieldSlots.length === 0 || REFERENCE_TRIGGER_PATTERN.test(term))
     .slice(0, 24)
   const referenceTerms = evidenceTerms
@@ -526,6 +528,10 @@ function isFieldContextTerm(term: string): boolean {
   const normalizedTerm = normalizeTerm(term)
   return [...FIELD_CONTEXT_TERMS, ...SUPPLEMENTAL_FIELD_CONTEXT_TERMS]
     .some((item) => normalizeTerm(item) === normalizedTerm)
+}
+
+function isTaskOnlyEvidenceTerm(term: string): boolean {
+  return TASK_ONLY_EVIDENCE_TERM_PATTERN.test(term.trim())
 }
 
 function normalizeText(value: string): string {

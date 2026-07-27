@@ -45,6 +45,7 @@ export class KnowledgeQaService {
       evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
       evidenceCoverage?: number
       retrievalDebug?: KnowledgeSearchDebugInfo | null
+      allowGeneralKnowledge?: boolean
     } = {}
   ): Promise<KnowledgeQaStreamResult> {
     const includeReasoning = Boolean(options.includeReasoning)
@@ -56,7 +57,11 @@ export class KnowledgeQaService {
     const messages = [
       {
         role: 'system',
-        content: buildKnowledgeQaStreamingSystemPrompt(hits.length > 0, options.evidenceGateStatus)
+        content: buildKnowledgeQaStreamingSystemPrompt(
+          hits.length > 0,
+          options.evidenceGateStatus,
+          options.allowGeneralKnowledge === true
+        )
       },
       {
         role: 'user',
@@ -67,7 +72,8 @@ export class KnowledgeQaService {
           {
             evidenceGateStatus: options.evidenceGateStatus,
             evidenceCoverage: options.evidenceCoverage,
-            evidenceFacts
+            evidenceFacts,
+            allowGeneralKnowledge: options.allowGeneralKnowledge === true
           }
         )
       }

@@ -44,6 +44,7 @@ const FIELD_ALIAS_GROUPS: Array<{
 
 const STRUCTURED_HINT_PATTERN =
   /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,12}[-_]?\d{2,})\b/gi
+const TASK_ONLY_TERM_PATTERN = /^(?:共性|共同点|相同点|差异|区别|对比|比较|综合分析|分析)$/i
 
 @Injectable()
 export class KnowledgeQueryEngineService {
@@ -354,7 +355,7 @@ function buildProtectedTerms(
     ...entityTerms,
     ...requiredTerms,
     ...constraintTerms.required
-  ]))).slice(0, 8)
+  ]).filter((term) => !isTaskOnlyTerm(term)))).slice(0, 8)
 }
 
 function buildConstraintTerms(
@@ -452,7 +453,6 @@ function filterRetrievalHints(
 
 function extractStructuredHints(value: string): string[] {
   return uniqueStrings(value.match(STRUCTURED_HINT_PATTERN) ?? [])
-    .filter((item) => /\d/.test(item))
 }
 
 function hasCompatibleIdentifier(identifier: string, explicitIdentifiers: string[]): boolean {
@@ -494,7 +494,7 @@ function buildBm25Query(
   optionalConstraintTerms: string[]
 ): string {
   if (!analysis) {
-    return uniqueStrings([
+    return uniqueQueryTerms([
       normalizedQuery,
       ...protectedTerms,
       ...optionalConstraintTerms
@@ -503,7 +503,7 @@ function buildBm25Query(
 
   switch (mode) {
     case 'exact_lookup':
-      return uniqueStrings([
+      return uniqueQueryTerms([
         normalizedQuery,
         ...protectedTerms,
         ...analysis.requiredTerms,
@@ -512,7 +512,7 @@ function buildBm25Query(
       ]).join(' ')
     case 'keyword_heavy':
     case 'procedure_heavy':
-      return uniqueStrings([
+      return uniqueQueryTerms([
         normalizedQuery,
         ...protectedTerms,
         ...analysis.requiredTerms,
@@ -523,7 +523,7 @@ function buildBm25Query(
     case 'semantic_heavy':
     case 'balanced':
     default:
-      return uniqueStrings([
+      return uniqueQueryTerms([
         normalizedQuery,
         ...analysis.requiredTerms,
         ...analysis.searchPhrases,
@@ -590,6 +590,40 @@ function uniqueStrings(values: string[]): string[] {
   return result
 }
 
+function uniqueQueryTerms(values: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const value of values) {
+    const normalized = value.trim()
+    if (!normalized) {
+      continue
+    }
+
+    const key = normalizeQueryTermKey(normalized)
+    if (!key || seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    result.push(normalized)
+  }
+
+  return result
+}
+
+function normalizeQueryTermKey(value: string): string {
+  return value
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[，、；：。！？]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function compactStructuredExactTerms(values: string[]): string[] {
   return values.filter((value, index) => {
     if (!isStructuredExactTerm(value)) {
@@ -618,6 +652,10 @@ function compactStructuredExactTerms(values: string[]): string[] {
 
 function isStructuredExactTerm(value: string): boolean {
   return /[a-z]/i.test(value) && /\d/.test(value)
+}
+
+function isTaskOnlyTerm(value: string): boolean {
+  return TASK_ONLY_TERM_PATTERN.test(value.trim())
 }
 
 function clampWeight(value: number): number {

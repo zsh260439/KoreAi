@@ -233,6 +233,14 @@ const handleEditMessage = async (payload: EditableUserMessage) => {
   await nextTick();
   promptBoxRef.value?.focusComposer();
 };
+
+const handleMemoryClarification = async (payload: { query: string }) => {
+  await handleSend({
+    message: payload.query,
+    capabilities: currentPromptCapabilities.value,
+    knowledgeBaseId: selectedKnowledgeBaseId.value || undefined,
+  });
+};
 const page = ref(1)
 const limit = 20
 const handleLoadMoreConversations = async () => {
@@ -357,6 +365,7 @@ onMounted(async () => {
                 :regenerating="regenerating"
                 @edit="handleEditMessage"
                 @regenerate="handleRegenerate"
+                @clarify-memory="handleMemoryClarification"
               />
             </template>
 
