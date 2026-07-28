@@ -90,6 +90,46 @@ test('bm25 query debug removes normalized duplicate phrases', async () => {
   assert.equal(plan.bm25Query.includes('cache_breakdown'), true)
 })
 
+test('forced rewrite bypasses analysis for explicit structured field lookups', async () => {
+  const service = new KnowledgeQueryEngineService(analysisService)
+  const plan = await service.buildPlan(
+    'PDF-FIN-01 \u7684\u4e3b\u63a7\u5236\u9608\u503c\u548c\u8d23\u4efb\u89d2\u8272\u662f\u4ec0\u4e48\uff1f\u9644\u4ef6\u4eea\u8868\u76d8\u4e2d\u7684\u9884\u8b66\u503c\u4e0e\u5904\u7f6e\u4ee3\u7801\u5206\u522b\u662f\u4ec0\u4e48\uff1f',
+    {
+      enableAnalysis: true,
+      forceAnalysis: true,
+      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
+    }
+  )
+
+  assert.equal(plan.rewriteApplied, false)
+  assert.equal(plan.executionProfile.userIntent, 'fact_lookup')
+  assert.equal(plan.executionProfile.scopeMode, 'explicit_single')
+  assert.equal(plan.evidencePlan.fieldSlots.includes('main_control_threshold'), true)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('responsible_role'), true)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('alert_threshold'), true)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('action_code'), true)
+})
+
+test('colloquial multi-field lookup bypasses forced rewrite', async () => {
+  const service = new KnowledgeQueryEngineService(analysisService)
+  const plan = await service.buildPlan(
+    '写出PDF-MED-03主控阈值、责任人、仪表盘一级预警值、二级预警值、处置编码、动作代码全部内容。',
+    {
+      enableAnalysis: true,
+      forceAnalysis: true,
+      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
+    }
+  )
+
+  assert.equal(plan.rewriteApplied, false)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('main_control_threshold'), true)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('responsible_role'), true)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('alert_threshold_level_1'), true)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('alert_threshold_level_2'), true)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('alert_threshold'), false)
+  assert.equal(plan.evidencePlan.fieldSlots.includes('action_code'), true)
+})
+
 test('explicit multi-object commonality query keeps filename hints and drops task-only terms', async () => {
   const service = new KnowledgeQueryEngineService({
     analyze: async () => ({
@@ -127,8 +167,8 @@ test('explicit multi-object commonality query keeps filename hints and drops tas
 
   assert.equal(plan.retrievalHintTerms.includes('cache_breakdown.md'), true)
   assert.equal(plan.droppedRetrievalHintTerms.includes('cache_breakdown.md'), false)
-  assert.equal(plan.protectedTerms.includes('共性'), false)
-  assert.equal(plan.protectedTerms.includes('共同点'), false)
+  assert.equal(plan.scopeTerms.includes('共性'), false)
+  assert.equal(plan.scopeTerms.includes('共同点'), false)
   assert.equal(plan.evidencePlan.evidenceTerms.includes('共性'), false)
   assert.equal(plan.evidencePlan.evidenceTerms.includes('共同点'), false)
 })

@@ -755,7 +755,7 @@ onUnmounted(() => window.clearInterval(processingPoll))
                 </div>
                 <div class="preview-debug__stat">
                   <small>检索模式</small>
-                  <strong>{{ previewDebugSummary.retrievalMode }}</strong>
+                  <strong>{{ previewDebugSummary.ragRetrievalMode }}</strong>
                 </div>
               </div>
 

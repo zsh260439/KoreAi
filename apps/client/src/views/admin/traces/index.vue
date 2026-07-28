@@ -127,26 +127,24 @@ const diagnosticCards = computed<DiagnosticCard[]>(() => {
     {
       label: "证据门禁",
       value: debug?.evidenceGateStatus ?? "未记录",
-      hint: `覆盖率 ${formatPercent(debug?.evidenceCoverage)}`,
+      hint: `scope ${formatPercent(debug?.scopeCoverage)} · fact ${formatPercent(debug?.factCoverage)}`,
       status: statusFromGate(debug?.evidenceGateStatus),
     },
     {
       label: "LLM 意图",
-      value: debug?.llmIntent ?? "未触发",
+      value: debug?.ragUserIntent ?? "未记录",
       hint: debug?.memoryIntent ? `记忆 ${debug.memoryIntent}` : "展示已持久化意图",
-      status: debug?.llmIntent || debug?.memoryIntent ? "pass" : "neutral",
+      status: debug?.ragUserIntent || debug?.memoryIntent ? "pass" : "neutral",
     },
     {
       label: "路由来源",
-      value: debug?.routeSource ?? "未记录",
-      hint: debug?.fallbackApplied
-        ? `fallback: ${debug.fallbackReason ?? "已触发"}`
-        : `mode: ${debug?.retrievalMode ?? "未记录"}`,
+      value: debug?.ragScopeMode ?? "未记录",
+      hint: formatScopeObjects(debug),
       status: debug?.fallbackApplied ? "warn" : "pass",
     },
     {
       label: "回答出口",
-      value: resolveAnswerOutlet(debug, activeSources.value),
+      value: debug?.ragAnswerMode ?? resolveAnswerOutlet(debug, activeSources.value),
       hint: `${activeSources.value.length} 个引用 chunk`,
       status: debug?.evidenceGateStatus === "blocked" ? "warn" : "pass",
     },
@@ -198,10 +196,11 @@ const traceSteps = computed<TraceStep[]>(() => {
       status: debug?.rewriteApplied || debug?.memoryApplied ? "pass" : "neutral",
       fields: compactFields([
         field("normalizedQuery", debug?.normalizedQuery),
-        field("retrievalMode", debug?.retrievalMode),
-        field("routeType", debug?.routeType),
-        field("routeSource", debug?.routeSource),
-        field("routeConfidence", debug?.routeConfidence),
+        field("ragUserIntent", debug?.ragUserIntent),
+        field("ragScopeMode", debug?.ragScopeMode),
+        field("ragRetrievalMode", debug?.ragRetrievalMode),
+        field("ragAnswerMode", debug?.ragAnswerMode),
+        field("retrievalScopeObjects", debug?.retrievalScopeObjects?.map((item) => item.value).join(" 路 ")),
         field("memoryIntent", debug?.memoryIntent),
         field("memoryApplied", yesNo(debug?.memoryApplied)),
         field("memoryGroundedQuery", debug?.memoryGroundedQuery),
@@ -215,8 +214,6 @@ const traceSteps = computed<TraceStep[]>(() => {
         field("memoryDroppedEntries", formatMemoryDroppedEntries(debug?.memoryMatchDebug)),
         field("memoryClarificationCandidates", formatMemoryClarificationCandidates(debug?.memoryClarificationCandidates)),
         field("memoryLatency", formatDurationMs(debug?.stageTimingsMs?.memory)),
-        field("protectedTerms", debug?.protectedTerms?.join(" · ")),
-        field("llmIntent", debug?.llmIntent),
       ]),
     },
     {
@@ -238,8 +235,6 @@ const traceSteps = computed<TraceStep[]>(() => {
         field("bm25Weight", formatScore(debug?.bm25Weight)),
         field("vectorWeight", formatScore(debug?.vectorWeight)),
         field("fallbackApplied", yesNo(debug?.fallbackApplied)),
-        field("fallbackReason", debug?.fallbackReason),
-        field("exactEntityMiss", yesNo(debug?.exactEntityMiss)),
       ]),
     },
     {
@@ -249,8 +244,8 @@ const traceSteps = computed<TraceStep[]>(() => {
       status: statusFromGate(debug?.evidenceGateStatus),
       fields: compactFields([
         field("effectiveTopK", debug?.effectiveTopK),
-        field("evidenceComplexity", debug?.evidenceComplexity),
-        field("evidenceCoverage", formatPercent(debug?.evidenceCoverage)),
+        field("scopeCoverage", formatPercent(debug?.scopeCoverage)),
+        field("factCoverage", formatPercent(debug?.factCoverage)),
         field(
           "evidenceExpansionApplied",
           yesNo(debug?.evidenceExpansionApplied),
@@ -298,12 +293,11 @@ const queryFields = computed(() => {
     field("memoryClarificationCandidates", formatMemoryClarificationCandidates(debug.memoryClarificationCandidates)),
     field("memoryLatencyMs", debug.memoryLatencyMs),
     field("rewriteApplied", yesNo(debug.rewriteApplied)),
-    field("retrievalMode", debug.retrievalMode),
-    field("routeType", debug.routeType),
-    field("routeSource", debug.routeSource),
-    field("routeConfidence", debug.routeConfidence),
-    field("llmIntent", debug.llmIntent),
-    field("protectedTerms", debug.protectedTerms?.join(" · ")),
+    field("ragUserIntent", debug.ragUserIntent),
+    field("ragScopeMode", debug.ragScopeMode),
+    field("ragRetrievalMode", debug.ragRetrievalMode),
+    field("ragAnswerMode", debug.ragAnswerMode),
+    field("retrievalScopeObjects", debug.retrievalScopeObjects?.map((item) => item.value).join(" 路 ")),
     field("excludedTerms", debug.excludedTerms?.join(" · ")),
     field("bm25Weight", formatScore(debug.bm25Weight)),
     field("vectorWeight", formatScore(debug.vectorWeight)),
@@ -322,12 +316,10 @@ const queryFields = computed(() => {
     field("stage.qa", formatDurationMs(debug.stageTimingsMs?.qa)),
     field("stage.repair", formatDurationMs(debug.stageTimingsMs?.repair)),
     field("effectiveTopK", debug.effectiveTopK),
-    field("evidenceComplexity", debug.evidenceComplexity),
-    field("evidenceCoverage", formatPercent(debug.evidenceCoverage)),
+    field("scopeCoverage", formatPercent(debug.scopeCoverage)),
+    field("factCoverage", formatPercent(debug.factCoverage)),
     field("evidenceGateStatus", debug.evidenceGateStatus),
     field("fallbackApplied", yesNo(debug.fallbackApplied)),
-    field("fallbackReason", debug.fallbackReason),
-    field("exactEntityMiss", yesNo(debug.exactEntityMiss)),
   ]);
 });
 
@@ -558,6 +550,12 @@ function statusFromGate(
   if (gate === "blocked") return "blocked";
   if (gate === "degraded") return "warn";
   return "neutral";
+}
+
+function formatScopeObjects(debug: KnowledgeSearchDebugInfo | null): string {
+  const objects = debug?.retrievalScopeObjects?.map((item) => item.value) ?? [];
+  if (objects.length === 0) return "scope 未限定";
+  return objects.join(" · ");
 }
 
 function resolveAnswerOutlet(
@@ -863,10 +861,10 @@ onMounted(() => loadConversations());
                     gate {{ activeDebug.evidenceGateStatus ?? "unknown" }}
                   </span>
                   <span class="status-chip is-neutral">
-                    intent {{ activeDebug.llmIntent ?? activeDebug.memoryIntent ?? "none" }}
+                    intent {{ activeDebug.ragUserIntent ?? activeDebug.memoryIntent ?? "none" }}
                   </span>
                   <span class="status-chip is-neutral">
-                    route {{ activeDebug.routeSource ?? "unknown" }}
+                    scope {{ activeDebug.ragScopeMode ?? "unknown" }}
                   </span>
                 </div>
               </header>

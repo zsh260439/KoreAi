@@ -1,9 +1,7 @@
 ﻿import type {
-  KnowledgeQueryRouteConfidence,
-  KnowledgeQueryRouteDecision,
-  KnowledgeQueryRouteSource,
+  KnowledgeRuleSignalConfidence,
   KnowledgeQueryRuleSignal,
-  KnowledgeRetrievalMode
+  RagRetrievalMode
 } from './knowledge-query-plan.types'
 import {
   expandStructuredIdentifierAliases,
@@ -71,7 +69,7 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
 
   if (exactTerms.length > 0) {
     return buildRuleSignal({
-      route: 'exact_lookup',
+      suggestedRetrievalMode: 'exact',
       confidence: 'high',
       reasons,
       exactTerms,
@@ -82,7 +80,7 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
 
   if (procedureLike) {
     return buildRuleSignal({
-      route: 'procedure_heavy',
+      suggestedRetrievalMode: 'hybrid',
       confidence: 'medium',
       reasons,
       exactTerms,
@@ -93,7 +91,7 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
 
   if (shortQuery) {
     return buildRuleSignal({
-      route: 'keyword_heavy',
+      suggestedRetrievalMode: 'keyword',
       confidence: 'medium',
       reasons,
       exactTerms,
@@ -103,7 +101,7 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
   }
 
   return buildRuleSignal({
-    route: 'balanced',
+    suggestedRetrievalMode: 'hybrid',
     confidence: 'low',
     reasons: reasons.length > 0 ? reasons : ['no_strong_rule_match'],
     exactTerms,
@@ -112,32 +110,17 @@ export function detectKnowledgeQueryRuleSignal(query: string): KnowledgeQueryRul
   })
 }
 
-export function createRouteDecision(
-  mode: KnowledgeRetrievalMode,
-  source: KnowledgeQueryRouteSource,
-  confidence: KnowledgeQueryRouteConfidence,
-  reason: string
-): KnowledgeQueryRouteDecision {
-  return {
-    mode,
-    source,
-    confidence,
-    reason
-  }
-}
-
 function buildRuleSignal(input: {
-  route: KnowledgeRetrievalMode
-  confidence: KnowledgeQueryRouteConfidence
+  suggestedRetrievalMode: RagRetrievalMode
+  confidence: KnowledgeRuleSignalConfidence
   reasons: string[]
   exactTerms: string[]
   shortQuery: boolean
   procedureLike: boolean
 }): KnowledgeQueryRuleSignal {
   return {
-    route: input.route,
+    suggestedRetrievalMode: input.suggestedRetrievalMode,
     confidence: input.confidence,
-    source: 'rule',
     reasons: input.reasons,
     exactTerms: input.exactTerms,
     shortQuery: input.shortQuery,
@@ -209,5 +192,6 @@ function compactStructuredExactTerms(values: string[]): string[] {
 function isStructuredExactTerm(value: string): boolean {
   return /[a-z]/i.test(value) && /\d/.test(value)
 }
+
 
 

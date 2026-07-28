@@ -4,7 +4,10 @@ import type { KnowledgeQaDeltaEvent, KnowledgeSearchDebugInfo, KnowledgeSearchHi
 import { KnowledgeConfigService } from '../../runtime/config/knowledge-config.service'
 import { extractKnowledgeEvidenceFacts } from '../evidence-gating/knowledge-evidence-fact-extractor'
 import {
+  getMissingRequestedEvidenceValues,
+  getRequestedEvidenceValues,
   hasPotentialKnowledgeAnswerGap,
+  scoreRequestedEvidenceCoverage,
   selectMoreCompleteKnowledgeAnswer
 } from './knowledge-qa-answer-validation'
 import {
@@ -43,7 +46,8 @@ export class KnowledgeQaService {
       signal?: AbortSignal
       temperature?: number
       evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
-      evidenceCoverage?: number
+      scopeCoverage?: number
+      factCoverage?: number
       retrievalDebug?: KnowledgeSearchDebugInfo | null
       allowGeneralKnowledge?: boolean
     } = {}
@@ -71,8 +75,10 @@ export class KnowledgeQaService {
           includeReasoning,
           {
             evidenceGateStatus: options.evidenceGateStatus,
-            evidenceCoverage: options.evidenceCoverage,
+            scopeCoverage: options.scopeCoverage,
+            factCoverage: options.factCoverage,
             evidenceFacts,
+            retrievalScopeObjects: options.retrievalDebug?.retrievalScopeObjects,
             allowGeneralKnowledge: options.allowGeneralKnowledge === true
           }
         )
@@ -91,7 +97,14 @@ export class KnowledgeQaService {
         { signal: options.signal } as never
       )
     const repairAnswerWithLlm = async (draft: string): Promise<string> => {
-      if (!shouldRepairAnswer(query, draft, evidenceFacts, hits)) {
+      const fieldSlots = options.retrievalDebug?.evidenceFieldSlots ?? []
+      const scopeValues = options.retrievalDebug?.retrievalScopeObjects?.map((item) => item.value) ?? []
+      const deterministicAnswer = selectDeterministicFieldAnswer(query, draft, evidenceFacts, hits, fieldSlots, scopeValues)
+      if (deterministicAnswer !== draft) {
+        return deterministicAnswer
+      }
+
+      if (!shouldRepairAnswer(query, draft, evidenceFacts, hits, fieldSlots)) {
         return draft
       }
 
@@ -126,7 +139,7 @@ export class KnowledgeQaService {
           }
         ])
         const content = normalizeMessageContent(message.content).trim() || draft
-        return selectRepairedAnswer(draft, content, evidenceFacts, hits)
+        return selectRepairedAnswer(query, draft, content, evidenceFacts, hits, fieldSlots, scopeValues)
       } catch {
         return draft
       } finally {
@@ -312,10 +325,36 @@ function shouldRepairAnswer(
   query: string,
   draft: string,
   facts: ReturnType<typeof extractKnowledgeEvidenceFacts>,
-  hits: KnowledgeSearchHit[]
+  hits: KnowledgeSearchHit[],
+  fieldSlots: string[] = []
 ): boolean {
   return hasPotentialKnowledgeAnswerGap(query, draft, facts) ||
+    getMissingRequestedEvidenceValues(query, draft, hits, fieldSlots).length > 0 ||
     hasMissingAnswerWithConcreteEvidence(query, draft, hits)
+}
+
+function selectDeterministicFieldAnswer(
+  query: string,
+  draft: string,
+  facts: ReturnType<typeof extractKnowledgeEvidenceFacts>,
+  hits: KnowledgeSearchHit[],
+  fieldSlots: string[] = [],
+  scopeValues: string[] = []
+): string {
+  const scopedHits = filterHitsByScope(hits, scopeValues)
+  const deterministicAnswer = buildDeterministicFieldAnswer(query, scopedHits, fieldSlots)
+  if (!deterministicAnswer) {
+    return draft
+  }
+
+  const deterministicScore = scoreRequestedEvidenceCoverage(deterministicAnswer, query, scopedHits, fieldSlots)
+  const draftScore = scoreRequestedEvidenceCoverage(draft, query, scopedHits, fieldSlots)
+  if (deterministicScore > draftScore) {
+    return deterministicAnswer
+  }
+
+  const factSelected = selectMoreCompleteKnowledgeAnswer(draft, deterministicAnswer, facts)
+  return factSelected !== draft ? factSelected : draft
 }
 
 function hasMissingAnswerWithConcreteEvidence(
@@ -328,7 +367,7 @@ function hasMissingAnswerWithConcreteEvidence(
   }
 
   const normalizedQuery = normalizeForValueMatch(query)
-  const queryAsksValue = /(?:鍊紎浠ｇ爜|缂栧彿|瑙掕壊|闃堝€紎鏃堕檺|window|code|threshold|role|owner|value)/i.test(query)
+  const queryAsksValue = /(?:\u503c|\u4ee3\u7801|\u7f16\u53f7|\u89d2\u8272|\u9608\u503c|\u65f6\u9650|\u7a97\u53e3|window|code|threshold|role|owner|value)/i.test(query)
   if (!queryAsksValue) {
     return false
   }
@@ -338,11 +377,28 @@ function hasMissingAnswerWithConcreteEvidence(
 }
 
 function selectRepairedAnswer(
+  query: string,
   draft: string,
   edited: string,
   facts: ReturnType<typeof extractKnowledgeEvidenceFacts>,
-  hits: KnowledgeSearchHit[]
+  hits: KnowledgeSearchHit[],
+  fieldSlots: string[] = [],
+  scopeValues: string[] = []
 ): string {
+  const deterministicAnswer = selectDeterministicFieldAnswer(query, draft, facts, hits, fieldSlots, scopeValues)
+  const scopedHits = filterHitsByScope(hits, scopeValues)
+  if (deterministicAnswer !== draft) {
+    const editedRequestedScore = scoreRequestedEvidenceCoverage(edited, query, scopedHits, fieldSlots)
+    const deterministicRequestedScore = scoreRequestedEvidenceCoverage(deterministicAnswer, query, scopedHits, fieldSlots)
+    return editedRequestedScore > deterministicRequestedScore ? edited : deterministicAnswer
+  }
+
+  const originalRequestedScore = scoreRequestedEvidenceCoverage(draft, query, scopedHits, fieldSlots)
+  const editedRequestedScore = scoreRequestedEvidenceCoverage(edited, query, scopedHits, fieldSlots)
+  if (editedRequestedScore > originalRequestedScore) {
+    return edited
+  }
+
   const factSelected = selectMoreCompleteKnowledgeAnswer(draft, edited, facts)
   if (factSelected !== draft) {
     return factSelected
@@ -356,6 +412,67 @@ function selectRepairedAnswer(
     .filter((value) => normalizeForValueMatch(edited).includes(normalizeForValueMatch(value)))
     .length
   return editedValueCount > 0 ? edited : draft
+}
+
+function buildDeterministicFieldAnswer(
+  query: string,
+  hits: KnowledgeSearchHit[],
+  fieldSlots: string[] = []
+): string {
+  const values = getRequestedEvidenceValues(query, hits, fieldSlots)
+  if (values.length < 2) {
+    return ''
+  }
+
+  const lines = values
+    .map((item) => {
+      const label = getRequestedSlotLabel(item.slot)
+      return label ? `${label}：${item.value}` : ''
+    })
+    .filter(Boolean)
+
+  return lines.length >= 2 ? lines.join('\n') : ''
+}
+
+function filterHitsByScope(
+  hits: KnowledgeSearchHit[],
+  scopeValues: string[]
+): KnowledgeSearchHit[] {
+  const normalizedScopes = scopeValues
+    .map(normalizeForValueMatch)
+    .filter((value) => value.length >= 3)
+  if (normalizedScopes.length === 0) {
+    return hits
+  }
+
+  const scopedHits = hits.filter((hit) => {
+    const searchable = normalizeForValueMatch([
+      hit.documentName,
+      hit.primaryTitle,
+      hit.sectionPath,
+      hit.content
+    ].filter(Boolean).join(' '))
+    return normalizedScopes.some((scope) => searchable.includes(scope))
+  })
+
+  return scopedHits.length > 0 ? scopedHits : hits
+}
+
+function getRequestedSlotLabel(slot: string): string {
+  switch (slot) {
+    case 'main_control_threshold':
+      return '\u4e3b\u63a7\u5236\u9608\u503c'
+    case 'responsible_role':
+      return '\u8d23\u4efb\u89d2\u8272'
+    case 'alert_threshold':
+      return '\u9884\u8b66\u503c'
+    case 'action_code':
+      return '\u5904\u7f6e\u4ee3\u7801'
+    case 'response_time':
+      return '\u54cd\u5e94\u65f6\u9650'
+    default:
+      return ''
+  }
 }
 
 function formatHitsForRepair(hits: KnowledgeSearchHit[]): string {
@@ -377,7 +494,7 @@ function formatHitsForRepair(hits: KnowledgeSearchHit[]): string {
 function extractConcreteEvidenceValues(hits: KnowledgeSearchHit[]): string[] {
   const values = new Set<string>()
   const pattern =
-    /\b[A-Z]{2,}(?:-[A-Z0-9]+){1,}\d*\b|\b[a-z]+(?:_[a-z0-9]+)+\b|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*(?:hours?|灏忔椂|鍒嗛挓|澶﹟days?)\b/gi
+    /\b[A-Z]{2,}(?:-[A-Z0-9]+){1,}\d*\b|\b[a-z]+(?:_[a-z0-9]+)+\b|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*(?:hours?|\u5c0f\u65f6|\u5206\u949f|days?)\b/gi
 
   for (const hit of hits.slice(0, 8)) {
     for (const match of hit.content.match(pattern) ?? []) {
@@ -392,7 +509,7 @@ function extractConcreteEvidenceValues(hits: KnowledgeSearchHit[]): string[] {
 }
 
 function isMissingKnowledgeAnswer(answer: string): boolean {
-  return /(?:鏈彁渚泑鏈壘鍒皘鎵句笉鍒皘鏃犳硶纭畾|鏃犳硶纭|璇佹嵁涓嶈冻|涓嶅寘鍚珅娌℃湁鎻愪緵|not found|not provided|cannot determine)/i
+  return /(?:\u672a\u5728.*\u8bc1\u636e.*\u627e\u5230|\u672a\u627e\u5230|\u627e\u4e0d\u5230|\u6ca1\u6709\u627e\u5230|\u65e0\u6cd5\u786e\u5b9a|\u65e0\u6cd5\u786e\u8ba4|\u8bc1\u636e\u4e0d\u8db3|\u4e0d\u5305\u542b|\u6ca1\u6709\u63d0\u4f9b|not found|not provided|cannot determine)/i
     .test(answer)
 }
 

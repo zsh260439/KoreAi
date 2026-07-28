@@ -32,6 +32,11 @@ import {
 
 const QUERY_LEVEL_RRF_K = 60
 const MAX_SECOND_LEVEL_QUERY_DOMAINS = 6
+const WEAK_EVIDENCE_MAX_MULTIPLIER_STEP = 2
+const EXACT_FIELD_VALUE_CANDIDATE_FACTOR = 6
+const EXACT_FIELD_VALUE_MIN_CANDIDATES = 40
+const COMPLEX_QUERY_CANDIDATE_FACTOR = 6
+const COMPLEX_QUERY_MIN_CANDIDATES = 40
 
 @Injectable()
 export class KnowledgeRetrievalService {
@@ -73,8 +78,6 @@ export class KnowledgeRetrievalService {
     )
     ceMs += finalResult.ceRerankMs
     let fallbackApplied = false
-    const fallbackReasons: string[] = []
-    let exactEntityMiss = false
 
     if (
       analysisEnabled &&
@@ -100,7 +103,6 @@ export class KnowledgeRetrievalService {
         )
         ceMs += finalResult.ceRerankMs
         fallbackApplied = true
-        fallbackReasons.push('weak_evidence_query_rewrite')
       }
     }
 
@@ -118,18 +120,12 @@ export class KnowledgeRetrievalService {
         )
         ceMs += finalResult.ceRerankMs
         fallbackApplied = true
-        fallbackReasons.push('weak_evidence_candidate_expansion')
       }
     }
 
     const fallbackDecision = shouldFallback(plan, finalResult.hits, topK)
     if (fallbackDecision.shouldFallback && plan.fallbackRetrieval) {
       fallbackApplied = true
-      if (fallbackDecision.reason) {
-        fallbackReasons.push(fallbackDecision.reason)
-      }
-      exactEntityMiss = fallbackDecision.exactEntityMiss
-
       const fallbackResult = await this.retrieveWithSecondLevelRrf(
         knowledgeBaseId,
         plan,
@@ -146,7 +142,6 @@ export class KnowledgeRetrievalService {
       bm25Query: plan.bm25Query,
       vectorQuery: plan.vectorQuery,
       rewriteApplied: plan.rewriteApplied,
-      retrievalMode: finalResult.hints.mode,
       bm25Weight: finalResult.hints.bm25Weight,
       vectorWeight: finalResult.hints.vectorWeight,
       bm25HitCount: finalResult.bm25Candidates.length,
@@ -154,21 +149,19 @@ export class KnowledgeRetrievalService {
       candidateLimit: finalResult.candidateLimit,
       ceCandidateCount: finalResult.ceCandidateCount,
       candidateDocumentNames: finalResult.candidateDocumentNames,
-      routeType: finalResult.hints.mode,
-      routeSource: finalResult.hints.source,
-      routeConfidence: finalResult.hints.confidence,
       fallbackApplied,
-      fallbackReason: fallbackReasons.join(',') || null,
-      exactEntityMiss,
-      protectedTerms: plan.protectedTerms,
+      ragUserIntent: plan.executionProfile.userIntent,
+      ragScopeMode: plan.executionProfile.scopeMode,
+      ragRetrievalMode: plan.executionProfile.retrievalMode,
+      ragAnswerMode: plan.executionProfile.answerMode,
+      scopeCoverage: finalResult.scopeCoverage,
+      factCoverage: finalResult.factCoverage,
+      retrievalScopeObjects: plan.scope.objects,
       excludedTerms: plan.excludedTerms,
-      llmIntent: plan.analysis?.intent ?? null,
-      evidenceComplexity: plan.evidencePlan.complexity,
       evidenceTerms: plan.evidencePlan.evidenceTerms,
       evidenceFieldSlots: plan.evidencePlan.fieldSlots,
       evidenceNumericTerms: plan.evidencePlan.numericTerms,
       effectiveTopK: finalResult.effectiveTopK,
-      evidenceCoverage: finalResult.evidenceCoverage,
       evidenceExpansionApplied: finalResult.evidenceExpansionApplied,
       evidenceGateStatus: finalResult.evidenceGateStatus,
       secondLevelRrfApplied: finalResult.secondLevelRrfApplied,
@@ -237,12 +230,24 @@ export class KnowledgeRetrievalService {
     const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
     const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
     const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
-    const objectCoveredHits = ensureProtectedObjectCoverage(finalHits, relevantHits, plan)
-    const completedHits = includeReferenceEvidence(objectCoveredHits, referenceCandidates, plan)
+    const objectCoveredHits = ensureScopeObjectCoverage(finalHits, relevantHits, plan)
+    const fieldCoveredHits = await this.ensureFieldSlotCoverage(objectCoveredHits, relevantHits, plan)
+    const completedHits = constrainFinalEvidenceToExplicitScope(
+      includeReferenceEvidence(fieldCoveredHits, referenceCandidates, plan),
+      plan
+    )
     const hasEvidenceRequirements = hasKnowledgeEvidenceRequirements(plan.evidencePlan)
-    const evidenceCoverage = hasEvidenceRequirements
-      ? computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
+    const factCoverage = hasEvidenceRequirements
+      ? computeScopedEvidenceCoverage(completedHits, plan)
       : 0
+    const scopeCoverage = computeScopeCoverage(completedHits, plan)
+    const gateStatus = resolveRagGateStatus({
+      plan,
+      hits: completedHits,
+      scopeCoverage,
+      factCoverage,
+      hasEvidenceRequirements
+    })
 
     return {
       hints,
@@ -256,15 +261,11 @@ export class KnowledgeRetrievalService {
       ceRerankMs,
       secondLevelRrfApplied: true,
       secondLevelRrfQueries: domains.map((domain) => domain.label),
-      evidenceCoverage,
+      scopeCoverage,
+      factCoverage,
       evidenceExpansionApplied:
         completedHits.some((hit) => hit.scoreDetail?.matchedBy.length === 0),
-      evidenceGateStatus:
-        completedHits.length === 0
-          ? 'blocked'
-          : hasEvidenceRequirements
-            ? resolveEvidenceGateStatus(evidenceCoverage, plan.evidencePlan)
-            : 'degraded'
+      evidenceGateStatus: gateStatus
     }
   }
 
@@ -331,12 +332,24 @@ export class KnowledgeRetrievalService {
     const rerankedHits = applyDeterministicRerank(mergedHits, plan, ceScoreMap)
     const relevantHits = filterCeRelevantHits(rerankedHits, ceScoreMap)
     const finalHits = await this.assembleEvidenceContext(relevantHits, plan)
-    const objectCoveredHits = ensureProtectedObjectCoverage(finalHits, relevantHits, plan)
-    const completedHits = includeReferenceEvidence(objectCoveredHits, referenceCandidates, plan)
+    const objectCoveredHits = ensureScopeObjectCoverage(finalHits, relevantHits, plan)
+    const fieldCoveredHits = await this.ensureFieldSlotCoverage(objectCoveredHits, relevantHits, plan)
+    const completedHits = constrainFinalEvidenceToExplicitScope(
+      includeReferenceEvidence(fieldCoveredHits, referenceCandidates, plan),
+      plan
+    )
     const hasEvidenceRequirements = hasKnowledgeEvidenceRequirements(plan.evidencePlan)
-    const evidenceCoverage = hasEvidenceRequirements
-      ? computeKnowledgeEvidenceCoverage(completedHits, plan.evidencePlan)
+    const factCoverage = hasEvidenceRequirements
+      ? computeScopedEvidenceCoverage(completedHits, plan)
       : 0
+    const scopeCoverage = computeScopeCoverage(completedHits, plan)
+    const gateStatus = resolveRagGateStatus({
+      plan,
+      hits: completedHits,
+      scopeCoverage,
+      factCoverage,
+      hasEvidenceRequirements
+    })
 
     return {
       hints,
@@ -350,15 +363,11 @@ export class KnowledgeRetrievalService {
       ceRerankMs,
       secondLevelRrfApplied: false,
       secondLevelRrfQueries: [],
-      evidenceCoverage,
+      scopeCoverage,
+      factCoverage,
       evidenceExpansionApplied:
         completedHits.some((hit) => hit.scoreDetail?.matchedBy.length === 0),
-      evidenceGateStatus:
-        completedHits.length === 0
-          ? 'blocked'
-          : hasEvidenceRequirements
-            ? resolveEvidenceGateStatus(evidenceCoverage, plan.evidencePlan)
-            : 'degraded'
+      evidenceGateStatus: gateStatus
     }
   }
 
@@ -367,7 +376,7 @@ export class KnowledgeRetrievalService {
     plan: KnowledgeQueryPlan
   ): Promise<KnowledgeSearchHit[]> {
     const selected = hits.slice(0, plan.evidencePlan.targetTopK)
-    const selectedCoverage = computeKnowledgeEvidenceCoverage(selected, plan.evidencePlan)
+    const selectedCoverage = computeScopedEvidenceCoverage(selected, plan)
 
     if (
       selectedCoverage >= plan.evidencePlan.requiredCoverage ||
@@ -402,7 +411,7 @@ export class KnowledgeRetrievalService {
         expanded.push(markEvidenceExpansionHit(nextSibling))
         seenChunkIds.add(nextSibling.chunkId)
 
-        const coverage = computeKnowledgeEvidenceCoverage(expanded, plan.evidencePlan)
+        const coverage = computeScopedEvidenceCoverage(expanded, plan)
         if (coverage >= plan.evidencePlan.requiredCoverage) {
           return expanded
         }
@@ -410,6 +419,111 @@ export class KnowledgeRetrievalService {
     }
 
     return expanded
+  }
+
+  private async ensureFieldSlotCoverage(
+    selectedHits: KnowledgeSearchHit[],
+    rankedCandidates: KnowledgeSearchHit[],
+    plan: KnowledgeQueryPlan
+  ): Promise<KnowledgeSearchHit[]> {
+    const requiredSlots = plan.evidencePlan.fieldSlots
+    if (requiredSlots.length === 0 || selectedHits.length === 0) {
+      return selectedHits
+    }
+
+    const selected = [...selectedHits]
+    const selectedChunkIds = new Set(selected.map((hit) => hit.chunkId))
+    const scopeObjects = plan.scope.objects.map((object) => object.value)
+    const coveredSlots = collectCoveredFieldSlots(filterHitsForScope(selected, scopeObjects), plan)
+
+    for (const slot of requiredSlots) {
+      if (coveredSlots.has(slot)) {
+        continue
+      }
+
+      const candidate = await this.findBestFieldSlotCandidate({
+        slot,
+        selected,
+        selectedChunkIds,
+        rankedCandidates,
+        coveredSlots,
+        scopeObjects,
+        plan
+      })
+      if (!candidate) {
+        continue
+      }
+
+      if (selected.length < plan.evidencePlan.maxTopK) {
+        selected.push(candidate.hit)
+        selectedChunkIds.add(candidate.hit.chunkId)
+        for (const matchedSlot of candidate.slots) {
+          coveredSlots.add(matchedSlot)
+        }
+        continue
+      }
+
+      const replaceIndex = findFieldSlotReplaceIndex(selected, coveredSlots, plan)
+      if (replaceIndex < 0) {
+        continue
+      }
+
+      selectedChunkIds.delete(selected[replaceIndex].chunkId)
+      selected[replaceIndex] = candidate.hit
+      selectedChunkIds.add(candidate.hit.chunkId)
+      for (const matchedSlot of candidate.slots) {
+        coveredSlots.add(matchedSlot)
+      }
+    }
+
+    return selected
+  }
+
+  private async findBestFieldSlotCandidate(input: {
+    slot: string
+    selected: KnowledgeSearchHit[]
+    selectedChunkIds: Set<string>
+    rankedCandidates: KnowledgeSearchHit[]
+    coveredSlots: Set<string>
+    scopeObjects: string[]
+    plan: KnowledgeQueryPlan
+  }): Promise<{ hit: KnowledgeSearchHit; slots: string[] } | null> {
+    const rankedPool = input.rankedCandidates
+      .filter((hit) => !input.selectedChunkIds.has(hit.chunkId))
+      .filter((hit) => input.scopeObjects.length === 0 || input.scopeObjects.some((object) => hitMatchesScopeObject(hit, object)))
+
+    const siblingPool = (
+      await this.loadFieldSlotSiblingCandidates(input.selected, input.selectedChunkIds, input.scopeObjects)
+    )
+
+    return selectBestFieldSlotCandidate(
+      [...rankedPool, ...siblingPool],
+      input.slot,
+      input.coveredSlots,
+      input.plan
+    )
+  }
+
+  private async loadFieldSlotSiblingCandidates(
+    selectedHits: KnowledgeSearchHit[],
+    selectedChunkIds: Set<string>,
+    scopeObjects: string[]
+  ): Promise<KnowledgeSearchHit[]> {
+    if (scopeObjects.length === 0) {
+      return []
+    }
+
+    const documentIds = uniqueStrings(
+      selectedHits
+        .filter((hit) => scopeObjects.some((object) => hitMatchesScopeObject(hit, object)))
+        .map((hit) => hit.documentId)
+    )
+    const siblings: KnowledgeSearchHit[] = []
+    for (const documentId of documentIds) {
+      siblings.push(...await this.loadSiblingEvidenceChunks(documentId, selectedChunkIds))
+    }
+
+    return siblings
   }
 
   private async loadSiblingEvidenceChunks(
@@ -501,7 +615,7 @@ export class KnowledgeRetrievalService {
     }
 
     const terms = uniqueStrings([
-      ...plan.protectedTerms,
+      ...getScopeObjectValues(plan),
       ...plan.evidencePlan.referenceTerms,
       ...plan.evidencePlan.evidenceTerms
     ]).slice(0, 24)
@@ -650,52 +764,39 @@ function shouldFallback(
   topK: number
 ): {
   shouldFallback: boolean
-  reason: string | null
-  exactEntityMiss: boolean
 } {
   if (!plan.fallbackRetrieval) {
     return {
-      shouldFallback: false,
-      reason: null,
-      exactEntityMiss: false
+      shouldFallback: false
     }
   }
 
   if (hits.length === 0) {
     return {
-      shouldFallback: true,
-      reason: 'no_hits',
-      exactEntityMiss: false
+      shouldFallback: true
     }
   }
 
-  if (hasStructuredProtectedTerms(plan.protectedTerms)) {
-    const topWindow = hits.slice(0, Math.min(3, hits.length))
-    const hasExactEntityCoverage = topWindow.some((hit) =>
-      isStrongProtectedTermMatch(hit, plan.protectedTerms)
-    )
+  if (plan.scope.objects.length > 0) {
+    const topWindow = hits.slice(0, Math.min(resolveScopeFallbackWindow(plan), hits.length))
+    const scopeCoverage = computeScopeCoverage(topWindow, plan)
+    const requiredScopeCoverage = resolveRequiredScopeCoverage(plan)
 
-    if (!hasExactEntityCoverage) {
+    if (scopeCoverage < requiredScopeCoverage) {
       return {
-        shouldFallback: true,
-        reason: 'protected_terms_not_covered',
-        exactEntityMiss: true
+        shouldFallback: true
       }
     }
   }
 
-  if (hits.length < Math.min(2, topK) && plan.retrieval.mode !== 'balanced') {
+  if (hits.length < Math.min(2, topK) && plan.retrieval.mode !== 'hybrid') {
     return {
-      shouldFallback: true,
-      reason: 'too_few_hits_for_non_balanced_route',
-      exactEntityMiss: false
+      shouldFallback: true
     }
   }
 
   return {
-    shouldFallback: false,
-    reason: null,
-    exactEntityMiss: false
+    shouldFallback: false
   }
 }
 
@@ -703,10 +804,95 @@ function isWeakEvidence(
   plan: KnowledgeQueryPlan,
   result: RetrievalExecutionResult
 ): boolean {
+  if (
+    (plan.executionProfile.userIntent === 'comparison' || plan.executionProfile.userIntent === 'summary') &&
+    plan.scope.objects.length > 0 &&
+    result.scopeCoverage >= resolveRequiredScopeCoverage(plan) &&
+    result.hits.length > 0
+  ) {
+    return false
+  }
+
   return (
     result.evidenceGateStatus !== 'pass' ||
     !hasKnowledgeEvidenceRequirements(plan.evidencePlan)
   )
+}
+
+function getScopeObjectValues(plan: KnowledgeQueryPlan): string[] {
+  return plan.scope.objects.map((object) => object.value)
+}
+
+function resolveRagGateStatus(input: {
+  plan: KnowledgeQueryPlan
+  hits: KnowledgeSearchHit[]
+  scopeCoverage: number
+  factCoverage: number
+  hasEvidenceRequirements: boolean
+}): 'pass' | 'degraded' | 'blocked' {
+  if (input.hits.length === 0) {
+    return 'blocked'
+  }
+
+  const hasScope = input.plan.scope.objects.length > 0
+  if (hasScope && input.scopeCoverage === 0) {
+    return 'blocked'
+  }
+
+  const isScopeDrivenQuestion =
+    input.plan.executionProfile.userIntent === 'comparison' ||
+    input.plan.executionProfile.userIntent === 'summary'
+  if (isScopeDrivenQuestion && hasScope) {
+    if (input.scopeCoverage < resolveRequiredScopeCoverage(input.plan)) {
+      return 'blocked'
+    }
+
+    return input.scopeCoverage >= 1 ? 'pass' : 'degraded'
+  }
+
+  if (!input.hasEvidenceRequirements) {
+    return hasScope ? 'degraded' : 'degraded'
+  }
+
+  return resolveEvidenceGateStatus(input.factCoverage, input.plan.evidencePlan)
+}
+
+function computeScopeCoverage(
+  hits: KnowledgeSearchHit[],
+  plan: KnowledgeQueryPlan
+): number {
+  if (plan.scope.objects.length === 0) {
+    return 1
+  }
+
+  const covered = new Set<string>()
+  for (const object of plan.scope.objects) {
+    if (hits.some((hit) => hitMatchesScopeObject(hit, object.value))) {
+      covered.add(normalizeForExactMatch(object.value))
+    }
+  }
+
+  return Number((covered.size / plan.scope.objects.length).toFixed(4))
+}
+
+function resolveScopeFallbackWindow(plan: KnowledgeQueryPlan): number {
+  if (plan.scope.objects.length <= 1) {
+    return 3
+  }
+
+  return Math.min(Math.max(plan.scope.objects.length + 2, 6), 10)
+}
+
+function resolveRequiredScopeCoverage(plan: KnowledgeQueryPlan): number {
+  if (plan.scope.objects.length <= 1) {
+    return 1
+  }
+
+  if (plan.executionProfile.scopeMode === 'explicit_multi') {
+    return 1
+  }
+
+  return 0.66
 }
 
 function shouldUseSecondLevelRrf(
@@ -715,7 +901,7 @@ function shouldUseSecondLevelRrf(
 ): boolean {
   return (
     domains.length > 1 &&
-    !hasStructuredProtectedTerms(plan.protectedTerms)
+    plan.scope.objects.length === 0
   )
 }
 
@@ -729,7 +915,7 @@ function buildSecondLevelQueryDomains(plan: KnowledgeQueryPlan): QueryRecallDoma
   })
   addQueryDomain(domains, {
     label: analysis ? 'original' : 'raw_query',
-    bm25Query: uniqueStrings([plan.normalizedQuery, ...plan.protectedTerms]).join(' '),
+    bm25Query: uniqueStrings([plan.normalizedQuery, ...getScopeObjectValues(plan)]).join(' '),
     vectorQuery: plan.normalizedQuery
   })
 
@@ -739,7 +925,7 @@ function buildSecondLevelQueryDomains(plan: KnowledgeQueryPlan): QueryRecallDoma
         label: `bm25:${phrase}`,
         bm25Query: uniqueStrings([
           phrase,
-          ...plan.protectedTerms,
+          ...getScopeObjectValues(plan),
           ...analysis.requiredTerms
         ]).join(' '),
         vectorQuery: phrase
@@ -751,7 +937,7 @@ function buildSecondLevelQueryDomains(plan: KnowledgeQueryPlan): QueryRecallDoma
         label: `vector:${semanticQuery}`,
         bm25Query: uniqueStrings([
           semanticQuery,
-          ...plan.protectedTerms,
+          ...getScopeObjectValues(plan),
           ...analysis.requiredTerms
         ]).join(' '),
         vectorQuery: semanticQuery
@@ -760,7 +946,7 @@ function buildSecondLevelQueryDomains(plan: KnowledgeQueryPlan): QueryRecallDoma
   }
 
   const evidenceQuery = uniqueStrings([
-    ...plan.protectedTerms,
+    ...getScopeObjectValues(plan),
     ...plan.evidencePlan.evidenceTerms,
     ...plan.evidencePlan.numericTerms
   ]).join(' ')
@@ -978,7 +1164,10 @@ function expandWeakEvidenceRetrieval(
   )
   const candidateMultiplier = Math.max(
     plan.retrieval.candidateMultiplier,
-    Math.ceil(plan.retrieval.maxCandidateLimit / targetTopK)
+    Math.min(
+      plan.retrieval.candidateMultiplier + WEAK_EVIDENCE_MAX_MULTIPLIER_STEP,
+      Math.ceil(plan.retrieval.maxCandidateLimit / targetTopK)
+    )
   )
 
   return {
@@ -992,7 +1181,6 @@ function expandWeakEvidenceRetrieval(
     },
     hints: {
       ...plan.retrieval,
-      source: 'fallback',
       candidateMultiplier
     }
   }
@@ -1003,8 +1191,24 @@ function selectBetterResult(
   primary: RetrievalExecutionResult,
   fallback: RetrievalExecutionResult
 ): RetrievalExecutionResult {
-  const primaryCoverage = computeTopCoverageScore(primary.hits, plan.protectedTerms)
-  const fallbackCoverage = computeTopCoverageScore(fallback.hits, plan.protectedTerms)
+  if (fallback.scopeCoverage > primary.scopeCoverage) {
+    return fallback
+  }
+
+  if (fallback.scopeCoverage < primary.scopeCoverage) {
+    return primary
+  }
+
+  if (fallback.factCoverage > primary.factCoverage) {
+    return fallback
+  }
+
+  if (fallback.factCoverage < primary.factCoverage) {
+    return primary
+  }
+
+  const primaryCoverage = computeTopCoverageScore(primary.hits, getScopeObjectValues(plan))
+  const fallbackCoverage = computeTopCoverageScore(fallback.hits, getScopeObjectValues(plan))
 
   if (fallbackCoverage > primaryCoverage) {
     return fallback
@@ -1033,8 +1237,8 @@ function applyDeterministicRerank(
   }
 
   return hits.map((hit) => attachRerankScores(hit, plan, ceScoreMap)).sort((left, right) => {
-    const leftSignal = computeHitSignal(left, plan.protectedTerms, plan.excludedTerms)
-    const rightSignal = computeHitSignal(right, plan.protectedTerms, plan.excludedTerms)
+    const leftSignal = computeHitSignal(left, getScopeObjectValues(plan), plan.excludedTerms)
+    const rightSignal = computeHitSignal(right, getScopeObjectValues(plan), plan.excludedTerms)
     const leftEvidenceScore = left.scoreDetail?.evidenceScore ?? 0
     const rightEvidenceScore = right.scoreDetail?.evidenceScore ?? 0
 
@@ -1125,7 +1329,7 @@ function attachRerankScores(
 
 function computeHitSignal(
   hit: KnowledgeSearchHit,
-  protectedTerms: string[],
+  scopeTerms: string[],
   excludedTerms: string[]
 ): {
   structuredFullCoverage: number
@@ -1140,7 +1344,7 @@ function computeHitSignal(
   const normalizedDocumentName = normalizeForExactMatch(hit.documentName)
   const normalizedContent = normalizeForExactMatch(hit.content)
   const normalizedText = `${normalizedDocumentName} ${normalizedContent}`
-  const protectedTermGroups = splitProtectedTerms(protectedTerms)
+  const scopeTermGroups = splitScopeTerms(scopeTerms)
 
   let excludedMatches = 0
 
@@ -1155,7 +1359,7 @@ function computeHitSignal(
     }
   }
 
-  if (protectedTerms.length === 0) {
+  if (scopeTerms.length === 0) {
     return {
       structuredFullCoverage: 0,
       structuredTermMatches: 0,
@@ -1173,13 +1377,13 @@ function computeHitSignal(
   let structuredTermMatches = 0
   let structuredDocumentNameMatches = 0
 
-  for (const term of protectedTerms) {
+  for (const term of scopeTerms) {
     const normalizedTerm = normalizeForExactMatch(term)
     if (!normalizedTerm) {
       continue
     }
 
-    const structuredTerm = protectedTermGroups.structuredSet.has(normalizedTerm)
+    const structuredTerm = scopeTermGroups.structuredSet.has(normalizedTerm)
 
     if (containsExactTerm(normalizedDocumentName, normalizedTerm)) {
       documentNameMatches += 1
@@ -1202,17 +1406,17 @@ function computeHitSignal(
   const siblingIdentifierConflicts = countSiblingIdentifierConflicts(
     normalizedDocumentName,
     normalizedText,
-    protectedTermGroups.structured
+    scopeTermGroups.structured
   )
-  const structuredProtectedCount = protectedTermGroups.structured.length
+  const structuredScopeCount = scopeTermGroups.structured.length
 
   return {
     structuredFullCoverage:
-      structuredProtectedCount > 0 && structuredTermMatches === structuredProtectedCount ? 1 : 0,
+      structuredScopeCount > 0 && structuredTermMatches === structuredScopeCount ? 1 : 0,
     structuredTermMatches,
     structuredDocumentNameMatches,
     siblingIdentifierConflicts,
-    fullCoverage: termMatches === protectedTerms.length ? 1 : 0,
+    fullCoverage: termMatches === scopeTerms.length ? 1 : 0,
     termMatches,
     documentNameMatches,
     excludedMatches
@@ -1293,6 +1497,7 @@ function collectCoveredEvidenceTerms(
   const coveredTerms: CoveredEvidenceTerms = {
     identifiers: new Set<string>(),
     numericTerms: new Set<string>(),
+    fieldSlots: new Set<string>(),
     evidenceTerms: new Set<string>()
   }
 
@@ -1300,6 +1505,7 @@ function collectCoveredEvidenceTerms(
     const evidence = computeKnowledgeEvidenceScore(hit, plan)
     addCoveredTerms(coveredTerms.identifiers, evidence.matchedIdentifiers)
     addCoveredTerms(coveredTerms.numericTerms, evidence.matchedNumericTerms)
+    addCoveredTerms(coveredTerms.fieldSlots, evidence.matchedFieldSlots)
     addCoveredTerms(coveredTerms.evidenceTerms, evidence.matchedEvidenceTerms)
   }
 
@@ -1312,12 +1518,13 @@ function computeUncoveredEvidenceGain(
 ): number {
   const identifierGain = countUncoveredTerms(evidence.matchedIdentifiers, coveredTerms.identifiers) * 50
   const numericGain = countUncoveredTerms(evidence.matchedNumericTerms, coveredTerms.numericTerms) * 35
+  const fieldSlotGain = countUncoveredTerms(evidence.matchedFieldSlots, coveredTerms.fieldSlots) * 80
   const evidenceTermGain = Math.min(
     countUncoveredTerms(evidence.matchedEvidenceTerms, coveredTerms.evidenceTerms) * 10,
     40
   )
 
-  return identifierGain + numericGain + evidenceTermGain
+  return identifierGain + numericGain + fieldSlotGain + evidenceTermGain
 }
 
 function countUncoveredTerms(terms: string[], coveredTerms: Set<string>): number {
@@ -1379,20 +1586,20 @@ function includeReferenceEvidence(
   )
 }
 
-function ensureProtectedObjectCoverage(
+function ensureScopeObjectCoverage(
   selectedHits: KnowledgeSearchHit[],
   rankedCandidates: KnowledgeSearchHit[],
   plan: KnowledgeQueryPlan
 ): KnowledgeSearchHit[] {
-  const protectedObjects = splitProtectedTerms(plan.protectedTerms).structured
-  if (protectedObjects.length <= 1 || selectedHits.length === 0) {
+  const scopeObjects = plan.scope.objects.map((object) => object.value)
+  if (scopeObjects.length <= 1 || selectedHits.length === 0) {
     return selectedHits
   }
 
   const selected = [...selectedHits]
   const selectedChunkIds = new Set(selected.map((hit) => hit.chunkId))
-  const coveredObjects = collectCoveredProtectedObjects(selected, protectedObjects)
-  const missingObjects = protectedObjects.filter((term) => !coveredObjects.has(term))
+  const coveredObjects = collectCoveredScopeObjects(selected, scopeObjects)
+  const missingObjects = scopeObjects.filter((term) => !coveredObjects.has(normalizeForExactMatch(term)))
   if (missingObjects.length === 0) {
     return selected
   }
@@ -1400,7 +1607,7 @@ function ensureProtectedObjectCoverage(
   for (const missingObject of missingObjects) {
     const candidate = rankedCandidates
       .filter((hit) => !selectedChunkIds.has(hit.chunkId))
-      .find((hit) => hitMatchesProtectedObject(hit, missingObject))
+      .find((hit) => hitMatchesScopeObject(hit, missingObject))
     if (!candidate) {
       continue
     }
@@ -1409,11 +1616,11 @@ function ensureProtectedObjectCoverage(
     if (selected.length < plan.evidencePlan.maxTopK) {
       selected.push(scoredCandidate)
       selectedChunkIds.add(scoredCandidate.chunkId)
-      coveredObjects.add(missingObject)
+      coveredObjects.add(normalizeForExactMatch(missingObject))
       continue
     }
 
-    const replaceIndex = findReplaceableDuplicateHitIndex(selected, protectedObjects, coveredObjects)
+    const replaceIndex = findReplaceableDuplicateHitIndex(selected, scopeObjects, coveredObjects)
     if (replaceIndex < 0) {
       continue
     }
@@ -1421,29 +1628,148 @@ function ensureProtectedObjectCoverage(
     selectedChunkIds.delete(selected[replaceIndex].chunkId)
     selected[replaceIndex] = scoredCandidate
     selectedChunkIds.add(scoredCandidate.chunkId)
-    coveredObjects.add(missingObject)
+    coveredObjects.add(normalizeForExactMatch(missingObject))
   }
 
   return selected
 }
 
-function collectCoveredProtectedObjects(
+function computeScopedEvidenceCoverage(
   hits: KnowledgeSearchHit[],
-  protectedObjects: string[]
+  plan: KnowledgeQueryPlan
+): number {
+  const scopeObjects = plan.scope.objects.map((object) => object.value)
+  if (scopeObjects.length === 0 || plan.evidencePlan.fieldSlots.length === 0) {
+    return computeKnowledgeEvidenceCoverage(hits, plan.evidencePlan)
+  }
+
+  const scopedHits = hits.filter((hit) =>
+    scopeObjects.some((object) => hitMatchesScopeObject(hit, object))
+  )
+  return computeKnowledgeEvidenceCoverage(scopedHits, plan.evidencePlan)
+}
+
+function collectCoveredFieldSlots(
+  hits: KnowledgeSearchHit[],
+  plan: KnowledgeQueryPlan
 ): Set<string> {
   const covered = new Set<string>()
   for (const hit of hits) {
-    for (const object of protectedObjects) {
-      if (hitMatchesProtectedObject(hit, object)) {
-        covered.add(object)
+    for (const slot of computeKnowledgeEvidenceScore(hit, plan.evidencePlan).matchedFieldSlots) {
+      covered.add(slot)
+    }
+  }
+  return covered
+}
+
+function countMissingSlotCoverage(slots: string[], coveredSlots: Set<string>): number {
+  return slots.filter((slot) => !coveredSlots.has(slot)).length
+}
+
+function selectBestFieldSlotCandidate(
+  candidates: KnowledgeSearchHit[],
+  slot: string,
+  coveredSlots: Set<string>,
+  plan: KnowledgeQueryPlan
+): { hit: KnowledgeSearchHit; slots: string[] } | null {
+  return candidates
+    .map((hit) => ({
+      hit: attachEvidenceScore(hit, plan),
+      slots: computeKnowledgeEvidenceScore(hit, plan.evidencePlan).matchedFieldSlots
+    }))
+    .filter((item) => item.slots.includes(slot))
+    .sort((left, right) =>
+      countMissingSlotCoverage(right.slots, coveredSlots) - countMissingSlotCoverage(left.slots, coveredSlots) ||
+      (right.hit.scoreDetail?.evidenceScore ?? 0) - (left.hit.scoreDetail?.evidenceScore ?? 0) ||
+      right.hit.score - left.hit.score
+    )[0] ?? null
+}
+
+function filterHitsForScope(
+  hits: KnowledgeSearchHit[],
+  scopeObjects: string[]
+): KnowledgeSearchHit[] {
+  if (scopeObjects.length === 0) {
+    return hits
+  }
+
+  return hits.filter((hit) =>
+    scopeObjects.some((object) => hitMatchesScopeObject(hit, object))
+  )
+}
+
+function constrainFinalEvidenceToExplicitScope(
+  hits: KnowledgeSearchHit[],
+  plan: KnowledgeQueryPlan
+): KnowledgeSearchHit[] {
+  if (
+    plan.executionProfile.scopeMode !== 'explicit_single' ||
+    plan.evidencePlan.needsReference ||
+    hits.length === 0
+  ) {
+    return hits
+  }
+
+  const scopeObjects = plan.scope.objects.map((object) => object.value)
+  const scopedHits = filterHitsForScope(hits, scopeObjects)
+  if (scopedHits.length === 0) {
+    return hits
+  }
+
+  const scopedCoverage = computeScopedEvidenceCoverage(scopedHits, plan)
+  const scopedScopeCoverage = computeScopeCoverage(scopedHits, plan)
+  const scopedGateStatus = resolveRagGateStatus({
+    plan,
+    hits: scopedHits,
+    scopeCoverage: scopedScopeCoverage,
+    factCoverage: scopedCoverage,
+    hasEvidenceRequirements: hasKnowledgeEvidenceRequirements(plan.evidencePlan)
+  })
+
+  return scopedGateStatus === 'pass' ? scopedHits : hits
+}
+
+function findFieldSlotReplaceIndex(
+  hits: KnowledgeSearchHit[],
+  coveredSlots: Set<string>,
+  plan: KnowledgeQueryPlan
+): number {
+  let replaceIndex = -1
+  let replaceScore = Number.POSITIVE_INFINITY
+
+  for (let index = 0; index < hits.length; index += 1) {
+    const matchedSlots = computeKnowledgeEvidenceScore(hits[index], plan.evidencePlan).matchedFieldSlots
+    if (matchedSlots.some((slot) => coveredSlots.has(slot))) {
+      continue
+    }
+
+    const score = hits[index].scoreDetail?.evidenceScore ?? hits[index].score
+    if (score < replaceScore) {
+      replaceScore = score
+      replaceIndex = index
+    }
+  }
+
+  return replaceIndex
+}
+
+function collectCoveredScopeObjects(
+  hits: KnowledgeSearchHit[],
+  scopeObjects: string[]
+): Set<string> {
+  const covered = new Set<string>()
+  for (const hit of hits) {
+    for (const object of scopeObjects) {
+      if (hitMatchesScopeObject(hit, object)) {
+        covered.add(normalizeForExactMatch(object))
       }
     }
   }
   return covered
 }
 
-function hitMatchesProtectedObject(hit: KnowledgeSearchHit, protectedObject: string): boolean {
-  const normalizedObject = normalizeForExactMatch(protectedObject)
+function hitMatchesScopeObject(hit: KnowledgeSearchHit, scopeObject: string): boolean {
+  const normalizedObject = normalizeForExactMatch(scopeObject)
   if (!normalizedObject) {
     return false
   }
@@ -1459,7 +1785,7 @@ function hitMatchesProtectedObject(hit: KnowledgeSearchHit, protectedObject: str
 
 function findReplaceableDuplicateHitIndex(
   hits: KnowledgeSearchHit[],
-  protectedObjects: string[],
+  scopeObjects: string[],
   coveredObjects: Set<string>
 ): number {
   const documentCounts = new Map<string, number>()
@@ -1474,8 +1800,10 @@ function findReplaceableDuplicateHitIndex(
       return
     }
 
-    const hitObjects = protectedObjects.filter((object) => hitMatchesProtectedObject(hit, object))
-    const hasOnlyCoveredObjects = hitObjects.every((object) => coveredObjects.has(object))
+    const hitObjects = scopeObjects.filter((object) => hitMatchesScopeObject(hit, object))
+    const hasOnlyCoveredObjects = hitObjects.every((object) =>
+      coveredObjects.has(normalizeForExactMatch(object))
+    )
     if (!hasOnlyCoveredObjects) {
       return
     }
@@ -1509,29 +1837,19 @@ function candidateToSearchHit(candidate: KnowledgeRetrievalCandidate): Knowledge
   }
 }
 
-function isStrongProtectedTermMatch(
-  hit: KnowledgeSearchHit,
-  protectedTerms: string[]
-): boolean {
-  const signal = computeHitSignal(hit, protectedTerms, [])
-  return signal.structuredTermMatches > 0
-    ? signal.structuredFullCoverage === 1
-    : signal.fullCoverage === 1
-}
-
     // 鍙傝€冩枃妗ｅ彧琛ュ熬閮ㄨ瘉鎹紝涓嶆姠鍗犱富妫€绱㈢殑棣栦綅缁撴灉銆?
 function computeTopCoverageScore(
   hits: KnowledgeSearchHit[],
-  protectedTerms: string[]
+  scopeTerms: string[]
 ): number {
-  if (protectedTerms.length === 0 || hits.length === 0) {
+  if (scopeTerms.length === 0 || hits.length === 0) {
     return 0
   }
 
   return hits
     .slice(0, Math.min(3, hits.length))
     .reduce((maxScore, hit) => {
-      const signal = computeHitSignal(hit, protectedTerms, [])
+      const signal = computeHitSignal(hit, scopeTerms, [])
       const coverageScore =
         signal.structuredFullCoverage * 1000 +
         signal.structuredDocumentNameMatches * 100 -
@@ -1564,8 +1882,8 @@ function resolveCeCandidateLimit(
   }
 
   const expandedLimit = isExactFieldValueLookup(plan)
-    ? 80
-    : Math.max(baseCandidateLimit, topK * 10, 40)
+    ? Math.max(baseCandidateLimit, topK * EXACT_FIELD_VALUE_CANDIDATE_FACTOR, EXACT_FIELD_VALUE_MIN_CANDIDATES)
+    : Math.max(baseCandidateLimit, topK * COMPLEX_QUERY_CANDIDATE_FACTOR, COMPLEX_QUERY_MIN_CANDIDATES)
   return Math.min(expandedLimit, hints.maxCandidateLimit, 80)
 }
 
@@ -1681,11 +1999,11 @@ function dedupeReferenceRecallItems<
   return result
 }
 
-function splitProtectedTerms(protectedTerms: string[]): {
+function splitScopeTerms(scopeTerms: string[]): {
   structured: string[]
   structuredSet: Set<string>
 } {
-  const structured = protectedTerms
+  const structured = scopeTerms
     .map((term) => normalizeForExactMatch(term))
     .filter((term) => term && isStructuredIdentifierTerm(term))
 
@@ -1695,16 +2013,12 @@ function splitProtectedTerms(protectedTerms: string[]): {
   }
 }
 
-function hasStructuredProtectedTerms(protectedTerms: string[]): boolean {
-  return splitProtectedTerms(protectedTerms).structured.length > 0
-}
-
 function countSiblingIdentifierConflicts(
   normalizedDocumentName: string,
   normalizedText: string,
-  structuredProtectedTerms: string[]
+  structuredScopeTerms: string[]
 ): number {
-  if (structuredProtectedTerms.length === 0) {
+  if (structuredScopeTerms.length === 0) {
     return 0
   }
 
@@ -1712,7 +2026,7 @@ function countSiblingIdentifierConflicts(
   const textIdentifiers = extractStructuredIdentifierTerms(normalizedText)
   let conflicts = 0
 
-  for (const term of structuredProtectedTerms) {
+  for (const term of structuredScopeTerms) {
     if (containsExactTerm(normalizedText, term)) {
       continue
     }
@@ -1829,7 +2143,8 @@ type RetrievalExecutionResult = {
   ceRerankMs: number
   secondLevelRrfApplied: boolean
   secondLevelRrfQueries: string[]
-  evidenceCoverage: number
+  scopeCoverage: number
+  factCoverage: number
   evidenceExpansionApplied: boolean
   evidenceGateStatus: 'pass' | 'degraded' | 'blocked'
 }
@@ -1872,7 +2187,9 @@ type ReferenceRecallRow = {
 type CoveredEvidenceTerms = {
   identifiers: Set<string>
   numericTerms: Set<string>
+  fieldSlots: Set<string>
   evidenceTerms: Set<string>
 }
+
 
 

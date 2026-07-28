@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import {
   Check,
   ChevronRight,
@@ -310,7 +310,7 @@ const retrievalMetricItems = computed<RetrievalDebugField[]>(() => {
     },
     {
       label: "检索模式",
-      value: formatRetrievalMode(retrievalDebug.value.retrievalMode),
+      value: retrievalDebug.value.ragRetrievalMode || "-",
     },
     {
       label: "二层 RRF",
@@ -422,10 +422,14 @@ const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
 
   return [
     { label: "rewriteApplied", value: formatBoolean(debug.rewriteApplied) },
-    { label: "retrievalMode", value: debug.retrievalMode || "-" },
-    { label: "routeType", value: debug.routeType || "-" },
-    { label: "routeSource", value: debug.routeSource || "-" },
-    { label: "routeConfidence", value: debug.routeConfidence || "-" },
+    { label: "ragUserIntent", value: debug.ragUserIntent || "-" },
+    { label: "ragScopeMode", value: debug.ragScopeMode || "-" },
+    { label: "ragRetrievalMode", value: debug.ragRetrievalMode || "-" },
+    { label: "ragAnswerMode", value: debug.ragAnswerMode || "-" },
+    {
+      label: "retrievalScopeObjects",
+      value: formatList(debug.retrievalScopeObjects?.map((item) => item.value)),
+    },
     { label: "memoryIntent", value: debug.memoryIntent || "-" },
     { label: "memoryBoardSource", value: debug.memoryBoardSource || "-" },
     { label: "memoryBoard", value: debug.memoryBoardSummary || "-" },
@@ -436,7 +440,6 @@ const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
     { label: "memorySelectedEntries", value: formatMemorySelectedEntries(debug.memoryMatchDebug) },
     { label: "memoryDroppedEntries", value: formatMemoryDroppedEntries(debug.memoryMatchDebug) },
     { label: "memoryClarificationCandidates", value: formatMemoryClarificationCandidates(debug.memoryClarificationCandidates) },
-    { label: "llmIntent", value: debug.llmIntent || "-" },
     { label: "bm25Weight", value: formatWeight(debug.bm25Weight) },
     { label: "vectorWeight", value: formatWeight(debug.vectorWeight) },
     { label: "bm25HitCount", value: String(debug.bm25HitCount) },
@@ -459,11 +462,7 @@ const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
     },
     { label: "effectiveTopK", value: formatOptionalValue(debug.effectiveTopK) },
     { label: "fallbackApplied", value: formatBoolean(debug.fallbackApplied) },
-    { label: "fallbackReason", value: debug.fallbackReason || "-" },
-    { label: "exactEntityMiss", value: formatBoolean(debug.exactEntityMiss) },
-    { label: "protectedTerms", value: formatList(debug.protectedTerms) },
     { label: "excludedTerms", value: formatList(debug.excludedTerms) },
-    { label: "evidenceComplexity", value: debug.evidenceComplexity || "-" },
     { label: "evidenceTerms", value: formatList(debug.evidenceTerms) },
     {
       label: "evidenceNumericTerms",
@@ -474,8 +473,12 @@ const retrievalDecisionItems = computed<RetrievalDebugField[]>(() => {
       value: formatBoolean(debug.evidenceExpansionApplied),
     },
     {
-      label: "evidenceCoverage",
-      value: formatPercent(debug.evidenceCoverage),
+      label: "scopeCoverage",
+      value: formatPercent(debug.scopeCoverage),
+    },
+    {
+      label: "factCoverage",
+      value: formatPercent(debug.factCoverage),
     },
     { label: "evidenceGateStatus", value: debug.evidenceGateStatus || "-" },
   ];
@@ -496,7 +499,7 @@ const runProcessItems = computed<RunProcessItem[]>(() => {
     items.push({
       id: "query",
       title: "确定检索方式",
-      summary: `${retrievalDebug.value.retrievalMode} · ${retrievalDebug.value.routeConfidence || "置信度未记录"}`,
+      summary: `${retrievalDebug.value.ragUserIntent || "-"} / ${retrievalDebug.value.ragScopeMode || "-"} / ${retrievalDebug.value.ragRetrievalMode || "-"}`,
       body: retrievalDebug.value.normalizedQuery,
       status: "done",
     });
@@ -831,19 +834,6 @@ function formatMemoryClarificationCandidates(
 
 const formatPercent = (value?: number | null) =>
   typeof value === "number" ? `${Math.round(value * 100)}%` : "-";
-
-function formatRetrievalMode(mode: string | null | undefined) {
-  switch (mode) {
-    case "keyword_first":
-      return "关键词优先";
-    case "semantic_first":
-      return "语义优先";
-    case "balanced":
-      return "均衡";
-    default:
-      return mode?.trim() || "-";
-  }
-}
 
 function formatMatchedBy(source: KnowledgeSearchHit) {
   const matchedBy = source.scoreDetail?.matchedBy ?? [];
@@ -1279,8 +1269,12 @@ function renderThoughtBody(body: string) {
             <dd>召回证据</dd>
           </div>
           <div>
-            <dt>{{ formatPercent(retrievalDebug?.evidenceCoverage) }}</dt>
-            <dd>证据覆盖</dd>
+            <dt>{{ formatPercent(retrievalDebug?.scopeCoverage) }}</dt>
+            <dd>scope 覆盖</dd>
+          </div>
+          <div>
+            <dt>{{ formatPercent(retrievalDebug?.factCoverage) }}</dt>
+            <dd>fact 覆盖</dd>
           </div>
           <div>
             <dt>{{ formatLatency(resolvedDurationMs) }}</dt>

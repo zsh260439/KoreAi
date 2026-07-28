@@ -35,7 +35,7 @@ export function extractKnowledgeEvidenceFacts(input: {
 
   const queryTerms = extractQueryTerms(input.query)
   const debugTerms = [
-    ...(input.debug?.protectedTerms ?? []),
+    ...(input.debug?.retrievalScopeObjects?.map((item) => item.value) ?? []),
     ...(input.debug?.evidenceTerms ?? []),
     ...(input.debug?.evidenceNumericTerms ?? [])
   ]

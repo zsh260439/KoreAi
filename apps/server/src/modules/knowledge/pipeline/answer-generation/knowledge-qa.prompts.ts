@@ -1,5 +1,11 @@
-﻿import type { KnowledgeSearchHit } from 'share-type'
+import type { KnowledgeSearchHit } from 'share-type'
 import type { KnowledgeEvidenceFact } from '../evidence-gating/knowledge-evidence-fact-extractor'
+
+type QaRetrievalScopeObject = {
+  value: string
+  kind: string
+  source: string
+}
 
 export function buildKnowledgeQaStreamingSystemPrompt(
   hasKnowledge: boolean,
@@ -44,17 +50,23 @@ export function buildKnowledgeQaStreamingUserPrompt(
   includeReasoning: boolean,
   evidence: {
     evidenceGateStatus?: 'pass' | 'degraded' | 'blocked'
-    evidenceCoverage?: number
+    scopeCoverage?: number
+    factCoverage?: number
     evidenceFacts?: KnowledgeEvidenceFact[]
+    retrievalScopeObjects?: QaRetrievalScopeObject[]
     allowGeneralKnowledge?: boolean
   } = {}
 ): string {
   const evidenceFacts = buildKnowledgeEvidenceFactsContext(evidence.evidenceFacts ?? [])
-  const context = buildKnowledgeQaContext(hits, evidence.evidenceFacts ?? []) || '(no knowledge excerpts found)'
+  const scopeObjects = buildRetrievalScopeContext(evidence.retrievalScopeObjects ?? [])
+  const context = buildKnowledgeQaContext(hits) || '(no knowledge excerpts found)'
   const evidencePolicy = [
     `Evidence gate status: ${evidence.evidenceGateStatus ?? 'pass'}`,
-    `Evidence coverage: ${typeof evidence.evidenceCoverage === 'number' ? evidence.evidenceCoverage : 'unknown'}`,
+    `Scope coverage: ${typeof evidence.scopeCoverage === 'number' ? evidence.scopeCoverage : 'unknown'}`,
+    `Fact coverage: ${typeof evidence.factCoverage === 'number' ? evidence.factCoverage : 'unknown'}`,
     'Answering rules:',
+    '- Treat retrieval scope objects as the document/file/identifier boundary requested by the user.',
+    '- For explicit multi-document questions, inspect all listed scope objects before saying one of them was not provided.',
     '- Treat verified evidence facts as the compact answer checklist extracted from the excerpts, not as optional commentary.',
     '- Answer every requested item that has a matching verified fact before declaring any item missing.',
     evidence.allowGeneralKnowledge
@@ -68,18 +80,22 @@ export function buildKnowledgeQaStreamingUserPrompt(
     '- Answer only the fields explicitly requested by the user; never add adjacent fields, even as parentheses, notes, caveats, or extra context.',
     '- A final answer is invalid if it contains an unrequested concrete number, role, threshold, identifier, or configuration value.',
     '- When the user asks for the purpose, meaning, or definition of a field, answer that direct purpose only. Do not add related storage requirements, linked fields, validation labels, or operational caveats unless asked.',
-    '- Do not cite excerpt indexes or source references unless the user explicitly asks for citations; never write patterns like "[1]", "from [1]", or "鏉ヨ嚜 [1]" in the final answer.',
+    '- Do not cite excerpt indexes or source references unless the user explicitly asks for citations; never write patterns like "[1]" or "from [1]" in the final answer.',
     '- For before/after or old/new questions, answer only the requested time scope and requested field names. Do not include unrequested neighboring fields.',
     '- Preserve requested qualifiers that disambiguate the answer, such as the subject identifier, scenario, role, condition, status, or time scope. If the user asks for a range handled by a specific role, include that role with the range.',
     '- Prefer one bullet per requested field for multi-fact questions so unrequested neighboring values are not merged into the answer.',
+    '- For multi-field questions, internally build a checklist of every requested field and verify each field against both normal text and attachment/dashboard/table excerpts before writing the final answer.',
+    '- If a question asks for both body fields and attachment/dashboard fields, answer both groups. Do not stop after the body fields when dashboard values are present in the excerpts.',
     '- Treat tables, comparison sections, warnings, notes, and exception sections as valid evidence only when they explicitly bind the requested subject to the requested field or value.',
     '- Do not reject evidence merely because it appears in a cautionary or comparative sentence. Reject it only when the text explicitly assigns the value to a different subject or says it is invalid.',
-    '- For multi-fact questions, answer item by item and only include items that are supported by evidence.'
+    '- For multi-fact questions, answer item by item and only include items that are supported by evidence.',
+    '- For yes/no or "can this be done" procedure questions, answer the requested feasibility and required steps only. Do not add adjacent safety rules, cleanup rules, monitoring fields, or alternative patterns unless the user asks for them.'
   ].join('\n')
 
   if (!includeReasoning) {
     return [
       `User question:\n${query}`,
+      `Retrieval scope objects:\n${scopeObjects}`,
       `Verified evidence facts:\n${evidenceFacts}`,
       `Knowledge excerpts for verification:\n${context}`,
       evidencePolicy,
@@ -90,6 +106,7 @@ export function buildKnowledgeQaStreamingUserPrompt(
 
   return [
     `User question:\n${query}`,
+    `Retrieval scope objects:\n${scopeObjects}`,
     `Verified evidence facts:\n${evidenceFacts}`,
     `Knowledge excerpts for verification:\n${context}`,
     evidencePolicy,
@@ -103,7 +120,6 @@ export function buildKnowledgeQaStreamingUserPrompt(
     '- Do not expose raw hidden chain-of-thought.',
     '- Keep the visible reasoning summary focused on observable work such as what the user is asking, what evidence matters, what is missing, and how the answer will be framed.',
     '- Do not use a canned review template or repeated rubric.',
-    '- Explicitly avoid fixed labels such as "闂杈圭晫", "璇佹嵁瀹氫綅", "椋庨櫓涓庣己鍙?, "鍥炵瓟绛栫暐" unless the user explicitly asks for that exact structure.',
     '- If you use bullets or mini-headings, make them specific to the current question and let them vary naturally from one query to another.',
     '- For simple questions, 1 to 3 short lines are enough. For complex questions, use a few natural notes or short paragraphs.',
     '- Do not output any extra headings or wrapper markers.',
@@ -111,23 +127,27 @@ export function buildKnowledgeQaStreamingUserPrompt(
   ].join('\n\n')
 }
 
-function buildKnowledgeQaContext(
-  hits: KnowledgeSearchHit[],
-  facts: KnowledgeEvidenceFact[]
-): string {
-  const sourceIndexes = new Set(facts.slice(0, 4).map((fact) => fact.sourceIndex))
-  const relevantHits = sourceIndexes.size > 0
-    ? hits.filter((_, index) => sourceIndexes.has(index + 1))
-    : hits
-
-  return relevantHits
+function buildKnowledgeQaContext(hits: KnowledgeSearchHit[]): string {
+  return hits
     .map(
       (item, index) => `[${index + 1}]
 documentId: ${item.documentId}
 documentName: ${item.documentName}
+primaryTitle: ${item.primaryTitle ?? ''}
+sectionPath: ${item.sectionPath ?? ''}
 content: ${item.content}`
     )
     .join('\n\n')
+}
+
+function buildRetrievalScopeContext(scopeObjects: QaRetrievalScopeObject[]): string {
+  if (scopeObjects.length === 0) {
+    return '(unscoped)'
+  }
+
+  return scopeObjects
+    .map((item) => `- ${item.value} (${item.kind}, ${item.source})`)
+    .join('\n')
 }
 
 function buildKnowledgeEvidenceFactsContext(facts: KnowledgeEvidenceFact[]): string {
@@ -142,5 +162,3 @@ function buildKnowledgeEvidenceFactsContext(facts: KnowledgeEvidenceFact[]): str
     )
     .join('\n')
 }
-
-

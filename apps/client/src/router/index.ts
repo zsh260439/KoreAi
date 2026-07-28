@@ -28,16 +28,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/studio-demo',
-    name: 'studio-demo',
-    component: () => import('@/views/studio-demo/index.vue'),
-    meta: {
-      appShell: 'studio',
-      title: 'Kore Studio Demo',
-      requiresAuth: false
-    }
-  },
-  {
     path: '/admin',
     component: () => import('@/views/admin/layouts/AdminLayout.vue'),
     meta: {

@@ -24,23 +24,23 @@ const VALUE_FIELD_DEFINITIONS: Array<{
   valuePattern: RegExp
 }> = [
   {
-    aliases: ['澶勭疆浠ｇ爜', '鍔ㄤ綔浠ｇ爜', '澶勭疆缂栧彿', 'action code'],
+    aliases: ['\u5904\u7f6e\u4ee3\u7801', '\u52a8\u4f5c\u4ee3\u7801', '\u5904\u7f6e\u7f16\u53f7', '\u6267\u884c\u7f16\u53f7', 'action code'],
     valuePattern: /\bact[-_][a-z0-9]+[-_]\d{1,4}\b/i
   },
   {
-    aliases: ['预警值', '警戒值', '告警阈值', '报警阈值', 'alert threshold', 'visual alert'],
+    aliases: ['\u9884\u8b66\u503c', '\u8b66\u6212\u503c', '\u544a\u8b66\u9608\u503c', '\u62a5\u8b66\u9608\u503c', '\u544a\u8b66\u4e34\u754c\u70b9', 'alert threshold', 'visual alert'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   },
   {
-    aliases: ['响应时限', '响应时间', '处理时限', 'escalation window'],
-    valuePattern: /\b\d+(?:\.\d+)?\s*(?:小时|分钟|天|hours?|minutes?|days?)\b/i
+    aliases: ['\u54cd\u5e94\u65f6\u9650', '\u54cd\u5e94\u65f6\u95f4', '\u5904\u7406\u65f6\u9650', 'escalation window'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*(?:\u5c0f\u65f6|\u5206\u949f|\u5929|hours?|minutes?|days?)\b/i
   },
   {
-    aliases: ['责任角色', '负责人', 'owner', 'role'],
+    aliases: ['\u8d23\u4efb\u89d2\u8272', '\u8d1f\u8d23\u4eba', 'owner', 'role'],
     valuePattern: /\b[a-z][a-z0-9_]{2,}\b/i
   },
   {
-    aliases: ['主控制阈值', '核心阈值', 'threshold'],
+    aliases: ['\u4e3b\u63a7\u5236\u9608\u503c', '\u6838\u5fc3\u9608\u503c', 'threshold'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   }
 ]
@@ -52,43 +52,56 @@ const FIELD_SLOT_DEFINITIONS: Array<{
 }> = [
   {
     slot: 'main_control_threshold',
-    aliases: ['主控制阈值', '主控阈值', '核心阈值'],
+    aliases: ['\u4e3b\u63a7\u5236\u9608\u503c', '\u4e3b\u63a7\u9608\u503c', '\u6838\u5fc3\u9608\u503c'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   },
   {
     slot: 'alert_threshold',
-    aliases: ['预警值', '预警阈值', '警戒值', '报警阈值', 'alert threshold', 'visual alert'],
+    aliases: ['\u9884\u8b66\u503c', '\u9884\u8b66\u9608\u503c', '\u8b66\u6212\u503c', '\u62a5\u8b66\u9608\u503c', '\u544a\u8b66\u4e34\u754c\u70b9', 'alert threshold', 'visual alert'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+  },
+  {
+    slot: 'alert_threshold_level_1',
+    aliases: ['\u4e00\u7ea7\u9884\u8b66\u503c', '\u4e00\u7ea7\u9884\u8b66\u9608\u503c', '\u4e00\u7ea7\u544a\u8b66\u503c', '\u4e00\u7ea7\u544a\u8b66\u9608\u503c'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+  },
+  {
+    slot: 'alert_threshold_level_2',
+    aliases: ['\u4e8c\u7ea7\u9884\u8b66\u503c', '\u4e8c\u7ea7\u9884\u8b66\u9608\u503c', '\u4e8c\u7ea7\u544a\u8b66\u503c', '\u4e8c\u7ea7\u544a\u8b66\u9608\u503c'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   },
   {
     slot: 'action_code',
-    aliases: ['澶勭疆浠ｇ爜', '鍔ㄤ綔浠ｇ爜', '澶勭疆缂栧彿', 'action code'],
+    aliases: ['\u5904\u7f6e\u4ee3\u7801', '\u5904\u7f6e\u7f16\u7801', '\u52a8\u4f5c\u4ee3\u7801', '\u5904\u7f6e\u7f16\u53f7', '\u6267\u884c\u7f16\u53f7', 'action code'],
     valuePattern: /\bact[-_][a-z0-9]+[-_]\d{1,4}\b/i
   },
   {
     slot: 'responsible_role',
-    aliases: ['责任角色', '负责人', 'owner', 'role'],
+    aliases: ['\u8d23\u4efb\u89d2\u8272', '\u8d23\u4efb\u4eba', '\u8d1f\u8d23\u4eba', 'owner', 'role'],
     valuePattern: /\b[a-z][a-z0-9_]{2,}\b/i
   },
   {
     slot: 'response_time',
-    aliases: ['响应时限', '响应时间', '处理时限', 'escalation window'],
-    valuePattern: /\b\d+(?:\.\d+)?\s*(?:小时|分钟|天|hours?|minutes?|days?)\b/i
+    aliases: ['\u54cd\u5e94\u65f6\u9650', '\u54cd\u5e94\u65f6\u95f4', '\u5904\u7406\u65f6\u9650', 'escalation window'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*(?:\u5c0f\u65f6|\u5206\u949f|\u5929|hours?|minutes?|days?)\b/i
   }
 ]
 
-const FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '阈值']
+const FIELD_CONTEXT_TERMS = ['\u9644\u4ef6', '\u89c6\u89c9\u9644\u4ef6', '\u4eea\u8868\u76d8', '\u9608\u503c']
 
 const SUPPLEMENTAL_FIELD_SLOT_ALIASES: Record<string, string[]> = {
-  main_control_threshold: ['主控制阈值', '主控制阈值固定', '主阈值', '管控线', '控制阈值', '核心阈值'],
-  alert_threshold: ['预警值', '预警阈值', '预警线', '告警值', '告警阈值', '附件仪表盘', '附件看板', '仪表盘', '看板', 'alert threshold', 'visual alert'],
-  action_code: ['处置代码', '动作码', '动作代码', '处置编码', 'action code'],
-  responsible_role: ['责任角色', '负责人', '责任人', '归谁确认', '谁确认', 'owner', 'role'],
-  response_time: ['响应时限', '响应时间', '处理时限', '复核时限', '多久内处理', '多久内要处理完', '多久内完成', '多久处理', 'escalation window']
+  main_control_threshold: ['\u4e3b\u63a7\u5236\u9608\u503c', '\u4e3b\u63a7\u5236\u9608\u503c\u56fa\u5b9a', '\u4e3b\u63a7\u9608\u503c', '\u4e3b\u9608\u503c', '\u7ba1\u63a7\u7ebf', '\u63a7\u5236\u9608\u503c', '\u6838\u5fc3\u9608\u503c'],
+  alert_threshold: ['\u9884\u8b66\u503c', '\u9884\u8b66\u9608\u503c', '\u9884\u8b66\u7ebf', '\u544a\u8b66\u503c', '\u544a\u8b66\u9608\u503c', '\u544a\u8b66\u4e34\u754c\u70b9', '\u9644\u4ef6\u4eea\u8868\u76d8', '\u9644\u4ef6\u770b\u677f', '\u4eea\u8868\u76d8', '\u770b\u677f', 'alert threshold', 'visual alert'],
+  alert_threshold_level_1: ['\u4e00\u7ea7\u9884\u8b66\u503c', '\u4e00\u7ea7\u9884\u8b66\u9608\u503c', '\u4e00\u7ea7\u544a\u8b66\u503c', '\u4e00\u7ea7\u544a\u8b66\u9608\u503c'],
+  alert_threshold_level_2: ['\u4e8c\u7ea7\u9884\u8b66\u503c', '\u4e8c\u7ea7\u9884\u8b66\u9608\u503c', '\u4e8c\u7ea7\u544a\u8b66\u503c', '\u4e8c\u7ea7\u544a\u8b66\u9608\u503c'],
+  action_code: ['\u5904\u7f6e\u4ee3\u7801', '\u5904\u7f6e\u7f16\u7801', '\u52a8\u4f5c\u7801', '\u52a8\u4f5c\u4ee3\u7801', '\u5904\u7f6e\u7f16\u53f7', '\u6267\u884c\u7f16\u53f7', 'action code'],
+  responsible_role: ['\u8d23\u4efb\u89d2\u8272', '\u8d1f\u8d23\u4eba', '\u8d23\u4efb\u4eba', '\u5f52\u8c01\u786e\u8ba4', '\u8c01\u786e\u8ba4', 'owner', 'role'],
+  response_time: ['\u54cd\u5e94\u65f6\u9650', '\u54cd\u5e94\u65f6\u95f4', '\u5904\u7406\u65f6\u9650', '\u590d\u6838\u65f6\u9650', '\u591a\u4e45\u5185\u5904\u7406', '\u591a\u4e45\u5185\u8981\u5904\u7406\u5b8c', '\u591a\u4e45\u5185\u5b8c\u6210', '\u591a\u4e45\u5904\u7406', 'escalation window']
 }
 
-const SUPPLEMENTAL_FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '附件仪表盘', '附件看板', '看板', '阈值']
+const SUPPLEMENTAL_FIELD_CONTEXT_TERMS = ['\u9644\u4ef6', '\u89c6\u89c9\u9644\u4ef6', '\u4eea\u8868\u76d8', '\u9644\u4ef6\u4eea\u8868\u76d8', '\u9644\u4ef6\u770b\u677f', '\u770b\u677f', '\u9608\u503c']
 const TASK_ONLY_EVIDENCE_TERM_PATTERN = /^(?:共性|共同点|相同点|差异|区别|对比|比较|综合分析|分析|回答)$/i
+const FIELD_NAME_ONLY_QUERY_PATTERN = /(?:字段名称|字段名|字段列表|有哪些字段|出现了.*字段|罗列.*字段|列出.*字段)/i
 
 const REFERENCE_TRIGGER_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|标准|规范|规则|制度|证据|合规|审计|策略|手册|指南|参考|gold_document|fully_grounded|normal_confidence|high_confidence|reviewed_but_not_grounded|recall_gap|exact_code|reference|standard|policy|rule|guideline|playbook|confidence|citation|grounded|recall/i
@@ -132,14 +145,14 @@ export type KnowledgeEvidenceScore = {
 export function buildKnowledgeQueryEvidencePlan(input: {
   normalizedQuery: string
   analysis: KnowledgeQueryAnalysis | null
-  protectedTerms: string[]
+  scopeTerms: string[]
   optionalTerms: string[]
   excludedTerms: string[]
   requestedTopK: number
 }): KnowledgeQueryEvidencePlan {
   const identifiers = uniqueStrings([
     ...extractPatternTerms(input.normalizedQuery, STRUCTURED_IDENTIFIER_PATTERN),
-    ...input.protectedTerms.filter((term) => isStructuredIdentifier(term))
+    ...input.scopeTerms.filter((term) => isStructuredIdentifier(term))
   ]).slice(0, 8)
   const identifierFragments = extractIdentifierFragments(identifiers)
   const numericTerms = uniqueStrings(extractPatternTerms(input.normalizedQuery, NUMBER_PATTERN))
@@ -153,7 +166,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
   ])
   const fieldSlots = extractFieldSlots(input.normalizedQuery, llmTerms)
   const evidenceTerms = uniqueStrings([
-    ...input.protectedTerms,
+    ...input.scopeTerms,
     ...extractEvidenceTerms(input.normalizedQuery),
     ...llmTerms
   ])
@@ -506,8 +519,12 @@ function extractValueFieldTerms(value: string): string[] {
 }
 
 function extractFieldSlots(query: string, terms: string[]): string[] {
+  if (isFieldNameOnlyQuery(query)) {
+    return []
+  }
+
   const normalizedValues = [query, ...terms].map(normalizeTerm)
-  return FIELD_SLOT_DEFINITIONS
+  const slots = FIELD_SLOT_DEFINITIONS
     .filter((definition) =>
       getFieldSlotAliases(definition).some((alias) => {
         const normalizedAlias = normalizeTerm(alias)
@@ -515,6 +532,48 @@ function extractFieldSlots(query: string, terms: string[]): string[] {
       })
     )
     .map((definition) => definition.slot)
+
+  return removeCoarseAlertSlotWhenOnlyLevelAlertsAreRequested(slots, normalizedValues)
+}
+
+function removeCoarseAlertSlotWhenOnlyLevelAlertsAreRequested(
+  slots: string[],
+  normalizedValues: string[]
+): string[] {
+  if (
+    !slots.includes('alert_threshold') ||
+    !slots.some((slot) => slot === 'alert_threshold_level_1' || slot === 'alert_threshold_level_2')
+  ) {
+    return slots
+  }
+
+  const textWithoutLevelAlerts = normalizedValues
+    .join(' ')
+    .replace(/(?:\u4e00\u7ea7|\u4e8c\u7ea7)(?:\u9884\u8b66|\u544a\u8b66)(?:\u503c|\u9608\u503c)/g, '')
+
+  const hasStandaloneGenericAlert = [
+    '\u9884\u8b66\u503c',
+    '\u9884\u8b66\u9608\u503c',
+    '\u9884\u8b66\u7ebf',
+    '\u544a\u8b66\u503c',
+    '\u544a\u8b66\u9608\u503c',
+    '\u544a\u8b66\u4e34\u754c\u70b9',
+    'alertthreshold',
+    'visualalert'
+  ].some((alias) => textWithoutLevelAlerts.includes(normalizeTerm(alias)))
+
+  return hasStandaloneGenericAlert
+    ? slots
+    : slots.filter((slot) => slot !== 'alert_threshold')
+}
+
+function isFieldNameOnlyQuery(query: string): boolean {
+  if (!FIELD_NAME_ONLY_QUERY_PATTERN.test(query)) {
+    return false
+  }
+
+  return !/(?:是多少|是什么|对应.*(?:数字|编号|代码|值)|取值|数值|参数|value|code|threshold)/i
+    .test(query)
 }
 
 function isFieldSlotAlias(term: string): boolean {
@@ -589,5 +648,6 @@ function uniqueStrings(values: string[]): string[] {
 
   return result
 }
+
 
 

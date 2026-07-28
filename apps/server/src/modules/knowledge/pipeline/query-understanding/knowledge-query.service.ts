@@ -9,6 +9,7 @@ import type {
 import { KnowledgeQaService, type KnowledgeQaStreamEvent } from '../answer-generation/knowledge-qa.service'
 import { KnowledgeConfigService } from '../../runtime/config/knowledge-config.service'
 import { KnowledgeRetrievalService } from '../candidate-retrieval/knowledge-retrieval.service'
+import { buildCompleteDeterministicFieldAnswer } from '../answer-generation/knowledge-qa-answer-validation'
 
 export type KnowledgeAnswerStreamInput = {
   query: string
@@ -54,24 +55,6 @@ export class KnowledgeQueryService {
   ): Promise<KnowledgeAnswerStream> {
     const query = requireQuery(dto.query)
     const runtimeConfig = await this.configService.getRuntimeConfig(dto.knowledgeBaseId)
-    if (dto.generalKnowledgeOnly) {
-      const answer = await this.qaService.streamAnswerQuestion(query, [], {
-        includeReasoning: dto.think,
-        signal: options.signal,
-        temperature: runtimeConfig.answer.temperature,
-        evidenceGateStatus: 'blocked',
-        evidenceCoverage: 0,
-        retrievalDebug: null
-      })
-
-      return {
-        sources: [],
-        retrievalDebug: null,
-        model: await this.qaService.getModelName(),
-        totalTokens: answer.totalTokens,
-        stream: answer.stream
-      }
-    }
 
     const retrievalResult = await this.retrievalService.retrieveKnowledge(
       dto.knowledgeBaseId,
@@ -85,6 +68,7 @@ export class KnowledgeQueryService {
     )
     const sources = retrievalResult.hits
     const allowGeneralKnowledge = shouldAllowMixedKnowledgeAnswer(query)
+      || dto.generalKnowledgeOnly === true
 
     if (retrievalResult.debug?.evidenceGateStatus === 'blocked') {
       if (allowGeneralKnowledge) {
@@ -93,7 +77,8 @@ export class KnowledgeQueryService {
           signal: options.signal,
           temperature: runtimeConfig.answer.temperature,
           evidenceGateStatus: 'degraded',
-          evidenceCoverage: retrievalResult.debug.evidenceCoverage,
+          scopeCoverage: retrievalResult.debug.scopeCoverage,
+          factCoverage: retrievalResult.debug.factCoverage,
           retrievalDebug: retrievalResult.debug,
           allowGeneralKnowledge: true
         })
@@ -113,7 +98,8 @@ export class KnowledgeQueryService {
           signal: options.signal,
           temperature: runtimeConfig.answer.temperature,
           evidenceGateStatus: 'blocked',
-          evidenceCoverage: retrievalResult.debug.evidenceCoverage,
+          scopeCoverage: retrievalResult.debug.scopeCoverage,
+          factCoverage: retrievalResult.debug.factCoverage,
           retrievalDebug: retrievalResult.debug
         })
 
@@ -137,12 +123,28 @@ export class KnowledgeQueryService {
       }
     }
 
+    const deterministicAnswer = buildDeterministicAnswerIfComplete(
+      query,
+      sources,
+      retrievalResult.debug
+    )
+    if (deterministicAnswer) {
+      return {
+        sources,
+        retrievalDebug: retrievalResult.debug,
+        model: null,
+        totalTokens: Promise.resolve(0),
+        stream: staticAnswerStream(deterministicAnswer)
+      }
+    }
+
     const answer = await this.qaService.streamAnswerQuestion(query, sources, {
       includeReasoning: dto.think,
       signal: options.signal,
       temperature: runtimeConfig.answer.temperature,
       evidenceGateStatus: retrievalResult.debug?.evidenceGateStatus,
-      evidenceCoverage: retrievalResult.debug?.evidenceCoverage,
+      scopeCoverage: retrievalResult.debug?.scopeCoverage,
+      factCoverage: retrievalResult.debug?.factCoverage,
       retrievalDebug: retrievalResult.debug,
       allowGeneralKnowledge
     })
@@ -176,11 +178,15 @@ function shouldUseGeneralKnowledgeFallback(
   query: string,
   debug: KnowledgeSearchDebugInfo | null
 ): boolean {
-  if (debug?.llmIntent === 'exploratory' || debug?.routeType === 'semantic_heavy') {
+  if (debug?.ragAnswerMode === 'general' || debug?.ragAnswerMode === 'mixed') {
     return true
   }
 
-  if (debug?.routeType === 'exact_lookup' && hasStructuredProtectedTerm(debug)) {
+  if (debug?.ragRetrievalMode === 'semantic') {
+    return true
+  }
+
+  if (debug?.ragScopeMode?.startsWith('explicit')) {
     return false
   }
 
@@ -192,10 +198,52 @@ function shouldAllowMixedKnowledgeAnswer(query: string): boolean {
     .test(query)
 }
 
-function hasStructuredProtectedTerm(debug: KnowledgeSearchDebugInfo | null): boolean {
-  return (debug?.protectedTerms ?? []).some((term) =>
-    /[a-z]/i.test(term) && /\d/.test(term)
-  )
+function buildDeterministicAnswerIfComplete(
+  query: string,
+  sources: KnowledgeSearchHit[],
+  debug: KnowledgeSearchDebugInfo | null
+): string {
+  if (
+    debug?.evidenceGateStatus !== 'pass' ||
+    debug.ragAnswerMode !== 'rag' ||
+    debug.ragUserIntent !== 'fact_lookup'
+  ) {
+    return ''
+  }
+
+  const fieldSlots = debug.evidenceFieldSlots ?? []
+  if (fieldSlots.length === 0) {
+    return ''
+  }
+
+  const scopedSources = filterSourcesByScope(sources, debug.retrievalScopeObjects?.map((item) => item.value) ?? [])
+  return buildCompleteDeterministicFieldAnswer(query, scopedSources, fieldSlots)?.answer ?? ''
+}
+
+function filterSourcesByScope(
+  sources: KnowledgeSearchHit[],
+  scopeObjects: string[]
+): KnowledgeSearchHit[] {
+  const normalizedScopes = scopeObjects.map(normalizeScopeText).filter((item) => item.length >= 3)
+  if (normalizedScopes.length === 0) {
+    return sources
+  }
+
+  const scopedSources = sources.filter((source) => {
+    const searchable = normalizeScopeText([
+      source.documentName,
+      source.primaryTitle,
+      source.sectionPath,
+      source.content
+    ].filter(Boolean).join(' '))
+    return normalizedScopes.some((scope) => searchable.includes(scope))
+  })
+
+  return scopedSources.length > 0 ? scopedSources : sources
+}
+
+function normalizeScopeText(value: string): string {
+  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, '')
 }
 
 async function* staticAnswerStream(answer: string): AsyncGenerator<KnowledgeQaDeltaEvent> {

@@ -4,7 +4,6 @@ import type { KnowledgeBaseRuntimeConfig } from 'share-type'
 import { KnowledgeQueryAnalysisService } from './knowledge-query-analysis.service'
 import { buildKnowledgeQueryEvidencePlan } from '../evidence-gating/knowledge-evidence-planner'
 import {
-  createRouteDecision,
   detectKnowledgeQueryRuleSignal
 } from './knowledge-query-rule-router'
 import { expandStructuredIdentifierAliases } from './knowledge-identifier-aliases'
@@ -12,8 +11,12 @@ import type {
   KnowledgeQueryAnalysis,
   KnowledgeQueryPlan,
   KnowledgeQueryRetrievalHints,
-  KnowledgeQueryRouteDecision,
-  KnowledgeRetrievalMode
+  RagExecutionProfile,
+  RagRetrievalMode,
+  RagScopeMode,
+  RagUserIntent,
+  ResolvedRetrievalScope,
+  ResolvedRetrievalScopeObject
 } from './knowledge-query-plan.types'
 
 const FIELD_ALIAS_GROUPS: Array<{
@@ -21,23 +24,23 @@ const FIELD_ALIAS_GROUPS: Array<{
   aliases: string[]
 }> = [
   {
-    pattern: /澶勭疆浠ｇ爜|鍔ㄤ綔浠ｇ爜|澶勭疆缂栧彿/i,
+    pattern: /\u5904\u7f6e\u4ee3\u7801|\u5904\u7f6e\u7f16\u7801|\u52a8\u4f5c\u4ee3\u7801|\u5904\u7f6e\u7f16\u53f7|\u6267\u884c\u7f16\u53f7/i,
     aliases: ['ACTION CODE']
   },
   {
-    pattern: /预警值|警戒值|告警阈值|报警阈值/i,
+    pattern: /预警值|一级预警值|二级预警值|警戒值|告警阈值|报警阈值|告警临界点/i,
     aliases: ['ALERT THRESHOLD', 'visual alert']
   },
   {
-    pattern: /鍝嶅簲鏃堕檺|鍝嶅簲鏃堕棿|澶勭悊鏃堕檺/i,
+    pattern: /\u54cd\u5e94\u65f6\u9650|\u54cd\u5e94\u65f6\u95f4|\u5904\u7406\u65f6\u9650/i,
     aliases: ['ESCALATION WINDOW']
   },
   {
-    pattern: /责任角色|负责人/i,
+    pattern: /责任角色|责任人|负责人/i,
     aliases: ['owner', 'role']
   },
   {
-    pattern: /主控制阈值|核心阈值/i,
+    pattern: /主控制阈值|主控阈值|核心阈值/i,
     aliases: ['threshold']
   }
 ]
@@ -70,9 +73,16 @@ export class KnowledgeQueryEngineService {
     }
 
     const ruleSignal = detectKnowledgeQueryRuleSignal(normalizedQuery)
+    const shouldBypassAnalysis = shouldBypassAnalysisForStructuredFieldLookup(
+      normalizedQuery,
+      ruleSignal
+    )
     const shouldRunAnalysis =
-      options.forceAnalysis === true ||
-      (options.enableAnalysis !== false && ruleSignal.confidence !== 'high')
+      !shouldBypassAnalysis &&
+      (
+        options.forceAnalysis === true ||
+        (options.enableAnalysis !== false && ruleSignal.confidence !== 'high')
+      )
 
     const analysis =
       !shouldRunAnalysis
@@ -87,7 +97,6 @@ export class KnowledgeQueryEngineService {
             }
           )
 
-    const routeDecision = resolveRouteDecision(ruleSignal, analysis)
     const constraintTerms = buildConstraintTerms(analysis)
     const excludedTerms = buildExcludedTerms(analysis)
     const fieldAliasTerms = buildFieldAliasTerms(normalizedQuery)
@@ -104,21 +113,29 @@ export class KnowledgeQueryEngineService {
       ...queryMappingMatch.terms,
       ...retrievalHintFilter.applied
     ])
-    const protectedTerms = buildProtectedTerms(ruleSignal, analysis, constraintTerms)
+    const scopeTerms = buildScopeTerms(ruleSignal, analysis, constraintTerms)
+    const scope = resolveRetrievalScope(normalizedQuery, scopeTerms, retrievalHintFilter.applied)
     const evidencePlan = buildKnowledgeQueryEvidencePlan({
       normalizedQuery,
       analysis,
-      protectedTerms,
+      scopeTerms,
       optionalTerms: constraintTerms.optional,
       excludedTerms,
       requestedTopK: options.requestedTopK ?? options.runtimeConfig.retrieval.workspaceTopK
     })
+    const executionProfile = resolveExecutionProfile({
+      normalizedQuery,
+      analysis,
+      ruleSignal,
+      scope,
+      fieldSlots: evidencePlan.fieldSlots
+    })
     const retrieval = buildRetrievalHints(
-      routeDecision,
+      executionProfile,
       options.runtimeConfig
     )
     const fallbackRetrieval = buildFallbackRetrievalHints(
-      routeDecision.mode,
+      retrieval.mode,
       options.runtimeConfig
     )
 
@@ -128,24 +145,25 @@ export class KnowledgeQueryEngineService {
       bm25Query: buildBm25Query(
         normalizedQuery,
         analysis,
-        routeDecision.mode,
-        protectedTerms,
+        retrieval.mode,
+        scopeTerms,
         [...constraintTerms.optional, ...retrievalExpansionTerms]
       ),
-      vectorQuery: buildVectorQuery(normalizedQuery, analysis, routeDecision.mode),
+      vectorQuery: buildVectorQuery(normalizedQuery, analysis, retrieval.mode),
       rewriteApplied: analysis !== null,
       analysis,
       ruleSignal,
-      routeDecision,
       entities: analysis?.entities ?? [],
       constraints: analysis?.constraints ?? [],
-      protectedTerms,
+      scopeTerms,
       excludedTerms,
       appliedQueryMappings: queryMappingMatch.triggers,
       queryMappingTerms: queryMappingMatch.terms,
       retrievalHintTerms: retrievalHintFilter.applied,
       droppedRetrievalHintTerms: retrievalHintFilter.dropped,
       retrievalHintConflict: retrievalHintFilter.conflict,
+      scope,
+      executionProfile,
       evidencePlan,
       retrieval,
       fallbackRetrieval
@@ -153,159 +171,53 @@ export class KnowledgeQueryEngineService {
   }
 }
 
-function resolveRouteDecision(
-  ruleSignal: KnowledgeQueryPlan['ruleSignal'],
-  analysis: KnowledgeQueryAnalysis | null
-): KnowledgeQueryRouteDecision {
-  // 楂樼疆淇¤鍒欎紭鍏堬紝閬垮厤 exact 绫昏姹傝 LLM 杞垽鏂甫鍋忋€?
-  if (ruleSignal.confidence === 'high') {
-    return createRouteDecision(
-      ruleSignal.route,
-      ruleSignal.source,
-      ruleSignal.confidence,
-      `high_confidence_rule:${ruleSignal.reasons.join(',')}`
-    )
-  }
-
-  if (ruleSignal.route === 'procedure_heavy' && ruleSignal.confidence === 'medium') {
-    return createRouteDecision(
-      'procedure_heavy',
-      'rule',
-      'medium',
-      `procedure_rule:${ruleSignal.reasons.join(',')}`
-    )
-  }
-
-  if (!analysis) {
-    if (ruleSignal.confidence === 'medium') {
-      return createRouteDecision(
-        ruleSignal.route,
-        'rule',
-        'medium',
-        `medium_confidence_rule:${ruleSignal.reasons.join(',')}`
-      )
-    }
-
-    return createRouteDecision(
-      'balanced',
-      'policy',
-      'low',
-      'no_analysis_fallback_to_balanced'
-    )
-  }
-
-  if (analysis.needsExactMatch) {
-    return createRouteDecision(
-      'exact_lookup',
-      'llm',
-      'medium',
-      `llm_needs_exact_match:${analysis.intent}`
-    )
-  }
-
-  if (analysis.needsProcedure) {
-    return createRouteDecision(
-      'procedure_heavy',
-      'llm',
-      'medium',
-      `llm_needs_procedure:${analysis.intent}`
-    )
-  }
-
-  switch (analysis.intent) {
-    case 'precise':
-    case 'constrained':
-      return createRouteDecision(
-        'keyword_heavy',
-        'llm',
-        'medium',
-        `llm_intent:${analysis.intent}`
-      )
-    case 'exploratory':
-      return createRouteDecision(
-        'semantic_heavy',
-        'llm',
-        'medium',
-        `llm_intent:${analysis.intent}`
-      )
-    case 'hybrid':
-    default:
-      if (ruleSignal.confidence === 'medium') {
-        return createRouteDecision(
-          ruleSignal.route,
-          'rule',
-          'medium',
-          `rule_preferred_over_hybrid:${ruleSignal.reasons.join(',')}`
-        )
-      }
-
-      return createRouteDecision(
-        'balanced',
-        'policy',
-        'low',
-        `llm_intent:${analysis.intent}`
-      )
-  }
-}
-
 function buildRetrievalHints(
-  routeDecision: KnowledgeRouteDecisionInput,
+  profile: RagExecutionProfile,
   runtimeConfig: KnowledgeBaseRuntimeConfig
 ): KnowledgeQueryRetrievalHints {
   const baseBm25Weight = runtimeConfig.retrieval.bm25Weight
   const baseVectorWeight = runtimeConfig.retrieval.vectorWeight
 
-  switch (routeDecision.mode) {
-    case 'exact_lookup':
+  switch (profile.retrievalMode) {
+    case 'exact':
       return {
-        mode: 'exact_lookup',
-        source: routeDecision.source,
-        confidence: routeDecision.confidence,
+        mode: 'exact',
         bm25Weight: clampWeight(Math.max(baseBm25Weight, 1.6)),
         vectorWeight: clampWeight(Math.min(baseVectorWeight, 0.6)),
         candidateMultiplier: clampInteger(runtimeConfig.retrieval.candidateMultiplier, 1, 12),
         minCandidateLimit: clampInteger(runtimeConfig.retrieval.minCandidateLimit, 1, 200),
         maxCandidateLimit: clampInteger(runtimeConfig.retrieval.maxCandidateLimit, 1, 400)
       }
-    case 'keyword_heavy':
+    case 'keyword':
       return {
-        mode: 'keyword_heavy',
-        source: routeDecision.source,
-        confidence: routeDecision.confidence,
+        mode: 'keyword',
         bm25Weight: clampWeight(baseBm25Weight * 1.25),
         vectorWeight: clampWeight(baseVectorWeight * 0.85),
         candidateMultiplier: clampInteger(runtimeConfig.retrieval.candidateMultiplier, 1, 12),
         minCandidateLimit: clampInteger(runtimeConfig.retrieval.minCandidateLimit, 1, 200),
         maxCandidateLimit: clampInteger(runtimeConfig.retrieval.maxCandidateLimit, 1, 400)
       }
-    case 'procedure_heavy':
+    case 'hybrid':
       return {
-        mode: 'procedure_heavy',
-        source: routeDecision.source,
-        confidence: routeDecision.confidence,
+        mode: 'hybrid',
         bm25Weight: clampWeight(baseBm25Weight * 1.1),
         vectorWeight: clampWeight(baseVectorWeight),
         candidateMultiplier: clampInteger(runtimeConfig.retrieval.candidateMultiplier, 1, 12),
         minCandidateLimit: clampInteger(runtimeConfig.retrieval.minCandidateLimit, 1, 200),
         maxCandidateLimit: clampInteger(runtimeConfig.retrieval.maxCandidateLimit, 1, 400)
       }
-    case 'semantic_heavy':
+    case 'semantic':
       return {
-        mode: 'semantic_heavy',
-        source: routeDecision.source,
-        confidence: routeDecision.confidence,
+        mode: 'semantic',
         bm25Weight: clampWeight(baseBm25Weight * 0.85),
         vectorWeight: clampWeight(baseVectorWeight * 1.25),
         candidateMultiplier: clampInteger(runtimeConfig.retrieval.candidateMultiplier, 1, 12),
         minCandidateLimit: clampInteger(runtimeConfig.retrieval.minCandidateLimit, 1, 200),
         maxCandidateLimit: clampInteger(runtimeConfig.retrieval.maxCandidateLimit, 1, 400)
       }
-    case 'balanced':
     default:
       return {
-        mode: 'balanced',
-        source: routeDecision.source,
-        confidence: routeDecision.confidence,
+        mode: 'hybrid',
         bm25Weight: clampWeight(baseBm25Weight),
         vectorWeight: clampWeight(baseVectorWeight),
         candidateMultiplier: clampInteger(runtimeConfig.retrieval.candidateMultiplier, 1, 12),
@@ -316,17 +228,15 @@ function buildRetrievalHints(
 }
 
 function buildFallbackRetrievalHints(
-  mode: KnowledgeRetrievalMode,
+  mode: RagRetrievalMode,
   runtimeConfig: KnowledgeBaseRuntimeConfig
 ): KnowledgeQueryRetrievalHints | null {
-  if (mode === 'balanced') {
+  if (mode === 'hybrid') {
     return null
   }
 
   return {
-    mode: 'balanced',
-    source: 'fallback',
-    confidence: 'low',
+    mode: 'hybrid',
     bm25Weight: clampWeight(runtimeConfig.retrieval.bm25Weight),
     vectorWeight: clampWeight(runtimeConfig.retrieval.vectorWeight),
     candidateMultiplier: clampInteger(runtimeConfig.retrieval.candidateMultiplier + 1, 1, 12),
@@ -335,7 +245,7 @@ function buildFallbackRetrievalHints(
   }
 }
 
-function buildProtectedTerms(
+function buildScopeTerms(
   ruleSignal: KnowledgeQueryPlan['ruleSignal'],
   analysis: KnowledgeQueryAnalysis | null,
   constraintTerms: {
@@ -400,10 +310,182 @@ function buildExcludedTerms(analysis: KnowledgeQueryAnalysis | null): string[] {
   return uniqueStrings(analysis.excludedTerms).slice(0, 6)
 }
 
+function resolveExecutionProfile(input: {
+  normalizedQuery: string
+  analysis: KnowledgeQueryAnalysis | null
+  ruleSignal: KnowledgeQueryPlan['ruleSignal']
+  scope: ResolvedRetrievalScope
+  fieldSlots: string[]
+}): RagExecutionProfile {
+  const userIntent = resolveUserIntent(input)
+  const retrievalMode = resolveProfileRetrievalMode({
+    userIntent,
+    scopeMode: input.scope.mode,
+    ruleSignal: input.ruleSignal,
+    analysis: input.analysis,
+    fieldSlots: input.fieldSlots
+  })
+  const answerMode = resolveAnswerMode(userIntent, input.scope.mode)
+
+  return {
+    userIntent,
+    scopeMode: input.scope.mode,
+    retrievalMode,
+    answerMode
+  }
+}
+
+function resolveUserIntent(input: {
+  normalizedQuery: string
+  analysis: KnowledgeQueryAnalysis | null
+  ruleSignal: KnowledgeQueryPlan['ruleSignal']
+  fieldSlots: string[]
+}): RagUserIntent {
+  const query = input.normalizedQuery
+  if (input.fieldSlots.length > 0) {
+    return 'fact_lookup'
+  }
+
+  if (/共性|共同点|相同点|差异|区别|对比|比较|分别|各自|综合分析/i.test(query)) {
+    return 'comparison'
+  }
+
+  if (/讲的是什么|说的是什么|总结|概括|overview|summary/i.test(query)) {
+    return 'summary'
+  }
+
+  if (input.ruleSignal.procedureLike || input.analysis?.needsProcedure === true) {
+    return 'procedure'
+  }
+
+  if (input.ruleSignal.exactTerms.length > 0 || input.analysis?.needsExactMatch) {
+    return 'fact_lookup'
+  }
+
+  if (input.analysis?.intent === 'exploratory') {
+    return 'open_exploration'
+  }
+
+  return 'general'
+}
+
+function resolveProfileRetrievalMode(input: {
+  userIntent: RagUserIntent
+  scopeMode: RagScopeMode
+  ruleSignal: KnowledgeQueryPlan['ruleSignal']
+  analysis: KnowledgeQueryAnalysis | null
+  fieldSlots: string[]
+}): RagRetrievalMode {
+  if (input.userIntent === 'comparison' || input.userIntent === 'summary') {
+    return input.scopeMode === 'unscoped' ? 'semantic' : 'hybrid'
+  }
+
+  if (input.userIntent === 'procedure') {
+    return 'hybrid'
+  }
+
+  if (input.userIntent === 'fact_lookup') {
+    return input.scopeMode === 'unscoped' ? 'keyword' : 'exact'
+  }
+
+  if (input.userIntent === 'open_exploration') {
+    return 'semantic'
+  }
+
+  return input.analysis ? 'hybrid' : input.ruleSignal.suggestedRetrievalMode
+}
+
+function resolveAnswerMode(userIntent: RagUserIntent, scopeMode: RagScopeMode): RagExecutionProfile['answerMode'] {
+  if (scopeMode === 'needs_clarification') {
+    return 'clarify'
+  }
+
+  if (userIntent === 'general' && scopeMode === 'unscoped') {
+    return 'general'
+  }
+
+  if (userIntent === 'open_exploration' && scopeMode === 'unscoped') {
+    return 'mixed'
+  }
+
+  return 'rag'
+}
+
+function resolveRetrievalScope(
+  normalizedQuery: string,
+  scopeTerms: string[],
+  retrievalHints: string[]
+): ResolvedRetrievalScope {
+  const explicitObjects = extractScopeObjects([
+    normalizedQuery,
+    ...scopeTerms
+  ], 'explicit')
+  const memoryObjects = explicitObjects.length > 0
+    ? []
+    : extractScopeObjects(retrievalHints, 'memory')
+  const objects = explicitObjects.length > 0 ? explicitObjects : memoryObjects
+  const mode = resolveScopeMode(objects)
+
+  return { mode, objects }
+}
+
+function resolveScopeMode(objects: ResolvedRetrievalScopeObject[]): RagScopeMode {
+  if (objects.length === 0) {
+    return 'unscoped'
+  }
+
+  const source = objects[0]?.source ?? 'explicit'
+  if (source === 'memory') {
+    return objects.length === 1 ? 'memory_single' : 'memory_multi'
+  }
+
+  return objects.length === 1 ? 'explicit_single' : 'explicit_multi'
+}
+
+function extractScopeObjects(
+  values: string[],
+  source: ResolvedRetrievalScopeObject['source']
+): ResolvedRetrievalScopeObject[] {
+  const objects: ResolvedRetrievalScopeObject[] = []
+  const seen = new Set<string>()
+
+  for (const value of values) {
+    for (const match of extractStructuredHints(value)) {
+      const kind: ResolvedRetrievalScopeObject['kind'] = /\.[a-z0-9]{1,8}$/i.test(match)
+        ? 'filename'
+        : 'identifier'
+      const key = normalizeScopeObjectKey(match)
+      if (!key || seen.has(key)) {
+        continue
+      }
+
+      seen.add(key)
+      objects.push({ value: match, kind, source })
+    }
+  }
+
+  return objects.slice(0, 8)
+}
+
 function buildFieldAliasTerms(normalizedQuery: string): string[] {
   return uniqueStrings(FIELD_ALIAS_GROUPS.flatMap((group) =>
     group.pattern.test(normalizedQuery) ? group.aliases : []
   ))
+}
+
+function shouldBypassAnalysisForStructuredFieldLookup(
+  normalizedQuery: string,
+  ruleSignal: KnowledgeQueryPlan['ruleSignal']
+): boolean {
+  const hasStructuredObject =
+    ruleSignal.exactTerms.length > 0 ||
+    extractStructuredHints(normalizedQuery).length > 0
+  if (!hasStructuredObject || buildFieldAliasTerms(normalizedQuery).length === 0) {
+    return false
+  }
+
+  return !/共性|共同点|相同点|差异|区别|对比|比较|总结|概括|综合分析|为什么|原因|原理|趋势|建议/i
+    .test(normalizedQuery)
 }
 
 function filterRetrievalHints(
@@ -471,6 +553,10 @@ function normalizeIdentifier(value: string): string {
   return value.normalize('NFKC').toLowerCase().replace(/\.[a-z0-9]+$/i, '')
 }
 
+function normalizeScopeObjectKey(value: string): string {
+  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, '').trim()
+}
+
 function applyQueryMappings(
   normalizedQuery: string,
   mappings: KnowledgeBaseRuntimeConfig['retrieval']['queryMappings']
@@ -489,39 +575,38 @@ function applyQueryMappings(
 function buildBm25Query(
   normalizedQuery: string,
   analysis: KnowledgeQueryAnalysis | null,
-  mode: KnowledgeRetrievalMode,
-  protectedTerms: string[],
+  mode: RagRetrievalMode,
+  scopeTerms: string[],
   optionalConstraintTerms: string[]
 ): string {
   if (!analysis) {
     return uniqueQueryTerms([
       normalizedQuery,
-      ...protectedTerms,
+      ...scopeTerms,
       ...optionalConstraintTerms
     ]).join(' ')
   }
 
   switch (mode) {
-    case 'exact_lookup':
+    case 'exact':
       return uniqueQueryTerms([
         normalizedQuery,
-        ...protectedTerms,
+        ...scopeTerms,
         ...analysis.requiredTerms,
         ...analysis.searchPhrases.slice(0, 2),
         ...optionalConstraintTerms.slice(0, 2)
       ]).join(' ')
-    case 'keyword_heavy':
-    case 'procedure_heavy':
+    case 'keyword':
+    case 'hybrid':
       return uniqueQueryTerms([
         normalizedQuery,
-        ...protectedTerms,
+        ...scopeTerms,
         ...analysis.requiredTerms,
         ...analysis.searchPhrases,
         ...analysis.optionalTerms.slice(0, 3),
         ...optionalConstraintTerms
       ]).join(' ')
-    case 'semantic_heavy':
-    case 'balanced':
+    case 'semantic':
     default:
       return uniqueQueryTerms([
         normalizedQuery,
@@ -536,21 +621,20 @@ function buildBm25Query(
 function buildVectorQuery(
   normalizedQuery: string,
   analysis: KnowledgeQueryAnalysis | null,
-  mode: KnowledgeRetrievalMode
+  mode: RagRetrievalMode
 ): string {
   if (!analysis) {
     return normalizedQuery
   }
 
   switch (mode) {
-    case 'exact_lookup':
+    case 'exact':
       return normalizedQuery
-    case 'keyword_heavy':
+    case 'keyword':
       return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 1)]).join('\n')
-    case 'procedure_heavy':
+    case 'hybrid':
       return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 2)]).join('\n')
-    case 'semantic_heavy':
-    case 'balanced':
+    case 'semantic':
     default:
       return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 4)]).join('\n')
   }
@@ -666,10 +750,5 @@ function clampInteger(value: number, min: number, max: number): number {
   return Math.min(Math.max(Math.round(value), min), max)
 }
 
-type KnowledgeRouteDecisionInput = {
-  mode: KnowledgeRetrievalMode
-  source: 'rule' | 'llm' | 'policy' | 'fallback'
-  confidence: 'high' | 'medium' | 'low'
-}
 
 

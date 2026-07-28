@@ -6,7 +6,7 @@ import { detectKnowledgeQueryRuleSignal } from '../../../modules/knowledge/pipel
 test('compact identifier query keeps separated identifier aliases', () => {
   const signal = detectKnowledgeQueryRuleSignal('pdfsec03 的 ESCALATION WINDOW 是什么?')
 
-  assert.equal(signal.route, 'exact_lookup')
+  assert.equal(signal.suggestedRetrievalMode, 'exact')
   assert.equal(signal.confidence, 'high')
   assert.ok(signal.exactTerms.includes('pdfsec03'))
   assert.ok(signal.exactTerms.includes('pdf-sec-03'))

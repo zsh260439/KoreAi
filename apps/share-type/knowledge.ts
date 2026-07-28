@@ -469,7 +469,6 @@ export interface KnowledgeSearchDebugInfo {
   /** 是否执行过 LLM query analysis。 */
   rewriteApplied: boolean
   /** 本次最终使用的召回模式。 */
-  retrievalMode: string
   /** 本次最终使用的 BM25 权重。 */
   bm25Weight: number
   /** 本次最终使用的向量权重。 */
@@ -482,7 +481,6 @@ export interface KnowledgeSearchDebugInfo {
   candidateLimit?: number
   /** 实际送入 Cross-Encoder 的候选数量。 */
   ceCandidateCount?: number
-  /** 是否在弱证据 fallback 阶段触发多 query 二级 RRF。 */
   secondLevelRrfApplied?: boolean
   /** 二级 RRF 使用的独立 query 域。 */
   secondLevelRrfQueries?: string[]
@@ -492,26 +490,25 @@ export interface KnowledgeSearchDebugInfo {
   queryMappingTerms?: string[]
   /** CE 精排前候选文档顺序，用于离线计算 candidate recall。 */
   candidateDocumentNames?: string[]
-  /** 路由类型，通常与 retrievalMode 一致。 */
-  routeType?: string
-  /** 路由来源，例如 rule、llm、policy、fallback。 */
-  routeSource?: string
   /** 路由置信度。 */
-  routeConfidence?: string
-  /** 是否触发过 fallback 二次召回。 */
   fallbackApplied?: boolean
-  /** fallback 触发原因。 */
-  fallbackReason?: string | null
+  ragUserIntent?: string
+  ragScopeMode?: string
+  ragRetrievalMode?: string
+  ragAnswerMode?: string
+  scopeCoverage?: number
+  factCoverage?: number
+  retrievalScopeObjects?: Array<{
+    value: string
+    kind: string
+    source: string
+  }>
   /** 精确实体是否未在主检索 top hits 中覆盖。 */
-  exactEntityMiss?: boolean
   /** 本次检索保护的精确词。 */
-  protectedTerms?: string[]
   /** 本次检索排序阶段使用的排除降权词。 */
   excludedTerms?: string[]
   /** LLM 判断的 query 意图。 */
-  llmIntent?: string | null
   /** 证据规划复杂度，用于判断本次是否走多事实/参考文档预算。 */
-  evidenceComplexity?: string
   /** 本次证据规划需要覆盖的关键证据词。 */
   evidenceTerms?: string[]
   /** 本次证据规划需要覆盖的字段槽位。 */
@@ -521,7 +518,6 @@ export interface KnowledgeSearchDebugInfo {
   /** 本次最终采用的动态上下文 chunk 数。 */
   effectiveTopK?: number
   /** 生成前计算得到的证据覆盖率。 */
-  evidenceCoverage?: number
   /** 是否触发同文档证据补全。 */
   evidenceExpansionApplied?: boolean
   /** 生成门禁判断结果。 */

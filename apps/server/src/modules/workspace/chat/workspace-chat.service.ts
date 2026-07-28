@@ -113,8 +113,12 @@ export class WorkspaceChatService {
         knowledgeBaseId: dto.knowledgeBaseId,
         think: dto.think,
         rewrite: context.promptCapabilities.rewrite,
-        generalKnowledgeOnly: memoryResolution.intent === 'general_question',
-        retrievalHints: memoryResolution.retrievalHints
+        generalKnowledgeOnly: shouldUseGeneralKnowledgeOnly(
+          memoryResolution.intent
+        ),
+        retrievalHints: shouldForwardMemoryRetrievalHints(memoryResolution.intent)
+          ? memoryResolution.retrievalHints
+          : []
       },
       { signal: options.signal }
     )
@@ -317,6 +321,16 @@ export class WorkspaceChatService {
   }
 }
 
+export function shouldUseGeneralKnowledgeOnly(
+  memoryIntent: string
+): boolean {
+  return memoryIntent === 'general_question'
+}
+
+export function shouldForwardMemoryRetrievalHints(memoryIntent: string): boolean {
+  return memoryIntent !== 'general_question'
+}
+
 function dropCurrentUserMessage(messages: WorkspaceMessage[], currentQuery: string): WorkspaceMessage[] {
   const lastMessage = messages.at(-1)
   if (
@@ -378,7 +392,6 @@ function buildMemoryOnlyDebug(
     bm25Query: query,
     vectorQuery: query,
     rewriteApplied: false,
-    retrievalMode: 'memory_clarification',
     bm25Weight: 0,
     vectorWeight: 0,
     bm25HitCount: 0,
@@ -387,20 +400,18 @@ function buildMemoryOnlyDebug(
     ceCandidateCount: 0,
     secondLevelRrfApplied: false,
     secondLevelRrfQueries: [],
-    routeType: 'memory_clarification',
-    routeSource: 'memory',
-    routeConfidence: 'high',
     fallbackApplied: false,
-    fallbackReason: null,
-    exactEntityMiss: false,
-    protectedTerms: [],
+    ragUserIntent: 'general',
+    ragScopeMode: 'needs_clarification',
+    ragRetrievalMode: 'hybrid',
+    ragAnswerMode: 'clarify',
+    scopeCoverage: 0,
+    factCoverage: 0,
+    retrievalScopeObjects: [],
     excludedTerms: [],
-    llmIntent: null,
-    evidenceComplexity: 'clarification_required',
     evidenceTerms: [],
     evidenceNumericTerms: [],
     effectiveTopK: 0,
-    evidenceCoverage: 0,
     evidenceExpansionApplied: false,
     evidenceGateStatus: 'degraded'
   }

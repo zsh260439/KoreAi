@@ -28,29 +28,7 @@ export type KnowledgeQueryConstraintOperator =
   /** 缁撴灉鏈€濂藉寘鍚鍊硷紝浣嗕笉鑳藉洜涓虹己澶卞氨鐩存帴鎺掗櫎銆?*/
   | 'should_contain'
 
-export type KnowledgeRetrievalMode =
-  /** 绮剧‘鏌ユ壘妯″紡锛屼紭鍏堜繚鎶ょ紪鍙枫€佷唬鐮併€佸紩鍙疯瘝绛夊瓧闈㈠尮閰嶃€?*/
-  | 'exact_lookup'
-  /** 鍏抽敭璇嶅寮烘ā寮忥紝鍋忓悜 BM25 浣嗕繚鐣欏悜閲忓彫鍥炲厹搴曘€?*/
-  | 'keyword_heavy'
-  /** 娴佺▼澧炲己妯″紡锛岄€傚悎姝ラ銆佹帓鏌ャ€佸鐞嗘柟娉曠被闂銆?*/
-  | 'procedure_heavy'
-  /** 鍧囪　妯″紡锛孊M25 涓庡悜閲忔寜杩愯閰嶇疆骞宠　铻嶅悎銆?*/
-  | 'balanced'
-  /** 璇箟澧炲己妯″紡锛岄€傚悎姒傚康銆佽В閲娿€佸紑鏀惧紡鐩镐技璇箟鏌ヨ銆?*/
-  | 'semantic_heavy'
-
-export type KnowledgeQueryRouteSource =
-  /** 鐢辨湰鍦扮‘瀹氭€ц鍒欎骇鐢熺殑璺敱鏉ユ簮銆?*/
-  | 'rule'
-  /** 鐢?LLM 鍒嗘瀽淇″彿杈呭姪浜х敓鐨勮矾鐢辨潵婧愩€?*/
-  | 'llm'
-  /** 鐢辨湰鍦伴粯璁ょ瓥鐣ヤ骇鐢熺殑璺敱鏉ユ簮銆?*/
-  | 'policy'
-  /** 涓绘绱㈣川閲忎笉瓒虫椂浣跨敤鐨勫厹搴曟潵婧愩€?*/
-  | 'fallback'
-
-export type KnowledgeQueryRouteConfidence =
+export type KnowledgeRuleSignalConfidence =
   /** 楂樼疆淇★紝閫氬父鏉ヨ嚜鏄庣‘缂栧彿銆侀敊璇爜銆佸紩鍙疯瘝绛夌‘瀹氭€т俊鍙枫€?*/
   | 'high'
   /** 涓疆淇★紝閫氬父鏉ヨ嚜娴佺▼闂硶銆佺煭 query 鎴?LLM 鍒嗘瀽淇″彿銆?*/
@@ -77,11 +55,9 @@ export type KnowledgeQueryConstraint = {
 // 瑙勫垯灞傚厛浜у嚭缁撴瀯鍖栦俊鍙凤紝閬垮厤涓€涓婃潵灏辨妸鍙洖鍐崇瓥浜ょ粰 LLM銆?
 export type KnowledgeQueryRuleSignal = {
   /** 瑙勫垯灞傚缓璁殑鍙洖妯″紡銆?*/
-  route: KnowledgeRetrievalMode
+  suggestedRetrievalMode: RagRetrievalMode
   /** 瑙勫垯灞傚缓璁殑缃俊搴︺€?*/
-  confidence: KnowledgeQueryRouteConfidence
-  /** 鍥哄畾涓?rule锛岃〃绀鸿淇″彿鏉ヨ嚜鏈湴瑙勫垯銆?*/
-  source: 'rule'
+  confidence: KnowledgeRuleSignalConfidence
   /** 鍛戒腑瑙勫垯鐨勫師鍥犲垪琛紝鐢ㄤ簬 debug 灞曠ず鍜岄棶棰樻帓鏌ャ€?*/
   reasons: string[]
   /** 浠?query 涓彁鍙栧嚭鐨勭簿纭繚鎶よ瘝锛屼緥濡傜紪鍙枫€侀敊璇爜銆佸紩鍙疯瘝銆?*/
@@ -92,26 +68,10 @@ export type KnowledgeQueryRuleSignal = {
   procedureLike: boolean
 }
 
-// 鏈€缁堣矾鐢卞喅绛栦粛鐒舵槸鏈湴浠ｇ爜缁欏嚭鐨勶紝涓嶇洿鎺ヤ俊浠?LLM 杈撳嚭銆?
-export type KnowledgeQueryRouteDecision = {
-  /** 鏈€缁堥噰鐢ㄧ殑鍙洖妯″紡銆?*/
-  mode: KnowledgeRetrievalMode
-  /** 鏈€缁堣矾鐢辨潵婧愶紝璇存槑鏄鍒欍€丩LM 杈呭姪銆佹湰鍦扮瓥鐣ヨ繕鏄厹搴曘€?*/
-  source: KnowledgeQueryRouteSource
-  /** 鏈€缁堣矾鐢辩疆淇″害銆?*/
-  confidence: KnowledgeQueryRouteConfidence
-  /** 鏈€缁堣矾鐢卞師鍥狅紝渚夸簬 debug 闈㈡澘璇存槑涓轰粈涔堣蛋杩欎釜妯″紡銆?*/
-  reason: string
-}
-
 // 妫€绱㈢瓥鐣ヤ笉浠呭寘鍚潈閲嶏紝涔熷寘鍚€欓€夐泦瑙勬ā锛屼究浜?exact / fallback 浣跨敤涓嶅悓绛栫暐銆?
 export type KnowledgeQueryRetrievalHints = {
   /** 褰撳墠妫€绱㈡墽琛屼娇鐢ㄧ殑鍙洖妯″紡銆?*/
-  mode: KnowledgeRetrievalMode
-  /** 褰撳墠妫€绱㈡墽琛岀殑绛栫暐鏉ユ簮銆?*/
-  source: KnowledgeQueryRouteSource
-  /** 褰撳墠妫€绱㈡墽琛岀殑绛栫暐缃俊搴︺€?*/
-  confidence: KnowledgeQueryRouteConfidence
+  mode: RagRetrievalMode
   /** BM25 铻嶅悎鏉冮噸锛岀敱鏈湴绛栫暐鏄犲皠锛屼笉鐢?LLM 鐩存帴鍐冲畾銆?*/
   bm25Weight: number
   /** 鍚戦噺铻嶅悎鏉冮噸锛岀敱鏈湴绛栫暐鏄犲皠锛屼笉鐢?LLM 鐩存帴鍐冲畾銆?*/
@@ -133,6 +93,55 @@ export type KnowledgeQueryComplexity =
   | 'reference_required'
   /** 璇佹嵁缂哄け椋庨櫓鏇撮珮鐨勯珮绾︽潫闂銆?*/
   | 'high_constraint'
+
+export type RagUserIntent =
+  | 'fact_lookup'
+  | 'comparison'
+  | 'summary'
+  | 'procedure'
+  | 'open_exploration'
+  | 'general'
+
+export type RagScopeMode =
+  | 'unscoped'
+  | 'explicit_single'
+  | 'explicit_multi'
+  | 'memory_single'
+  | 'memory_multi'
+  | 'needs_clarification'
+
+export type RagRetrievalMode =
+  | 'exact'
+  | 'keyword'
+  | 'semantic'
+  | 'hybrid'
+
+export type RagAnswerMode =
+  | 'rag'
+  | 'general'
+  | 'mixed'
+  | 'clarify'
+  | 'refuse'
+
+export type RagGateStatus = 'pass' | 'degraded' | 'blocked'
+
+export type ResolvedRetrievalScopeObject = {
+  value: string
+  kind: 'identifier' | 'filename'
+  source: 'explicit' | 'memory'
+}
+
+export type ResolvedRetrievalScope = {
+  mode: RagScopeMode
+  objects: ResolvedRetrievalScopeObject[]
+}
+
+export type RagExecutionProfile = {
+  userIntent: RagUserIntent
+  scopeMode: RagScopeMode
+  retrievalMode: RagRetrievalMode
+  answerMode: RagAnswerMode
+}
 
 export type KnowledgeQueryEvidencePlan = {
   /** 缁撴瀯鍖栫紪鍙枫€佺増鏈€侀敊璇爜绛夊繀椤讳紭鍏堣鐩栫殑绮剧‘鏍囪瘑銆?*/
@@ -171,21 +180,21 @@ export type KnowledgeQueryAnalysis = {
   intent: KnowledgeQueryIntent
   /** LLM 缁欏嚭鐨勬剰鍥捐鏄庯紝鐢ㄤ簬 debug锛屼笉鐩存帴鍙備笌鏉冮噸鍐崇瓥銆?*/
   intentReason: string
-  /** 鏄惁闇€瑕佺簿纭尮閰嶏紝true 鏃舵湰鍦扮瓥鐣ュ彲閫夋嫨 exact_lookup銆?*/
+  /** LLM 判断是否需要精确匹配；只作为新执行画像的输入信号。 */
   needsExactMatch: boolean
-  /** 鏄惁闇€瑕佹祦绋?姝ラ绫诲洖绛旓紝true 鏃舵湰鍦扮瓥鐣ュ彲閫夋嫨 procedure_heavy銆?*/
+  /** LLM 判断是否需要流程类回答；只作为新执行画像的输入信号。 */
   needsProcedure: boolean
   /** 闈㈠悜 BM25 鐨勫叧閿瘝鐭鎵╁睍銆?*/
   searchPhrases: string[]
   /** 闈㈠悜鍚戦噺鍙洖鐨勮涔夋敼鍐?query銆?*/
   semanticQueries: string[]
-  /** 蹇呴』淇濈暀鐨勮瘝锛屼細杩涘叆 protectedTerms 鍜?BM25 query銆?*/
+  /** 蹇呴』淇濈暀鐨勮瘝锛屼細杩涘叆 scopeTerms 鍜?BM25 query銆?*/
   requiredTerms: string[]
   /** 鍙€夊寮鸿瘝锛屽彧鎵╁睍鍙洖锛屼笉浣滀负蹇呴』鍛戒腑鏉′欢銆?*/
   optionalTerms: string[]
   /** 搴旈伩鍏嶇殑璇嶏紝鍚庣画鍙仛鎺掑簭闄嶆潈锛屼笉鍋氱‖杩囨护銆?*/
   excludedTerms: string[]
-  /** LLM 鎶藉彇鍑虹殑瀹炰綋鍒楄〃锛岀敤浜庤ˉ鍏?protectedTerms 鍜?debug銆?*/
+  /** LLM 鎶藉彇鍑虹殑瀹炰綋鍒楄〃锛岀敤浜庤ˉ鍏?scopeTerms 鍜?debug銆?*/
   entities: KnowledgeQueryEntity[]
   /** LLM 鎶藉彇鍑虹殑姝ｅ悜缁撴瀯鍖栫害鏉燂紝鍚庣画鏄犲皠涓轰繚鎶よ瘝鎴栨墿灞曡瘝銆?*/
   constraints: KnowledgeQueryConstraint[]
@@ -206,14 +215,12 @@ export type KnowledgeQueryPlan = {
   analysis: KnowledgeQueryAnalysis | null
   /** 鏈湴瑙勫垯灞傝緭鍑虹殑鍓嶇疆淇″彿銆?*/
   ruleSignal: KnowledgeQueryRuleSignal
-  /** 鏈湴鏈€缁堣矾鐢卞喅绛栥€?*/
-  routeDecision: KnowledgeQueryRouteDecision
   /** 閫忎紶 LLM 鎶藉彇瀹炰綋锛屼究浜?debug 鍜屽悗缁墿灞曘€?*/
   entities: KnowledgeQueryEntity[]
   /** 閫忎紶 LLM 鎶藉彇绾︽潫锛屼究浜?debug 鍜屽悗缁墿灞曘€?*/
   constraints: KnowledgeQueryConstraint[]
   /** 闇€瑕佷紭鍏堜繚鎶ょ殑绮剧‘璇嶏紝鐢ㄤ簬 fallback 鍒ゆ柇鍜岀‘瀹氭€ч噸鎺掋€?*/
-  protectedTerms: string[]
+  scopeTerms: string[]
   /** 闇€瑕佸湪鎺掑簭闃舵闄嶆潈鐨勬帓闄よ瘝銆?*/
   excludedTerms: string[]
   /** 鍛戒腑鐨勭敤鎴峰彲閰嶇疆 query mapping 瑙﹀彂璇嶃€?*/
@@ -226,12 +233,15 @@ export type KnowledgeQueryPlan = {
   droppedRetrievalHintTerms: string[]
   /** 鏈疆鏄惧紡瀵硅薄涓庝細璇濊蹇嗗璞℃槸鍚﹀彂鐢熷啿绐併€?*/
   retrievalHintConflict: boolean
+  scope: ResolvedRetrievalScope
+  executionProfile: RagExecutionProfile
   /** 璇佹嵁椹卞姩妫€绱㈣鍒掞紝渚涢噸鎺掋€佷笂涓嬫枃缁勮鍜岀敓鎴愰棬绂佸鐢ㄣ€?*/
   evidencePlan: KnowledgeQueryEvidencePlan
   /** 涓绘绱㈡墽琛岀瓥鐣ャ€?*/
   retrieval: KnowledgeQueryRetrievalHints
-  /** 澶囩敤鍧囪　妫€绱㈢瓥鐣ワ紱涓荤瓥鐣ヤ负 balanced 鏃朵负绌恒€?*/
+  /** 弱证据时使用的备用混合检索策略；主策略已经是 hybrid 时为空。 */
   fallbackRetrieval: KnowledgeQueryRetrievalHints | null
 }
+
 
 
