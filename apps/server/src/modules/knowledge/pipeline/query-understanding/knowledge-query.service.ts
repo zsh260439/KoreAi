@@ -71,6 +71,30 @@ export class KnowledgeQueryService {
       || dto.generalKnowledgeOnly === true
 
     if (retrievalResult.debug?.evidenceGateStatus === 'blocked') {
+      if (shouldUseEvidenceBackedDegradedAnswer(query, sources, retrievalResult.debug)) {
+        const answer = await this.qaService.streamAnswerQuestion(query, sources, {
+          includeReasoning: dto.think,
+          signal: options.signal,
+          temperature: runtimeConfig.answer.temperature,
+          evidenceGateStatus: 'degraded',
+          scopeCoverage: retrievalResult.debug.scopeCoverage,
+          factCoverage: retrievalResult.debug.factCoverage,
+          retrievalDebug: retrievalResult.debug,
+          allowGeneralKnowledge: false
+        })
+
+        return {
+          sources,
+          retrievalDebug: {
+            ...retrievalResult.debug,
+            evidenceGateStatus: 'degraded'
+          },
+          model: await this.qaService.getModelName(),
+          totalTokens: answer.totalTokens,
+          stream: answer.stream
+        }
+      }
+
       if (allowGeneralKnowledge) {
         const answer = await this.qaService.streamAnswerQuestion(query, sources, {
           includeReasoning: dto.think,
@@ -195,6 +219,27 @@ function shouldUseGeneralKnowledgeFallback(
 
 function shouldAllowMixedKnowledgeAnswer(query: string): boolean {
   return /(?:结合|整合|综合).{0,12}(?:本地|知识库|rag).{0,20}(?:通用|常识|general)|(?:本地|知识库|rag).{0,20}(?:和|与|加上).{0,8}(?:通用|常识|general)/i
+    .test(query)
+}
+
+function shouldUseEvidenceBackedDegradedAnswer(
+  query: string,
+  sources: KnowledgeSearchHit[],
+  debug: KnowledgeSearchDebugInfo
+): boolean {
+  if (sources.length === 0 || (debug.scopeCoverage ?? 0) < 1) {
+    return false
+  }
+
+  if ((debug.evidenceFieldSlots ?? []).length > 0) {
+    return false
+  }
+
+  if (debug.ragScopeMode === 'needs_clarification') {
+    return false
+  }
+
+  return /(?:描述|说明|总结|归档模式|通用归档|共性|共同点|差异|对比|比较|流程|步骤|方式|策略|原因|为什么|如何|怎么办|describe|summary|summarize|compare|procedure|pattern|strategy|why|how)/i
     .test(query)
 }
 

@@ -43,7 +43,7 @@ test('query without verifiable fields is not treated as fully grounded', () => {
 
 test('plain Chinese aliases map to control threshold and owner slots', () => {
   const plan = buildKnowledgeQueryEvidencePlan({
-    normalizedQuery: 'PDF-CLD-01 这条记录的管控线和负责人帮我捞一下',
+    normalizedQuery: 'PDF-CLD-01 这条记录的管控线和负责人帮我拿一下',
     analysis: null,
     scopeTerms: ['PDF-CLD-01'],
     optionalTerms: [],
@@ -195,7 +195,7 @@ test('real Chinese PDF query extracts body and dashboard field slots', () => {
 
 test('field-name listing does not request concrete field-value slots', () => {
   const plan = buildKnowledgeQueryEvidencePlan({
-    normalizedQuery: 'PDF-MED-03\u6587\u6863\u91cc\u51fa\u73b0\u4e86\u9884\u8b66\u9608\u503c\u3001\u5904\u7f6e\u4ee3\u7801\u8fd9\u4e24\u4e2a\u5b57\u6bb5\u540d\u79f0\uff0c\u8bf7\u7f57\u5217\u51fa\u6765\u3002',
+    normalizedQuery: 'PDF-MED-03 文档里出现了预警阈值、处置代码这两个字段名称，请罗列出来。',
     analysis: null,
     scopeTerms: ['PDF-MED-03'],
     optionalTerms: [],
@@ -208,7 +208,7 @@ test('field-name listing does not request concrete field-value slots', () => {
 
 test('colloquial visual aliases map to alert and action field slots', () => {
   const plan = buildKnowledgeQueryEvidencePlan({
-    normalizedQuery: 'PDF-MED-03\u4eea\u8868\u76d8\u544a\u8b66\u4e34\u754c\u70b9\u5bf9\u5e94\u7684\u6570\u5b57\u662f\u591a\u5c11\uff0c\u914d\u5957\u6267\u884c\u7f16\u53f7\u662f\u4ec0\u4e48\uff1f',
+    normalizedQuery: 'PDF-MED-03 仪表盘告警临界点对应的数字是多少，配套执行编号是什么？',
     analysis: null,
     scopeTerms: ['PDF-MED-03'],
     optionalTerms: [],
@@ -222,7 +222,7 @@ test('colloquial visual aliases map to alert and action field slots', () => {
 
 test('level-specific alert requests do not inflate generic alert coverage', () => {
   const plan = buildKnowledgeQueryEvidencePlan({
-    normalizedQuery: 'PDF-MED-03\u4eea\u8868\u76d8\u4e00\u7ea7\u9884\u8b66\u503c\u3001\u4e8c\u7ea7\u9884\u8b66\u503c\u5206\u522b\u662f\u4ec0\u4e48\uff1f',
+    normalizedQuery: 'PDF-MED-03 仪表盘一级预警值、二级预警值分别是什么？',
     analysis: null,
     scopeTerms: ['PDF-MED-03'],
     optionalTerms: [],
@@ -248,17 +248,17 @@ test('level-specific alert requests do not inflate generic alert coverage', () =
 
 test('technical evidence-term queries degrade instead of blocking when partial evidence exists', () => {
   const plan = buildKnowledgeQueryEvidencePlan({
-    normalizedQuery: 'Redis缓存击穿 互斥锁 只允许一个请求查数据库 其他请求等待',
+    normalizedQuery: 'Redis 缓存击穿 互斥锁 只允许一个请求查数据库 其他请求等待',
     analysis: {
       intent: 'constrained',
       intentReason: 'technical procedure',
       needsExactMatch: true,
       needsProcedure: false,
       searchPhrases: [
-        'Redis缓存击穿 互斥锁',
+        'Redis 缓存击穿 互斥锁',
         '缓存击穿 互斥锁 解决方案',
         '只允许一个请求查数据库 其他请求等待',
-        'Redis缓存击穿 互斥锁 实现',
+        'Redis 缓存击穿 互斥锁 实现',
         '缓存击穿 互斥锁 只让一个线程查库'
       ],
       semanticQueries: [],
@@ -281,3 +281,32 @@ test('technical evidence-term queries degrade instead of blocking when partial e
   assert.equal(resolveEvidenceGateStatus(partialCoverage, plan), 'degraded')
 })
 
+test('archive pattern summary uses evidence terms instead of field slots', () => {
+  const plan = buildKnowledgeQueryEvidencePlan({
+    normalizedQuery: 'MD-LOCK-033 描述了什么通用归档模式？',
+    analysis: null,
+    scopeTerms: ['MD-LOCK-033'],
+    optionalTerms: [],
+    excludedTerms: [],
+    requestedTopK: 4
+  })
+
+  assert.equal(plan.fieldSlots.length, 0)
+  assert.equal(plan.evidenceTerms.includes('通用归档'), false)
+  assert.ok(plan.evidenceTerms.includes('版本归档'))
+  assert.ok(plan.evidenceTerms.includes('旧值'))
+  assert.ok(plan.evidenceTerms.includes('新值'))
+
+  const coverage = computeKnowledgeEvidenceCoverage([
+    {
+      chunkId: 'archive',
+      documentId: 'doc',
+      documentName: 'md-lock-033.md',
+      content: '# 版本归档\n每次修改都保留旧值、新值、修改原因、审核人和记录编号 MD-LOCK-033。图片、表格和正文使用同一版本。',
+      score: 1
+    }
+  ], plan)
+
+  assert.equal(coverage, 1)
+  assert.equal(resolveEvidenceGateStatus(coverage, plan), 'pass')
+})

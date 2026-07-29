@@ -1,4 +1,4 @@
-﻿import type { KnowledgeSearchHit } from 'share-type'
+import type { KnowledgeSearchHit } from 'share-type'
 
 import type {
   KnowledgeQueryAnalysis,
@@ -17,30 +17,30 @@ const CJK_REFERENCE_PHRASE_PATTERN =
   /引用不足|召回文档|证据不完整|置信度|标注标准|黄金文档|相似文档|未命中|命中|证据|引用|规则|标准|规范|指南|手册|策略|参考|合规|审计/g
 
 const CJK_FACT_PHRASE_PATTERN =
-  /主控制阈值|核心阈值|阈值|责任角色|负责人|响应时限|响应时间|处理时限|附件|视觉附件|仪表盘|预警值|处置代码/g
+  /主控制阈值|核心阈值|阈值|责任角色|负责人|响应时限|响应时间|处理时限|附件|视觉附件|仪表盘|预警值|处置代码|归档模式|通用归档|版本归档|旧值|新值|修改原因|审核人|记录编号/g
 
 const VALUE_FIELD_DEFINITIONS: Array<{
   aliases: string[]
   valuePattern: RegExp
 }> = [
   {
-    aliases: ['\u5904\u7f6e\u4ee3\u7801', '\u52a8\u4f5c\u4ee3\u7801', '\u5904\u7f6e\u7f16\u53f7', '\u6267\u884c\u7f16\u53f7', 'action code'],
+    aliases: ['处置代码', '动作代码', '处置编号', '执行编号', 'action code'],
     valuePattern: /\bact[-_][a-z0-9]+[-_]\d{1,4}\b/i
   },
   {
-    aliases: ['\u9884\u8b66\u503c', '\u8b66\u6212\u503c', '\u544a\u8b66\u9608\u503c', '\u62a5\u8b66\u9608\u503c', '\u544a\u8b66\u4e34\u754c\u70b9', 'alert threshold', 'visual alert'],
+    aliases: ['预警值', '警戒值', '告警阈值', '报警阈值', '告警临界点', 'alert threshold', 'visual alert'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   },
   {
-    aliases: ['\u54cd\u5e94\u65f6\u9650', '\u54cd\u5e94\u65f6\u95f4', '\u5904\u7406\u65f6\u9650', 'escalation window'],
-    valuePattern: /\b\d+(?:\.\d+)?\s*(?:\u5c0f\u65f6|\u5206\u949f|\u5929|hours?|minutes?|days?)\b/i
+    aliases: ['响应时限', '响应时间', '处理时限', 'escalation window'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*(?:小时|分钟|天|hours?|minutes?|days?)\b/i
   },
   {
-    aliases: ['\u8d23\u4efb\u89d2\u8272', '\u8d1f\u8d23\u4eba', 'owner', 'role'],
+    aliases: ['责任角色', '负责人', 'owner', 'role'],
     valuePattern: /\b[a-z][a-z0-9_]{2,}\b/i
   },
   {
-    aliases: ['\u4e3b\u63a7\u5236\u9608\u503c', '\u6838\u5fc3\u9608\u503c', 'threshold'],
+    aliases: ['主控制阈值', '核心阈值', 'threshold'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   }
 ]
@@ -49,57 +49,60 @@ const FIELD_SLOT_DEFINITIONS: Array<{
   slot: string
   aliases: string[]
   valuePattern: RegExp
+  dynamicOnly?: boolean
 }> = [
   {
     slot: 'main_control_threshold',
-    aliases: ['\u4e3b\u63a7\u5236\u9608\u503c', '\u4e3b\u63a7\u9608\u503c', '\u6838\u5fc3\u9608\u503c'],
+    aliases: ['主控制阈值', '主控阈值', '核心阈值'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   },
   {
     slot: 'alert_threshold',
-    aliases: ['\u9884\u8b66\u503c', '\u9884\u8b66\u9608\u503c', '\u8b66\u6212\u503c', '\u62a5\u8b66\u9608\u503c', '\u544a\u8b66\u4e34\u754c\u70b9', 'alert threshold', 'visual alert'],
+    aliases: ['预警值', '预警阈值', '警戒值', '报警阈值', '告警临界点', 'alert threshold', 'visual alert'],
     valuePattern: /\b\d+(?:\.\d+)?\s*%/
   },
   {
     slot: 'alert_threshold_level_1',
-    aliases: ['\u4e00\u7ea7\u9884\u8b66\u503c', '\u4e00\u7ea7\u9884\u8b66\u9608\u503c', '\u4e00\u7ea7\u544a\u8b66\u503c', '\u4e00\u7ea7\u544a\u8b66\u9608\u503c'],
-    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+    aliases: ['一级预警值', '一级预警阈值', '一级告警值', '一级告警阈值'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/,
+    dynamicOnly: true
   },
   {
     slot: 'alert_threshold_level_2',
-    aliases: ['\u4e8c\u7ea7\u9884\u8b66\u503c', '\u4e8c\u7ea7\u9884\u8b66\u9608\u503c', '\u4e8c\u7ea7\u544a\u8b66\u503c', '\u4e8c\u7ea7\u544a\u8b66\u9608\u503c'],
-    valuePattern: /\b\d+(?:\.\d+)?\s*%/
+    aliases: ['二级预警值', '二级预警阈值', '二级告警值', '二级告警阈值'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*%/,
+    dynamicOnly: true
   },
   {
     slot: 'action_code',
-    aliases: ['\u5904\u7f6e\u4ee3\u7801', '\u5904\u7f6e\u7f16\u7801', '\u52a8\u4f5c\u4ee3\u7801', '\u5904\u7f6e\u7f16\u53f7', '\u6267\u884c\u7f16\u53f7', 'action code'],
+    aliases: ['处置代码', '处置编码', '动作代码', '处置编号', '执行编号', 'action code'],
     valuePattern: /\bact[-_][a-z0-9]+[-_]\d{1,4}\b/i
   },
   {
     slot: 'responsible_role',
-    aliases: ['\u8d23\u4efb\u89d2\u8272', '\u8d23\u4efb\u4eba', '\u8d1f\u8d23\u4eba', 'owner', 'role'],
+    aliases: ['责任角色', '责任人', '负责人', 'owner', 'role'],
     valuePattern: /\b[a-z][a-z0-9_]{2,}\b/i
   },
   {
     slot: 'response_time',
-    aliases: ['\u54cd\u5e94\u65f6\u9650', '\u54cd\u5e94\u65f6\u95f4', '\u5904\u7406\u65f6\u9650', 'escalation window'],
-    valuePattern: /\b\d+(?:\.\d+)?\s*(?:\u5c0f\u65f6|\u5206\u949f|\u5929|hours?|minutes?|days?)\b/i
+    aliases: ['响应时限', '响应时间', '处理时限', 'escalation window'],
+    valuePattern: /\b\d+(?:\.\d+)?\s*(?:小时|分钟|天|hours?|minutes?|days?)\b/i
   }
 ]
 
-const FIELD_CONTEXT_TERMS = ['\u9644\u4ef6', '\u89c6\u89c9\u9644\u4ef6', '\u4eea\u8868\u76d8', '\u9608\u503c']
+const FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '阈值']
 
 const SUPPLEMENTAL_FIELD_SLOT_ALIASES: Record<string, string[]> = {
-  main_control_threshold: ['\u4e3b\u63a7\u5236\u9608\u503c', '\u4e3b\u63a7\u5236\u9608\u503c\u56fa\u5b9a', '\u4e3b\u63a7\u9608\u503c', '\u4e3b\u9608\u503c', '\u7ba1\u63a7\u7ebf', '\u63a7\u5236\u9608\u503c', '\u6838\u5fc3\u9608\u503c'],
-  alert_threshold: ['\u9884\u8b66\u503c', '\u9884\u8b66\u9608\u503c', '\u9884\u8b66\u7ebf', '\u544a\u8b66\u503c', '\u544a\u8b66\u9608\u503c', '\u544a\u8b66\u4e34\u754c\u70b9', '\u9644\u4ef6\u4eea\u8868\u76d8', '\u9644\u4ef6\u770b\u677f', '\u4eea\u8868\u76d8', '\u770b\u677f', 'alert threshold', 'visual alert'],
-  alert_threshold_level_1: ['\u4e00\u7ea7\u9884\u8b66\u503c', '\u4e00\u7ea7\u9884\u8b66\u9608\u503c', '\u4e00\u7ea7\u544a\u8b66\u503c', '\u4e00\u7ea7\u544a\u8b66\u9608\u503c'],
-  alert_threshold_level_2: ['\u4e8c\u7ea7\u9884\u8b66\u503c', '\u4e8c\u7ea7\u9884\u8b66\u9608\u503c', '\u4e8c\u7ea7\u544a\u8b66\u503c', '\u4e8c\u7ea7\u544a\u8b66\u9608\u503c'],
-  action_code: ['\u5904\u7f6e\u4ee3\u7801', '\u5904\u7f6e\u7f16\u7801', '\u52a8\u4f5c\u7801', '\u52a8\u4f5c\u4ee3\u7801', '\u5904\u7f6e\u7f16\u53f7', '\u6267\u884c\u7f16\u53f7', 'action code'],
-  responsible_role: ['\u8d23\u4efb\u89d2\u8272', '\u8d1f\u8d23\u4eba', '\u8d23\u4efb\u4eba', '\u5f52\u8c01\u786e\u8ba4', '\u8c01\u786e\u8ba4', 'owner', 'role'],
-  response_time: ['\u54cd\u5e94\u65f6\u9650', '\u54cd\u5e94\u65f6\u95f4', '\u5904\u7406\u65f6\u9650', '\u590d\u6838\u65f6\u9650', '\u591a\u4e45\u5185\u5904\u7406', '\u591a\u4e45\u5185\u8981\u5904\u7406\u5b8c', '\u591a\u4e45\u5185\u5b8c\u6210', '\u591a\u4e45\u5904\u7406', 'escalation window']
+  main_control_threshold: ['主控制阈值', '主控制阈值固定', '主控阈值', '主阈值', '管控线', '控制阈值', '核心阈值'],
+  alert_threshold: ['预警值', '预警阈值', '预警线', '告警值', '告警阈值', '告警临界点', '附件仪表盘', '附件看板', '仪表盘', '看板', 'alert threshold', 'visual alert'],
+  alert_threshold_level_1: ['一级预警值', '一级预警阈值', '一级告警值', '一级告警阈值'],
+  alert_threshold_level_2: ['二级预警值', '二级预警阈值', '二级告警值', '二级告警阈值'],
+  action_code: ['处置代码', '处置编码', '动作码', '动作代码', '处置编号', '执行编号', 'action code'],
+  responsible_role: ['责任角色', '负责人', '责任人', '归谁确认', '谁确认', 'owner', 'role'],
+  response_time: ['响应时限', '响应时间', '处理时限', '复核时限', '多久内处理', '多久内要处理完', '多久内完成', '多久处理', 'escalation window']
 }
 
-const SUPPLEMENTAL_FIELD_CONTEXT_TERMS = ['\u9644\u4ef6', '\u89c6\u89c9\u9644\u4ef6', '\u4eea\u8868\u76d8', '\u9644\u4ef6\u4eea\u8868\u76d8', '\u9644\u4ef6\u770b\u677f', '\u770b\u677f', '\u9608\u503c']
+const SUPPLEMENTAL_FIELD_CONTEXT_TERMS = ['附件', '视觉附件', '仪表盘', '附件仪表盘', '附件看板', '看板', '阈值']
 const TASK_ONLY_EVIDENCE_TERM_PATTERN = /^(?:共性|共同点|相同点|差异|区别|对比|比较|综合分析|分析|回答)$/i
 const FIELD_NAME_ONLY_QUERY_PATTERN = /(?:字段名称|字段名|字段列表|有哪些字段|出现了.*字段|罗列.*字段|列出.*字段)/i
 
@@ -394,7 +397,21 @@ function extractEvidenceTerms(value: string): string[] {
   const referenceTerms = extractCjkReferenceTerms(value)
   const factTerms = value.match(CJK_FACT_PHRASE_PATTERN) ?? []
   const valueFieldTerms = extractValueFieldTerms(value)
-  return uniqueStrings([...asciiTerms, ...referenceTerms, ...factTerms, ...valueFieldTerms])
+  const conceptualTerms = expandConceptualEvidenceTerms(value)
+  return uniqueStrings([...asciiTerms, ...referenceTerms, ...factTerms, ...valueFieldTerms, ...conceptualTerms])
+    .filter((term) => !isConceptualQuestionTerm(term))
+}
+
+function expandConceptualEvidenceTerms(value: string): string[] {
+  if (!/(?:归档模式|通用归档|版本归档|archive pattern)/i.test(value)) {
+    return []
+  }
+
+  return ['版本归档', '旧值', '新值', '修改原因', '审核人', '记录编号']
+}
+
+function isConceptualQuestionTerm(term: string): boolean {
+  return /^(?:归档模式|通用归档|archive pattern)$/i.test(term.trim())
 }
 
 function extractCjkReferenceTerms(value: string): string[] {
@@ -464,6 +481,14 @@ function matchFieldSlots(text: string, slots: string[]): string[] {
   const result: string[] = []
 
   for (const slot of slots) {
+    const alertLevel = resolveAlertLevelSlotNumber(slot)
+    if (alertLevel !== null) {
+      if (hasAlertLevelValueSignal(text, alertLevel)) {
+        result.push(slot)
+      }
+      continue
+    }
+
     const definition = FIELD_SLOT_DEFINITIONS.find((item) => item.slot === slot)
     if (!definition) {
       continue
@@ -524,14 +549,18 @@ function extractFieldSlots(query: string, terms: string[]): string[] {
   }
 
   const normalizedValues = [query, ...terms].map(normalizeTerm)
-  const slots = FIELD_SLOT_DEFINITIONS
-    .filter((definition) =>
-      getFieldSlotAliases(definition).some((alias) => {
-        const normalizedAlias = normalizeTerm(alias)
-        return normalizedValues.some((value) => value.includes(normalizedAlias))
-      })
-    )
-    .map((definition) => definition.slot)
+  const slots = [
+    ...extractAlertLevelSlots([query, ...terms]),
+    ...FIELD_SLOT_DEFINITIONS
+      .filter((definition) => definition.dynamicOnly !== true)
+      .filter((definition) =>
+        getFieldSlotAliases(definition).some((alias) => {
+          const normalizedAlias = normalizeTerm(alias)
+          return normalizedValues.some((value) => value.includes(normalizedAlias))
+        })
+      )
+      .map((definition) => definition.slot)
+  ]
 
   return removeCoarseAlertSlotWhenOnlyLevelAlertsAreRequested(slots, normalizedValues)
 }
@@ -542,22 +571,22 @@ function removeCoarseAlertSlotWhenOnlyLevelAlertsAreRequested(
 ): string[] {
   if (
     !slots.includes('alert_threshold') ||
-    !slots.some((slot) => slot === 'alert_threshold_level_1' || slot === 'alert_threshold_level_2')
+    !slots.some((slot) => resolveAlertLevelSlotNumber(slot) !== null)
   ) {
     return slots
   }
 
   const textWithoutLevelAlerts = normalizedValues
     .join(' ')
-    .replace(/(?:\u4e00\u7ea7|\u4e8c\u7ea7)(?:\u9884\u8b66|\u544a\u8b66)(?:\u503c|\u9608\u503c)/g, '')
+    .replace(/(?:[一二三四五六七八九十\d]+级|level\s*\d+)(?:预警|告警|alert|threshold)(?:值|阈值)?/gi, '')
 
   const hasStandaloneGenericAlert = [
-    '\u9884\u8b66\u503c',
-    '\u9884\u8b66\u9608\u503c',
-    '\u9884\u8b66\u7ebf',
-    '\u544a\u8b66\u503c',
-    '\u544a\u8b66\u9608\u503c',
-    '\u544a\u8b66\u4e34\u754c\u70b9',
+    '预警值',
+    '预警阈值',
+    '预警线',
+    '告警值',
+    '告警阈值',
+    '告警临界点',
     'alertthreshold',
     'visualalert'
   ].some((alias) => textWithoutLevelAlerts.includes(normalizeTerm(alias)))
@@ -578,9 +607,127 @@ function isFieldNameOnlyQuery(query: string): boolean {
 
 function isFieldSlotAlias(term: string): boolean {
   const normalizedTerm = normalizeTerm(term)
+  if (extractAlertLevelSlots([term]).length > 0) {
+    return true
+  }
   return FIELD_SLOT_DEFINITIONS.some((definition) =>
     getFieldSlotAliases(definition).some((alias) => normalizeTerm(alias) === normalizedTerm)
   )
+}
+
+function extractAlertLevelSlots(values: string[]): string[] {
+  const slots: string[] = []
+  for (const value of values) {
+    for (const level of extractAlertLevelNumbers(value)) {
+      slots.push(`alert_threshold_level_${level}`)
+    }
+  }
+  return uniqueStrings(slots)
+}
+
+function extractAlertLevelNumbers(value: string): number[] {
+  const levels: number[] = []
+  const patterns = [
+    /([一二三四五六七八九十]+)级(?:预警|告警)(?:值|阈值)?/gi,
+    /(?:^|[^a-z0-9])(\d+)级(?:预警|告警)(?:值|阈值)?/gi,
+    /level\s*(\d+)\s*(?:alert|threshold)/gi
+  ]
+
+  for (const pattern of patterns) {
+    for (const match of value.matchAll(pattern)) {
+      const level = parseChineseOrArabicNumber(match[1] ?? '')
+      if (level !== null) {
+        levels.push(level)
+      }
+    }
+  }
+
+  return [...new Set(levels)]
+}
+
+function hasAlertLevelValueSignal(text: string, level: number): boolean {
+  const aliases = buildAlertLevelAliases(level)
+  for (const alias of aliases) {
+    const normalizedAlias = normalizeTerm(alias)
+    const index = text.indexOf(normalizedAlias)
+    if (index < 0) {
+      continue
+    }
+
+    const nearbyText = text.slice(index + normalizedAlias.length, index + 160)
+    if (/\b\d+(?:\.\d+)?\s*%/.test(nearbyText)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function buildAlertLevelAliases(level: number): string[] {
+  const chinese = toChineseLevelNumber(level)
+  return [
+    `${chinese}级预警值`,
+    `${chinese}级预警阈值`,
+    `${chinese}级告警值`,
+    `${chinese}级告警阈值`,
+    `${level}级预警值`,
+    `${level}级预警阈值`,
+    `${level}级告警值`,
+    `${level}级告警阈值`,
+    `level ${level} alert`,
+    `level ${level} threshold`
+  ]
+}
+
+function resolveAlertLevelSlotNumber(slot: string): number | null {
+  const match = slot.match(/^alert_threshold_level_(\d+)$/)
+  return match ? Number(match[1]) : null
+}
+
+function parseChineseOrArabicNumber(value: string): number | null {
+  if (/^\d+$/.test(value)) {
+    return Number(value)
+  }
+
+  const digits: Record<string, number> = {
+    一: 1,
+    二: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
+    十: 10
+  }
+  if (value === '十') {
+    return 10
+  }
+  if (value.startsWith('十')) {
+    return 10 + (digits[value[1] ?? ''] ?? 0)
+  }
+  if (value.includes('十')) {
+    const [tens, ones] = value.split('十')
+    return (digits[tens] ?? 0) * 10 + (digits[ones] ?? 0)
+  }
+  return digits[value] ?? null
+}
+
+function toChineseLevelNumber(level: number): string {
+  const digits = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+  if (level <= 10) {
+    return level === 10 ? '十' : digits[level] ?? String(level)
+  }
+  if (level < 20) {
+    return `十${digits[level - 10] ?? ''}`
+  }
+  if (level < 100) {
+    const tens = Math.floor(level / 10)
+    const ones = level % 10
+    return `${digits[tens] ?? tens}十${digits[ones] ?? ''}`
+  }
+  return String(level)
 }
 
 function isFieldContextTerm(term: string): boolean {
@@ -648,6 +795,3 @@ function uniqueStrings(values: string[]): string[] {
 
   return result
 }
-
-
-

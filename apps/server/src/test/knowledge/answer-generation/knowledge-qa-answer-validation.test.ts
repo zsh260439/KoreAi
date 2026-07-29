@@ -2,8 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  __testResolveRequestedSlots,
   buildCompleteDeterministicFieldAnswer,
   getMissingRequestedEvidenceValues,
+  isPureDeterministicFieldQuestion,
   scoreRequestedEvidenceCoverage
 } from '../../../modules/knowledge/pipeline/answer-generation/knowledge-qa-answer-validation'
 
@@ -54,16 +56,16 @@ test('builds deterministic answer when every requested field has a concrete valu
   assert.equal(
     answer?.answer,
     [
-      '\u4e3b\u63a7\u5236\u9608\u503c\uff1a56%',
-      '\u8d23\u4efb\u89d2\u8272\uff1aquality_supervisor',
-      '\u9884\u8b66\u503c\uff1a79%',
-      '\u5904\u7f6e\u4ee3\u7801\uff1aACT-PMFG-21'
+      '主控制阈值：56%',
+      '责任角色：quality_supervisor',
+      '预警值：79%',
+      '处置代码：ACT-PMFG-21'
     ].join('\n')
   )
 })
 
 test('does not use generic dashboard threshold as a level-specific alert value', () => {
-  const question = 'PDF-MED-03\u5b58\u5728\u4e8c\u7ea7\u9884\u8b66\u503c\u5417'
+  const question = 'PDF-MED-03 存在二级预警值吗'
   const hits = [
     {
       chunkId: 'visual',
@@ -75,24 +77,139 @@ test('does not use generic dashboard threshold as a level-specific alert value',
   ]
 
   assert.deepEqual(getMissingRequestedEvidenceValues(question, '', hits), [])
-  assert.equal(scoreRequestedEvidenceCoverage('\u9884\u8b66\u503c\uff1a87%', question, hits), 0)
+  assert.equal(scoreRequestedEvidenceCoverage('预警值：87%', question, hits), 0)
   assert.equal(buildCompleteDeterministicFieldAnswer(question, hits), null)
 })
 
 test('extracts level-specific alert values only when the evidence label is explicit', () => {
-  const question = 'PDF-MED-03\u4e00\u7ea7\u9884\u8b66\u503c\u548c\u4e8c\u7ea7\u9884\u8b66\u503c\u5206\u522b\u662f\u4ec0\u4e48'
+  const question = 'PDF-MED-03 一级预警值和二级预警值分别是什么'
   const hits = [
     {
       chunkId: 'visual',
       documentId: 'med-03',
       documentName: 'healthcare_03_complex.pdf',
-      content: 'PDF-MED-03 \u4e00\u7ea7\u9884\u8b66\u503c 87% \u4e8c\u7ea7\u9884\u8b66\u503c 92%',
+      content: 'PDF-MED-03 一级预警值 87% 二级预警值 92%',
       score: 1
     }
   ]
 
   assert.equal(
     buildCompleteDeterministicFieldAnswer(question, hits)?.answer,
-    ['\u4e00\u7ea7\u9884\u8b66\u503c\uff1a87%', '\u4e8c\u7ea7\u9884\u8b66\u503c\uff1a92%'].join('\n')
+    ['一级预警值：87%', '二级预警值：92%'].join('\n')
   )
+})
+
+test('does not use generic or lower-level alert values as tertiary alert value', () => {
+  const question = 'TXT-PAY-002 存在三级预警值吗'
+  const hits = [
+    {
+      chunkId: 'visual',
+      documentId: 'pay-002',
+      documentName: 'txt-pay-002.txt',
+      content: 'TXT-PAY-002 一级预警值 60% 二级预警值 78% 预警值 78%',
+      score: 1
+    }
+  ]
+
+  assert.deepEqual(__testResolveRequestedSlots(question), ['alert_threshold_level_3'])
+  assert.deepEqual(getMissingRequestedEvidenceValues(question, '', hits), [])
+  assert.equal(scoreRequestedEvidenceCoverage('预警值：78%', question, hits), 0)
+  assert.equal(buildCompleteDeterministicFieldAnswer(question, hits), null)
+})
+
+test('extracts tertiary alert only from explicit tertiary label', () => {
+  const question = 'TXT-PAY-002 三级预警值是多少'
+  const hits = [
+    {
+      chunkId: 'visual',
+      documentId: 'pay-002',
+      documentName: 'txt-pay-002.txt',
+      content: 'TXT-PAY-002 三级预警值 91%',
+      score: 1
+    }
+  ]
+
+  assert.equal(
+    buildCompleteDeterministicFieldAnswer(question, hits)?.answer,
+    '三级预警值：91%'
+  )
+})
+
+test('supports arbitrary alert levels without falling back to generic alert value', () => {
+  const question = 'TXT-PAY-002 四级预警值是多少'
+  const hits = [
+    {
+      chunkId: 'visual',
+      documentId: 'pay-002',
+      documentName: 'txt-pay-002.txt',
+      content: 'TXT-PAY-002 预警值 78% 四级预警值 94%',
+      score: 1
+    }
+  ]
+
+  assert.equal(
+    buildCompleteDeterministicFieldAnswer(question, hits)?.answer,
+    '四级预警值：94%'
+  )
+  assert.equal(scoreRequestedEvidenceCoverage('预警值：78%', question, hits), 0)
+})
+
+test('does not route arbitrary level-qualified non-alert fields to deterministic QA', () => {
+  const question = '六级拦截、3级拦截和八级标志分别是什么'
+  const hits = [
+    {
+      chunkId: 'policy',
+      documentId: 'policy-01',
+      documentName: 'policy.txt',
+      content:
+        '六级拦截 BLOCK-L6 3级拦截 BLOCK-L3 八级标志 FLAG-L8 拦截 BLOCK-GENERIC',
+      score: 1
+    }
+  ]
+
+  assert.deepEqual(__testResolveRequestedSlots(question), [])
+  assert.equal(buildCompleteDeterministicFieldAnswer(question, hits), null)
+  assert.equal(scoreRequestedEvidenceCoverage('拦截：BLOCK-GENERIC', question, hits), 0)
+})
+
+test('does not route english generic level fields to deterministic QA', () => {
+  const question = 'level6 block 和 level 8 flag 分别是什么'
+  const hits = [
+    {
+      chunkId: 'policy',
+      documentId: 'policy-01',
+      documentName: 'policy.txt',
+      content: 'level 6 block BLOCK-L6 level8flag FLAG-L8 block BLOCK-GENERIC',
+      score: 1
+    }
+  ]
+
+  assert.deepEqual(__testResolveRequestedSlots(question), [])
+  assert.equal(buildCompleteDeterministicFieldAnswer(question, hits), null)
+  assert.equal(scoreRequestedEvidenceCoverage('block：BLOCK-GENERIC', question, hits), 0)
+})
+
+test('does not use deterministic field answer for mixed field and open-ended questions', () => {
+  const question =
+    'DOCX-LOCK-023 存在三级预警值吗？TXT-ENE-026 描述了什么通用归档模式？'
+  const hits = [
+    {
+      chunkId: 'lock',
+      documentId: 'lock-023',
+      documentName: 'DOCX-LOCK-023.docx',
+      content: 'DOCX-LOCK-023 三级预警值 93%',
+      score: 1
+    },
+    {
+      chunkId: 'ene',
+      documentId: 'ene-026',
+      documentName: 'TXT-ENE-026.txt',
+      content:
+        'TXT-ENE-026 通用归档模式：每次修改保留旧值、新值、修改原因和审核人。',
+      score: 1
+    }
+  ]
+
+  assert.equal(isPureDeterministicFieldQuestion(question), false)
+  assert.equal(buildCompleteDeterministicFieldAnswer(question, hits), null)
 })
