@@ -24,7 +24,7 @@ const FIELD_ALIAS_GROUPS: Array<{
   aliases: string[]
 }> = [
   {
-    pattern: /\u5904\u7f6e\u4ee3\u7801|\u5904\u7f6e\u7f16\u7801|\u52a8\u4f5c\u4ee3\u7801|\u5904\u7f6e\u7f16\u53f7|\u6267\u884c\u7f16\u53f7/i,
+    pattern: /处置代码|处置编码|动作代码|处置编号|执行编号/i,
     aliases: ['ACTION CODE']
   },
   {
@@ -32,7 +32,7 @@ const FIELD_ALIAS_GROUPS: Array<{
     aliases: ['ALERT THRESHOLD', 'visual alert']
   },
   {
-    pattern: /\u54cd\u5e94\u65f6\u9650|\u54cd\u5e94\u65f6\u95f4|\u5904\u7406\u65f6\u9650/i,
+    pattern: /响应时限|响应时间|处理时限/i,
     aliases: ['ESCALATION WINDOW']
   },
   {
@@ -63,9 +63,9 @@ export class KnowledgeQueryEngineService {
       retrievalHints?: string[]
     }
   ): Promise<KnowledgeQueryPlan> {
-    // 淇濈暀鍘熷 query锛屼究浜庤皟璇曢潰鏉垮睍绀虹敤鎴锋渶鍒濊緭鍏ャ€?
+    // 保留原始 query，便于调试面板展示用户最初输入。
     const originalQuery = typeof query === 'string' ? query : ''
-    // 褰掍竴鍖栧彧鍋氭枃鏈竻娲楋紝涓嶅仛璇箟鏀瑰啓銆?
+    // 归一化只做文本清洗，不做语义改写。
     const normalizedQuery = normalizeQuery(originalQuery)
 
     if (!normalizedQuery) {

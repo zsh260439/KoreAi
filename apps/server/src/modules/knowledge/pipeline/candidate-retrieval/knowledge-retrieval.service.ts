@@ -305,7 +305,7 @@ export class KnowledgeRetrievalService {
     const baseCandidateLimit = resolveCandidateLimit(effectiveTopK, hints)
     const candidateLimit = resolveCeCandidateLimit(baseCandidateLimit, effectiveTopK, hints, plan)
 
-    // 鍩虹鍙洖鍜?reference 杞婚噺閫氶亾骞惰鎵ц锛岄伩鍏嶈鍒?鏍囧噯绫绘枃妗ｈ杩戦偦涓氬姟鏂囨。鐩栨帀銆?
+    // 基础召回和 reference 轻量通道并行执行，避免规则/标准类文档被邻近业务文档覆盖。
     const [bm25Candidates, vectorCandidates, referenceCandidates] = await Promise.all([
       this.knowledgeBm25Service.search(plan.bm25Query, knowledgeBaseId, candidateLimit),
       this.vectorRecall(plan.vectorQuery, knowledgeBaseId, candidateLimit),
@@ -1226,7 +1226,7 @@ function selectBetterResult(
   return primary
 }
 
-// 杩欏眰鍙仛鈥滅‘瀹氭€х殑绮剧‘鍖归厤閲嶆帓鈥濓紝涓嶆敼鍒嗘暟瀹氫箟锛屽彧鏀归『搴忋€?
+// 这一层只做确定性的精确匹配重排，不改分数定义，只改顺序。
 function applyDeterministicRerank(
   hits: KnowledgeSearchHit[],
   plan: KnowledgeQueryPlan,
@@ -1242,12 +1242,12 @@ function applyDeterministicRerank(
     const leftEvidenceScore = left.scoreDetail?.evidenceScore ?? 0
     const rightEvidenceScore = right.scoreDetail?.evidenceScore ?? 0
 
-    // 瀵瑰甫缁撴瀯鍖栫紪鍙风殑 query锛屽厛鎸夊畬鏁寸紪鍙疯鐩栧仛纭帓搴忥紝閬垮厤杩戦偦鏂囨。闈犺涔夊垎椤朵笂鏉ャ€?
+    // 对带结构化编号的 query，先按完整编号覆盖做硬排序，避免邻近文档靠语义分顶上来。
     if (rightSignal.structuredFullCoverage !== leftSignal.structuredFullCoverage) {
       return rightSignal.structuredFullCoverage - leftSignal.structuredFullCoverage
     }
 
-    // 鍚屾棌涓嶅悓鍙峰睘浜庡吀鍨嬭鍙洖锛岃姣旀櫘閫?fused score 鏇存棭鍦颁笅娌夈€?
+    // 同族不同号属于典型误召回，要比普通 fused score 更早地下沉。
     if (leftSignal.siblingIdentifierConflicts !== rightSignal.siblingIdentifierConflicts) {
       return leftSignal.siblingIdentifierConflicts - rightSignal.siblingIdentifierConflicts
     }
@@ -1837,7 +1837,7 @@ function candidateToSearchHit(candidate: KnowledgeRetrievalCandidate): Knowledge
   }
 }
 
-    // 鍙傝€冩枃妗ｅ彧琛ュ熬閮ㄨ瘉鎹紝涓嶆姠鍗犱富妫€绱㈢殑棣栦綅缁撴灉銆?
+    // 参考文档只补尾部证据，不占用主检索的首位结果。
 function computeTopCoverageScore(
   hits: KnowledgeSearchHit[],
   scopeTerms: string[]
@@ -1908,7 +1908,7 @@ function normalizeForExactMatch(value: string): string {
     .trim()
 }
 
-// 杩欓噷鏃㈡敮鎸佹暣璇嶅尮閰嶏紝涔熷吋瀹瑰甫杩炴帴绗︾殑缁撴瀯鍖?token銆?
+// 这里既支持整词匹配，也兼容带连接符的结构化 token。
 function containsExactTerm(haystack: string, needle: string): boolean {
   if (!haystack || !needle) {
     return false
@@ -1932,7 +1932,7 @@ function escapeLikePattern(value: string): string {
 }
 
 function buildStrictReferenceRoleLikePatterns(): string[] {
-  // 杩欓噷鍙〃杈锯€滄敮鎾?鏍囧噯绫绘枃妗ｂ€濈殑鏂囦欢鍚嶆垨鏍囬瑙掕壊锛屼笉缁戝畾浠讳綍璇勬祴闆嗘枃浠跺悕銆?
+  // 这里只表达“支撑/标准类文档”的文件名或标题角色，不绑定任何评测集文件名。
   return [
     '%reference%',
     '%standard%',
@@ -1940,11 +1940,11 @@ function buildStrictReferenceRoleLikePatterns(): string[] {
     '%specification%',
     '%spec%',
     '%pack%',
-    '%瑙勮寖%',
-    '%鏍囧噯%',
-    '%鎸囧崡%',
-    '%鍙傝€?',
-    '%鏀拺%'
+    '%规范%',
+    '%标准%',
+    '%指南%',
+    '%参考%',
+    '%支撑%'
   ]
 }
 

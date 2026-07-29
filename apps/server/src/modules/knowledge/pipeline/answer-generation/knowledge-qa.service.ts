@@ -162,7 +162,7 @@ export class KnowledgeQaService {
           const answerEvents: KnowledgeQaStreamEvent[] = []
           let hasAnswerDelta = false
 
-          // text 瀛愭祦鐩存帴瀵瑰簲妯″瀷鐨勬枃鏈閲忥紝閬垮厤浠庨€氱敤浜嬩欢娴佸啀娆¤仛鍚堝悗鎵嶄笅鍙戙€?
+          // text 子流直接对应模型的文本增量，避免从通用事件流再次聚合后才下发。
           for await (const delta of stream.text) {
             if (!delta) {
               continue
@@ -182,7 +182,7 @@ export class KnowledgeQaService {
                 hasAnswerDelta = true
                 answerEvents.push(sectionEvent)
               } else {
-                // 鎬濊€冩憳瑕佸彧鍋氬睍绀猴紝涓嶅弬涓庣瓟妗堜慨琛ワ紱瑙ｆ瀽鍒板悗绔嬪嵆涓嬪彂锛岄伩鍏嶆绱㈢粨鏉熷悗鐨勭┖妗ｃ€?
+                // 思考摘要只做展示，不参与答案修补；解析到后立即下发，避免检索结束后的空档。
                 yield sectionEvent
               }
             }
@@ -238,7 +238,7 @@ export class KnowledgeQaService {
     return provider.runtimeConfig.llm.model
   }
 
-  // QA temperature 鍏佽鎸夌煡璇嗗簱鏄惧紡瑕嗙洊锛屽洜姝よ繖閲屾寜璇锋眰鍒涘缓 client锛岄伩鍏嶇紦瀛樿剰鍙傛暟銆?
+  // QA temperature 允许按知识库显式覆盖，因此这里按请求创建 client，避免缓存脏参数。
   private createClient(
     provider: { baseUrl: string | null; model: string | null },
     temperature?: number
@@ -367,7 +367,7 @@ function hasMissingAnswerWithConcreteEvidence(
   }
 
   const normalizedQuery = normalizeForValueMatch(query)
-  const queryAsksValue = /(?:\u503c|\u4ee3\u7801|\u7f16\u53f7|\u89d2\u8272|\u9608\u503c|\u65f6\u9650|\u7a97\u53e3|window|code|threshold|role|owner|value)/i.test(query)
+  const queryAsksValue = /(?:值|代码|编号|角色|阈值|时限|窗口|window|code|threshold|role|owner|value)/i.test(query)
   if (!queryAsksValue) {
     return false
   }
@@ -461,15 +461,15 @@ function filterHitsByScope(
 function getRequestedSlotLabel(slot: string): string {
   switch (slot) {
     case 'main_control_threshold':
-      return '\u4e3b\u63a7\u5236\u9608\u503c'
+      return '主控制阈值'
     case 'responsible_role':
-      return '\u8d23\u4efb\u89d2\u8272'
+      return '责任角色'
     case 'alert_threshold':
-      return '\u9884\u8b66\u503c'
+      return '预警值'
     case 'action_code':
-      return '\u5904\u7f6e\u4ee3\u7801'
+      return '处置代码'
     case 'response_time':
-      return '\u54cd\u5e94\u65f6\u9650'
+      return '响应时限'
     default:
       return ''
   }
@@ -494,7 +494,7 @@ function formatHitsForRepair(hits: KnowledgeSearchHit[]): string {
 function extractConcreteEvidenceValues(hits: KnowledgeSearchHit[]): string[] {
   const values = new Set<string>()
   const pattern =
-    /\b[A-Z]{2,}(?:-[A-Z0-9]+){1,}\d*\b|\b[a-z]+(?:_[a-z0-9]+)+\b|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*(?:hours?|\u5c0f\u65f6|\u5206\u949f|days?)\b/gi
+    /\b[A-Z]{2,}(?:-[A-Z0-9]+){1,}\d*\b|\b[a-z]+(?:_[a-z0-9]+)+\b|\b\d+(?:\.\d+)?\s*%|\b\d+(?:\.\d+)?\s*(?:hours?|小时|分钟|days?)\b/gi
 
   for (const hit of hits.slice(0, 8)) {
     for (const match of hit.content.match(pattern) ?? []) {
@@ -509,7 +509,7 @@ function extractConcreteEvidenceValues(hits: KnowledgeSearchHit[]): string[] {
 }
 
 function isMissingKnowledgeAnswer(answer: string): boolean {
-  return /(?:\u672a\u5728.*\u8bc1\u636e.*\u627e\u5230|\u672a\u627e\u5230|\u627e\u4e0d\u5230|\u6ca1\u6709\u627e\u5230|\u65e0\u6cd5\u786e\u5b9a|\u65e0\u6cd5\u786e\u8ba4|\u8bc1\u636e\u4e0d\u8db3|\u4e0d\u5305\u542b|\u6ca1\u6709\u63d0\u4f9b|not found|not provided|cannot determine)/i
+  return /(?:未在.*证据.*找到|未找到|找不到|没有找到|无法确定|无法确认|证据不足|不包含|没有提供|not found|not provided|cannot determine)/i
     .test(answer)
 }
 

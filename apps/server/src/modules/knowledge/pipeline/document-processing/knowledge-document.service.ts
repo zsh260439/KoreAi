@@ -337,7 +337,7 @@ export class KnowledgeDocumentService implements OnApplicationBootstrap, OnAppli
     const document = await this.findEntity(documentId)
     const trashBytes = await this.getTrashBytes()
     if (trashBytes + Number(document.fileSizeBytes ?? 0) > TRASH_QUOTA_BYTES) {
-      throw new ConflictException('鍥炴敹绔欏凡杈惧埌 5GB锛岃鍏堟案涔呭垹闄ゆ棫鏂囨。')
+      throw new ConflictException('回收站已达到 5GB，请先永久删除旧文档')
     }
     const previousStatus = document.status
     document.status = 'inactive'
@@ -364,7 +364,7 @@ export class KnowledgeDocumentService implements OnApplicationBootstrap, OnAppli
   async restoreKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
     const document = await this.findEntity(documentId)
     if (document.status !== 'inactive') {
-      throw new BadRequestException('鏂囨。涓嶅湪鍥炴敹绔欎腑')
+      throw new BadRequestException('文档不在回收站中')
     }
     document.status = 'indexed'
     document.deletedAt = null
@@ -546,7 +546,8 @@ export class KnowledgeDocumentService implements OnApplicationBootstrap, OnAppli
       try {
         const sourceHash = await hashFile(document.storagePath)
         if (!document.sourceHash) {
-          // 鏃ф暟鎹娆″崌绾ф椂娌℃湁姣旇緝鍩虹嚎锛屽彧璁板綍褰撳墠鍐呭锛屼笉鑳界寽娴嬪畠宸茬粡鍙樺寲銆?          await this.documentRepo.update(document.id, { sourceHash, detectedSourceHash: null })
+          // 旧数据首次升级时没有比较基线，只记录当前内容，不能猜测它已经变化。
+          await this.documentRepo.update(document.id, { sourceHash, detectedSourceHash: null })
           continue
         }
         if (sourceHash === document.sourceHash) {

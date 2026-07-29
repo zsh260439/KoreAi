@@ -225,7 +225,7 @@ function shouldRetryStructuredOcr(text: string | null): boolean {
   }
 
   const normalized = text.toLowerCase()
-  const mentionsStructuredCode = normalized.includes('action code') || text.includes('澶勭疆浠ｇ爜')
+  const mentionsStructuredCode = normalized.includes('action code') || text.includes('处置代码')
   const hasMachineCode = /\b[A-Z]{2,}(?:-[A-Z0-9]{2,})+\b/.test(text)
 
   return mentionsStructuredCode && !hasMachineCode

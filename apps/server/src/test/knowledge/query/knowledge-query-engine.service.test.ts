@@ -93,7 +93,7 @@ test('bm25 query debug removes normalized duplicate phrases', async () => {
 test('forced rewrite bypasses analysis for explicit structured field lookups', async () => {
   const service = new KnowledgeQueryEngineService(analysisService)
   const plan = await service.buildPlan(
-    'PDF-FIN-01 \u7684\u4e3b\u63a7\u5236\u9608\u503c\u548c\u8d23\u4efb\u89d2\u8272\u662f\u4ec0\u4e48\uff1f\u9644\u4ef6\u4eea\u8868\u76d8\u4e2d\u7684\u9884\u8b66\u503c\u4e0e\u5904\u7f6e\u4ee3\u7801\u5206\u522b\u662f\u4ec0\u4e48\uff1f',
+    'PDF-FIN-01 的主控制阈值和责任角色是什么？附件仪表盘中的预警值与处置代码分别是什么？',
     {
       enableAnalysis: true,
       forceAnalysis: true,

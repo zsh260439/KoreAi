@@ -227,7 +227,7 @@ async function parseTextDocument(content: string): Promise<ParsedDocument> {
         }
       )
 
-      const body = paragraph.slice(title.length).replace(/^[:锛歕-\s]+/, '').trim()
+      const body = paragraph.slice(title.length).replace(/^[:：\-\s]+/, '').trim()
       if (body) {
         rawOffset = pushStructuredBlock(
           blocks,

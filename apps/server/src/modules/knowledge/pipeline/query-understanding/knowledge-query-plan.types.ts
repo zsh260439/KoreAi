@@ -1,97 +1,97 @@
-﻿export type KnowledgeQueryIntent =
-  /** 绮剧‘鏌ヨ锛岄€氬父渚濊禆缂栧彿銆佷笓鏈夎瘝鎴栨槑纭瓧娈靛尮閰嶃€?*/
+export type KnowledgeQueryIntent =
+  /** 精确查询，通常依赖编号、专有词或明确字段匹配。 */
   | 'precise'
-  /** 鏉′欢鏌ヨ锛岀敤鎴峰甫鏈夋棩鏈熴€佹暟瀛椼€佺増鏈€佽寖鍥存垨鏄惧紡闄愬埗銆?*/
+  /** 条件查询，用户带有日期、数字、版本、范围或显式限制。 */
   | 'constrained'
-  /** 鎺㈢储鏌ヨ锛岀敤鎴锋洿鍏虫敞姒傚康瑙ｉ噴銆佺浉浼艰涔夋垨寮€鏀惧紡璧勬枡銆?*/
+  /** 探索查询，用户更关注概念解释、相似语义或开放式资料。 */
   | 'exploratory'
-  /** 娣峰悎鏌ヨ锛屽悓鏃跺寘鍚簿纭嚎绱㈠拰璇箟鐞嗚В璇夋眰銆?*/
+  /** 混合查询，同时包含精确线索和语义理解诉求。 */
   | 'hybrid'
 
 export type KnowledgeQueryEntityKind =
-  /** 缁撴瀯鍖栨爣璇嗙锛屼緥濡傞敊璇爜銆佸崟鍙枫€佺増鏈彿銆佹枃妗ｇ紪鍙枫€?*/
+  /** 结构化标识符，例如错误码、单号、版本号、文档编号。 */
   | 'identifier'
-  /** 鏁板瓧瀹炰綋锛屼緥濡傚ぉ鏁般€佹鏁般€侀槇鍊笺€侀噾棰濈瓑銆?*/
+  /** 数字实体，例如天数、次数、阈值、金额等。 */
   | 'number'
-  /** 鏃ユ湡鎴栨椂闂村疄浣撱€?*/
+  /** 日期或时间实体。 */
   | 'date'
-  /** 闇€瑕佷繚鐣欏瓧闈㈠惈涔夌殑鏅€氭湳璇€?*/
+  /** 需要保留字面含义的普通术语。 */
   | 'term'
-  /** LLM 鏃犳硶绋冲畾褰掔被浣嗕粛鍊煎緱淇濈暀鐨勫疄浣撱€?*/
+  /** LLM 无法稳定归类但仍值得保留的实体。 */
   | 'unknown'
 
 export type KnowledgeQueryConstraintOperator =
-  /** 缁撴灉蹇呴』绛変簬璇ュ€硷紝閫傚悎缂栧彿銆佺増鏈€佺姸鎬佽繖绫诲己鏉′欢銆?*/
+  /** 结果必须等于该值，适合编号、版本、状态这类强条件。 */
   | 'must_equal'
-  /** 缁撴灉蹇呴』鍖呭惈璇ュ€硷紝閫傚悎鐢ㄦ埛鏄庣‘瑕佹眰鍑虹幇鐨勫叧閿瘝銆?*/
+  /** 结果必须包含该值，适合用户明确要求出现的关键词。 */
   | 'must_contain'
-  /** 缁撴灉鏈€濂藉寘鍚鍊硷紝浣嗕笉鑳藉洜涓虹己澶卞氨鐩存帴鎺掗櫎銆?*/
+  /** 结果最好包含该值，但不能因为缺失就直接排除。 */
   | 'should_contain'
 
 export type KnowledgeRuleSignalConfidence =
-  /** 楂樼疆淇★紝閫氬父鏉ヨ嚜鏄庣‘缂栧彿銆侀敊璇爜銆佸紩鍙疯瘝绛夌‘瀹氭€т俊鍙枫€?*/
+  /** 高置信，通常来自明确编号、错误码、引用词等确定性信号。 */
   | 'high'
-  /** 涓疆淇★紝閫氬父鏉ヨ嚜娴佺▼闂硶銆佺煭 query 鎴?LLM 鍒嗘瀽淇″彿銆?*/
+  /** 中置信，通常来自流程问法、短 query 或 LLM 分析信号。 */
   | 'medium'
-  /** 浣庣疆淇★紝閫氬父琛ㄧず鍙兘璧伴粯璁ゅ潎琛＄瓥鐣ャ€?*/
+  /** 低置信，通常表示只能使用默认均衡策略。 */
   | 'low'
 
 export type KnowledgeQueryEntity = {
-  /** 瀹炰綋绫诲瀷锛岀敤浜庡尯鍒嗘爣璇嗙銆佹暟瀛椼€佹棩鏈熴€佹湳璇瓑銆?*/
+  /** 实体类型，用于区分标识符、数字、日期、术语等。 */
   kind: KnowledgeQueryEntityKind
-  /** 鐢ㄦ埛 query 涓嚭鐜扮殑鍘熷鏂囨湰鐗囨銆?*/
+  /** 用户 query 中出现的原始文本片段。 */
   surface: string
-  /** 褰掍竴鍖栧悗鐨勫疄浣撴枃鏈紝鍚庣画妫€绱㈠拰淇濇姢璇嶄娇鐢ㄨ繖涓€笺€?*/
+  /** 归一化后的实体文本，后续检索和保护词使用这个值。 */
   canonicalForm: string
 }
 
 export type KnowledgeQueryConstraint = {
-  /** 绾︽潫鎿嶄綔绗︼紝鍐冲畾璇ョ害鏉熺敤浜庡寮恒€佷繚鎶よ繕鏄檷鏉冦€?*/
+  /** 约束操作符，决定该约束用于增强、保护还是降权。 */
   operator: KnowledgeQueryConstraintOperator
-  /** 绾︽潫鍊硷紝渚嬪蹇呴』鍖呭惈鐨勬湳璇€佸繀椤绘帓闄ょ殑璇嶃€佺増鏈彿绛夈€?*/
+  /** 约束值，例如必须包含的术语、必须排除的词、版本号等。 */
   value: string
 }
 
-// 瑙勫垯灞傚厛浜у嚭缁撴瀯鍖栦俊鍙凤紝閬垮厤涓€涓婃潵灏辨妸鍙洖鍐崇瓥浜ょ粰 LLM銆?
+// 规则层先产出结构化信号，避免一开始就把召回决策交给 LLM。
 export type KnowledgeQueryRuleSignal = {
-  /** 瑙勫垯灞傚缓璁殑鍙洖妯″紡銆?*/
+  /** 规则层建议的召回模式。 */
   suggestedRetrievalMode: RagRetrievalMode
-  /** 瑙勫垯灞傚缓璁殑缃俊搴︺€?*/
+  /** 规则层建议的置信度。 */
   confidence: KnowledgeRuleSignalConfidence
-  /** 鍛戒腑瑙勫垯鐨勫師鍥犲垪琛紝鐢ㄤ簬 debug 灞曠ず鍜岄棶棰樻帓鏌ャ€?*/
+  /** 命中规则的原因列表，用于 debug 展示和问题排查。 */
   reasons: string[]
-  /** 浠?query 涓彁鍙栧嚭鐨勭簿纭繚鎶よ瘝锛屼緥濡傜紪鍙枫€侀敊璇爜銆佸紩鍙疯瘝銆?*/
+  /** 从 query 中提取出的精确保护词，例如编号、错误码、引用词。 */
   exactTerms: string[]
-  /** 鏄惁鏄煭 query锛岀煭 query 閫氬父鏇翠緷璧栧叧閿瘝鍙洖銆?*/
+  /** 是否是短 query；短 query 通常更依赖关键词召回。 */
   shortQuery: boolean
-  /** 鏄惁鍍忔祦绋嬨€佹帓鏌ャ€佹楠ょ被闂硶銆?*/
+  /** 是否像流程、排查、步骤类问法。 */
   procedureLike: boolean
 }
 
-// 妫€绱㈢瓥鐣ヤ笉浠呭寘鍚潈閲嶏紝涔熷寘鍚€欓€夐泦瑙勬ā锛屼究浜?exact / fallback 浣跨敤涓嶅悓绛栫暐銆?
+// 检索策略不仅包含权重，也包含候选集规模，便于 exact / fallback 使用不同策略。
 export type KnowledgeQueryRetrievalHints = {
-  /** 褰撳墠妫€绱㈡墽琛屼娇鐢ㄧ殑鍙洖妯″紡銆?*/
+  /** 当前检索执行使用的召回模式。 */
   mode: RagRetrievalMode
-  /** BM25 铻嶅悎鏉冮噸锛岀敱鏈湴绛栫暐鏄犲皠锛屼笉鐢?LLM 鐩存帴鍐冲畾銆?*/
+  /** BM25 融合权重，由本地策略映射，不由 LLM 直接决定。 */
   bm25Weight: number
-  /** 鍚戦噺铻嶅悎鏉冮噸锛岀敱鏈湴绛栫暐鏄犲皠锛屼笉鐢?LLM 鐩存帴鍐冲畾銆?*/
+  /** 向量融合权重，由本地策略映射，不由 LLM 直接决定。 */
   vectorWeight: number
-  /** 鍩轰簬 topK 鏀惧ぇ鐨勫€欓€夐泦鍊嶆暟锛岀敤鏉ユ帶鍒跺彫鍥炲€欓€夎妯°€?*/
+  /** 基于 topK 放大的候选集倍数，用来控制召回候选规模。 */
   candidateMultiplier: number
-  /** 鍊欓€夐泦涓嬮檺锛岄伩鍏?topK 寰堝皬鏃跺€欓€夎繃灏戙€?*/
+  /** 候选集下限，避免 topK 很小时候选过少。 */
   minCandidateLimit: number
-  /** 鍊欓€夐泦涓婇檺锛岄伩鍏嶄竴娆″彫鍥炴媺鍙栬繃澶?chunk銆?*/
+  /** 候选集上限，避免一次召回拉取过多 chunk。 */
   maxCandidateLimit: number
 }
 
 export type KnowledgeQueryComplexity =
-  /** 鍗曚簨瀹為棶棰橈紝閫氬父鍙渶瑕佸皯閲忚瘉鎹嵆鍙洖绛斻€?*/
+  /** 单事实问题，通常只需要少量证据即可回答。 */
   | 'single_fact'
-  /** 澶氫簨瀹為棶棰橈紝闇€瑕佸涓簨瀹炴Ы浣嶅悓鏃惰鐩栥€?*/
+  /** 多事实问题，需要多个事实槽位同时覆盖。 */
   | 'multi_fact'
-  /** 闇€瑕佽鍒欍€佹爣鍑嗐€佽鏄庣被鏀拺鏂囨。鍙備笌鐨勫弬鑰冨瀷闂銆?*/
+  /** 需要规则、标准、说明类支撑文档参与的参考型问题。 */
   | 'reference_required'
-  /** 璇佹嵁缂哄け椋庨櫓鏇撮珮鐨勯珮绾︽潫闂銆?*/
+  /** 证据缺失风险更高的高约束问题。 */
   | 'high_constraint'
 
 export type RagUserIntent =
@@ -144,104 +144,101 @@ export type RagExecutionProfile = {
 }
 
 export type KnowledgeQueryEvidencePlan = {
-  /** 缁撴瀯鍖栫紪鍙枫€佺増鏈€侀敊璇爜绛夊繀椤讳紭鍏堣鐩栫殑绮剧‘鏍囪瘑銆?*/
+  /** 结构化编号、版本、错误码等必须优先覆盖的精确标识。 */
   identifiers: string[]
-  /** query 涓嚭鐜扮殑鏁板瓧銆侀槇鍊笺€佹椂闂淬€佹鏁扮瓑浜嬪疄妲戒綅銆?*/
+  /** query 中出现的数字、阈值、时间、次数等事实槽位。 */
   numericTerms: string[]
-  /** 鐢ㄦ埛瀹為檯璇锋眰鐨勫瓧娈垫Ы浣嶏紝鍙湁瀛楁鏍囩闄勮繎瀛樺湪鍏蜂綋鍊兼椂鎵嶇畻瑕嗙洊銆?*/
+  /** 用户实际请求的字段槽位；只有字段标签附近存在具体值时才算覆盖。 */
   fieldSlots: string[]
-  /** 鐢ㄤ簬鍒ゆ柇 chunk 鏄惁瑕嗙洊鍏抽敭璇佹嵁鐨勫瓧娈?鏈璇嶃€?*/
+  /** 用于判断 chunk 是否覆盖关键证据的字段、术语词。 */
   evidenceTerms: string[]
-  /** 鐢ㄤ簬瑙﹀彂 reference/standard/playbook 绛夋敮鎾戞枃妗ｇ殑閫氱敤姒傚康璇嶃€?*/
+  /** 用于触发 reference / standard / playbook 等支撑文档的通用概念词。 */
   referenceTerms: string[]
-  /** query 澶嶆潅搴︼紝鐢ㄤ簬鍔ㄦ€佷笂涓嬫枃棰勭畻鍜岃瘉鎹棬绂併€?*/
+  /** query 复杂度，用于动态上下文预算和证据门禁。 */
   complexity: KnowledgeQueryComplexity
-  /** 鏄惁闇€瑕佸弬鑰?鏍囧噯/瑙勫垯绫绘枃妗ｄ竴璧峰弬涓庡洖绛斻€?*/
+  /** 是否需要参考标准、规则类文档一起参与回答。 */
   needsReference: boolean
-  /** 褰撳墠闂寤鸿杩斿洖缁欑敓鎴愬眰鐨?chunk 鏁般€?*/
+  /** 当前问题建议返回给生成层的 chunk 数。 */
   targetTopK: number
-  /** 褰撳墠闂鍏佽鐨勬渶澶т笂涓嬫枃 chunk 鏁般€?*/
+  /** 当前问题允许的最大上下文 chunk 数。 */
   maxTopK: number
-  /** 姝ｅ父鍥炵瓟鍓嶅缓璁揪鍒扮殑璇佹嵁瑕嗙洊鐜囥€?*/
+  /** 正常回答前建议达到的证据覆盖率。 */
   requiredCoverage: number
-  /** 浣庝簬璇ヨ鐩栫巼鏃跺簲鎷掔粷纭畾鎬у洖绛斻€?*/
+  /** 低于该覆盖率时应拒绝确定性回答。 */
   hardGateCoverage: number
 }
 
 export type KnowledgeQueryAnalysisInput = {
-  /** 鐢ㄦ埛杈撳叆鐨勫師濮?query锛屼繚鐣欑粰 LLM 鍒嗘瀽鍜?debug 灞曠ず銆?*/
+  /** 用户输入的原始 query，保留给 LLM 分析和 debug 展示。 */
   originalQuery: string
-  /** 褰掍竴鍖栧悗鐨?query锛屽彧鍋氭枃鏈竻娲楋紝涓嶅仛璇箟鏀瑰啓銆?*/
+  /** 归一化后的 query，只做文本清洗，不做语义改写。 */
   normalizedQuery: string
 }
 
 export type KnowledgeQueryAnalysis = {
-  /** LLM 瀵?query 鎰忓浘鐨勫垎绫伙紝鍙綔涓烘湰鍦拌矾鐢辩殑杈撳叆淇″彿銆?*/
+  /** LLM 对 query 意图的分类，只作为本地路由的输入信号。 */
   intent: KnowledgeQueryIntent
-  /** LLM 缁欏嚭鐨勬剰鍥捐鏄庯紝鐢ㄤ簬 debug锛屼笉鐩存帴鍙備笌鏉冮噸鍐崇瓥銆?*/
+  /** LLM 给出的意图说明，用于 debug，不直接参与权重决策。 */
   intentReason: string
   /** LLM 判断是否需要精确匹配；只作为新执行画像的输入信号。 */
   needsExactMatch: boolean
   /** LLM 判断是否需要流程类回答；只作为新执行画像的输入信号。 */
   needsProcedure: boolean
-  /** 闈㈠悜 BM25 鐨勫叧閿瘝鐭鎵╁睍銆?*/
+  /** 面向 BM25 的关键词短语扩展。 */
   searchPhrases: string[]
-  /** 闈㈠悜鍚戦噺鍙洖鐨勮涔夋敼鍐?query銆?*/
+  /** 面向向量召回的语义改写 query。 */
   semanticQueries: string[]
-  /** 蹇呴』淇濈暀鐨勮瘝锛屼細杩涘叆 scopeTerms 鍜?BM25 query銆?*/
+  /** 必须保留的词，会进入 scopeTerms 和 BM25 query。 */
   requiredTerms: string[]
-  /** 鍙€夊寮鸿瘝锛屽彧鎵╁睍鍙洖锛屼笉浣滀负蹇呴』鍛戒腑鏉′欢銆?*/
+  /** 可选增强词，只扩展召回，不作为必须命中条件。 */
   optionalTerms: string[]
-  /** 搴旈伩鍏嶇殑璇嶏紝鍚庣画鍙仛鎺掑簭闄嶆潈锛屼笉鍋氱‖杩囨护銆?*/
+  /** 应避免的词，后续只做排序降权，不做硬过滤。 */
   excludedTerms: string[]
-  /** LLM 鎶藉彇鍑虹殑瀹炰綋鍒楄〃锛岀敤浜庤ˉ鍏?scopeTerms 鍜?debug銆?*/
+  /** LLM 抽取出的实体列表，用于补充 scopeTerms 和 debug。 */
   entities: KnowledgeQueryEntity[]
-  /** LLM 鎶藉彇鍑虹殑姝ｅ悜缁撴瀯鍖栫害鏉燂紝鍚庣画鏄犲皠涓轰繚鎶よ瘝鎴栨墿灞曡瘝銆?*/
+  /** LLM 抽取出的正向结构化约束，后续映射为保护词或扩展词。 */
   constraints: KnowledgeQueryConstraint[]
 }
 
 export type KnowledgeQueryPlan = {
-  /** 鐢ㄦ埛杈撳叆鐨勫師濮?query銆?*/
+  /** 用户输入的原始 query。 */
   originalQuery: string
-  /** 褰掍竴鍖栧悗鐨?query銆?*/
+  /** 归一化后的 query。 */
   normalizedQuery: string
-  /** 鏈€缁堜紶缁?BM25 鐨勬绱?query銆?*/
+  /** 最终传给 BM25 的检索 query。 */
   bm25Query: string
-  /** 鏈€缁堜紶缁欏悜閲忓彫鍥炵殑妫€绱?query銆?*/
+  /** 最终传给向量召回的检索 query。 */
   vectorQuery: string
-  /** 鏄惁鎵ц杩?LLM query analysis銆?*/
+  /** 是否执行过 LLM query analysis。 */
   rewriteApplied: boolean
-  /** LLM query analysis 缁撴灉锛涙湭鍚敤銆佸け璐ユ垨楂樼疆淇¤鍒欒烦杩囨椂涓?null銆?*/
+  /** LLM query analysis 结果；未启用、失败或高置信规则跳过时为 null。 */
   analysis: KnowledgeQueryAnalysis | null
-  /** 鏈湴瑙勫垯灞傝緭鍑虹殑鍓嶇疆淇″彿銆?*/
+  /** 本地规则层输出的前置信号。 */
   ruleSignal: KnowledgeQueryRuleSignal
-  /** 閫忎紶 LLM 鎶藉彇瀹炰綋锛屼究浜?debug 鍜屽悗缁墿灞曘€?*/
+  /** 透传 LLM 抽取实体，便于 debug 和后续扩展。 */
   entities: KnowledgeQueryEntity[]
-  /** 閫忎紶 LLM 鎶藉彇绾︽潫锛屼究浜?debug 鍜屽悗缁墿灞曘€?*/
+  /** 透传 LLM 抽取约束，便于 debug 和后续扩展。 */
   constraints: KnowledgeQueryConstraint[]
-  /** 闇€瑕佷紭鍏堜繚鎶ょ殑绮剧‘璇嶏紝鐢ㄤ簬 fallback 鍒ゆ柇鍜岀‘瀹氭€ч噸鎺掋€?*/
+  /** 需要优先保护的精确词，用于 fallback 判断和确定性重排。 */
   scopeTerms: string[]
-  /** 闇€瑕佸湪鎺掑簭闃舵闄嶆潈鐨勬帓闄よ瘝銆?*/
+  /** 需要在排序阶段降权的排除词。 */
   excludedTerms: string[]
-  /** 鍛戒腑鐨勭敤鎴峰彲閰嶇疆 query mapping 瑙﹀彂璇嶃€?*/
+  /** 命中的用户可配置 query mapping 触发词。 */
   appliedQueryMappings: string[]
-  /** query mapping 杩藉姞鍒板彫鍥炲眰鐨勬墿灞曡瘝銆?*/
+  /** query mapping 追加到召回层的扩展词。 */
   queryMappingTerms: string[]
-  /** 浼氳瘽鐭湡璁板繂杩藉姞鍒板彫鍥炲眰鐨勬彁绀鸿瘝銆?*/
+  /** 会话短期记忆追加到召回层的提示词。 */
   retrievalHintTerms: string[]
-  /** 鍥犳湰杞樉寮忓璞′紭鍏堣€屼涪寮冪殑浼氳瘽璁板繂鎻愮ず璇嶃€?*/
+  /** 因本轮显式对象优先而丢弃的会话记忆提示词。 */
   droppedRetrievalHintTerms: string[]
-  /** 鏈疆鏄惧紡瀵硅薄涓庝細璇濊蹇嗗璞℃槸鍚﹀彂鐢熷啿绐併€?*/
+  /** 本轮显式对象与会话记忆对象是否发生冲突。 */
   retrievalHintConflict: boolean
   scope: ResolvedRetrievalScope
   executionProfile: RagExecutionProfile
-  /** 璇佹嵁椹卞姩妫€绱㈣鍒掞紝渚涢噸鎺掋€佷笂涓嬫枃缁勮鍜岀敓鎴愰棬绂佸鐢ㄣ€?*/
+  /** 证据驱动检索计划，供重排、上下文组装和生成门禁复用。 */
   evidencePlan: KnowledgeQueryEvidencePlan
-  /** 涓绘绱㈡墽琛岀瓥鐣ャ€?*/
+  /** 主检索执行策略。 */
   retrieval: KnowledgeQueryRetrievalHints
   /** 弱证据时使用的备用混合检索策略；主策略已经是 hybrid 时为空。 */
   fallbackRetrieval: KnowledgeQueryRetrievalHints | null
 }
-
-
-

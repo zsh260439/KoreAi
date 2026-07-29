@@ -59,7 +59,7 @@ export class KnowledgeQueryAnalysisService {
     }
   }
 
-  // query analysis temperature 鍏佽鎸夎繍琛屾椂閰嶇疆瑕嗙洊锛屽洜姝よ繖閲屼笉缂撳瓨鍗曚竴 client銆?
+  // query analysis temperature 允许按运行时配置覆盖，因此这里不缓存单一 client。
   private createClient(
     provider: { baseUrl: string | null; model: string | null },
     temperature?: number

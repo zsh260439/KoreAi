@@ -10,7 +10,7 @@ export type KnowledgeChunkSearchableFields = {
   sectionPath: string | null
   blockTypes: string | null
 }
-// 鏋勫缓鐭ヨ瘑鍧楃殑鎼滅储瀛楁
+// 构建知识块的搜索字段。
 export function buildKnowledgeChunkSearchableFields(
   document: KnowledgeDocumentEntity,
   parsedDocument: Pick<ParsedDocument, 'fileType' | 'sourceKind'>,

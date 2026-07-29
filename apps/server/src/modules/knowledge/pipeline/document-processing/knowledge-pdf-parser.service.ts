@@ -550,7 +550,7 @@ export function decidePdfParser(inspection: PdfInspection): PdfRouteDecision {
   if (inspection.shortLineRatio >= 0.35) reasons.push('fragmented_lines')
   if (inspection.densePageRatio >= 0.2) reasons.push('dense_layout')
 
-  // 鍘熺敓鎻愬彇鍙湁鍦ㄦ病鏈夌増闈㈤闄╀俊鍙锋椂鎵嶅彲淇★紝鏃犳硶纭鐨勬枃妗ｄ氦缁欑増闈㈣В鏋愬櫒銆?
+  // 原生提取只有在没有版面风险信号时才可信；无法确认的文档交给版面解析器。
   return {
     useMineru: reasons.length > 0,
     reasons: reasons.length > 0 ? reasons : ['clean_selectable_text']

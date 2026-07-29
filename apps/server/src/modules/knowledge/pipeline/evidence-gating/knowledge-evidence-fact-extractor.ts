@@ -17,9 +17,9 @@ const STRUCTURED_IDENTIFIER_PATTERN =
 const CAMEL_CASE_IDENTIFIER_PATTERN = /\b[a-z]+(?:[A-Z][a-z0-9]*)+\b/g
 
 const NUMBER_PATTERN =
-  /\b\d+(?:\.\d+)?\s*(?:%|涓噟娆澶﹟鏉灏忔椂|鍒嗛挓|days?|times?|items?)?\b/gi
+  /\b\d+(?:\.\d+)?\s*(?:%|天|次|项|条|小时|分钟|days?|times?|items?)?\b/gi
 
-const SENTENCE_SPLIT_PATTERN = /(?<=[銆傦紒锛??锛?])\s*|\r?\n+/
+const SENTENCE_SPLIT_PATTERN = /(?<=[。！？；?;])\s*|\r?\n+/
 const MAX_FACTS = 12
 const MAX_SIGNAL_TERMS = 64
 const MAX_FACT_TEXT_LENGTH = 220

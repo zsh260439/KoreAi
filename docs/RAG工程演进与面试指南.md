@@ -69,13 +69,13 @@ flowchart LR
 
 但真实测试后很快暴露问题：
 
-| 问题 | 现象 | 根因 |
-|---|---|---|
-| 编号类问题不稳 | 问 `PDF-ENE-03`，相邻 `PDF-SEC-03` 或同模板 chunk 也可能上来 | 纯语义相似度看不懂“编号必须完全一致” |
-| 多字段问题漏答 | 阈值答了，责任角色或处置代码漏了 | topK 里有目标文档，但最终证据没覆盖全部字段 |
-| 图片字段缺失 | 文本说“值在附件图片中”，但具体 `75% / ACT-*` 没被用上 | OCR/视觉解析与证据抽取割裂 |
-| 模型看见但不用 | chunk 里有值，答案仍说“未找到” | 生成阶段没有显式事实摘要和槽位约束 |
-| 追问污染 | 先问 DOCX，再问 PDF，旧 DOCX 事实进入新 query | 记忆没有按文档/引用范围隔离 |
+| 问题      | 现象                                              | 根因                       |
+| ------- | ----------------------------------------------- | ------------------------ |
+| 编号类问题不稳 | 问 `PDF-ENE-03`，相邻 `PDF-SEC-03` 或同模板 chunk 也可能上来 | 纯语义相似度看不懂“编号必须完全一致”      |
+| 多字段问题漏答 | 阈值答了，责任角色或处置代码漏了                                | topK 里有目标文档，但最终证据没覆盖全部字段 |
+| 图片字段缺失  | 文本说“值在附件图片中”，但具体 `75% / ACT-*` 没被用上             | OCR/视觉解析与证据抽取割裂          |
+| 模型看见但不用 | chunk 里有值，答案仍说“未找到”                             | 生成阶段没有显式事实摘要和槽位约束        |
+| 追问污染    | 先问 DOCX，再问 PDF，旧 DOCX 事实进入新 query               | 记忆没有按文档/引用范围隔离           |
 
 这说明问题不是“模型不够聪明”，而是 RAG 链路没有把“什么证据足够回答”建模清楚。
 
@@ -85,23 +85,23 @@ RAG 的第一层不是检索，而是解析。如果事实没有被解析出来�
 
 当前解析链路覆盖：
 
-| 格式 | 当前处理 | 为什么这样做 |
-|---|---|---|
-| PDF | native parser、MinerU、OCR/VLM fallback | PDF 既可能有可复制文本，也可能是图文混排或扫描页 |
-| DOCX | OOXML 段落、表格、列表、embedded image OCR | 企业文档经常把关键字段放在表格或图片附件里 |
-| Markdown | heading、段落、列表、表格 | Markdown 天然有结构，适合 section-first 切块 |
-| TXT | 段落和标题启发式 | 纯文本结构弱，只能保守识别 |
+| 格式       | 当前处理                                  | 为什么这样做                             |
+| -------- | ------------------------------------- | ---------------------------------- |
+| PDF      | native parser、MinerU、OCR/VLM fallback | PDF 既可能有可复制文本，也可能是图文混排或扫描页         |
+| DOCX     | OOXML 段落、表格、列表、embedded image OCR     | 企业文档经常把关键字段放在表格或图片附件里              |
+| Markdown | heading、段落、列表、表格                      | Markdown 天然有结构，适合 section-first 切块 |
+| TXT      | 段落和标题启发式                              | 纯文本结构弱，只能保守识别                      |
 
 解析后的统一结构是 `StructuredBlock`。它保留：
 
-| 字段 | 人话解释 | 对 RAG 的影响 |
-|---|---|---|
-| `type` | 段落、标题、表格、OCR 页、图片 OCR 等块类型 | 决定后续 chunk 怎么组装 |
-| `content` | 块里的真实文本 | 是检索和回答的主体 |
-| `title` | 当前块标题 | 帮助定位章节 |
-| `sectionPath` | 当前块所在章节路径 | 帮助找“哪一节”的规则 |
-| `pageNumber` | PDF 页码或来源页 | 支持引用溯源 |
-| `bbox` / metadata | 图文解析位置、OCR 来源等 | 支持视觉字段排查 |
+| 字段                | 人话解释                       | 对 RAG 的影响       |
+| ----------------- | -------------------------- | --------------- |
+| `type`            | 段落、标题、表格、OCR 页、图片 OCR 等块类型 | 决定后续 chunk 怎么组装 |
+| `content`         | 块里的真实文本                    | 是检索和回答的主体       |
+| `title`           | 当前块标题                      | 帮助定位章节          |
+| `sectionPath`     | 当前块所在章节路径                  | 帮助找“哪一节”的规则     |
+| `pageNumber`      | PDF 页码或来源页                 | 支持引用溯源          |
+| `bbox` / metadata | 图文解析位置、OCR 来源等             | 支持视觉字段排查        |
 
 最重要的经验：
 
@@ -144,14 +144,14 @@ section-first
 
 关键取舍：
 
-| 设计 | 目的 |
-|---|---|
-| section-first | 优先保证自然章节完整 |
-| target-sized packing | 小段落可以合并到合理大小，避免碎片化 |
-| maxChars fallback | 超长块必须切开，避免一个 chunk 塞太多主题 |
-| overlap 不跨 PDF 页 | 防止页级证据和来源错乱 |
-| content 只保留 section title + body | 文档根标题不重复污染 embedding |
-| documentName / primaryTitle / sectionPath 独立入 searchable fields | 精确检索和语义检索分工 |
+| 设计                                                              | 目的                       |
+| --------------------------------------------------------------- | ------------------------ |
+| section-first                                                   | 优先保证自然章节完整               |
+| target-sized packing                                            | 小段落可以合并到合理大小，避免碎片化       |
+| maxChars fallback                                               | 超长块必须切开，避免一个 chunk 塞太多主题 |
+| overlap 不跨 PDF 页                                                | 防止页级证据和来源错乱              |
+| content 只保留 section title + body                                | 文档根标题不重复污染 embedding     |
+| documentName / primaryTitle / sectionPath 独立入 searchable fields | 精确检索和语义检索分工              |
 
 面试表达：
 
@@ -174,14 +174,14 @@ section-first
 
 关键点：
 
-| 机制 | 解决什么问题 |
-|---|---|
-| 文件指纹 | 判断文档是否真的变了 |
-| chunk 复合指纹 | 未变片段复用 embedding，减少重建成本 |
-| revision 原子切换 | 新索引没建完前不影响线上检索 |
-| active revision 过滤 | 检索永远只读当前有效版本 |
-| BullMQ rebuild queue | 重建异步化，避免 HTTP 长时间阻塞 |
-| cleanup queue | 过期 inactive revision 延时清理 |
+| 机制                   | 解决什么问题                    |
+| -------------------- | ------------------------- |
+| 文件指纹                 | 判断文档是否真的变了                |
+| chunk 复合指纹           | 未变片段复用 embedding，减少重建成本   |
+| revision 原子切换        | 新索引没建完前不影响线上检索            |
+| active revision 过滤   | 检索永远只读当前有效版本              |
+| BullMQ rebuild queue | 重建异步化，避免 HTTP 长时间阻塞       |
+| cleanup queue        | 过期 inactive revision 延时清理 |
 
 面试表达：
 
@@ -201,34 +201,34 @@ section-first
 
 当前更准确的表达是执行画像：
 
-| 维度 | 当前观测字段 | 它回答的问题 | 典型值 |
-|---|---|---|---|
-| 用户意图 | `ragUserIntent` | 用户是在问精确字段、流程、开放总结，还是普通聊天 | `precise`、`procedure`、`comparison`、`general_question` |
-| 范围模式 | `ragScopeMode` | 这次回答应该绑定哪些文档或知识库范围 | `unscoped`、`explicit_scope`、`memory_scope`、`needs_clarification` |
-| 检索模式 | `ragRetrievalMode` | 候选池怎么召回 | `bm25`、`vector`、`hybrid` |
-| 回答模式 | `ragAnswerMode` | 最终应该 RAG、拒答、澄清还是通用回答 | `rag`、`refuse`、`clarify`、`general` |
-| 范围覆盖 | `scopeCoverage` | 用户点名的对象是否都进入最终证据 | `PDF-ENE-01`、`PDF-SEC-01` 是否都覆盖 |
-| 事实覆盖 | `factCoverage` | 问题要求的字段或事实是否有具体证据 | 阈值、责任人、处置代码是否都有值 |
+| 维度   | 当前观测字段             | 它回答的问题                   | 典型值                                                              |
+| ---- | ------------------ | ------------------------ | ---------------------------------------------------------------- |
+| 用户意图 | `ragUserIntent`    | 用户是在问精确字段、流程、开放总结，还是普通聊天 | `precise`、`procedure`、`comparison`、`general_question`            |
+| 范围模式 | `ragScopeMode`     | 这次回答应该绑定哪些文档或知识库范围       | `unscoped`、`explicit_scope`、`memory_scope`、`needs_clarification` |
+| 检索模式 | `ragRetrievalMode` | 候选池怎么召回                  | `bm25`、`vector`、`hybrid`                                         |
+| 回答模式 | `ragAnswerMode`    | 最终应该 RAG、拒答、澄清还是通用回答     | `rag`、`refuse`、`clarify`、`general`                               |
+| 范围覆盖 | `scopeCoverage`    | 用户点名的对象是否都进入最终证据         | `PDF-ENE-01`、`PDF-SEC-01` 是否都覆盖                                  |
+| 事实覆盖 | `factCoverage`     | 问题要求的字段或事实是否有具体证据        | 阈值、责任人、处置代码是否都有值                                                 |
 
 这个拆法的好处是：每个维度只管自己的事。
 
-| 旧做法 | 问题 | 现在的做法 |
-|---|---|---|
-| 一个 `routeType` 同时表达范围、意图、检索策略和回答策略 | 枚举爆炸，边界样本越修越乱 | 拆成 profile 维度，分别记录、分别调试 |
-| 用问题类型决定所有 downstream 行为 | 一个误判会污染整条链路 | 本地规则、LLM 理解、证据门禁各自有边界 |
-| 用 coverage 一个数表示“证据够” | 多文档覆盖和字段值覆盖混在一起 | `scopeCoverage` 和 `factCoverage` 分开看 |
-| 为每个失败样本新增 type | 变成数据集特判 | 只扩展稳定维度或证据 slot |
+| 旧做法                                | 问题              | 现在的做法                                |
+| ---------------------------------- | --------------- | ------------------------------------ |
+| 一个 `routeType` 同时表达范围、意图、检索策略和回答策略 | 枚举爆炸，边界样本越修越乱   | 拆成 profile 维度，分别记录、分别调试              |
+| 用问题类型决定所有 downstream 行为            | 一个误判会污染整条链路     | 本地规则、LLM 理解、证据门禁各自有边界                |
+| 用 coverage 一个数表示“证据够”              | 多文档覆盖和字段值覆盖混在一起 | `scopeCoverage` 和 `factCoverage` 分开看 |
+| 为每个失败样本新增 type                     | 变成数据集特判         | 只扩展稳定维度或证据 slot                      |
 
 高频调试字段解释：
 
-| 字段 | 它是什么 | 影响哪里 | 例子 |
-|---|---|---|---|
-| `evidenceTerms` | 用来判断证据是否够的可验证词 | Evidence gate、补 chunk、事实摘要 | “版本归档”“旧值”“审核人” |
-| `evidenceFieldSlots` | 用户要求的结构化字段槽位 | 证据覆盖、确定性 QA、补证据 | `main_control_threshold`、`action_code` |
-| `evidenceNumericTerms` | 数字、日期、金额、比例 | 多事实覆盖和事实抽取 | `75%`、`3 秒` |
-| `retrievalScopeObjects` | 本轮必须覆盖的文档、记录或对象 | scope gate、引用约束 | `PDF-ENE-03`、`cache_breakdown.md` |
-| `secondLevelRrfQueries` | 弱证据时追加的多个 query 域 | 二层 RRF 候选池 | 原问、改写问、BM25 子域、Vector 子域 |
-| `gateStatus` | 证据门禁结果 | 决定回答、拒答或降级 | `passed`、`degraded`、`blocked` |
+| 字段                      | 它是什么              | 影响哪里                       | 例子                                     |
+| ----------------------- | ----------------- | -------------------------- | -------------------------------------- |
+| `evidenceTerms`         | 用来判断证据是否够的可验证词    | Evidence gate、补 chunk、事实摘要 | “版本归档”“旧值”“审核人”                        |
+| `evidenceFieldSlots`    | 用户要求的结构化字段槽位      | 证据覆盖、确定性 QA、补证据            | `main_control_threshold`、`action_code` |
+| `evidenceNumericTerms`  | 数字、日期、金额、比例       | 多事实覆盖和事实抽取                 | `75%`、`3 秒`                            |
+| `retrievalScopeObjects` | 本轮必须覆盖的文档、记录或对象   | scope gate、引用约束            | `PDF-ENE-03`、`cache_breakdown.md`      |
+| `secondLevelRrfQueries` | 弱证据时追加的多个 query 域 | 二层 RRF 候选池                 | 原问、改写问、BM25 子域、Vector 子域               |
+| `gateStatus`            | 证据门禁结果            | 决定回答、拒答或降级                 | `passed`、`degraded`、`blocked`          |
 
 面试里不要说“我设计了一个很复杂的 type 状态机”。更稳的说法是：
 
@@ -256,12 +256,12 @@ RAG 不能只靠向量。
 
 向量检索擅长理解“意思相近”，但不擅长保证编号完全一致。BM25 擅长精确词面，但白话问题可能召不全。所以当前是混合召回：
 
-| 分支 | 作用 |
-|---|---|
-| BM25 / pg_search | 找编号、字段名、文件名、原词、代码 |
-| pgvector / HNSW | 找语义相近表达 |
-| Reference Seed | 找标准、规范、支撑材料 |
-| RRF | 按名次融合多路候选，避免不同分数体系不可比 |
+| 分支                | 作用                    |
+| ----------------- | --------------------- |
+| BM25 / pg\_search | 找编号、字段名、文件名、原词、代码     |
+| pgvector / HNSW   | 找语义相近表达               |
+| Reference Seed    | 找标准、规范、支撑材料           |
+| RRF               | 按名次融合多路候选，避免不同分数体系不可比 |
 
 一级 RRF 做的是：
 
@@ -306,10 +306,10 @@ BM25 排名 + Vector 排名 + reference/evidence seed
 
 为什么不能直接把多个 rewrite 拼成一个大 query？
 
-| 做法 | 问题 |
-|---|---|
-| 拼成一个大 query | 关键词权重被稀释，BM25 不知道哪些词最重要 |
-| 每个 query 独立召回 | 保留不同表达视角，白话、术语、英文字段都能单独发力 |
+| 做法             | 问题                        |
+| -------------- | ------------------------- |
+| 拼成一个大 query    | 关键词权重被稀释，BM25 不知道哪些词最重要   |
+| 每个 query 独立召回  | 保留不同表达视角，白话、术语、英文字段都能单独发力 |
 | 跨 query 二级 RRF | 多个 query 都命中的 chunk 会自然上升 |
 
 适合触发：
@@ -329,11 +329,11 @@ BM25 排名 + Vector 排名 + reference/evidence seed
 
 真实调试里出现过的例子：
 
-| 问法 | 旧链路问题 | 二层 RRF 后的方向 |
-|---|---|---|
+| 问法                        | 旧链路问题                                   | 二层 RRF 后的方向                                                            |
+| ------------------------- | --------------------------------------- | ---------------------------------------------------------------------- |
 | “能不能只让一个请求去查数据库，其他请求先等着？” | 白话问题容易被普通“数据库并发”材料稀释，query analysis 耗时高 | rewrite 到“Redis 缓存击穿 / 互斥锁 / 等待重试”，多 query 融合后能命中 `cache_breakdown.md` |
-| “附件仪表盘中的预警值呢” | 中文问法和英文 OCR 字段 `ALERT THRESHOLD` 不完全一致 | query domain 保留“附件/仪表盘/alert threshold/dashboard”多视角 |
-| “处置代码是？” | 依赖上一轮上下文，原 query 太短 | 先由 scoped memory 补文档，再按 `ACTION CODE` 扩召回 |
+| “附件仪表盘中的预警值呢”             | 中文问法和英文 OCR 字段 `ALERT THRESHOLD` 不完全一致  | query domain 保留“附件/仪表盘/alert threshold/dashboard”多视角                   |
+| “处置代码是？”                  | 依赖上一轮上下文，原 query 太短                     | 先由 scoped memory 补文档，再按 `ACTION CODE` 扩召回                              |
 
 测试前后的主要变化：
 
@@ -352,11 +352,11 @@ CE 容易被误讲成“接了一个重排模型，所以更准”。这个说�
 
 CE 的边界：
 
-| 能做 | 不能做 |
-|---|---|
-| 在候选池内部判断哪条更相关 | 找回候选池外不存在的 chunk |
-| 处理语义相近但词面不同的候选排序 | 修复解析缺失 |
-| 压掉低相关候选 | 替代精确 ID 保护和编号冲突处理 |
+| 能做               | 不能做               |
+| ---------------- | ----------------- |
+| 在候选池内部判断哪条更相关    | 找回候选池外不存在的 chunk  |
+| 处理语义相近但词面不同的候选排序 | 修复解析缺失            |
+| 压掉低相关候选          | 替代精确 ID 保护和编号冲突处理 |
 
 当前原则：
 
@@ -394,13 +394,13 @@ CE 的边界：
 
 当前改法：按 slot 识别事实。
 
-| slot | 中文问法 | 英文/OCR 字段 | 合格证据 |
-|---|---|---|---|
-| `main_control_threshold` | 主控制阈值、主阈值、管控线 | main control threshold、control threshold | 字段附近有具体百分比 |
-| `alert_threshold` | 预警值、预警线、附件仪表盘预警值 | ALERT THRESHOLD、visual alert | 仪表盘/附件字段附近有具体百分比 |
-| `responsible_role` | 责任角色、负责人、归谁确认 | owner、role、responsible | 字段附近有角色值 |
-| `action_code` | 处置代码、动作码 | ACTION CODE、execute act | 字段附近有 `ACT-*` 或明确代码 |
-| `response_time` | 响应时限、多久内处理 | ESCALATION WINDOW、response time | 字段附近有时间值 |
+| slot                     | 中文问法             | 英文/OCR 字段                                | 合格证据                |
+| ------------------------ | ---------------- | ---------------------------------------- | ------------------- |
+| `main_control_threshold` | 主控制阈值、主阈值、管控线    | main control threshold、control threshold | 字段附近有具体百分比          |
+| `alert_threshold`        | 预警值、预警线、附件仪表盘预警值 | ALERT THRESHOLD、visual alert             | 仪表盘/附件字段附近有具体百分比    |
+| `responsible_role`       | 责任角色、负责人、归谁确认    | owner、role、responsible                   | 字段附近有角色值            |
+| `action_code`            | 处置代码、动作码         | ACTION CODE、execute act                  | 字段附近有 `ACT-*` 或明确代码 |
+| `response_time`          | 响应时限、多久内处理       | ESCALATION WINDOW、response time          | 字段附近有时间值            |
 
 核心规则：
 
@@ -452,24 +452,24 @@ CE 的边界：
 
 目标行为：
 
-| 场景 | 正确行为 |
-|---|---|
-| 同会话先问 `DOCX-ENE-02`，再问“他的处置代码呢” | 允许继承上一轮文档 |
-| 同会话问完 DOCX，再显式问 `PDF-ENE-03` | 不把 DOCX 事实拼进 PDF query |
-| 新会话直接问 `PDF-ENE-03` | 不依赖旧会话记忆，仍要稳定召回 |
-| 问“王者荣耀是什么” | 可走通用知识，不应被知识库弱证据拒答 |
-| 问“能不能只让一个请求查数据库，其他等着” | 如果历史/知识库有 cache_breakdown 事实，记忆可提供 retrieval hints，但仍要 fresh RAG |
+| 场景                              | 正确行为                                                              |
+| ------------------------------- | ----------------------------------------------------------------- |
+| 同会话先问 `DOCX-ENE-02`，再问“他的处置代码呢” | 允许继承上一轮文档                                                         |
+| 同会话问完 DOCX，再显式问 `PDF-ENE-03`    | 不把 DOCX 事实拼进 PDF query                                            |
+| 新会话直接问 `PDF-ENE-03`             | 不依赖旧会话记忆，仍要稳定召回                                                   |
+| 问“王者荣耀是什么”                      | 可走通用知识，不应被知识库弱证据拒答                                                |
+| 问“能不能只让一个请求查数据库，其他等着”           | 如果历史/知识库有 cache\_breakdown 事实，记忆可提供 retrieval hints，但仍要 fresh RAG |
 
 当前 memory board 记录：
 
-| 字段 | 作用 |
-|---|---|
-| `goal` | 当前用户目标 |
-| `currentTopic` | 当前主题 |
+| 字段                  | 作用                     |
+| ------------------- | ---------------------- |
+| `goal`              | 当前用户目标                 |
+| `currentTopic`      | 当前主题                   |
 | `referencedObjects` | 引用过的文档 ID、文件名、代码、角色、章节 |
-| `confirmedFacts` | 已确认答案事实 |
-| `retrievalHints` | 可帮助下一轮检索的词 |
-| `openTodos` | 未完成事项 |
+| `confirmedFacts`    | 已确认答案事实                |
+| `retrievalHints`    | 可帮助下一轮检索的词             |
+| `openTodos`         | 未完成事项                  |
 
 关键原则：
 
@@ -518,12 +518,12 @@ CE 的边界：
 
 这些不一定应该进 RAG。当前策略是：
 
-| 问题类型 | 行为 |
-|---|---|
-| 明确文档 ID、文件名、知识库范围 | 走 RAG |
-| 模糊追问但有最近 citation | 记忆消解后走 RAG |
-| 普通开放问题 | 可绕过 RAG，走通用回答 |
-| 知识库证据弱但用户问的是项目内事实 | 保守回答或拒答 |
+| 问题类型              | 行为            |
+| ----------------- | ------------- |
+| 明确文档 ID、文件名、知识库范围 | 走 RAG         |
+| 模糊追问但有最近 citation | 记忆消解后走 RAG    |
+| 普通开放问题            | 可绕过 RAG，走通用回答 |
+| 知识库证据弱但用户问的是项目内事实 | 保守回答或拒答       |
 
 这里的边界是：通用知识不能伪装成知识库证据。
 
@@ -537,20 +537,20 @@ CE 的边界：
 
 后来 Trace 页面要展示：
 
-| 信息 | 用途 |
-|---|---|
-| originalQuery / normalizedQuery | 用户原问题和归一化结果 |
-| memoryIntent / memoryBoard / retrievalHints | 记忆是否介入，是否污染 |
-| ragUserIntent / ragScopeMode | 用户意图和检索范围是否正确 |
-| ragRetrievalMode / ragAnswerMode | 本轮是混合检索、RAG 回答、拒答还是澄清 |
-| bm25Query / vectorQuery | 两路实际检索词 |
-| bm25HitCount / vectorHitCount | 哪一路命中弱 |
-| secondLevelRrfApplied / Queries | 二层 RRF 是否触发，用了哪些 query 域 |
-| ceCandidateCount / ceLatency | CE 是否跑了 |
+| 信息                                              | 用途                          |
+| ----------------------------------------------- | --------------------------- |
+| originalQuery / normalizedQuery                 | 用户原问题和归一化结果                 |
+| memoryIntent / memoryBoard / retrievalHints     | 记忆是否介入，是否污染                 |
+| ragUserIntent / ragScopeMode                    | 用户意图和检索范围是否正确               |
+| ragRetrievalMode / ragAnswerMode                | 本轮是混合检索、RAG 回答、拒答还是澄清       |
+| bm25Query / vectorQuery                         | 两路实际检索词                     |
+| bm25HitCount / vectorHitCount                   | 哪一路命中弱                      |
+| secondLevelRrfApplied / Queries                 | 二层 RRF 是否触发，用了哪些 query 域    |
+| ceCandidateCount / ceLatency                    | CE 是否跑了                     |
 | evidenceTerms / evidenceFieldSlots / gateStatus | 证据为什么 pass/degraded/blocked |
-| scopeCoverage / factCoverage | 点名对象和事实字段是否分别覆盖 |
-| citations | 最终到底引用了哪些 chunk |
-| persisted JSON | 历史消息的不可变快照 |
+| scopeCoverage / factCoverage                    | 点名对象和事实字段是否分别覆盖             |
+| citations                                       | 最终到底引用了哪些 chunk             |
+| persisted JSON                                  | 历史消息的不可变快照                  |
 
 重要原则：
 
@@ -576,14 +576,14 @@ CE 的边界：
 
 实际链路：
 
-| 项 | 当前实现 |
-|---|---|
-| 请求 | `POST /api/workspace/chat/stream` |
-| 响应类型 | `application/x-ndjson; charset=utf-8` |
-| 前端读取 | `fetch()` + `response.body.getReader()` |
-| 事件形式 | 每行一个 JSON |
+| 项    | 当前实现                                                |
+| ---- | --------------------------------------------------- |
+| 请求   | `POST /api/workspace/chat/stream`                   |
+| 响应类型 | `application/x-ndjson; charset=utf-8`               |
+| 前端读取 | `fetch()` + `response.body.getReader()`             |
+| 事件形式 | 每行一个 JSON                                           |
 | 事件类型 | `thinking_delta`、`answer_delta`、`completed`、`error` |
-| 中断 | `AbortController` |
+| 中断   | `AbortController`                                   |
 
 为什么不上标准 SSE？
 
@@ -602,29 +602,29 @@ CE 的边界：
 
 当前评估口径：
 
-| 层 | 看什么 | 说明 |
-|---|---|---|
-| Retrieval Gate | gold document、top1、required terms、multi-fact、irrelevant chunk | 低成本定位召回和证据问题 |
-| RAGAS | faithfulness、context recall、answer correctness 等 | 参考指标，不等于真实正确率 |
-| 人工硬事实核对 | 数字、阈值、角色、代码、时限是否完整 | 最接近业务风险 |
-| Trace 回放 | 失败样本发生在哪一层 | 防止盲目调 prompt |
+| 层              | 看什么                                                           | 说明            |
+| -------------- | ------------------------------------------------------------- | ------------- |
+| Retrieval Gate | gold document、top1、required terms、multi-fact、irrelevant chunk | 低成本定位召回和证据问题  |
+| RAGAS          | faithfulness、context recall、answer correctness 等              | 参考指标，不等于真实正确率 |
+| 人工硬事实核对        | 数字、阈值、角色、代码、时限是否完整                                            | 最接近业务风险       |
+| Trace 回放       | 失败样本发生在哪一层                                                    | 防止盲目调 prompt  |
 
 已记录的测试结果：
 
-| 时间/样本 | 结果 | 怎么解释 |
-|---|---|---|
-| 早期业务问答 | 正确率约 70% | 说明最小 RAG 能跑但不稳定 |
-| 主测试集 | 真实业务正确率 97%+，目标文档召回 99%+，关键事实覆盖约 99%~100% | 说明结构化检索和证据链路显著改善 |
-| 10 领域、60 篇中文长文档、180 道硬事实问题 | 目标文档、关键术语、答案硬事实完整通过 | 说明多领域硬事实稳定性增强 |
-| 2026-07-18 mixed-format run | 121/121 无请求错误，Recall@5 / Top-1 / MRR / final-source gold-document recall 为 `1.0` | 召回层强，但答案质量还不能包装成全通过 |
-| 同轮 mixed-format | answer hard-fact coverage `0.8285`，fully complete `0.6033` | 暴露 final evidence selection 和 DOCX 图片字段仍是瓶颈 |
-| 2026-07-22 memory regression | expected document hit `30/30`，local memory follow-up `6/6` | scoped memory 对追问稳定有效 |
+| 时间/样本                        | 结果                                                                                | 怎么解释                                        |
+| ---------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------- |
+| 早期业务问答                       | 正确率约 70%                                                                          | 说明最小 RAG 能跑但不稳定                             |
+| 主测试集                         | 真实业务正确率 97%+，目标文档召回 99%+，关键事实覆盖约 99%\~100%                                        | 说明结构化检索和证据链路显著改善                            |
+| 10 领域、60 篇中文长文档、180 道硬事实问题   | 目标文档、关键术语、答案硬事实完整通过                                                               | 说明多领域硬事实稳定性增强                               |
+| 2026-07-18 mixed-format run  | 121/121 无请求错误，Recall\@5 / Top-1 / MRR / final-source gold-document recall 为 `1.0` | 召回层强，但答案质量还不能包装成全通过                         |
+| 同轮 mixed-format              | answer hard-fact coverage `0.8285`，fully complete `0.6033`                        | 暴露 final evidence selection 和 DOCX 图片字段仍是瓶颈 |
+| 2026-07-22 memory regression | expected document hit `30/30`，local memory follow-up `6/6`                        | scoped memory 对追问稳定有效                       |
 
 不能误讲：
 
 - 不能把 RAGAS `answer_correctness` 直接说成真实正确率。
 - 不能把 DOCX 图片 OCR 未完全解决包装成“全格式 100%”。
-- 不能只报 Recall@5，因为正确文档进来了，不代表答案字段完整。
+- 不能只报 Recall\@5，因为正确文档进来了，不代表答案字段完整。
 - 不能用低分样本人工改分替代问题修复。
 
 面试表达：
@@ -644,13 +644,13 @@ RAG 项目最容易越修越乱的地方，就是把每个失败 case 都变成�
 
 这些名字看起来都合理，但如果它们直接变成主路由类型，系统很快会失控。因为它们混合了不同层的问题：
 
-| 失败现象 | 真正归属层 | 不应该怎么修 |
-|---|---|---|
-| 点名三个文档，只答了两个 | scope coverage | 不应该新增一个“三文档题”路由 |
-| `三级预警值` 被普通 `预警值` 满足 | field slot | 不应该写死三级样本 |
-| 归档模式明明有事实却被拒答 | evidence term expansion | 不应该让 LLM 无条件放行 |
-| 文档召回到了但答案漏字段 | final evidence / deterministic QA | 不应该单纯调 prompt |
-| 语义分块后 chunk 更多但答案没提升 | chunk granularity | 不应该强行保留新策略 |
+| 失败现象                 | 真正归属层                             | 不应该怎么修          |
+| -------------------- | --------------------------------- | --------------- |
+| 点名三个文档，只答了两个         | scope coverage                    | 不应该新增一个“三文档题”路由 |
+| `三级预警值` 被普通 `预警值` 满足 | field slot                        | 不应该写死三级样本       |
+| 归档模式明明有事实却被拒答        | evidence term expansion           | 不应该让 LLM 无条件放行  |
+| 文档召回到了但答案漏字段         | final evidence / deterministic QA | 不应该单纯调 prompt   |
+| 语义分块后 chunk 更多但答案没提升 | chunk granularity                 | 不应该强行保留新策略      |
 
 所以当前架构 type 的核心不是“枚举更多问题类型”，而是把链路拆成稳定维度。
 
@@ -666,12 +666,12 @@ RAG 项目最容易越修越乱的地方，就是把每个失败 case 都变成�
 
 这套结构的工程价值：
 
-| 价值 | 解释 |
-|---|---|
-| 易排查 | 一眼能看出失败发生在范围、召回、证据还是生成 |
-| 少特判 | 新问题优先落到已有维度，不急着新增路由 |
+| 价值  | 解释                       |
+| --- | ------------------------ |
+| 易排查 | 一眼能看出失败发生在范围、召回、证据还是生成   |
+| 少特判 | 新问题优先落到已有维度，不急着新增路由      |
 | 可对比 | A/B 测试可以按模块开关，而不是改一堆隐式分支 |
-| 可面试 | 能讲清楚“为什么这么拆”，而不是只背技术名词 |
+| 可面试 | 能讲清楚“为什么这么拆”，而不是只背技术名词   |
 
 面试表达：
 
@@ -683,14 +683,14 @@ RAG 项目最容易越修越乱的地方，就是把每个失败 case 都变成�
 
 当前稳定 slot：
 
-| slot | 覆盖的问题 | 合格证据 |
-|---|---|---|
-| `main_control_threshold` | 主控制阈值、主控阈值、主阈值 | 当前文档字段附近出现百分比 |
-| `alert_threshold` | 普通预警值、附件仪表盘预警值 | 预警/告警字段附近出现百分比 |
-| `alert_threshold_level_N` | 一级、二级、三级、六级等明确级别预警值 | 同级别标签附近出现百分比 |
-| `responsible_role` | 责任角色、负责人、责任人 | 角色字段附近出现明确角色值 |
-| `action_code` | 处置代码、动作代码、执行编号 | 字段附近出现 `ACT-*` |
-| `response_time` | 响应时限、升级窗口、多久内处理 | 字段附近出现小时、分钟、天等时间值 |
+| slot                      | 覆盖的问题               | 合格证据              |
+| ------------------------- | ------------------- | ----------------- |
+| `main_control_threshold`  | 主控制阈值、主控阈值、主阈值      | 当前文档字段附近出现百分比     |
+| `alert_threshold`         | 普通预警值、附件仪表盘预警值      | 预警/告警字段附近出现百分比    |
+| `alert_threshold_level_N` | 一级、二级、三级、六级等明确级别预警值 | 同级别标签附近出现百分比      |
+| `responsible_role`        | 责任角色、负责人、责任人        | 角色字段附近出现明确角色值     |
+| `action_code`             | 处置代码、动作代码、执行编号      | 字段附近出现 `ACT-*`    |
+| `response_time`           | 响应时限、升级窗口、多久内处理     | 字段附近出现小时、分钟、天等时间值 |
 
 这次“三级预警值”的修复原则：
 
@@ -702,10 +702,10 @@ RAG 项目最容易越修越乱的地方，就是把每个失败 case 都变成�
 
 这个设计看起来比正则多写几条麻烦，但它避免了两个更大的坑：
 
-| 坑 | 后果 |
-|---|---|
+| 坑                           | 后果                          |
+| --------------------------- | --------------------------- |
 | 所有预警都归到一个 `alert_threshold` | 级别问题会被错误值满足，factCoverage 虚高 |
-| 所有“几级什么”都做成动态字段 | `六级拦截`、`八级标志` 这类开放表达会误伤 |
+| 所有“几级什么”都做成动态字段             | `六级拦截`、`八级标志` 这类开放表达会误伤     |
 
 面试表达：
 
@@ -729,12 +729,12 @@ RAG 项目最容易越修越乱的地方，就是把每个失败 case 都变成�
 
 已验证的关键结果：
 
-| 实验 | 结论 |
-|---|---|
-| 100 文档、101 中文问题专项 A/B | A/B Pass 都是 `67/101`，说明低 pass 主要不是分块造成 |
-| B 语义+结构 | chunk 数变多，但 answerCoverage 没有明显提升 |
-| 回退到结构化分块后 30 题重测 | A/B 都达到 `30/30`，说明当前结构分块足够支撑这批硬事实 |
-| 低分复盘 | 主要问题集中在拒答口径、归档模式证据门禁、字段绑定和 final evidence |
+| 实验                    | 结论                                        |
+| --------------------- | ----------------------------------------- |
+| 100 文档、101 中文问题专项 A/B | A/B Pass 都是 `67/101`，说明低 pass 主要不是分块造成    |
+| B 语义+结构               | chunk 数变多，但 answerCoverage 没有明显提升         |
+| 回退到结构化分块后 30 题重测      | A/B 都达到 `30/30`，说明当前结构分块足够支撑这批硬事实         |
+| 低分复盘                  | 主要问题集中在拒答口径、归档模式证据门禁、字段绑定和 final evidence |
 
 所以不能这样讲：
 
@@ -750,14 +750,14 @@ RAG 项目最容易越修越乱的地方，就是把每个失败 case 都变成�
 
 这轮正确率升高，不是因为“语义分块突然变强”，也不是单纯靠模型思考更久，而是几个稳定机制同时收敛：
 
-| 机制 | 解决的问题 | 用户能看到的变化 |
-|---|---|---|
-| 结构化分块回退 | 避免语义分块把短事实切得过碎 | 候选更干净，chunk review 更容易 |
-| 字段 slot 收敛 | 避免普通预警值冒充三级预警值 | `三级预警值` 没证据时不乱答 |
-| 混合问题禁用 deterministic 快路径 | 避免只答第一个字段、漏掉第二个开放问题 | “A 是什么，同时描述 B”能完整走 LLM |
-| 归档模式证据扩展 | 把抽象问法映射到可验证事实 | `通用归档模式` 能匹配 `旧值/新值/审核人/记录编号` |
-| Evidence Gate 降级边界 | 有部分证据时不一刀切拒答 | 开放总结题更少误拒 |
-| final evidence 和 hard fact 验证 | 区分召回成功、证据成功、答案成功 | 测评能解释“为什么错” |
+| 机制                            | 解决的问题               | 用户能看到的变化                      |
+| ----------------------------- | ------------------- | ----------------------------- |
+| 结构化分块回退                       | 避免语义分块把短事实切得过碎      | 候选更干净，chunk review 更容易        |
+| 字段 slot 收敛                    | 避免普通预警值冒充三级预警值      | `三级预警值` 没证据时不乱答               |
+| 混合问题禁用 deterministic 快路径      | 避免只答第一个字段、漏掉第二个开放问题 | “A 是什么，同时描述 B”能完整走 LLM        |
+| 归档模式证据扩展                      | 把抽象问法映射到可验证事实       | `通用归档模式` 能匹配 `旧值/新值/审核人/记录编号` |
+| Evidence Gate 降级边界            | 有部分证据时不一刀切拒答        | 开放总结题更少误拒                     |
+| final evidence 和 hard fact 验证 | 区分召回成功、证据成功、答案成功    | 测评能解释“为什么错”                   |
 
 换句话说，正确率高的根因是链路从“搜到一些相关文本”变成了“知道本题需要哪些对象和哪些事实”。
 
@@ -826,7 +826,7 @@ Evidence Gate 判断“证据够不够回答”。Verified Facts 是在证据够
 
 ### Q12：如果面试官问 RRF 提升了多少，怎么回答？
 
-不要只报一个大数字。可以说：在标准消融里，A0 到 Hybrid/RRF 的主要收益体现在 Recall@5 和 gold source hit 更稳定，但 Pass 不一定同步上涨，因为后续瓶颈转移到了证据门禁和生成。RRF 解决的是“正确候选进池”，不是“最终答案一定完整”。
+不要只报一个大数字。可以说：在标准消融里，A0 到 Hybrid/RRF 的主要收益体现在 Recall\@5 和 gold source hit 更稳定，但 Pass 不一定同步上涨，因为后续瓶颈转移到了证据门禁和生成。RRF 解决的是“正确候选进池”，不是“最终答案一定完整”。
 
 ### Q13：为什么最终正确率高，不是测试集被你针对性优化了吗？
 
@@ -838,21 +838,22 @@ Evidence Gate 判断“证据够不够回答”。Verified Facts 是在证据够
 
 ## 23. 当前代码索引
 
-| 能力 | 当前实现位置 |
-|---|---|
-| 文档解析与 OCR | `apps/server/src/modules/knowledge/pipeline/document-processing/knowledge-document.parser.ts`、`knowledge-pdf-parser.service.ts`、`knowledge-ocr.service.ts` |
-| 结构化切块 | `apps/server/src/modules/knowledge/pipeline/document-processing/knowledge-chunk-builder.ts` |
-| 文档重建与 revision | `apps/server/src/modules/knowledge/pipeline/document-processing/knowledge-document.service.ts`、`knowledge-document-rebuild.processor.ts` |
-| Query Planning | `apps/server/src/modules/knowledge/pipeline/query-understanding/knowledge-query-engine.service.ts` |
-| 规则路由 | `apps/server/src/modules/knowledge/pipeline/query-understanding/knowledge-query-rule-router.ts` |
-| LLM Query Analysis | `apps/server/src/modules/knowledge/pipeline/query-understanding/knowledge-query-analysis.service.ts` |
-| BM25 / 向量召回 | `apps/server/src/modules/knowledge/pipeline/candidate-retrieval/knowledge-bm25.service.ts`、`knowledge-vector-store.service.ts` |
-| RRF / 二层 RRF / Evidence Assembly | `apps/server/src/modules/knowledge/pipeline/candidate-retrieval/knowledge-retrieval.service.ts`、`knowledge-hybrid-ranker.ts` |
-| CE Rerank | `apps/server/src/modules/knowledge/pipeline/candidate-retrieval/knowledge-ce-ranker.ts` |
-| Evidence Plan / Facts | `apps/server/src/modules/knowledge/pipeline/evidence-gating/knowledge-evidence-planner.ts`、`knowledge-evidence-fact-extractor.ts` |
-| QA 生成 | `apps/server/src/modules/knowledge/pipeline/answer-generation/knowledge-qa.service.ts`、`knowledge-qa.prompts.ts` |
-| 短期记忆 | `apps/server/src/modules/workspace/chat/workspace-chat-memory.service.ts` |
-| NDJSON 流式接口 | `apps/server/src/modules/workspace/workspace.controller.ts`、`apps/client/src/servers/workspace.ts` |
-| Workspace Chat | `apps/client/src/composables/workspace/useWorkspaceChat.ts` |
-| Trace 可视化 | `apps/client/src/views/admin/traces/index.vue` |
-| 共享契约 | `apps/share-type/knowledge.ts`、`apps/share-type/workspace.ts` |
+| 能力                               | 当前实现位置                                                                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 文档解析与 OCR                        | `apps/server/src/modules/knowledge/pipeline/document-processing/knowledge-document.parser.ts`、`knowledge-pdf-parser.service.ts`、`knowledge-ocr.service.ts` |
+| 结构化切块                            | `apps/server/src/modules/knowledge/pipeline/document-processing/knowledge-chunk-builder.ts`                                                                |
+| 文档重建与 revision                   | `apps/server/src/modules/knowledge/pipeline/document-processing/knowledge-document.service.ts`、`knowledge-document-rebuild.processor.ts`                   |
+| Query Planning                   | `apps/server/src/modules/knowledge/pipeline/query-understanding/knowledge-query-engine.service.ts`                                                         |
+| 规则路由                             | `apps/server/src/modules/knowledge/pipeline/query-understanding/knowledge-query-rule-router.ts`                                                            |
+| LLM Query Analysis               | `apps/server/src/modules/knowledge/pipeline/query-understanding/knowledge-query-analysis.service.ts`                                                       |
+| BM25 / 向量召回                      | `apps/server/src/modules/knowledge/pipeline/candidate-retrieval/knowledge-bm25.service.ts`、`knowledge-vector-store.service.ts`                             |
+| RRF / 二层 RRF / Evidence Assembly | `apps/server/src/modules/knowledge/pipeline/candidate-retrieval/knowledge-retrieval.service.ts`、`knowledge-hybrid-ranker.ts`                               |
+| CE Rerank                        | `apps/server/src/modules/knowledge/pipeline/candidate-retrieval/knowledge-ce-ranker.ts`                                                                    |
+| Evidence Plan / Facts            | `apps/server/src/modules/knowledge/pipeline/evidence-gating/knowledge-evidence-planner.ts`、`knowledge-evidence-fact-extractor.ts`                          |
+| QA 生成                            | `apps/server/src/modules/knowledge/pipeline/answer-generation/knowledge-qa.service.ts`、`knowledge-qa.prompts.ts`                                           |
+| 短期记忆                             | `apps/server/src/modules/workspace/chat/workspace-chat-memory.service.ts`                                                                                  |
+| NDJSON 流式接口                      | `apps/server/src/modules/workspace/workspace.controller.ts`、`apps/client/src/servers/workspace.ts`                                                         |
+| Workspace Chat                   | `apps/client/src/composables/workspace/useWorkspaceChat.ts`                                                                                                |
+| Trace 可视化                        | `apps/client/src/views/admin/traces/index.vue`                                                                                                             |
+| 共享契约                             | `apps/share-type/knowledge.ts`、`apps/share-type/workspace.ts`                                                                                              |
+

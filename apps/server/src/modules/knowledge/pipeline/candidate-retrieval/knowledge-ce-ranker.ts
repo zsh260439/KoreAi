@@ -39,7 +39,7 @@ export function isExactFieldValueLookup(plan: KnowledgeQueryPlan): boolean {
     )
 }
 
-// topK 鏄笂闄愶紝涓嶅簲浣跨敤鏄庢樉涓嶇浉鍏崇殑鐗囨琛ヨ冻鏁伴噺銆?
+// topK 是上限，不应该使用明显不相关的片段补足数量。
 export function filterCeRelevantHits(
   hits: KnowledgeSearchHit[],
   scoreMap: Map<string, number> | null

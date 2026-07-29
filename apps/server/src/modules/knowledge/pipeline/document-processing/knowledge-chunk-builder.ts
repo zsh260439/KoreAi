@@ -12,7 +12,7 @@ type ChunkSection = {
   blocks: StructuredBlock[]
 }
 
-// 鎸夌粨鏋勪紭鍏堛€侀暱搴﹀厹搴曠殑瑙勫垯鐢熸垚 chunk 鑽夌銆?
+// 按结构优先、长度兜底的规则生成 chunk 草稿。
 export function buildChunksFromBlocks(
   blocks: StructuredBlock[],
   config: StructureAwareChunkConfig
@@ -23,7 +23,7 @@ export function buildChunksFromBlocks(
   return packAdjacentSmallChunks(drafts, config)
 }
 
-// 绔犺妭杈圭晫浼樺厛淇濈暀锛涘悓椤靛皬绔犺妭缁х画缁勫悎锛岄伩鍏嶆爣棰樺拰鍥捐〃璇存槑鍚勮嚜鎴愪负纰庣墖銆?
+// 章节边界优先保留；同页小章节继续组合，避免标题和图表说明各自成为碎片。
 function packAdjacentSmallChunks(
   drafts: ChunkDraft[],
   config: StructureAwareChunkConfig
@@ -141,7 +141,7 @@ function buildChunksWithinSection(
   return mergeSmallTrailingChunk(drafts, config)
 }
 
-// 瑙ｆ瀽鍣ㄧ粰鍑烘暣椤?OCR 鎴栭暱娈佃惤鏃讹紝闀垮害閰嶇疆浠嶅簲鐢熸晥銆?
+// 解析器给出整页 OCR 或长段落时，长度配置仍应生效。
 function splitOversizedBlocks(blocks: StructuredBlock[], targetChars: number): StructuredBlock[] {
   return blocks.flatMap((block) => {
     const content = block.content.trim()
@@ -165,7 +165,7 @@ function splitOversizedBlocks(blocks: StructuredBlock[], targetChars: number): S
   })
 }
 
-// 鍏堟寜涓?section 鍒囧紑锛岄伩鍏嶅悓绾х珷鑺傝绮楁毚鎷兼垚涓€涓彫鍥炲崟鍏冦€?
+// 先按同一 section 切开，避免同级章节被粗暴拼成一个召回单元。
 function splitBlocksBySection(blocks: StructuredBlock[]): ChunkSection[] {
   if (blocks.length === 0) {
     return []
@@ -243,7 +243,7 @@ function resolveHeadingLevel(block: StructuredBlock): number | null {
   return block.sectionPath.length > 0 ? block.sectionPath.length : 1
 }
 
-// 闀垮害鍒ゆ柇鍙礋璐ｅ悓 section 鍐呴儴鐨勫厹搴曟媶鍒嗐€?
+// 长度判断只负责同一 section 内部的兜底拆分。
 function shouldFlushCurrentChunk(
   currentLength: number,
   nextBlockLength: number,
@@ -272,7 +272,7 @@ function createChunkDraft(blocks: StructuredBlock[]): ChunkDraft {
   }
 }
 
-// 璺緞淇℃伅鍙湪 chunk 澶撮噷淇濈暀涓€娆★紝骞朵紭鍏堥€夋嫨褰撳墠 chunk 鐪熸瀵瑰簲鐨?section 鏍囬銆?
+// 路径信息只在 chunk 头里保留一次，并优先选择当前 chunk 真正对应的 section 标题。
 function buildChunkHeader(blocks: StructuredBlock[], sectionPath: string[]): string {
   const firstBlock = blocks[0]
   if (firstBlock && isHeadingBlock(firstBlock)) {
@@ -320,7 +320,7 @@ function hasStandalonePageEvidenceBlock(blocks: StructuredBlock[]): boolean {
   return blocks.some(isStandalonePageEvidenceBlock)
 }
 
-// 濡傛灉鏍囬宸茬粡鍦?chunk 澶撮噷琛ㄨ揪杩囷紝灏变笉瑕佸啀鎶婂悓涓€鏍囬姝ｆ枃閲嶅鍐欎竴閬嶃€?
+// 如果标题已经在 chunk 头里表达过，就不要再把同一标题正文重复写一遍。
 function shouldOmitHeadingFromBody(
   block: StructuredBlock,
   sharedSectionPath: string[],
@@ -374,7 +374,7 @@ function isPathPrefix(prefix: string[], fullPath: string[]): boolean {
   return prefix.every((item, index) => item === fullPath[index])
 }
 
-// overlap 鍙洖甯︽鏂囧潡锛屼笉鎶婃爣棰樺櫔闊冲啀娆″杩涙柊 chunk 寮€澶淬€?
+// overlap 只回带正文块，不把标题噪音再次塞进新 chunk 开头。
 function createOverlapSeed(
   blocks: StructuredBlock[],
   nextBlock: StructuredBlock,
@@ -423,7 +423,7 @@ function calculateBlocksLength(blocks: StructuredBlock[]): number {
   return blocks.reduce((total, block) => total + buildBlockText(block).length, 0)
 }
 
-// 灏忓熬鍧楀彧浼氬湪鍚屼竴涓?section 鍐呭悎骞讹紝涓嶅啀璺ㄧ珷鑺傚洖骞躲€?
+// 小尾块只会在同一个 section 内合并，不再跨章节回并。
 function mergeSmallTrailingChunk(
   drafts: ChunkDraft[],
   config: StructureAwareChunkConfig
