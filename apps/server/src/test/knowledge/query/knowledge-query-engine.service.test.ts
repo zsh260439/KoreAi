@@ -173,6 +173,69 @@ test('explicit multi-object commonality query keeps filename hints and drops tas
   assert.equal(plan.evidencePlan.evidenceTerms.includes('共同点'), false)
 })
 
+test('negated explicit identifier is excluded from positive retrieval scope without analysis', async () => {
+  const service = new KnowledgeQueryEngineService(analysisService)
+  const plan = await service.buildPlan(
+    '不要进入 PDF-ENE-01，比较 PDF-ENE-02 和 PDF-ENE-03',
+    {
+      enableAnalysis: false,
+      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
+    }
+  )
+
+  assert.deepEqual(plan.scope.objects.map((item) => item.value), [
+    'PDF-ENE-02',
+    'PDF-ENE-03'
+  ])
+  assert.deepEqual(plan.excludedTerms, ['PDF-ENE-01'])
+  assert.equal(plan.scopeTerms.includes('PDF-ENE-01'), false)
+  assert.equal(plan.evidencePlan.identifiers.includes('PDF-ENE-01'), false)
+  assert.equal(plan.bm25Query.includes('PDF-ENE-01'), false)
+  assert.equal(plan.vectorQuery.includes('PDF-ENE-01'), false)
+  assert.equal(plan.executionProfile.scopeMode, 'explicit_multi')
+})
+
+test('negated identifier is not restored by analysis required terms', async () => {
+  const service = new KnowledgeQueryEngineService({
+    analyze: async () => ({
+      intent: 'hybrid',
+      intentReason: 'comparison with an excluded document',
+      needsExactMatch: true,
+      needsProcedure: false,
+      searchPhrases: ['PDF-ENE-01 PDF-ENE-02 PDF-ENE-03 comparison'],
+      semanticQueries: ['compare PDF-ENE-01 PDF-ENE-02 PDF-ENE-03'],
+      requiredTerms: ['PDF-ENE-01', 'PDF-ENE-02', 'PDF-ENE-03'],
+      optionalTerms: [],
+      excludedTerms: ['PDF-ENE-01'],
+      entities: [
+        { surface: 'PDF-ENE-01', canonicalForm: 'PDF-ENE-01', kind: 'identifier' },
+        { surface: 'PDF-ENE-02', canonicalForm: 'PDF-ENE-02', kind: 'identifier' },
+        { surface: 'PDF-ENE-03', canonicalForm: 'PDF-ENE-03', kind: 'identifier' }
+      ],
+      constraints: []
+    })
+  } as unknown as KnowledgeQueryAnalysisService)
+
+  const plan = await service.buildPlan(
+    '不要基于 PDF-ENE-01，比较 PDF-ENE-02 和 PDF-ENE-03',
+    {
+      enableAnalysis: true,
+      forceAnalysis: true,
+      runtimeConfig: DEFAULT_KNOWLEDGE_BASE_RUNTIME_CONFIG
+    }
+  )
+
+  assert.deepEqual(plan.scope.objects.map((item) => item.value), [
+    'PDF-ENE-02',
+    'PDF-ENE-03'
+  ])
+  assert.equal(plan.scopeTerms.includes('PDF-ENE-01'), false)
+  assert.equal(plan.evidencePlan.identifiers.includes('PDF-ENE-01'), false)
+  assert.equal(plan.evidencePlan.evidenceTerms.includes('PDF-ENE-01'), false)
+  assert.equal(plan.bm25Query.includes('PDF-ENE-01'), false)
+  assert.equal(plan.vectorQuery.includes('PDF-ENE-01'), false)
+})
+
 function countOccurrences(value: string, term: string): number {
   return value.split(term).length - 1
 }

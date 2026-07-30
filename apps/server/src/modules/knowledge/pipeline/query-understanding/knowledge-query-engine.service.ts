@@ -47,6 +47,8 @@ const FIELD_ALIAS_GROUPS: Array<{
 
 const STRUCTURED_HINT_PATTERN =
   /\b(?:[a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,12}[-_]?\d{2,})\b/gi
+const NEGATED_SCOPE_WINDOW_PATTERN =
+  /(?:不要(?:进入|基于|使用|看|检索|查询)?|别(?:进入|基于|使用|看|检索|查询)?|不(?:基于|使用|看|检索|查询|要)|排除|忽略|剔除|去掉|避开|除了|不要进入|不要基于|不要使用|不基于|不使用|不看|不查|exclude|avoid|ignore|without)\s*[:：,，、]?\s*([a-z0-9]+(?:[-_./:][a-z0-9]+)+|[a-z]{1,12}[-_]?\d{2,})/gi
 const TASK_ONLY_TERM_PATTERN = /^(?:共性|共同点|相同点|差异|区别|对比|比较|综合分析|分析)$/i
 
 @Injectable()
@@ -98,7 +100,12 @@ export class KnowledgeQueryEngineService {
           )
 
     const constraintTerms = buildConstraintTerms(analysis)
-    const excludedTerms = buildExcludedTerms(analysis)
+    const localExcludedTerms = extractNegatedStructuredTerms(normalizedQuery)
+    const excludedTerms = uniqueStrings([
+      ...buildExcludedTerms(analysis),
+      ...localExcludedTerms
+    ]).slice(0, 8)
+    const retrievalQuery = removeExcludedTermsFromQuery(normalizedQuery, excludedTerms)
     const fieldAliasTerms = buildFieldAliasTerms(normalizedQuery)
     const retrievalHintFilter = filterRetrievalHints(
       normalizedQuery,
@@ -113,10 +120,10 @@ export class KnowledgeQueryEngineService {
       ...queryMappingMatch.terms,
       ...retrievalHintFilter.applied
     ])
-    const scopeTerms = buildScopeTerms(ruleSignal, analysis, constraintTerms)
-    const scope = resolveRetrievalScope(normalizedQuery, scopeTerms, retrievalHintFilter.applied)
+    const scopeTerms = buildScopeTerms(ruleSignal, analysis, constraintTerms, excludedTerms)
+    const scope = resolveRetrievalScope(retrievalQuery, scopeTerms, retrievalHintFilter.applied, excludedTerms)
     const evidencePlan = buildKnowledgeQueryEvidencePlan({
-      normalizedQuery,
+      normalizedQuery: retrievalQuery,
       analysis,
       scopeTerms,
       optionalTerms: constraintTerms.optional,
@@ -143,13 +150,14 @@ export class KnowledgeQueryEngineService {
       originalQuery,
       normalizedQuery,
       bm25Query: buildBm25Query(
-        normalizedQuery,
+        retrievalQuery,
         analysis,
         retrieval.mode,
         scopeTerms,
-        [...constraintTerms.optional, ...retrievalExpansionTerms]
+        [...constraintTerms.optional, ...retrievalExpansionTerms],
+        excludedTerms
       ),
-      vectorQuery: buildVectorQuery(normalizedQuery, analysis, retrieval.mode),
+      vectorQuery: buildVectorQuery(retrievalQuery, analysis, retrieval.mode, excludedTerms),
       rewriteApplied: analysis !== null,
       analysis,
       ruleSignal,
@@ -251,7 +259,8 @@ function buildScopeTerms(
   constraintTerms: {
     required: string[]
     optional: string[]
-  }
+  },
+  excludedTerms: string[] = []
 ): string[] {
   const entityTerms =
     analysis?.entities
@@ -260,12 +269,17 @@ function buildScopeTerms(
 
   const requiredTerms = analysis?.requiredTerms ?? []
 
+  const excludedKeys = new Set(excludedTerms.map(normalizeScopeObjectKey))
+
   return compactStructuredExactTerms(expandStructuredIdentifierAliases(uniqueStrings([
     ...ruleSignal.exactTerms,
     ...entityTerms,
     ...requiredTerms,
     ...constraintTerms.required
-  ]).filter((term) => !isTaskOnlyTerm(term)))).slice(0, 8)
+  ])
+    .filter((term) => !isTaskOnlyTerm(term))
+    .filter((term) => !excludedKeys.has(normalizeScopeObjectKey(term)))
+  )).slice(0, 8)
 }
 
 function buildConstraintTerms(
@@ -414,15 +428,16 @@ function resolveAnswerMode(userIntent: RagUserIntent, scopeMode: RagScopeMode): 
 function resolveRetrievalScope(
   normalizedQuery: string,
   scopeTerms: string[],
-  retrievalHints: string[]
+  retrievalHints: string[],
+  excludedTerms: string[] = []
 ): ResolvedRetrievalScope {
   const explicitObjects = extractScopeObjects([
     normalizedQuery,
     ...scopeTerms
-  ], 'explicit')
+  ], 'explicit', excludedTerms)
   const memoryObjects = explicitObjects.length > 0
     ? []
-    : extractScopeObjects(retrievalHints, 'memory')
+    : extractScopeObjects(retrievalHints, 'memory', excludedTerms)
   const objects = explicitObjects.length > 0 ? explicitObjects : memoryObjects
   const mode = resolveScopeMode(objects)
 
@@ -444,10 +459,12 @@ function resolveScopeMode(objects: ResolvedRetrievalScopeObject[]): RagScopeMode
 
 function extractScopeObjects(
   values: string[],
-  source: ResolvedRetrievalScopeObject['source']
+  source: ResolvedRetrievalScopeObject['source'],
+  excludedTerms: string[] = []
 ): ResolvedRetrievalScopeObject[] {
   const objects: ResolvedRetrievalScopeObject[] = []
   const seen = new Set<string>()
+  const excludedKeys = new Set(excludedTerms.map(normalizeScopeObjectKey))
 
   for (const value of values) {
     for (const match of extractStructuredHints(value)) {
@@ -455,7 +472,7 @@ function extractScopeObjects(
         ? 'filename'
         : 'identifier'
       const key = normalizeScopeObjectKey(match)
-      if (!key || seen.has(key)) {
+      if (!key || seen.has(key) || excludedKeys.has(key)) {
         continue
       }
 
@@ -465,6 +482,31 @@ function extractScopeObjects(
   }
 
   return objects.slice(0, 8)
+}
+
+function extractNegatedStructuredTerms(value: string): string[] {
+  const terms: string[] = []
+  for (const match of value.matchAll(NEGATED_SCOPE_WINDOW_PATTERN)) {
+    if (match[1]) {
+      terms.push(match[1])
+    }
+  }
+
+  return uniqueStrings(terms)
+}
+
+function removeExcludedTermsFromQuery(query: string, excludedTerms: string[]): string {
+  if (excludedTerms.length === 0) {
+    return query
+  }
+
+  return excludedTerms.reduce((current, term) => {
+    const escaped = escapeRegExp(term)
+    return current
+      .replace(new RegExp(`\\b${escaped}\\b`, 'gi'), ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }, query)
 }
 
 function buildFieldAliasTerms(normalizedQuery: string): string[] {
@@ -577,14 +619,16 @@ function buildBm25Query(
   analysis: KnowledgeQueryAnalysis | null,
   mode: RagRetrievalMode,
   scopeTerms: string[],
-  optionalConstraintTerms: string[]
+  optionalConstraintTerms: string[],
+  excludedTerms: string[] = []
 ): string {
+  const keepPositiveTerm = createPositiveTermFilter(excludedTerms)
   if (!analysis) {
     return uniqueQueryTerms([
       normalizedQuery,
       ...scopeTerms,
       ...optionalConstraintTerms
-    ]).join(' ')
+    ].filter(keepPositiveTerm)).join(' ')
   }
 
   switch (mode) {
@@ -595,7 +639,7 @@ function buildBm25Query(
         ...analysis.requiredTerms,
         ...analysis.searchPhrases.slice(0, 2),
         ...optionalConstraintTerms.slice(0, 2)
-      ]).join(' ')
+      ].filter(keepPositiveTerm)).join(' ')
     case 'keyword':
     case 'hybrid':
       return uniqueQueryTerms([
@@ -605,7 +649,7 @@ function buildBm25Query(
         ...analysis.searchPhrases,
         ...analysis.optionalTerms.slice(0, 3),
         ...optionalConstraintTerms
-      ]).join(' ')
+      ].filter(keepPositiveTerm)).join(' ')
     case 'semantic':
     default:
       return uniqueQueryTerms([
@@ -614,15 +658,17 @@ function buildBm25Query(
         ...analysis.searchPhrases,
         ...analysis.optionalTerms.slice(0, 4),
         ...optionalConstraintTerms
-      ]).join(' ')
+      ].filter(keepPositiveTerm)).join(' ')
   }
 }
 
 function buildVectorQuery(
   normalizedQuery: string,
   analysis: KnowledgeQueryAnalysis | null,
-  mode: RagRetrievalMode
+  mode: RagRetrievalMode,
+  excludedTerms: string[] = []
 ): string {
+  const keepPositiveTerm = createPositiveTermFilter(excludedTerms)
   if (!analysis) {
     return normalizedQuery
   }
@@ -631,13 +677,23 @@ function buildVectorQuery(
     case 'exact':
       return normalizedQuery
     case 'keyword':
-      return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 1)]).join('\n')
+      return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 1)].filter(keepPositiveTerm)).join('\n')
     case 'hybrid':
-      return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 2)]).join('\n')
+      return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 2)].filter(keepPositiveTerm)).join('\n')
     case 'semantic':
     default:
-      return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 4)]).join('\n')
+      return uniqueStrings([normalizedQuery, ...analysis.semanticQueries.slice(0, 4)].filter(keepPositiveTerm)).join('\n')
   }
+}
+
+function createPositiveTermFilter(excludedTerms: string[]): (term: string) => boolean {
+  const excludedKeys = new Set(excludedTerms.map(normalizeScopeObjectKey))
+  if (excludedKeys.size === 0) {
+    return () => true
+  }
+
+  return (term: string) =>
+    !extractStructuredHints(term).some((hint) => excludedKeys.has(normalizeScopeObjectKey(hint)))
 }
 
 function normalizeQuery(value: string): string {
@@ -740,6 +796,10 @@ function isStructuredExactTerm(value: string): boolean {
 
 function isTaskOnlyTerm(value: string): boolean {
   return TASK_ONLY_TERM_PATTERN.test(value.trim())
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function clampWeight(value: number): number {

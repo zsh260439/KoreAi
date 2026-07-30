@@ -167,6 +167,7 @@ export function buildKnowledgeQueryEvidencePlan(input: {
     ...(input.analysis?.searchPhrases ?? []),
     ...input.optionalTerms
   ])
+    .filter((term) => !input.excludedTerms.some((excludedTerm) => sameTerm(excludedTerm, term)))
   const fieldSlots = extractFieldSlots(input.normalizedQuery, llmTerms)
   const evidenceTerms = uniqueStrings([
     ...input.scopeTerms,
